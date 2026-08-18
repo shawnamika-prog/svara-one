@@ -1,38 +1,65 @@
-# Svara Origins Voice Intelligence Lab
+# Svara Origins — Voice Intelligence Lab
 
-Private research layer for discovering which voices perform best for which use cases.
+Private research tooling. This directory is **not production** and is not included in the customer-facing app.
 
-## Principle
+## Goal
 
-Svara ranks first. Human testing validates the ranking second.
+Svara ranks voices independently before the founder validates the results on the vendors' own platforms.
 
-The initial experiment is intentionally provider-neutral at the scoring layer. A provider adapter supplies audio; the evaluator scores the audio against the same standardized tests.
+Every eligible provider/voice is evaluated against the same controlled test suite.
 
-## First phase
+## Pipeline
 
-1. Enumerate an eligible provider's voice catalogue.
-2. Select a controlled sample set.
-3. Generate identical test scripts for every voice.
-4. Analyze audio and transcription quality.
-5. Score each dimension using `evaluation-rubric.json`.
-6. Produce use-case rankings and an overall ranking.
-7. Only then ask a human to blind-check the top results on the provider's own platform.
+1. Provider catalogue discovery
+2. Rights/eligibility gate
+3. Generate the standardized test suite
+4. Store sample metadata/audio outside Git
+5. Run objective checks (duration, speech rate, transcription fidelity, clipping/loudness where available)
+6. Run a separate evaluator model for subjective dimensions
+7. Apply the Svara weighted scoring model
+8. Produce rankings by use case
+9. Founder independently validates the top-ranked voices on provider platforms
 
-## Do not do yet
+## Research rules
 
-- Do not crawl or display provider voices without permission.
-- Do not store provider credentials in the repository.
+- Provider marketing labels are metadata, not evidence of quality.
+- Do not crawl, display or commercially expose provider voices without permission.
+- Never put provider keys in the repository.
 - Do not expose automated rankings to customers yet.
-- Do not treat LLM judgement as ground truth.
-- Do not move production billing/auth work ahead of validating the scoring engine.
+- Do not treat an LLM judgement as ground truth.
+- Keep generation, measurement, subjective evaluation and ranking as separate modules.
 
-## Deepgram first
+## First provider: Deepgram
 
-Deepgram's current API exposes a public TTS model catalogue and metadata endpoint, and Aura-2 voice IDs can be passed to `/v1/speak`. The first implementation should use the account's authorized model catalogue rather than hard-coding a handful of voices. See the official documentation for the current catalogue and request format.
+Deepgram exposes a public TTS model catalogue through its Models API, including TTS model IDs and metadata. The runner should query the live catalogue rather than hard-code a handful of voices. Deepgram's current docs show Aura-2 model IDs such as `aura-2-thalia-en` and describe metadata including accent, tags, sample and use cases. citehttps://developers.deepgram.com/docs/tts-models
 
-## Output target
+## Running the lab
 
-A ranking record should eventually look like:
+The runner is intentionally a local/research command, not a Cloudflare endpoint. Never put provider keys in the repository.
+
+Required environment variable:
+
+`DEEPGRAM_API_KEY`
+
+Optional output directory:
+
+`SVARA_VOICE_LAB_DIR=./.voice-lab-output`
+
+Example:
+
+```bash
+node voice-lab/run-deepgram.mjs
+```
+
+The runner writes generated audio and metadata to the output directory, which is ignored by Git.
+
+## Output
+
+The runner creates `samples.json`. The evaluator consumes that manifest and returns structured scores. The ranking module then produces deterministic Svara rankings from those scores.
+
+This separation lets us test generation, measurement, subjective evaluation and ranking independently.
+
+## Target ranking record
 
 ```json
 {
