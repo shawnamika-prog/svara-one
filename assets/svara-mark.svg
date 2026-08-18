@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 120" role="img" aria-labelledby="title desc">
-<title>Svara</title><desc>Svara global AI voice platform logo</desc>
-<defs><linearGradient id="g" x1="0" x2="1"><stop stop-color="#18e0c0"/><stop offset=".55" stop-color="#27b8ff"/><stop offset="1" stop-color="#8a6cff"/></linearGradient></defs>
-<g fill="none" stroke="url(#g)" stroke-width="10" stroke-linecap="round">
-<path d="M22 40v40"/><path d="M43 30v60"/><path d="M64 20v80"/><path d="M85 34v52"/><path d="M106 42v36"/>
-</g>
-<path d="M22 60h84" stroke="#fff" stroke-width="3" opacity=".18"/>
-<text x="132" y="78" fill="#fff" font-family="Inter,Arial,sans-serif" font-size="58" font-weight="700" letter-spacing="-2">Svara</text>
-</svg>
