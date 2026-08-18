@@ -1,4 +1,4 @@
-import { getProvider } from "./providers/index.js";
+import { getProvider, getProviderStatus } from "./providers/index.js";
 
 const VOICES = {
   "svara-amara-01": {provider:"deepgram",providerVoiceId:"aura-2-thalia-en"},
@@ -34,7 +34,7 @@ export default {
  async fetch(request,env) {
   if (request.method==="OPTIONS") return new Response(null,{headers:cors(request)});
   const url=new URL(request.url);
-  if (url.pathname==="/api/health") return json({ok:true,service:"svara-api",version:"2"},200,request);
+  if (url.pathname==="/api/health") return json({ok:true,service:"svara-origins-api",version:"2",providers:getProviderStatus(env)},200,request);
   if (url.pathname==="/api/voice/generate" && request.method==="POST") {
     try {
       const body=await request.json();
@@ -43,7 +43,13 @@ export default {
       if(text.length>MAX_CHARS) return json({error:`Maximum ${MAX_CHARS} characters per generation`},400,request);
       const voice=VOICES[body.voiceId] || VOICES["svara-amara-01"];
       const provider=getProvider(env,voice);
-      const upstream=await provider.generate({text,voice,speed:Number(body.speed)||1});
+      const upstream=await provider.generate({
+        text,
+        voice,
+        speed:Number(body.speed)||1,
+        stability:Number(body.stability)||50,
+        style:String(body.style||"")
+      });
       const headers=new Headers(upstream.headers);
       headers.set("content-type","audio/mpeg");
       headers.set("cache-control","private, no-store");
@@ -53,10 +59,7 @@ export default {
       return json({error:"Voice generation failed. Please try again."},502,request);
     }
   }
-  // Serve the static Svara app for all non-API routes.
-  if (env.ASSETS) {
-    return env.ASSETS.fetch(request);
-  }
+  if (env.ASSETS) return env.ASSETS.fetch(request);
   return new Response("Not found",{status:404,headers:cors(request)});
  }
 };
