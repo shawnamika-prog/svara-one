@@ -1,0 +1,27 @@
+{
+  "version": "0.1",
+  "scores": {
+    "naturalness": "1-10: human/non-synthetic quality",
+    "expression": "1-10: emotional range and appropriateness",
+    "prosody": "1-10: rhythm, pauses, emphasis, pitch and energy",
+    "instruction_following": "1-10: adherence to the intended delivery of the test",
+    "consistency": "1-10: stability across the full sample"
+  },
+  "evidence": "Short factual observations tied to the audio; no provider or voice-name bias.",
+  "output": {
+    "dimensions": {
+      "naturalness": 0,
+      "expression": 0,
+      "prosody": 0,
+      "instruction_following": 0,
+      "consistency": 0
+    },
+    "evidence": {
+      "naturalness": "",
+      "expression": "",
+      "prosody": "",
+      "instruction_following": "",
+      "consistency": ""
+    }
+  }
+}

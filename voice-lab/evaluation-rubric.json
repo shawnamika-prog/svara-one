@@ -1,0 +1,32 @@
+{
+  "version": "0.1",
+  "scale": {"min": 1, "max": 10},
+  "dimensions": {
+    "naturalness": "How human and non-synthetic the voice sounds.",
+    "expression": "Emotional range and appropriateness to the script.",
+    "prosody": "Rhythm, pauses, emphasis, pitch and energy variation.",
+    "instruction_following": "How accurately the voice follows requested delivery direction.",
+    "pronunciation": "Clarity and correctness of words, names and places.",
+    "consistency": "Stability of voice quality and delivery over longer passages.",
+    "intelligibility": "Ease of understanding without replaying the sample."
+  },
+  "use_cases": ["conversation", "advertising", "narration", "storytelling", "corporate", "emotional"],
+  "scoring": {
+    "overall": "weighted_mean",
+    "weights": {
+      "naturalness": 0.18,
+      "expression": 0.18,
+      "prosody": 0.14,
+      "instruction_following": 0.14,
+      "pronunciation": 0.12,
+      "consistency": 0.12,
+      "intelligibility": 0.12
+    }
+  },
+  "guardrails": [
+    "Do not score provider metadata as audio quality.",
+    "Do not let one use-case score determine the global ranking.",
+    "Store raw dimension scores alongside the aggregate score.",
+    "Keep human validation separate from automated scores."
+  ]
+}
