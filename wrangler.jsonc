@@ -1,8 +1,11 @@
 {
+  "$schema": "https://unpkg.com/wrangler@4.124.0/config-schema.json",
   "name": "svara-origins",
   "main": "worker/index.js",
   "compatibility_date": "2026-08-18",
   "assets": {
-    "directory": "."
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
   }
 }
