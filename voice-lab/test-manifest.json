@@ -1,0 +1,12 @@
+{
+  "version": "0.1",
+  "tests": [
+    {"id":"conversation","instruction":"Natural, relaxed conversation. Sound human and engaged without overacting.","text":"Hey, thanks for joining us. I wanted to tell you about something we've been working on. It is simple, useful, and designed to make everyday communication feel a little more natural."},
+    {"id":"excitement","instruction":"Genuinely excited and energetic, but believable.","text":"We did it. After months of work, the doors finally open today, and I cannot wait for you to see what we built."},
+    {"id":"warmth","instruction":"Warm, reassuring and intimate without sounding artificial.","text":"Take a breath. You are exactly where you are supposed to be. There is no need to rush this moment."},
+    {"id":"authority","instruction":"Confident, authoritative and clear. Avoid sounding aggressive.","text":"This is the most important decision your team will make this year. Choose the solution that gives your people room to do their best work."},
+    {"id":"storytelling","instruction":"Expressive storytelling with natural pacing and meaningful pauses.","text":"The lights disappeared behind her as the train moved into the night. For the first time, she realized that there was no going back."},
+    {"id":"south-african-pronunciation","instruction":"Clear, natural English pronunciation. Preserve place names naturally.","text":"The South African team will meet in Johannesburg before travelling to Cape Town and Durban on Thursday."},
+    {"id":"long-form","instruction":"Natural narration. Maintain consistent character, pace and intelligibility across the full passage.","text":"Great products rarely begin with a perfect plan. They begin with a question, a problem worth solving, and someone willing to test an idea before it is ready. Over time, small decisions become a system. A useful system becomes a habit. And a habit, when shared by a team, can become a product that people trust. Svara Origins is being built around that principle: test the voices, measure what works, listen carefully, and keep improving the experience for the person who simply wants the right voice for the job."}
+  ]
+}
