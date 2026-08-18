@@ -14,6 +14,7 @@ const ALLOWED_ORIGINS = new Set([
   "https://svara.io",
   "https://www.svara.io",
   "https://svara-origins.pages.dev",
+  "https://svara-origins.shawnamika.workers.dev",
   "http://localhost:8788",
   "http://127.0.0.1:8788"
 ]);
@@ -56,6 +57,17 @@ export default {
       return new Response(upstream.body,{status:200,headers});
     } catch(err) {
       console.error("generation_error",err);
+      // Temporary diagnostic mode: ?debug=1 exposes only the upstream HTTP status
+      // and sanitized provider message. It never exposes credentials.
+      if (url.searchParams.get("debug")==="1") {
+        const message=String(err?.message||"Unknown provider error").slice(0,500);
+        return json({
+          error:"Voice generation failed",
+          diagnostic:true,
+          message,
+          provider:(VOICES["svara-amara-01"]?.provider||"unknown")
+        },502,request);
+      }
       return json({error:"Voice generation failed. Please try again."},502,request);
     }
   }
