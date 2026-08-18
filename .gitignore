@@ -1,0 +1,5 @@
+.voice-lab-output/
+.env
+.env.*
+!.env.example
+node_modules/
