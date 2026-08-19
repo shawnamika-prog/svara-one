@@ -1,4 +1,4 @@
-(() => {
+(()=>{
 let voices=window.SVARA_VOICES||[], list=document.getElementById('voiceList'), search=document.getElementById('voiceSearch');
 let filter='all', selected=voices[0]||null, currentUrl=null;
 const $=id=>document.getElementById(id), PROJECT_KEY='svaraOrigins.projects.v2', CREDIT_KEY='svaraOrigins.demoCredits.v2', START_CREDITS=5000;
@@ -18,7 +18,7 @@ async function loadDeepgramVoices(){
     const data=await res.json();
     const discovered=(data.voices||[]).map(normalizeVoice);
     if(!discovered.length) throw new Error('No Deepgram voices returned');
-    voices=discovered; selected=voices[0]; status.textContent=`${voices.length} Deepgram Aura-2 voices available`;
+    voices=discovered; selected=voices[0]; status.textContent=`${voices.length} voices available`;
     render();
   }catch(err){
     status.textContent='Could not load live catalogue — showing local fallback';
