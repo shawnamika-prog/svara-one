@@ -34,7 +34,7 @@ function cors(request) {
   return {
     "Access-Control-Allow-Origin": ALLOWED_ORIGINS.has(origin) ? origin : "null",
     "Access-Control-Allow-Methods":"GET,POST,OPTIONS",
-    "Access-Control-Allow-Headers":"Content-Type,Authorization",
+    "Access-Control-Allow-Headers":"Content-Type,Authorization,X-Svara-Lab-Token",
     "Vary":"Origin"
   };
 }
@@ -67,6 +67,14 @@ export default {
   const url=new URL(request.url);
 
   if(url.pathname==="/api/health") return json({ok:true,service:"svara-origins-api",version:"2",providers:getProviderStatus(env)},200,request);
+
+  // Public, read-only catalogue used by the Svara Studio voice library.
+  if(url.pathname==="/api/voices"&&request.method==="GET"){
+    try {
+      const voices=await deepgramCatalogue(env);
+      return json({provider:"deepgram",family:"aura-2",voices:voices.map(v=>({voice_id:v.canonical_name,metadata:v.metadata||{}}))},200,request);
+    } catch(err){return json({error:String(err?.message||"Voice catalogue failed").slice(0,300)},502,request);}
+  }
 
   if(url.pathname==="/api/lab/catalogue"&&request.method==="GET"){
     if(!labAllowed(request)) return new Response("Not found",{status:404});
