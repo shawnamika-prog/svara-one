@@ -1,8 +1,36 @@
 window.SVARA_VOICES = [
  {id:"svara-amara-01",name:"Amara",region:"American English",category:"global",style:"Conversational",gender:"Female",provider:"deepgram",providerVoiceId:"aura-2-thalia-en"},
- {id:"svara-james-01",name:"James",region:"British English",category:"global",style:"Professional",gender:"Male",provider:"deepgram",providerVoiceId:"aura-2-orion-en"},
- {id:"svara-thandi-01",name:"Thandi",region:"South African English",category:"south-africa",style:"Warm",gender:"Female",provider:"deepgram",providerVoiceId:"aura-2-thalia-en"},
- {id:"svara-daniel-01",name:"Daniel",region:"Australian English",category:"global",style:"Narration",gender:"Male",provider:"deepgram",providerVoiceId:"aura-2-orion-en"},
- {id:"svara-lea-01",name:"Léa",region:"French",category:"global",style:"Warm",gender:"Female",provider:"deepgram",providerVoiceId:"aura-2-thalia-en"},
- {id:"svara-premium-01",name:"Svara Select",region:"Premium collection",category:"premium",style:"Cinematic",gender:"Female",provider:"deepgram",providerVoiceId:"aura-2-thalia-en"}
+ {id:"svara-james-01",name:"James",region:"British English",category:"global",style:"Professional",gender:"Male",provider:"deepgram",providerVoiceId:"aura-2-orion-en"}
 ];
+
+(async () => {
+  try {
+    const response = await fetch('/api/voices', { cache: 'no-store' });
+    if (!response.ok) throw new Error(`Catalogue ${response.status}`);
+    const data = await response.json();
+    const catalogue = Array.isArray(data.voices) ? data.voices : [];
+    if (!catalogue.length) return;
+    window.SVARA_VOICES = catalogue.map((voice, index) => {
+      const id = String(voice.voice_id || '');
+      const meta = voice.metadata || {};
+      const language = String(meta.language || meta.languages?.[0] || 'English');
+      const accent = String(meta.accent || meta.region || 'Global');
+      const characteristics = Array.isArray(meta.characteristics) ? meta.characteristics : [];
+      const gender = String(meta.gender || characteristics.find(x => /male|female/i.test(String(x))) || 'Voice');
+      const style = characteristics.filter(x => !/male|female/i.test(String(x))).slice(0,2).join(' · ') || 'Natural';
+      return {
+        id: `deepgram-${id || index}`,
+        name: id.replace(/^aura-2-/, '').replace(/-en$/, '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+        region: `${accent} · ${language}`,
+        category: /south africa|south african/i.test(`${accent} ${language}`) ? 'south-africa' : 'global',
+        style,
+        gender,
+        provider: 'deepgram',
+        providerVoiceId: id
+      };
+    }).filter(v => v.providerVoiceId);
+    window.dispatchEvent(new CustomEvent('svara:voices-updated'));
+  } catch (error) {
+    console.warn('Svara voice catalogue unavailable; using fallback voices.', error);
+  }
+})();
