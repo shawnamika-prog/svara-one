@@ -10,6 +10,16 @@ const LAB_TESTS = [
   ["long_form", "The morning began quietly. By midday, the streets were alive with people, conversation and music. A small idea had become a real project, and everyone involved could finally see what was possible when careful work, creativity and persistence came together."]
 ];
 
+const SAMPLE_VOICES = [
+  {code:"en", language:"English", voiceId:"aura-2-thalia-en", name:"Thalia", accent:"American English", text:"Hello, and welcome to SvaraONE. Discover a voice that sounds natural, expressive, and ready for real work."},
+  {code:"es", language:"Spanish", voiceId:"aura-2-celeste-es", name:"Celeste", accent:"Colombian Spanish", text:"Hola, y bienvenido a SvaraONE. Descubre una voz natural, expresiva y lista para el trabajo real."},
+  {code:"de", language:"German", voiceId:"aura-2-julius-de", name:"Julius", accent:"German", text:"Hallo und willkommen bei SvaraONE. Entdecken Sie eine natürliche, ausdrucksstarke Stimme für echte Projekte."},
+  {code:"fr", language:"French", voiceId:"aura-2-agathe-fr", name:"Agathe", accent:"French", text:"Bonjour et bienvenue chez SvaraONE. Découvrez une voix naturelle, expressive et prête pour vos projets."},
+  {code:"nl", language:"Dutch", voiceId:"aura-2-rhea-nl", name:"Rhea", accent:"Dutch", text:"Hallo en welkom bij SvaraONE. Ontdek een natuurlijke, expressieve stem die klaar is voor echt werk."},
+  {code:"it", language:"Italian", voiceId:"aura-2-livia-it", name:"Livia", accent:"Italian", text:"Ciao e benvenuto su SvaraONE. Scopri una voce naturale, espressiva e pronta per il lavoro reale."},
+  {code:"ja", language:"Japanese", voiceId:"aura-2-fujin-ja", name:"Fujin", accent:"Japanese", text:"こんにちは、SvaraONEへようこそ。自然で表現力豊かな音声を、実際のコンテンツにお使いいただけます。"}
+];
+
 const VOICES = {
   "svara-amara-01": {provider:"deepgram",providerVoiceId:"aura-2-thalia-en"},
   "svara-james-01": {provider:"deepgram",providerVoiceId:"aura-2-orion-en"},
@@ -55,12 +65,39 @@ async function deepgramCatalogue(env) {
   return (data.tts || []).filter(v => String(v.canonical_name || "").startsWith("aura-2-"));
 }
 
+async function generateAudio(env, voiceId, text) {
+  const res=await fetch(`https://api.deepgram.com/v1/speak?model=${encodeURIComponent(voiceId)}&encoding=mp3`,{method:"POST",headers:{Authorization:`Token ${env.DEEPGRAM_API_KEY}`,"Content-Type":"application/json"},body:JSON.stringify({text})});
+  if(!res.ok) throw new Error(`Deepgram generation failed: ${res.status}`);
+  return new Uint8Array(await res.arrayBuffer());
+}
+
+async function storedSample(env, sample) {
+  if(!env.VOICE_SAMPLES) throw new Error("VOICE_SAMPLES R2 binding is not configured");
+  const key=`samples/${sample.code}.mp3`;
+  const existing=await env.VOICE_SAMPLES.get(key);
+  if(existing) return new Response(existing.body,{headers:{"content-type":"audio/mpeg","cache-control":"public, max-age=31536000, immutable","etag":existing.httpEtag||""}});
+  const bytes=await generateAudio(env,sample.voiceId,sample.text);
+  await env.VOICE_SAMPLES.put(key,bytes,{httpMetadata:{contentType:"audio/mpeg",cacheControl:"public, max-age=31536000, immutable"},customMetadata:{language:sample.language,voiceId:sample.voiceId,name:sample.name}});
+  return new Response(bytes,{headers:{"content-type":"audio/mpeg","cache-control":"public, max-age=31536000, immutable"}});
+}
+
+async function seedSampleVoices(env) {
+  if(!env.VOICE_SAMPLES) throw new Error("VOICE_SAMPLES R2 binding is not configured");
+  const results=[];
+  for(const sample of SAMPLE_VOICES){
+    const key=`samples/${sample.code}.mp3`;
+    if(await env.VOICE_SAMPLES.head(key)){results.push({language:sample.language,status:"cached"});continue;}
+    const bytes=await generateAudio(env,sample.voiceId,sample.text);
+    await env.VOICE_SAMPLES.put(key,bytes,{httpMetadata:{contentType:"audio/mpeg",cacheControl:"public, max-age=31536000, immutable"},customMetadata:{language:sample.language,voiceId:sample.voiceId,name:sample.name}});
+    results.push({language:sample.language,status:"generated"});
+  }
+  return results;
+}
+
 async function generateLabSample(env, voiceId, testId) {
   const test=LAB_TESTS.find(([id])=>id===testId);
   if(!test) throw new Error("Unknown test");
-  const res=await fetch(`https://api.deepgram.com/v1/speak?model=${encodeURIComponent(voiceId)}&encoding=mp3`,{method:"POST",headers:{Authorization:`Token ${env.DEEPGRAM_API_KEY}`,"Content-Type":"application/json"},body:JSON.stringify({text:test[1]})});
-  if(!res.ok) throw new Error(`Deepgram generation failed: ${res.status}`);
-  const bytes=new Uint8Array(await res.arrayBuffer());
+  const bytes=await generateAudio(env,voiceId,test[1]);
   let binary=""; for(let i=0;i<bytes.length;i+=0x8000) binary+=String.fromCharCode(...bytes.subarray(i,i+0x8000));
   return {test_id:testId,voice_id:voiceId,text:test[1],mime_type:"audio/mpeg",audio_base64:btoa(binary),bytes:bytes.length};
 }
@@ -70,7 +107,21 @@ export default {
   if(request.method==="OPTIONS") return new Response(null,{headers:cors(request)});
   const url=new URL(request.url);
 
-  if(url.pathname==="/api/health") return json({ok:true,service:"svara-origins-api",version:"2",providers:getProviderStatus(env)},200,request);
+  if(url.pathname==="/api/health") return json({ok:true,service:"svara-origins-api",version:"3",providers:getProviderStatus(env)},200,request);
+
+  if(url.pathname==="/api/sample-voices"&&request.method==="GET") return json({voices:SAMPLE_VOICES.map(({code,language,name,accent,voiceId})=>({code,language,name,accent,voiceId}))},200,request);
+
+  if(url.pathname.startsWith("/api/sample-voices/")&&request.method==="GET"){
+    const code=url.pathname.split("/").pop(); const sample=SAMPLE_VOICES.find(v=>v.code===code);
+    if(!sample) return json({error:"Unknown sample language"},404,request);
+    try{return await storedSample(env,sample);}catch(err){return json({error:String(err?.message||"Sample generation failed").slice(0,300)},502,request);}
+  }
+
+  if(url.pathname==="/api/admin/seed-sample-voices"&&request.method==="POST"){
+    const token=request.headers.get("X-Svara-Sample-Seed-Token")||"";
+    if(!env.SAMPLE_SEED_TOKEN || token!==env.SAMPLE_SEED_TOKEN) return new Response("Not found",{status:404});
+    try{return json({ok:true,results:await seedSampleVoices(env)},200,request);}catch(err){return json({error:String(err?.message||"Sample seeding failed").slice(0,300)},502,request);}
+  }
 
   if(url.pathname==="/api/voices"&&request.method==="GET"){
     try {
