@@ -13,7 +13,7 @@ function normalizeVoice(v){const id=v.voice_id||'';const parts=id.split('-');con
 async function loadDeepgramVoices(){
   const status=$('voiceStatus');
   try{
-    const res=await fetch('/api/lab/catalogue',{headers:{accept:'application/json'}});
+    const res=await fetch('/api/voices',{headers:{accept:'application/json'},cache:'no-store'});
     if(!res.ok) throw new Error(`Catalogue unavailable (${res.status})`);
     const data=await res.json();
     const discovered=(data.voices||[]).map(normalizeVoice);
