@@ -25,6 +25,10 @@ const ALLOWED_ORIGINS = new Set([
   "https://www.svara.io",
   "https://svara-origins.pages.dev",
   "https://svara-origins.shawnamika.workers.dev",
+  "https://svaraone.com",
+  "https://www.svaraone.com",
+  "https://svaraone.io",
+  "https://www.svaraone.io",
   "http://localhost:8788",
   "http://127.0.0.1:8788"
 ]);
@@ -68,7 +72,6 @@ export default {
 
   if(url.pathname==="/api/health") return json({ok:true,service:"svara-origins-api",version:"2",providers:getProviderStatus(env)},200,request);
 
-  // Public, read-only catalogue used by the Svara Studio voice library.
   if(url.pathname==="/api/voices"&&request.method==="GET"){
     try {
       const voices=await deepgramCatalogue(env);
