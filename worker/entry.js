@@ -1,14 +1,24 @@
 import app from "./index.js";
 
-const PORTRAIT_CODES = new Set(["en", "es", "de", "fr", "nl", "it", "ja"]);
+const PORTRAIT_NAMES = {
+  en: "thalia",
+  es: "celeste",
+  de: "julius",
+  fr: "agathe",
+  nl: "rhea",
+  it: "livia",
+  ja: "izanami"
+};
 
 async function storedPortrait(env, code) {
   if (!env.VOICE_SAMPLES) return null;
+
   const cleanCode = String(code || "").replace(/-v\d+$/, "");
-  if (!PORTRAIT_CODES.has(cleanCode)) return null;
+  const portraitName = PORTRAIT_NAMES[cleanCode];
+  if (!portraitName) return null;
 
   for (const extension of ["webp", "png"]) {
-    const key = `portraits/${cleanCode}.${extension}`;
+    const key = `portraits/${portraitName}.${extension}`;
     const object = await env.VOICE_SAMPLES.get(key);
     if (!object) continue;
 
