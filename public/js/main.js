@@ -56,7 +56,7 @@ function renderSampleVoices(){
  const cards=document.createElement('div'); cards.className='sample-grid';
  SAMPLE_VOICES.forEach(voice=>{
   const card=document.createElement('article'); card.className='sample-card';
-  card.innerHTML=`<div class="sample-play-mark">▶</div><div class="sample-voice-identity"><img class="sample-portrait" src="/api/voice-portraits/${voice.code}" alt="${voice.name}, ${voice.accent} voice" loading="lazy"><div class="sample-voice-copy"><h4>${voice.language}</h4><strong>${voice.name}</strong><p>${voice.accent}</p></div></div><button class="ghost button full sample-listen" type="button" data-voice-name="${voice.name}" aria-label="Listen to ${voice.name} sample"><span class="sample-button-icon">▶</span><span class="sample-button-label">Listen</span><span class="sample-mini-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></button>`;
+  card.innerHTML=`<div class="sample-play-mark">▶</div><div class="sample-voice-identity"><img class="sample-portrait" src="/api/voice-portraits/${voice.code}-v2" alt="${voice.name}, ${voice.accent} voice" loading="lazy"><div class="sample-voice-copy"><h4>${voice.language}</h4><strong>${voice.name}</strong><p>${voice.accent}</p></div></div><button class="ghost button full sample-listen" type="button" data-voice-name="${voice.name}" aria-label="Listen to ${voice.name} sample"><span class="sample-button-icon">▶</span><span class="sample-button-label">Listen</span><span class="sample-mini-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></button>`;
   const button=card.querySelector('button');
   button.addEventListener('click',()=>playStoredSample(voice,button));
   cards.appendChild(card);
@@ -68,9 +68,7 @@ async function playStoredSample(voice,button){
  if(activeAudio&&activeAudio._voiceCode===voice.code){
   if(activeAudio.paused){
    try{await activeAudio.play();}catch(err){setSampleButton(button,'idle');console.error(err);}
-  }else{
-   activeAudio.pause();
-  }
+  }else{activeAudio.pause();}
   return;
  }
  if(activeAudio){activeAudio.pause();activeAudio.currentTime=0;activeAudio=null;resetSampleButtons();}
@@ -81,7 +79,7 @@ async function playStoredSample(voice,button){
   audio._voiceCode=voice.code;
   activeAudio=audio;
   audio.onplaying=()=>setSampleButton(button,'playing');
-  audio.onpause=()=>{if(activeAudio===audio&& !audio.ended)setSampleButton(button,'idle');};
+  audio.onpause=()=>{if(activeAudio===audio&&!audio.ended)setSampleButton(button,'idle');};
   audio.onended=()=>{setSampleButton(button,'idle');if(activeAudio===audio)activeAudio=null;};
   audio.onerror=()=>{setSampleButton(button,'idle');if(activeAudio===audio)activeAudio=null;console.error('Sample unavailable:',voice.code);};
   await audio.play();
@@ -94,24 +92,17 @@ function setupHeroPlayer(){
  const duration=document.querySelector('.hero-card .player small');
  const bars=[...document.querySelectorAll('.hero-card .wave i')];
  if(!button||!bar)return;
- let heroAudio=null;
- let started=false;
- let audioContext=null;
- let analyser=null;
- let source=null;
- let animationFrame=null;
+ let heroAudio=null,started=false,audioContext=null,analyser=null,source=null,animationFrame=null;
  const idleHeights=[.22,.55,.88,.58,.42,.72,.9,.48,.76,.9,.5,.68,.34];
-
- const resetWave=()=>{bars.forEach((barEl,index)=>{barEl.style.height=`${idleHeights[index%idleHeights.length]*100}%`;barEl.style.transform='scaleY(1)';});};
- const animateWave=()=>{if(!analyser||!bars.length)return;const data=new Uint8Array(analyser.frequencyBinCount);analyser.getByteFrequencyData(data);const step=Math.max(1,Math.floor(data.length/bars.length));bars.forEach((barEl,index)=>{let sum=0;const start=index*step;const end=Math.min(data.length,start+step);for(let i=start;i<end;i++)sum+=data[i];const level=(sum/Math.max(1,end-start))/255;const height=18+Math.pow(level,.72)*82;barEl.style.height=`${height}%`;barEl.style.transform=`scaleY(${.82+level*.28})`;});animationFrame=requestAnimationFrame(animateWave);};
+ const resetWave=()=>bars.forEach((barEl,index)=>{barEl.style.height=`${idleHeights[index%idleHeights.length]*100}%`;barEl.style.transform='scaleY(1)';});
+ const animateWave=()=>{if(!analyser||!bars.length)return;const data=new Uint8Array(analyser.frequencyBinCount);analyser.getByteFrequencyData(data);const step=Math.max(1,Math.floor(data.length/bars.length));bars.forEach((barEl,index)=>{let sum=0;const start=index*step,end=Math.min(data.length,start+step);for(let i=start;i<end;i++)sum+=data[i];const level=(sum/Math.max(1,end-start))/255;barEl.style.height=`${18+Math.pow(level,.72)*82}%`;barEl.style.transform=`scaleY(${.82+level*.28})`;});animationFrame=requestAnimationFrame(animateWave);};
  const stopWave=()=>{if(animationFrame)cancelAnimationFrame(animationFrame);animationFrame=null;resetWave();};
- const connectAnalyser=async()=>{if(audioContext)return;audioContext=new (window.AudioContext||window.webkitAudioContext)();analyser=audioContext.createAnalyser();analyser.fftSize=128;analyser.smoothingTimeConstant=.78;source=audioContext.createMediaElementSource(heroAudio);source.connect(analyser);analyser.connect(audioContext.destination);await audioContext.resume();};
+ const connectAnalyser=async()=>{if(audioContext)return;audioContext=new(window.AudioContext||window.webkitAudioContext)();analyser=audioContext.createAnalyser();analyser.fftSize=128;analyser.smoothingTimeConstant=.78;source=audioContext.createMediaElementSource(heroAudio);source.connect(analyser);analyser.connect(audioContext.destination);await audioContext.resume();};
  const reset=()=>{button.disabled=false;button.textContent='▶';bar.style.width='0%';if(duration)duration.textContent=heroAudio&&Number.isFinite(heroAudio.duration)?formatDuration(heroAudio.duration):'—:——';stopWave();};
- button.addEventListener('click',async()=>{try{if(heroAudio&&started){if(heroAudio.paused){if(audioContext)await audioContext.resume();await heroAudio.play();}else{heroAudio.pause();}return;}button.disabled=true;button.textContent='…';heroAudio=new Audio('/api/sample-hero');heroAudio.preload='auto';heroAudio.addEventListener('loadedmetadata',()=>{if(duration&&Number.isFinite(heroAudio.duration))duration.textContent=formatDuration(heroAudio.duration);});heroAudio.addEventListener('timeupdate',()=>{if(bar&&heroAudio.duration)bar.style.width=`${(heroAudio.currentTime/heroAudio.duration)*100}%`;});heroAudio.addEventListener('play',async()=>{started=true;button.disabled=false;button.textContent='Ⅱ';await connectAnalyser();if(!animationFrame)animateWave();});heroAudio.addEventListener('pause',()=>{if(started){button.textContent='▶';stopWave();}});heroAudio.addEventListener('ended',()=>{reset();started=false;});heroAudio.addEventListener('error',()=>{reset();console.error('Hero sample unavailable');});await heroAudio.play();}catch(err){reset();console.error(err);}});
+ button.addEventListener('click',async()=>{try{if(heroAudio&&started){if(heroAudio.paused){if(audioContext)await audioContext.resume();await heroAudio.play();}else heroAudio.pause();return;}button.disabled=true;button.textContent='…';heroAudio=new Audio('/api/sample-hero');heroAudio.preload='auto';heroAudio.addEventListener('loadedmetadata',()=>{if(duration&&Number.isFinite(heroAudio.duration))duration.textContent=formatDuration(heroAudio.duration);});heroAudio.addEventListener('timeupdate',()=>{if(bar&&heroAudio.duration)bar.style.width=`${heroAudio.currentTime/heroAudio.duration*100}%`;});heroAudio.addEventListener('play',async()=>{started=true;button.disabled=false;button.textContent='Ⅱ';await connectAnalyser();if(!animationFrame)animateWave();});heroAudio.addEventListener('pause',()=>{if(started){button.textContent='▶';stopWave();}});heroAudio.addEventListener('ended',()=>{reset();started=false;});heroAudio.addEventListener('error',()=>{reset();console.error('Hero sample unavailable');});await heroAudio.play();}catch(err){reset();console.error(err);}});
  resetWave();
 }
 
 function formatDuration(seconds){const total=Math.max(0,Math.round(seconds));const minutes=Math.floor(total/60);const secs=String(total%60).padStart(2,'0');return `${String(minutes).padStart(2,'0')}:${secs}`;}
-
 setupHeroPlayer();
 renderSampleVoices();
