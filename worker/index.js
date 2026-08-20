@@ -1,4 +1,5 @@
 import { getProvider, getProviderStatus } from "./providers/index.js";
+import { getPortrait } from "./voice-portraits.js";
 
 const LAB_TESTS = [
   ["conversation", "Hey, thanks for joining us. I wanted to tell you about something we've been working on."],
@@ -17,7 +18,7 @@ const SAMPLE_VOICES = [
   {code:"fr", language:"French", voiceId:"aura-2-agathe-fr", name:"Agathe", accent:"French", text:"Bonjour et bienvenue chez SvaraONE. Découvrez une voix naturelle, expressive et prête pour vos projets."},
   {code:"nl", language:"Dutch", voiceId:"aura-2-rhea-nl", name:"Rhea", accent:"Dutch", text:"Hallo en welkom bij SvaraONE. Ontdek een natuurlijke, expressieve stem die klaar is voor echt werk."},
   {code:"it", language:"Italian", voiceId:"aura-2-livia-it", name:"Livia", accent:"Italian", text:"Ciao e benvenuto su SvaraONE. Scopri una voce naturale, espressiva e pronta per il lavoro reale."},
-  {code:"ja", language:"Japanese", voiceId:"aura-2-fujin-ja", name:"Fujin", accent:"Japanese", text:"こんにちは、SvaraONEへようこそ。自然で表現力豊かな音声を、実際のコンテンツにお使いいただけます。"}
+  {code:"ja", language:"Japanese", voiceId:"aura-2-izanami-ja", name:"Izanami", accent:"Japanese", text:"こんにちは、SvaraONEへようこそ。自然で表現力豊かな音声を、実際のコンテンツにお使いいただけます。"}
 ];
 
 const HERO_SAMPLE = {
@@ -80,6 +81,17 @@ async function generateAudio(env, voiceId, text) {
   return new Uint8Array(await res.arrayBuffer());
 }
 
+async function storedPortrait(env,code){
+  if(!env.VOICE_SAMPLES) throw new Error("VOICE_SAMPLES R2 binding is not configured");
+  const svg=getPortrait(code);
+  if(!svg) return new Response("Not found",{status:404});
+  const key=`portraits/${code}.svg`;
+  const existing=await env.VOICE_SAMPLES.get(key);
+  if(existing) return new Response(existing.body,{headers:{"content-type":"image/svg+xml; charset=utf-8","cache-control":"public, max-age=31536000, immutable","etag":existing.httpEtag||""}});
+  await env.VOICE_SAMPLES.put(key,svg,{httpMetadata:{contentType:"image/svg+xml; charset=utf-8",cacheControl:"public, max-age=31536000, immutable"},customMetadata:{assetType:"voice-portrait",code}});
+  return new Response(svg,{headers:{"content-type":"image/svg+xml; charset=utf-8","cache-control":"public, max-age=31536000, immutable"}});
+}
+
 async function storedSample(env, sample) {
   if(!env.VOICE_SAMPLES) throw new Error("VOICE_SAMPLES R2 binding is not configured");
   const key=`samples/${sample.code}.mp3`;
@@ -129,6 +141,11 @@ export default {
 
   if(url.pathname==="/api/sample-voices"&&request.method==="GET") return json({voices:SAMPLE_VOICES.map(({code,language,name,accent,voiceId})=>({code,language,name,accent,voiceId}))},200,request);
 
+  if(url.pathname.startsWith("/api/voice-portraits/")&&request.method==="GET"){
+    const code=url.pathname.split("/").pop();
+    try{return await storedPortrait(env,code);}catch(err){return json({error:String(err?.message||"Portrait failed").slice(0,300)},502,request);}
+  }
+
   if(url.pathname==="/api/sample-hero"&&request.method==="GET"){
     try{return await storedHeroSample(env);}catch(err){return json({error:String(err?.message||"Hero sample generation failed").slice(0,300)},502,request);}
   }
@@ -146,41 +163,21 @@ export default {
   }
 
   if(url.pathname==="/api/voices"&&request.method==="GET"){
-    try {
-      const voices=await deepgramCatalogue(env);
-      return json({provider:"deepgram",family:"aura-2",voices:voices.map(v=>({voice_id:v.canonical_name,metadata:v.metadata||{}}))},200,request);
-    } catch(err){return json({error:String(err?.message||"Voice catalogue failed").slice(0,300)},502,request);}
+    try {const voices=await deepgramCatalogue(env);return json({provider:"deepgram",family:"aura-2",voices:voices.map(v=>({voice_id:v.canonical_name,metadata:v.metadata||{}}))},200,request);}catch(err){return json({error:String(err?.message||"Voice catalogue failed").slice(0,300)},502,request);}
   }
 
   if(url.pathname==="/api/lab/catalogue"&&request.method==="GET"){
     if(!labAllowed(request)) return new Response("Not found",{status:404});
-    try { const voices=await deepgramCatalogue(env); return json({provider:"deepgram",family:"aura-2",tests:LAB_TESTS.map(([id])=>id),voices:voices.map(v=>({voice_id:v.canonical_name,metadata:v.metadata||{}}))},200,request); }
-    catch(err){return json({error:String(err?.message||"Catalogue failed").slice(0,300)},502,request);}
+    try {const voices=await deepgramCatalogue(env);return json({provider:"deepgram",family:"aura-2",tests:LAB_TESTS.map(([id])=>id),voices:voices.map(v=>({voice_id:v.canonical_name,metadata:v.metadata||{}}))},200,request);}catch(err){return json({error:String(err?.message||"Catalogue failed").slice(0,300)},502,request);}
   }
 
   if(url.pathname==="/api/lab/batch"&&request.method==="POST"){
     if(!labAllowed(request)) return new Response("Not found",{status:404});
-    try {
-      const body=await request.json().catch(()=>({}));
-      const requested=[...new Set((Array.isArray(body.voiceIds)?body.voiceIds:[]).map(String).filter(Boolean))].slice(0,6);
-      if(!requested.length) return json({error:"Provide 1-6 voiceIds"},400,request);
-      const catalogue=await deepgramCatalogue(env); const allowed=new Set(catalogue.map(v=>v.canonical_name)); const voices=requested.filter(v=>allowed.has(v));
-      if(!voices.length) return json({error:"No selected voices are in the current Aura-2 catalogue"},400,request);
-      const samples=[]; for(const voiceId of voices) for(const [testId] of LAB_TESTS){try{samples.push({status:"generated",...(await generateLabSample(env,voiceId,testId))});}catch(err){samples.push({status:"error",voice_id:voiceId,test_id:testId,error:String(err?.message||"Generation failed").slice(0,300)});}}
-      return json({version:"0.1",provider:"deepgram",generated_at:new Date().toISOString(),test_count:LAB_TESTS.length,voice_count:voices.length,samples},200,request);
-    } catch(err){return json({error:String(err?.message||"Lab batch failed").slice(0,300)},502,request);}
+    try {const body=await request.json().catch(()=>({}));const requested=[...new Set((Array.isArray(body.voiceIds)?body.voiceIds:[]).map(String).filter(Boolean))].slice(0,6);if(!requested.length)return json({error:"Provide 1-6 voiceIds"},400,request);const catalogue=await deepgramCatalogue(env);const allowed=new Set(catalogue.map(v=>v.canonical_name));const voices=requested.filter(v=>allowed.has(v));if(!voices.length)return json({error:"No selected voices are in the current Aura-2 catalogue"},400,request);const samples=[];for(const voiceId of voices)for(const [testId] of LAB_TESTS){try{samples.push({status:"generated",...(await generateLabSample(env,voiceId,testId))});}catch(err){samples.push({status:"error",voice_id:voiceId,test_id:testId,error:String(err?.message||"Generation failed").slice(0,300)});}}return json({version:"0.1",provider:"deepgram",generated_at:new Date().toISOString(),test_count:LAB_TESTS.length,voice_count:voices.length,samples},200,request);}catch(err){return json({error:String(err?.message||"Lab batch failed").slice(0,300)},502,request);}
   }
 
   if(url.pathname==="/api/voice/generate"&&request.method==="POST"){
-    try {
-      const body=await request.json(); const text=String(body.text||"").trim();
-      if(!text) return json({error:"Text is required"},400,request); if(text.length>MAX_CHARS) return json({error:`Maximum ${MAX_CHARS} characters per generation`},400,request);
-      let voice=VOICES[body.voiceId]||VOICES["svara-amara-01"];
-      const providerVoiceId=String(body.providerVoiceId||"").trim();
-      if(/^aura-2-[a-z0-9-]+$/.test(providerVoiceId)) voice={provider:"deepgram",providerVoiceId};
-      const provider=getProvider(env,voice); const upstream=await provider.generate({text,voice,speed:Number(body.speed)||1,stability:Number(body.stability)||50,style:String(body.style||"")});
-      const headers=new Headers(upstream.headers); headers.set("content-type","audio/mpeg"); headers.set("cache-control","private, no-store"); return new Response(upstream.body,{status:200,headers});
-    } catch(err){console.error("generation_error",err); if(url.searchParams.get("debug")==="1"){const message=String(err?.message||"Unknown provider error").slice(0,500);return json({error:"Voice generation failed",diagnostic:true,message,provider:"deepgram"},502,request);} return json({error:"Voice generation failed. Please try again."},502,request);}
+    try {const body=await request.json();const text=String(body.text||"").trim();if(!text)return json({error:"Text is required"},400,request);if(text.length>MAX_CHARS)return json({error:`Maximum ${MAX_CHARS} characters per generation`},400,request);let voice=VOICES[body.voiceId]||VOICES["svara-amara-01"];const providerVoiceId=String(body.providerVoiceId||"").trim();if(/^aura-2-[a-z0-9-]+$/.test(providerVoiceId))voice={provider:"deepgram",providerVoiceId};const provider=getProvider(env,voice);const upstream=await provider.generate({text,voice,speed:Number(body.speed)||1,stability:Number(body.stability)||50,style:String(body.style||"")});const headers=new Headers(upstream.headers);headers.set("content-type","audio/mpeg");headers.set("cache-control","private, no-store");return new Response(upstream.body,{status:200,headers});}catch(err){console.error("generation_error",err);if(url.searchParams.get("debug")==="1"){const message=String(err?.message||"Unknown provider error").slice(0,500);return json({error:"Voice generation failed",diagnostic:true,message,provider:"deepgram"},502,request);}return json({error:"Voice generation failed. Please try again."},502,request);}
   }
 
   if(env.ASSETS) return env.ASSETS.fetch(request);
