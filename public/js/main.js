@@ -56,7 +56,7 @@ function renderSampleVoices(){
  const cards=document.createElement('div'); cards.className='sample-grid';
  SAMPLE_VOICES.forEach(voice=>{
   const card=document.createElement('article'); card.className='sample-card';
-  card.innerHTML=`<div class="sample-play-mark">▶</div><div class="sample-voice-identity"><img class="sample-portrait" src="/api/voice-portraits/${voice.code}-v2" alt="${voice.name}, ${voice.accent} voice" loading="lazy"><div class="sample-voice-copy"><h4>${voice.language}</h4><strong>${voice.name}</strong><p>${voice.accent}</p></div></div><button class="ghost button full sample-listen" type="button" data-voice-name="${voice.name}" aria-label="Listen to ${voice.name} sample"><span class="sample-button-icon">▶</span><span class="sample-button-label">Listen</span><span class="sample-mini-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></button>`;
+  card.innerHTML=`<div class="sample-play-mark">▶</div><div class="sample-voice-identity"><img class="sample-portrait" src="/api/voice-portraits/${voice.code}-v3" alt="${voice.name}, ${voice.accent} voice" loading="lazy"><div class="sample-voice-copy"><h4>${voice.language}</h4><strong>${voice.name}</strong><p>${voice.accent}</p></div></div><button class="ghost button full sample-listen" type="button" data-voice-name="${voice.name}" aria-label="Listen to ${voice.name} sample"><span class="sample-button-icon">▶</span><span class="sample-button-label">Listen</span><span class="sample-mini-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></button>`;
   const button=card.querySelector('button');
   button.addEventListener('click',()=>playStoredSample(voice,button));
   cards.appendChild(card);
