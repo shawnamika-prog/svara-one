@@ -26,7 +26,7 @@ const HERO_SAMPLE = {
   language: "English",
   name: "Amara",
   accent: "American English · Conversational",
-  text: "Hi, I'm Amara, one of the voices at SvaraONE. SvaraONE is a voice creation platform built for creators, businesses, and teams. Turn your words into natural, expressive audio, explore voices across languages and accents, and create content that sounds human. From a quick voice preview to production-ready audio, SvaraONE helps you create, connect, and communicate with confidence."
+  text: "Hi, I'm Amara, one of the voices at SvaraONE. SvaraONE turns your words into natural, expressive speech — for videos, businesses, creators, and everything in between. Just write what you want to say, choose your voice, and let SvaraONE bring it to life."
 };
 
 const VOICES = {
