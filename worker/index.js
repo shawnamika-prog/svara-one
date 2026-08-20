@@ -21,12 +21,12 @@ const SAMPLE_VOICES = [
 ];
 
 const HERO_SAMPLE = {
-  key: "samples/hero-amara.mp3",
+  key: "samples/hero-amara-r2.mp3",
   voiceId: "aura-2-thalia-en",
   language: "English",
   name: "Amara",
   accent: "American English · Conversational",
-  text: "The future of content is voice. Create, connect, and communicate with a voice that sounds human. Let every word carry meaning, emotion, and a little more life."
+  text: "Hi, I'm Amara, one of the voices at SvaraONE. SvaraONE is a voice creation platform built for creators, businesses, and teams. Turn your words into natural, expressive audio, explore voices across languages and accents, and create content that sounds human. From a quick voice preview to production-ready audio, SvaraONE helps you create, connect, and communicate with confidence."
 };
 
 const VOICES = {
@@ -95,7 +95,7 @@ async function storedHeroSample(env) {
   const existing=await env.VOICE_SAMPLES.get(HERO_SAMPLE.key);
   if(existing) return new Response(existing.body,{headers:{"content-type":"audio/mpeg","cache-control":"public, max-age=31536000, immutable","etag":existing.httpEtag||""}});
   const bytes=await generateAudio(env,HERO_SAMPLE.voiceId,HERO_SAMPLE.text);
-  await env.VOICE_SAMPLES.put(HERO_SAMPLE.key,bytes,{httpMetadata:{contentType:"audio/mpeg",cacheControl:"public, max-age=31536000, immutable"},customMetadata:{language:HERO_SAMPLE.language,voiceId:HERO_SAMPLE.voiceId,name:HERO_SAMPLE.name,accent:HERO_SAMPLE.accent}});
+  await env.VOICE_SAMPLES.put(HERO_SAMPLE.key,bytes,{httpMetadata:{contentType:"audio/mpeg",cacheControl:"public, max-age=31536000, immutable"},customMetadata:{language:HERO_SAMPLE.language,voiceId:HERO_SAMPLE.voiceId,name:HERO_SAMPLE.name,accent:HERO_SAMPLE.accent,version:"r2"}});
   return new Response(bytes,{headers:{"content-type":"audio/mpeg","cache-control":"public, max-age=31536000, immutable"}});
 }
 
