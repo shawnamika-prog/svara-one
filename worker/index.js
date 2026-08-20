@@ -20,6 +20,15 @@ const SAMPLE_VOICES = [
   {code:"ja", language:"Japanese", voiceId:"aura-2-fujin-ja", name:"Fujin", accent:"Japanese", text:"こんにちは、SvaraONEへようこそ。自然で表現力豊かな音声を、実際のコンテンツにお使いいただけます。"}
 ];
 
+const HERO_SAMPLE = {
+  key: "samples/hero-amara.mp3",
+  voiceId: "aura-2-thalia-en",
+  language: "English",
+  name: "Amara",
+  accent: "American English · Conversational",
+  text: "The future of content is voice. Create, connect, and communicate with a voice that sounds human. Let every word carry meaning, emotion, and a little more life."
+};
+
 const VOICES = {
   "svara-amara-01": {provider:"deepgram",providerVoiceId:"aura-2-thalia-en"},
   "svara-james-01": {provider:"deepgram",providerVoiceId:"aura-2-orion-en"},
@@ -81,6 +90,15 @@ async function storedSample(env, sample) {
   return new Response(bytes,{headers:{"content-type":"audio/mpeg","cache-control":"public, max-age=31536000, immutable"}});
 }
 
+async function storedHeroSample(env) {
+  if(!env.VOICE_SAMPLES) throw new Error("VOICE_SAMPLES R2 binding is not configured");
+  const existing=await env.VOICE_SAMPLES.get(HERO_SAMPLE.key);
+  if(existing) return new Response(existing.body,{headers:{"content-type":"audio/mpeg","cache-control":"public, max-age=31536000, immutable","etag":existing.httpEtag||""}});
+  const bytes=await generateAudio(env,HERO_SAMPLE.voiceId,HERO_SAMPLE.text);
+  await env.VOICE_SAMPLES.put(HERO_SAMPLE.key,bytes,{httpMetadata:{contentType:"audio/mpeg",cacheControl:"public, max-age=31536000, immutable"},customMetadata:{language:HERO_SAMPLE.language,voiceId:HERO_SAMPLE.voiceId,name:HERO_SAMPLE.name,accent:HERO_SAMPLE.accent}});
+  return new Response(bytes,{headers:{"content-type":"audio/mpeg","cache-control":"public, max-age=31536000, immutable"}});
+}
+
 async function seedSampleVoices(env) {
   if(!env.VOICE_SAMPLES) throw new Error("VOICE_SAMPLES R2 binding is not configured");
   const results=[];
@@ -110,6 +128,10 @@ export default {
   if(url.pathname==="/api/health") return json({ok:true,service:"svara-origins-api",version:"3",providers:getProviderStatus(env)},200,request);
 
   if(url.pathname==="/api/sample-voices"&&request.method==="GET") return json({voices:SAMPLE_VOICES.map(({code,language,name,accent,voiceId})=>({code,language,name,accent,voiceId}))},200,request);
+
+  if(url.pathname==="/api/sample-hero"&&request.method==="GET"){
+    try{return await storedHeroSample(env);}catch(err){return json({error:String(err?.message||"Hero sample generation failed").slice(0,300)},502,request);}
+  }
 
   if(url.pathname.startsWith("/api/sample-voices/")&&request.method==="GET"){
     const code=url.pathname.split("/").pop(); const sample=SAMPLE_VOICES.find(v=>v.code===code);
