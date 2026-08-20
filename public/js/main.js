@@ -40,21 +40,69 @@ function setupHeroPlayer(){
  const button=document.querySelector('#heroPlay');
  const bar=document.querySelector('.hero-card .bar span');
  const duration=document.querySelector('.hero-card .player small');
+ const bars=[...document.querySelectorAll('.hero-card .wave i')];
  if(!button||!bar)return;
  let heroAudio=null;
  let started=false;
+ let audioContext=null;
+ let analyser=null;
+ let source=null;
+ let animationFrame=null;
+ const idleHeights=[.22,.55,.88,.58,.42,.72,.9,.48,.76,.9,.5,.68,.34];
+
+ const resetWave=()=>{
+  bars.forEach((barEl,index)=>{barEl.style.height=`${idleHeights[index%idleHeights.length]*100}%`;barEl.style.transform='scaleY(1)';});
+ };
+
+ const animateWave=()=>{
+  if(!analyser||!bars.length)return;
+  const data=new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteFrequencyData(data);
+  const step=Math.max(1,Math.floor(data.length/bars.length));
+  bars.forEach((barEl,index)=>{
+   let sum=0;
+   const start=index*step;
+   const end=Math.min(data.length,start+step);
+   for(let i=start;i<end;i++)sum+=data[i];
+   const level=(sum/Math.max(1,end-start))/255;
+   const height=18+Math.pow(level,.72)*82;
+   barEl.style.height=`${height}%`;
+   barEl.style.transform=`scaleY(${.82+level*.28})`;
+  });
+  animationFrame=requestAnimationFrame(animateWave);
+ };
+
+ const stopWave=()=>{if(animationFrame)cancelAnimationFrame(animationFrame);animationFrame=null;resetWave();};
+
+ const connectAnalyser=async()=>{
+  if(audioContext)return;
+  audioContext=new (window.AudioContext||window.webkitAudioContext)();
+  analyser=audioContext.createAnalyser();
+  analyser.fftSize=128;
+  analyser.smoothingTimeConstant=.78;
+  source=audioContext.createMediaElementSource(heroAudio);
+  source.connect(analyser);
+  analyser.connect(audioContext.destination);
+  await audioContext.resume();
+ };
 
  const reset=()=>{
   button.disabled=false;
   button.textContent='▶';
   bar.style.width='0%';
   if(duration) duration.textContent=heroAudio&&Number.isFinite(heroAudio.duration)?formatDuration(heroAudio.duration):'—:——';
+  stopWave();
  };
 
  button.addEventListener('click',async()=>{
   try{
    if(heroAudio&&started){
-    if(heroAudio.paused){await heroAudio.play();}else{heroAudio.pause();}
+    if(heroAudio.paused){
+     if(audioContext)await audioContext.resume();
+     await heroAudio.play();
+    }else{
+     heroAudio.pause();
+    }
     return;
    }
    button.disabled=true;
@@ -63,13 +111,20 @@ function setupHeroPlayer(){
    heroAudio.preload='auto';
    heroAudio.addEventListener('loadedmetadata',()=>{if(duration&&Number.isFinite(heroAudio.duration))duration.textContent=formatDuration(heroAudio.duration);});
    heroAudio.addEventListener('timeupdate',()=>{if(bar&&heroAudio.duration)bar.style.width=`${(heroAudio.currentTime/heroAudio.duration)*100}%`;});
-   heroAudio.addEventListener('play',()=>{started=true;button.disabled=false;button.textContent='Ⅱ';});
-   heroAudio.addEventListener('pause',()=>{if(started)button.textContent='▶';});
+   heroAudio.addEventListener('play',async()=>{
+    started=true;
+    button.disabled=false;
+    button.textContent='Ⅱ';
+    await connectAnalyser();
+    if(!animationFrame)animateWave();
+   });
+   heroAudio.addEventListener('pause',()=>{if(started){button.textContent='▶';stopWave();}});
    heroAudio.addEventListener('ended',()=>{reset();started=false;});
    heroAudio.addEventListener('error',()=>{reset();console.error('Hero sample unavailable');});
    await heroAudio.play();
   }catch(err){reset();console.error(err);}
  });
+ resetWave();
 }
 
 function formatDuration(seconds){
