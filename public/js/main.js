@@ -8,6 +8,7 @@ const SAMPLE_VOICES=[
  {language:'Japanese',code:'ja',voiceId:'aura-2-fujin-ja',name:'Fujin',accent:'Japanese',text:'こんにちは、SvaraONEへようこそ。自然で表現力豊かな音声を、実際のコンテンツにお使いいただけます。'}
 ];
 let activeAudio=null;
+
 function renderSampleVoices(){
  const grid=document.querySelector('#sampleVoiceGrid'); if(!grid)return;
  grid.innerHTML='';
@@ -20,6 +21,7 @@ function renderSampleVoices(){
  });
  grid.appendChild(cards);
 }
+
 async function playStoredSample(voice,button){
  if(activeAudio){activeAudio.pause();activeAudio.currentTime=0;activeAudio=null;document.querySelectorAll('.sample-listen').forEach(b=>{b.disabled=false;b.textContent='Listen';});}
  const original='Listen'; button.disabled=true; button.textContent='Loading…';
@@ -33,5 +35,48 @@ async function playStoredSample(voice,button){
   await audio.play();
  }catch(err){button.disabled=false;button.textContent=original;activeAudio=null;console.error(err);}
 }
-document.querySelectorAll('#heroPlay').forEach(b=>b.addEventListener('click',()=>{b.textContent=b.textContent==='▶'?'Ⅱ':'▶';document.querySelector('.bar span').style.width=b.textContent==='Ⅱ'?'62%':'0%';}));
+
+function setupHeroPlayer(){
+ const button=document.querySelector('#heroPlay');
+ const bar=document.querySelector('.hero-card .bar span');
+ const duration=document.querySelector('.hero-card .player small');
+ if(!button||!bar)return;
+ let heroAudio=null;
+ let started=false;
+
+ const reset=()=>{
+  button.disabled=false;
+  button.textContent='▶';
+  bar.style.width='0%';
+  if(duration) duration.textContent=heroAudio&&Number.isFinite(heroAudio.duration)?formatDuration(heroAudio.duration):'—:——';
+ };
+
+ button.addEventListener('click',async()=>{
+  try{
+   if(heroAudio&&started){
+    if(heroAudio.paused){await heroAudio.play();}else{heroAudio.pause();}
+    return;
+   }
+   button.disabled=true;
+   button.textContent='…';
+   heroAudio=new Audio('/api/sample-hero');
+   heroAudio.preload='auto';
+   heroAudio.addEventListener('loadedmetadata',()=>{if(duration&&Number.isFinite(heroAudio.duration))duration.textContent=formatDuration(heroAudio.duration);});
+   heroAudio.addEventListener('timeupdate',()=>{if(bar&&heroAudio.duration)bar.style.width=`${(heroAudio.currentTime/heroAudio.duration)*100}%`;});
+   heroAudio.addEventListener('play',()=>{started=true;button.disabled=false;button.textContent='Ⅱ';});
+   heroAudio.addEventListener('pause',()=>{if(started)button.textContent='▶';});
+   heroAudio.addEventListener('ended',()=>{reset();started=false;});
+   heroAudio.addEventListener('error',()=>{reset();console.error('Hero sample unavailable');});
+   await heroAudio.play();
+  }catch(err){reset();console.error(err);}
+ });
+}
+
+function formatDuration(seconds){
+ const total=Math.max(0,Math.round(seconds));
+ const minutes=Math.floor(total/60); const secs=String(total%60).padStart(2,'0');
+ return `${String(minutes).padStart(2,'0')}:${secs}`;
+}
+
+setupHeroPlayer();
 renderSampleVoices();
