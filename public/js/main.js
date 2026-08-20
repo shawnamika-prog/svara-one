@@ -9,31 +9,83 @@ const SAMPLE_VOICES=[
 ];
 let activeAudio=null;
 
+function injectSampleButtonStyles(){
+ if(document.getElementById('sample-button-styles'))return;
+ const style=document.createElement('style');
+ style.id='sample-button-styles';
+ style.textContent=`
+.sample-listen{position:relative;min-height:48px;padding:8px 16px!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:12px!important;border-color:#ffffff18!important;background:linear-gradient(135deg,#101d2d,#0a1726)!important;transition:border-color .2s ease,background .2s ease,transform .2s ease,box-shadow .2s ease!important;overflow:hidden}
+.sample-listen:hover:not(:disabled){border-color:#20d8c044!important;background:linear-gradient(135deg,#102938,#0b1d2b)!important;transform:translateY(-1px);box-shadow:0 10px 28px #0003}
+.sample-listen:focus-visible{outline:2px solid #31d7c1;outline-offset:3px}
+.sample-listen.is-playing{border-color:#21d8c0aa!important;background:linear-gradient(100deg,#0d302f,#10253a)!important;box-shadow:0 0 0 1px #21d8c01a,0 10px 30px #12cdbb18}
+.sample-button-icon{width:30px;height:30px;flex:0 0 30px;display:grid;place-items:center;border-radius:50%;background:linear-gradient(145deg,#19ddc0,#32aaff);color:#03111e;font-size:11px;font-weight:900;box-shadow:0 4px 14px #18dabe33}
+.sample-button-label{font-size:13px;font-weight:800;letter-spacing:.01em;color:#dbe8f5}
+.sample-mini-bars{margin-left:auto;height:22px;display:flex;align-items:center;gap:3px;opacity:.45}
+.sample-mini-bars i{display:block;width:3px;height:8px;border-radius:3px;background:linear-gradient(#2fe2ca,#3699ff);transform-origin:center}
+.sample-listen.is-playing .sample-mini-bars{opacity:1}
+.sample-listen.is-playing .sample-mini-bars i:nth-child(1){animation:samplePulse .75s ease-in-out infinite alternate}
+.sample-listen.is-playing .sample-mini-bars i:nth-child(2){animation:samplePulse .55s ease-in-out .08s infinite alternate}
+.sample-listen.is-playing .sample-mini-bars i:nth-child(3){animation:samplePulse .9s ease-in-out .14s infinite alternate}
+.sample-listen.is-playing .sample-mini-bars i:nth-child(4){animation:samplePulse .62s ease-in-out .04s infinite alternate}
+.sample-listen.is-playing .sample-mini-bars i:nth-child(5){animation:samplePulse .8s ease-in-out .18s infinite alternate}
+@keyframes samplePulse{from{height:5px}to{height:20px}}
+@media (prefers-reduced-motion:reduce){.sample-listen{transition:none!important}.sample-listen:hover:not(:disabled){transform:none}.sample-listen.is-playing .sample-mini-bars i{animation:none}.sample-listen.is-playing .sample-mini-bars i:nth-child(2){height:16px}.sample-listen.is-playing .sample-mini-bars i:nth-child(3){height:11px}.sample-listen.is-playing .sample-mini-bars i:nth-child(4){height:18px}}
+`;
+ document.head.appendChild(style);
+}
+
+function setSampleButton(button,state){
+ const label=button.querySelector('.sample-button-label');
+ const icon=button.querySelector('.sample-button-icon');
+ button.classList.toggle('is-playing',state==='playing');
+ button.classList.toggle('is-loading',state==='loading');
+ button.disabled=state==='loading';
+ if(label)label.textContent=state==='playing'?'Playing':'Listen';
+ if(icon)icon.textContent=state==='playing'?'Ⅱ':state==='loading'?'…':'▶';
+ button.setAttribute('aria-label',`${state==='playing'?'Pause':'Listen to'} ${button.dataset.voiceName||'voice'} sample`);
+}
+
+function resetSampleButtons(){
+ document.querySelectorAll('.sample-listen').forEach(button=>setSampleButton(button,'idle'));
+}
+
 function renderSampleVoices(){
  const grid=document.querySelector('#sampleVoiceGrid'); if(!grid)return;
+ injectSampleButtonStyles();
  grid.innerHTML='';
  const cards=document.createElement('div'); cards.className='sample-grid';
  SAMPLE_VOICES.forEach(voice=>{
   const card=document.createElement('article'); card.className='sample-card';
-  card.innerHTML=`<div class="sample-play-mark">▶</div><h4>${voice.language}</h4><p>${voice.name} · ${voice.accent}</p><button class="ghost button full sample-listen" type="button" aria-label="Listen to ${voice.language} sample">Listen</button>`;
-  card.querySelector('button').addEventListener('click',()=>playStoredSample(voice,card.querySelector('button')));
+  card.innerHTML=`<div class="sample-play-mark">▶</div><h4>${voice.language}</h4><p>${voice.name} · ${voice.accent}</p><button class="ghost button full sample-listen" type="button" data-voice-name="${voice.name}" aria-label="Listen to ${voice.name} sample"><span class="sample-button-icon">▶</span><span class="sample-button-label">Listen</span><span class="sample-mini-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></button>`;
+  const button=card.querySelector('button');
+  button.addEventListener('click',()=>playStoredSample(voice,button));
   cards.appendChild(card);
  });
  grid.appendChild(cards);
 }
 
 async function playStoredSample(voice,button){
- if(activeAudio){activeAudio.pause();activeAudio.currentTime=0;activeAudio=null;document.querySelectorAll('.sample-listen').forEach(b=>{b.disabled=false;b.textContent='Listen';});}
- const original='Listen'; button.disabled=true; button.textContent='Loading…';
+ if(activeAudio&&activeAudio._voiceCode===voice.code){
+  if(activeAudio.paused){
+   try{await activeAudio.play();}catch(err){setSampleButton(button,'idle');console.error(err);}
+  }else{
+   activeAudio.pause();
+  }
+  return;
+ }
+ if(activeAudio){activeAudio.pause();activeAudio.currentTime=0;activeAudio=null;resetSampleButtons();}
+ setSampleButton(button,'loading');
  try{
   const audio=new Audio(`/api/sample-voices/${voice.code}`);
   audio.preload='auto';
+  audio._voiceCode=voice.code;
   activeAudio=audio;
-  audio.onplaying=()=>{button.disabled=false;button.textContent='Playing…';};
-  audio.onended=()=>{button.disabled=false;button.textContent=original;activeAudio=null;};
-  audio.onerror=()=>{throw new Error('Sample unavailable');};
+  audio.onplaying=()=>setSampleButton(button,'playing');
+  audio.onpause=()=>{if(activeAudio===audio&& !audio.ended)setSampleButton(button,'idle');};
+  audio.onended=()=>{setSampleButton(button,'idle');if(activeAudio===audio)activeAudio=null;};
+  audio.onerror=()=>{setSampleButton(button,'idle');if(activeAudio===audio)activeAudio=null;console.error('Sample unavailable:',voice.code);};
   await audio.play();
- }catch(err){button.disabled=false;button.textContent=original;activeAudio=null;console.error(err);}
+ }catch(err){setSampleButton(button,'idle');if(activeAudio&&activeAudio._voiceCode===voice.code)activeAudio=null;console.error(err);}
 }
 
 function setupHeroPlayer(){
