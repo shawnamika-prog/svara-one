@@ -1,22 +1,53 @@
 const PORTRAITS={
- en:{name:'Thalia',skin:'#d39a78',hair:'#241b1b',shirt:'#163a59',accent:'#31d7c1',hairStyle:'long'},
- es:{name:'Celeste',skin:'#c98b68',hair:'#2a1b18',shirt:'#4b245f',accent:'#2fe0c5',hairStyle:'wavy'},
- de:{name:'Julius',skin:'#e2ae8d',hair:'#5a3824',shirt:'#1e3d57',accent:'#58b8ff',hairStyle:'short'},
- fr:{name:'Agathe',skin:'#e4b090',hair:'#39251f',shirt:'#2b304f',accent:'#35dec5',hairStyle:'bob'},
- nl:{name:'Rhea',skin:'#dca17d',hair:'#7a4c2d',shirt:'#31514a',accent:'#52d9c4',hairStyle:'wavy'},
- it:{name:'Livia',skin:'#c98d6c',hair:'#211817',shirt:'#54314d',accent:'#4ab8ff',hairStyle:'long'},
- ja:{name:'Izanami',skin:'#f0c2a8',hair:'#17191f',shirt:'#233c5b',accent:'#35dec5',hairStyle:'long'}
+ en:{name:'Thalia',skin:'#b9785d',hair:'#2a1c1a',shirt:'#173b5c',accent:'#31d7c1',style:'long'},
+ es:{name:'Celeste',skin:'#b96f4e',hair:'#241817',shirt:'#4a285f',accent:'#31dfc5',style:'wavy'},
+ de:{name:'Julius',skin:'#d7a07d',hair:'#6b432c',shirt:'#183c57',accent:'#5ab9ff',style:'short'},
+ fr:{name:'Agathe',skin:'#d9a084',hair:'#39251f',shirt:'#343153',accent:'#35dec5',style:'bob'},
+ nl:{name:'Rhea',skin:'#c88462',hair:'#70452c',shirt:'#31524c',accent:'#4dd9c5',style:'wavy'},
+ it:{name:'Livia',skin:'#b97659',hair:'#211817',shirt:'#56304d',accent:'#4bbcff',style:'long'},
+ ja:{name:'Izanami',skin:'#e6b39d',hair:'#171a22',shirt:'#243e61',accent:'#35dec5',style:'long'}
 };
 
-function escapeXml(value){return String(value).replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&apos;'}[m]));}
+function esc(v){return String(v).replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&apos;'}[m]));}
 
 export function getPortrait(code){
- const p=PORTRAITS[code];
- if(!p)return null;
- const hairBack=p.hairStyle==='short'?`<path d="M82 96c0-47 22-72 68-72s68 25 68 72v39H82z" fill="${p.hair}"/>`:`<path d="M68 118c-1-61 25-96 82-96 52 0 82 32 82 96v74H68z" fill="${p.hair}"/>`;
- const hairFront=p.hairStyle==='bob'?`<path d="M75 111c4-48 28-78 75-78 43 0 70 26 75 78l-22-16-7-31c-14 17-35 25-64 24-18 0-34-5-47-15l-2 29z" fill="${p.hair}"/>`:p.hairStyle==='short'?`<path d="M82 101c4-38 25-62 69-62 34 0 59 17 68 50l-21-11c-16 14-35 19-60 17-20-2-37-7-52-18z" fill="${p.hair}"/>`:`<path d="M73 111c5-49 31-78 77-78 45 0 70 27 77 78l-18-13-12-39c-17 22-39 31-67 29-21-1-38-8-52-22l-4 45z" fill="${p.hair}"/>`;
- const beard=p.hairStyle==='short'?`<path d="M119 161c8 19 21 28 31 28 11 0 25-9 32-28-11 7-21 10-32 10-11 0-21-3-31-10z" fill="#51382b" opacity=".75"/>`:'';
- return `<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" role="img" aria-label="${escapeXml(p.name)} voice portrait"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0c2034"/><stop offset="1" stop-color="#081321"/></linearGradient><radialGradient id="glow"><stop stop-color="${p.accent}" stop-opacity=".22"/><stop offset="1" stop-color="${p.accent}" stop-opacity="0"/></radialGradient></defs><rect width="300" height="300" rx="150" fill="url(#bg)"/><circle cx="230" cy="70" r="105" fill="url(#glow)"/><path d="M54 300c9-58 45-86 96-86s87 28 96 86z" fill="${p.shirt}"/><path d="M125 211l25 25 25-25 12 11c-9 21-23 33-37 33s-28-12-37-33z" fill="${p.skin}"/><path d="M103 112c0-45 22-70 47-70s47 25 47 70v49c0 34-21 55-47 55s-47-21-47-55z" fill="${p.skin}"/>${hairBack}<path d="M106 112c2-17 6-31 16-42 11-12 25-18 43-18 20 0 35 7 46 20 8 10 12 23 13 40-14-5-27-14-38-28-10 14-26 24-47 29-13 3-24 3-33-1z" fill="${p.hair}" opacity=".96"/>${hairFront}<ellipse cx="132" cy="126" rx="5" ry="4" fill="#17202c"/><ellipse cx="168" cy="126" rx="5" ry="4" fill="#17202c"/><path d="M139 159c7 5 15 5 22 0" fill="none" stroke="#8a4f4a" stroke-width="4" stroke-linecap="round"/>${beard}<circle cx="44" cy="44" r="8" fill="${p.accent}"/><circle cx="44" cy="44" r="15" fill="none" stroke="${p.accent}" stroke-opacity=".25" stroke-width="2"/></svg>`;
+ const p=PORTRAITS[code]; if(!p)return null;
+ const hairBack=p.style==='short'
+  ? `<path d="M82 118C78 65 106 25 151 25c45 0 72 33 68 91v57H82z" fill="${p.hair}"/>`
+  : `<path d="M68 130C65 65 99 22 151 22c56 0 88 40 81 111l-3 87H71z" fill="${p.hair}"/>`;
+ const front=p.style==='bob'
+  ? `<path d="M78 123c5-59 33-91 76-91 42 0 68 30 73 88l-18-16-8-42c-17 19-39 28-66 28-22 0-40-6-53-18l-4 51z" fill="${p.hair}"/>`
+  : p.style==='short'
+  ? `<path d="M82 113c4-47 30-72 69-72 38 0 63 23 69 65l-24-13c-15 12-34 18-56 18-22 0-40-6-58-19z" fill="${p.hair}"/>`
+  : `<path d="M73 123c5-58 34-91 78-91 44 0 70 31 76 90l-20-18-12-43c-17 21-40 30-68 30-21 0-39-7-53-21l-5 53z" fill="${p.hair}"/>`;
+ const waves=p.style==='wavy'
+  ? `<path d="M74 93c-12 20-15 47-9 79l18 20 5-62-14-37zM226 93c12 20 15 47 9 79l-18 20-5-62 14-37z" fill="${p.hair}"/>`
+  : '';
+ const beard=p.style==='short'?`<path d="M115 166c8 18 20 28 36 28 16 0 28-10 35-28-10 7-22 10-35 10s-25-3-36-10z" fill="#55382c" opacity=".72"/>`:'';
+ return `<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" role="img" aria-label="${esc(p.name)} voice portrait">
+ <defs>
+  <radialGradient id="bg"><stop stop-color="#17344b"/><stop offset="1" stop-color="#071421"/></radialGradient>
+  <radialGradient id="light"><stop stop-color="${p.accent}" stop-opacity=".24"/><stop offset="1" stop-color="${p.accent}" stop-opacity="0"/></radialGradient>
+  <linearGradient id="skin" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${p.skin}"/><stop offset="1" stop-color="#8e5748"/></linearGradient>
+  <linearGradient id="shirt" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${p.shirt}"/><stop offset="1" stop-color="#081321"/></linearGradient>
+  <filter id="soft"><feGaussianBlur stdDeviation="9"/></filter>
+ </defs>
+ <rect width="320" height="320" rx="160" fill="url(#bg)"/>
+ <circle cx="245" cy="65" r="120" fill="url(#light)"/>
+ <ellipse cx="160" cy="305" rx="105" ry="28" fill="#000" opacity=".24" filter="url(#soft)"/>
+ <path d="M52 320c10-69 49-103 108-103s98 34 108 103z" fill="url(#shirt)"/>
+ <path d="M129 208l31 29 31-29 16 17c-11 25-28 39-47 39s-36-14-47-39z" fill="url(#skin)"/>
+ ${hairBack}
+ <path d="M101 112c0-48 26-76 59-76s59 28 59 76v55c0 38-26 63-59 63s-59-25-59-63z" fill="url(#skin)"/>
+ ${waves}
+ ${front}
+ <ellipse cx="137" cy="130" rx="6" ry="4.5" fill="#182330"/><ellipse cx="183" cy="130" rx="6" ry="4.5" fill="#182330"/>
+ <path d="M123 115c9-6 18-7 27-3M170 112c10-4 19-3 27 3" fill="none" stroke="#4a2d29" stroke-width="4" stroke-linecap="round" opacity=".65"/>
+ <path d="M160 134c-2 10-5 18-2 22 3 2 7 2 10 0" fill="none" stroke="#875246" stroke-width="3" stroke-linecap="round"/>
+ <path d="M144 169c10 8 22 8 32 0" fill="none" stroke="#7d403d" stroke-width="4" stroke-linecap="round"/>
+ ${beard}
+ <circle cx="46" cy="48" r="7" fill="${p.accent}"/><circle cx="46" cy="48" r="14" fill="none" stroke="${p.accent}" stroke-opacity=".28" stroke-width="2"/>
+ </svg>`;
 }
 
 export const PORTRAIT_CODES=Object.keys(PORTRAITS);
