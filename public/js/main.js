@@ -14,22 +14,24 @@ function renderSampleVoices(){
  const cards=document.createElement('div'); cards.className='sample-grid';
  SAMPLE_VOICES.forEach(voice=>{
   const card=document.createElement('article'); card.className='sample-card';
-  card.innerHTML=`<div class="sample-play-mark">▶</div><h4>${voice.language}</h4><p>${voice.name} · ${voice.accent}</p><button class="ghost button full sample-listen" type="button">Listen</button>`;
+  card.innerHTML=`<div class="sample-play-mark">▶</div><h4>${voice.language}</h4><p>${voice.name} · ${voice.accent}</p><button class="ghost button full sample-listen" type="button" aria-label="Listen to ${voice.language} sample">Listen</button>`;
   card.querySelector('button').addEventListener('click',()=>playStoredSample(voice,card.querySelector('button')));
   cards.appendChild(card);
  });
  grid.appendChild(cards);
 }
 async function playStoredSample(voice,button){
- if(activeAudio){activeAudio.pause();activeAudio=null;document.querySelectorAll('.sample-listen').forEach(b=>{b.disabled=false;b.textContent='Listen';});}
+ if(activeAudio){activeAudio.pause();activeAudio.currentTime=0;activeAudio=null;document.querySelectorAll('.sample-listen').forEach(b=>{b.disabled=false;b.textContent='Listen';});}
  const original='Listen'; button.disabled=true; button.textContent='Loading…';
  try{
-  const res=await fetch(`/api/sample-voices/${voice.code}`,{headers:{Accept:'audio/mpeg'}});
-  if(!res.ok)throw new Error('Sample unavailable');
-  const blob=await res.blob(); activeAudio=new Audio(URL.createObjectURL(blob)); button.textContent='Playing…';
-  activeAudio.onended=()=>{button.disabled=false;button.textContent=original;activeAudio=null;};
-  await activeAudio.play();
- }catch(err){button.disabled=false;button.textContent=original;console.error(err);}
+  const audio=new Audio(`/api/sample-voices/${voice.code}`);
+  audio.preload='auto';
+  activeAudio=audio;
+  audio.onplaying=()=>{button.disabled=false;button.textContent='Playing…';};
+  audio.onended=()=>{button.disabled=false;button.textContent=original;activeAudio=null;};
+  audio.onerror=()=>{throw new Error('Sample unavailable');};
+  await audio.play();
+ }catch(err){button.disabled=false;button.textContent=original;activeAudio=null;console.error(err);}
 }
 document.querySelectorAll('#heroPlay').forEach(b=>b.addEventListener('click',()=>{b.textContent=b.textContent==='▶'?'Ⅱ':'▶';document.querySelector('.bar span').style.width=b.textContent==='Ⅱ'?'62%':'0%';}));
 renderSampleVoices();
