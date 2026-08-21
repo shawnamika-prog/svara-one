@@ -1,12 +1,12 @@
 (()=>{
 let voices=window.SVARA_VOICES||[],list=document.getElementById('voiceList'),search=document.getElementById('voiceSearch');
-let filter='all',selected=voices[0]||null,currentUrl=null,account=null,creditFactor=0.5,maxGenerationChars=10000;
+let filter='all',selected=voices[0]||null,currentUrl=null,account=null,creditFactor=2,maxGenerationChars=10000;
 const $=id=>document.getElementById(id),CREDIT_KEY='svaraOrigins.demoCredits.v2',START_CREDITS=5000;
 function credits(){return Number(localStorage.getItem(CREDIT_KEY)??START_CREDITS)}
 function setCredits(n){const value=Math.max(0,n);localStorage.setItem(CREDIT_KEY,String(value));if($('creditBalance'))$('creditBalance').textContent=`${value.toLocaleString()} credits`;if($('topCredits'))$('topCredits').textContent=value.toLocaleString()}
-function generationCost(n){return Math.max(1,Math.ceil(n/creditFactor))}
-function escapeHtml(s){return String(s).replace(/[&<>'\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]))}
-function displayName(v){return String(v.name||v.voice_id||'Voice').replace(/-/g,' ').replace(/\b\w/g,m=>m.toUpperCase())}
+function generationCost(n){return Math.max(1,Math.ceil(n*creditFactor))}
+function escapeHtml(s){return String(s).replace(/[&<>'\\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\\"':'&quot;'}[c]))}
+function displayName(v){return String(v.name||v.voice_id||'Voice').replace(/-/g,' ').replace(/\\b\\w/g,m=>m.toUpperCase())}
 function normalizeVoice(v){const id=v.voice_id||'',parts=id.split('-'),lang=parts[parts.length-1]||'en',meta=v.metadata||{};return {id:`deepgram-${id}`,name:meta.name||displayName(v),region:meta.accent||meta.language||lang.toUpperCase(),category:lang,style:(meta.characteristics||[])[0]||'Natural',gender:meta.gender||'',provider:'deepgram',providerVoiceId:id,metadata:meta}}
 async function loadPricing(){try{const res=await fetch('/api/pricing',{cache:'no-store'});if(res.ok){const data=await res.json();const value=Number(data.creditFactor);if(Number.isFinite(value)&&value>0)creditFactor=value}}catch(_){}}
 async function loadAccount(){const res=await fetch('/api/auth/me',{credentials:'same-origin',cache:'no-store'});const data=await res.json().catch(()=>({}));if(!res.ok||!data.authenticated){window.location.replace('/login.html?next=/studio');return false}account=data.user||null;maxGenerationChars=account?.subscription?.plan?10000:5000;const balance=Number(account?.credits||0);localStorage.setItem(CREDIT_KEY,String(balance));setCredits(balance);const pill=document.querySelector('.user-pill');if(pill)pill.textContent=`${account?.display_name||account?.email||'Account'} · ${account?.subscription?.plan||'Free'}`;return true}
