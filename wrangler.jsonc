@@ -3,6 +3,7 @@
   "name": "svara-one",
   "main": "worker/entry.js",
   "compatibility_date": "2026-08-18",
+  "keep_vars": true,
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
