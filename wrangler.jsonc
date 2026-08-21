@@ -24,6 +24,13 @@
     "SVARAONE_STUDIO_PRICE": "840",
     "SVARAONE_STUDIO_CREDITS": "1500000"
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "svaraone-db",
+      "database_id": "5f6ccada-a902-4c38-bf60-6e42825eec84"
+    }
+  ],
   "r2_buckets": [
     {
       "binding": "VOICE_SAMPLES",
