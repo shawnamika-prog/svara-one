@@ -1,6 +1,6 @@
 const SESSION_COOKIE = "svara_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
-const PASSWORD_ITERATIONS = 120000;
+const PASSWORD_ITERATIONS = 100000;
 const FREE_VOICE_IDS = ["aura-2-thalia-en", "aura-2-celeste-es", "aura-2-julius-de"];
 
 const ALLOWED_ORIGINS = new Set([
