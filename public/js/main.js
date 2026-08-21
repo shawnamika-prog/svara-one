@@ -104,5 +104,34 @@ function setupHeroPlayer(){
 }
 
 function formatDuration(seconds){const total=Math.max(0,Math.round(seconds));const minutes=Math.floor(total/60);const secs=String(total%60).padStart(2,'0');return `${String(minutes).padStart(2,'0')}:${secs}`;}
+
+async function loadPricing(){
+ try{
+  const [pricingResponse,voicesResponse]=await Promise.all([fetch('/api/pricing',{cache:'no-store'}),fetch('/api/voices',{cache:'no-store'})]);
+  if(!pricingResponse.ok)throw new Error(`Pricing API ${pricingResponse.status}`);
+  const pricing=await pricingResponse.json();
+  let voiceCount=null;
+  if(voicesResponse.ok){const catalogue=await voicesResponse.json();voiceCount=Array.isArray(catalogue.voices)?catalogue.voices.length:null;}
+  const articles=[...document.querySelectorAll('.prices article')];
+  const byName=Object.fromEntries(articles.map(article=>[article.querySelector('h3')?.textContent.trim().toLowerCase(),article]));
+  const update=(article,plan)=>{
+   if(!article||!plan)return;
+   const price=article.querySelector('.price');
+   const creditLine=article.querySelector('b');
+   if(price){price.firstChild.textContent=`$${Number(plan.price).toLocaleString('en-US') } `;const small=price.querySelector('small');if(small)small.textContent='/ year';}
+   if(creditLine){creditLine.innerHTML=`${Number(plan.credits).toLocaleString('en-US')} <span class="brand-svara">Svara</span><span class="brand-one">ONE</span> Credits / month`;}
+  };
+  const free=byName.free;
+  if(free){const creditLine=free.querySelector('b');if(creditLine)creditLine.innerHTML=`${Number(pricing.free.credits).toLocaleString('en-US')} <span class="brand-svara">Svara</span><span class="brand-one">ONE</span> Credits · one-time`;const price=free.querySelector('.price');if(price){price.firstChild.textContent='$0 ';const small=price.querySelector('small');if(small)small.textContent='/ once';}}
+  update(byName.starter,pricing.plans.starter);
+  update(byName.creator,pricing.plans.creator);
+  update(byName.pro,pricing.plans.pro);
+  update(byName.studio,pricing.plans.studio);
+  const voiceItems={starter:pricing.plans.starter.voices,creator:pricing.plans.creator.voices,pro:voiceCount,studio:voiceCount};
+  Object.entries(voiceItems).forEach(([name,count])=>{const article=byName[name];if(!article||!Number.isFinite(Number(count)))return;const items=[...article.querySelectorAll('li')];const target=items.find(li=>/voices|voice library/i.test(li.textContent));if(target)target.textContent=`${Number(count).toLocaleString('en-US')} voices`;});
+ }catch(err){console.error('Pricing unavailable:',err);}
+}
+
 setupHeroPlayer();
 renderSampleVoices();
+loadPricing();
