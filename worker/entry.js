@@ -11,6 +11,85 @@ const PORTRAIT_NAMES = {
   ja: "izanami"
 };
 
+const SESSION_COOKIE = "svara_session";
+const MAX_GENERATION_CHARS = 10000;
+
+async function sha256(value) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return btoa(String.fromCharCode(...new Uint8Array(digest)))
+    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function sessionToken(request) {
+  const header = request.headers.get("Cookie") || "";
+  for (const part of header.split(";")) {
+    const index = part.indexOf("=");
+    if (index === -1) continue;
+    if (part.slice(0, index).trim() === SESSION_COOKIE) return decodeURIComponent(part.slice(index + 1).trim());
+  }
+  return "";
+}
+
+async function authenticatedUserId(request, env) {
+  if (!env.DB) return null;
+  const token = sessionToken(request);
+  if (!token) return null;
+  const tokenHash = await sha256(token);
+  const row = await env.DB.prepare(`
+    SELECT u.id
+    FROM sessions s
+    JOIN users u ON u.id = s.user_id
+    WHERE s.token_hash = ?
+      AND s.revoked_at IS NULL
+      AND s.expires_at > strftime('%Y-%m-%dT%H:%M:%fZ','now')
+      AND u.status = 'active'
+    LIMIT 1
+  `).bind(tokenHash).first();
+  return row?.id || null;
+}
+
+function generationCost(text, env) {
+  const factor = Number(env.SVARAONE_CREDIT_FACTOR);
+  const safeFactor = Number.isFinite(factor) && factor > 0 ? factor : 0.5;
+  return Math.max(1, Math.ceil(text.length / safeFactor));
+}
+
+async function reserveCredits(userId, cost, env) {
+  const referenceId = crypto.randomUUID();
+  const result = await env.DB.prepare(`
+    INSERT INTO credit_ledger
+      (id, user_id, amount, balance_after, reason, reference_id, period_key)
+    SELECT ?, ?, ?, balance_after - ?, 'generation', ?, 'generation'
+    FROM credit_ledger
+    WHERE user_id = ?
+      AND balance_after >= ?
+    ORDER BY created_at DESC
+    LIMIT 1
+  `).bind(
+    crypto.randomUUID(), userId, -cost, cost, referenceId, userId, cost
+  ).run();
+
+  if (!result.meta?.changes) return null;
+  const balance = await env.DB.prepare(
+    "SELECT balance_after FROM credit_ledger WHERE user_id = ? ORDER BY created_at DESC LIMIT 1"
+  ).bind(userId).first("balance_after");
+  return { referenceId, balance: Number(balance || 0) };
+}
+
+async function refundCredits(userId, cost, referenceId, env) {
+  await env.DB.prepare(`
+    INSERT INTO credit_ledger
+      (id, user_id, amount, balance_after, reason, reference_id, period_key)
+    SELECT ?, ?, ?, balance_after + ?, 'generation_refund', ?, 'generation'
+    FROM credit_ledger
+    WHERE user_id = ?
+    ORDER BY created_at DESC
+    LIMIT 1
+  `).bind(
+    crypto.randomUUID(), userId, cost, cost, referenceId, userId
+  ).run();
+}
+
 async function storedPortrait(env, code) {
   if (!env.VOICE_SAMPLES) return null;
 
@@ -80,6 +159,35 @@ export default {
       const code = url.pathname.split("/").pop();
       const portrait = await storedPortrait(env, code);
       if (portrait) return portrait;
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/voice/generate") {
+      const body = await request.clone().json().catch(() => ({}));
+      const text = String(body.text || "").trim();
+      if (!text) return new Response(JSON.stringify({ error: "Text is required" }), { status: 400, headers: { "content-type": "application/json" } });
+      if (text.length > MAX_GENERATION_CHARS) return new Response(JSON.stringify({ error: `Maximum ${MAX_GENERATION_CHARS} characters per generation` }), { status: 400, headers: { "content-type": "application/json" } });
+
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return new Response(JSON.stringify({ error: "Authentication required." }), { status: 401, headers: { "content-type": "application/json" } });
+      if (!env.DB) return new Response(JSON.stringify({ error: "Account service is not configured." }), { status: 503, headers: { "content-type": "application/json" } });
+
+      const cost = generationCost(text, env);
+      const reservation = await reserveCredits(userId, cost, env);
+      if (!reservation) return new Response(JSON.stringify({ error: "Not enough credits." }), { status: 402, headers: { "content-type": "application/json" } });
+
+      try {
+        const response = await app.fetch(request, env, ctx);
+        if (!response.ok) {
+          await refundCredits(userId, cost, reservation.referenceId, env);
+          return response;
+        }
+        const headers = new Headers(response.headers);
+        headers.set("X-SvaraONE-Credits-Remaining", String(reservation.balance));
+        return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+      } catch (error) {
+        await refundCredits(userId, cost, reservation.referenceId, env);
+        throw error;
+      }
     }
 
     return app.fetch(request, env, ctx);
