@@ -111,7 +111,7 @@ function parseCookies(request) {
 }
 
 function sessionCookie(token, maxAge = SESSION_TTL_SECONDS) {
-  return `${SESSION_COOKIE}=${encodeURIComponent(token)}; Max-Age=${maxAge}; Path=/; HttpOnly; Secure; SameSite=Lax`;
+  return `${SESSION_COOKIE}=${encodeURIComponent(token)}; Max-Age=${maxAge}; Path=/; HttpOnly; Secure; SameSite=None`;
 }
 
 function normaliseEmail(value) {
@@ -226,12 +226,9 @@ async function register(request, env) {
 
   try {
     await env.DB.batch([
-      env.DB.prepare(`INSERT INTO users (id, email, display_name, password_hash, password_salt) VALUES (?, ?, ?, ?, ?)`)
-        .bind(userId, email, displayName, passwordData.hash, passwordData.salt),
-      env.DB.prepare(`INSERT INTO sessions (id, user_id, token_hash, expires_at) VALUES (?, ?, ?, ?)`)
-        .bind(sessionId, userId, tokenHash, expiresAt),
-      env.DB.prepare(`INSERT INTO account_events (id, user_id, event_type, reference_id, metadata_json) VALUES (?, ?, ?, ?, ?)`)
-        .bind(crypto.randomUUID(), userId, "account_created", sessionId, JSON.stringify({ method: "password" }))
+      env.DB.prepare(`INSERT INTO users (id, email, display_name, password_hash, password_salt) VALUES (?, ?, ?, ?, ?)`).bind(userId, email, displayName, passwordData.hash, passwordData.salt),
+      env.DB.prepare(`INSERT INTO sessions (id, user_id, token_hash, expires_at) VALUES (?, ?, ?, ?)`).bind(sessionId, userId, tokenHash, expiresAt),
+      env.DB.prepare(`INSERT INTO account_events (id, user_id, event_type, reference_id, metadata_json) VALUES (?, ?, ?, ?, ?)`).bind(crypto.randomUUID(), userId, "account_created", sessionId, JSON.stringify({ method: "password" }))
     ]);
   } catch (error) {
     const message = String(error?.message || "");
@@ -240,9 +237,7 @@ async function register(request, env) {
     return json({ error: "Unable to create the account." }, 500, request);
   }
 
-  const user = await currentUser(new Request(request.url, {
-    headers: { Cookie: sessionCookie(sessionToken) }
-  }), env);
+  const user = await currentUser(new Request(request.url, { headers: { Cookie: sessionCookie(sessionToken) } }), env);
   return json({ ok: true, user }, 201, request, { "Set-Cookie": sessionCookie(sessionToken) });
 }
 
@@ -261,9 +256,7 @@ async function login(request, env) {
     LIMIT 1
   `).bind(email).first();
 
-  if (!user || user.status !== "active" || !user.password_hash || !user.password_salt) {
-    return json({ error: "Invalid email or password." }, 401, request);
-  }
+  if (!user || user.status !== "active" || !user.password_hash || !user.password_salt) return json({ error: "Invalid email or password." }, 401, request);
 
   const valid = await verifyPassword(password, user.password_hash, user.password_salt);
   if (!valid) return json({ error: "Invalid email or password." }, 401, request);
