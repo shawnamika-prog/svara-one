@@ -1,4 +1,5 @@
 import app from "./index.js";
+import { handleAuth } from "./auth.js";
 
 const PORTRAIT_NAMES = {
   en: "thalia",
@@ -61,6 +62,9 @@ function pricing(env) {
 
 export default {
   async fetch(request, env, ctx) {
+    const authResponse = await handleAuth(request, env);
+    if (authResponse) return authResponse;
+
     const url = new URL(request.url);
 
     if (request.method === "GET" && url.pathname === "/api/pricing") {
