@@ -122,7 +122,7 @@ async function loadPricing(){
    if(creditLine){creditLine.innerHTML=`${Number(plan.credits).toLocaleString('en-US')} <span class="brand-svara">Svara</span><span class="brand-one">ONE</span> Credits / month`;}
   };
   const free=byName.free;
-  if(free){const creditLine=free.querySelector('b');if(creditLine)creditLine.innerHTML=`${Number(pricing.free.credits).toLocaleString('en-US')} <span class="brand-svara">Svara</span><span class="brand-one">ONE</span> Credits · one-time`;const price=free.querySelector('.price');if(price){price.firstChild.textContent='$0 ';const small=price.querySelector('small');if(small)small.textContent='/ once';}}
+  if(free){const creditLine=free.querySelector('b');if(creditLine)creditLine.innerHTML=`${Number(pricing.free.credits).toLocaleString('en-US')} <span class="brand-svara">Svara</span><span class="brand-one">ONE</span> Credits / once-off`;const price=free.querySelector('.price');if(price){price.firstChild.textContent='$0 ';const small=price.querySelector('small');if(small)small.textContent='/ once-off';}}
   update(byName.starter,pricing.plans.starter);
   update(byName.creator,pricing.plans.creator);
   update(byName.pro,pricing.plans.pro);
@@ -132,6 +132,12 @@ async function loadPricing(){
  }catch(err){console.error('Pricing unavailable:',err);}
 }
 
+function setDynamicCopyrightYear(){
+ const year=document.getElementById('copyrightYear');
+ if(year)year.textContent=String(new Date().getFullYear());
+}
+
+setDynamicCopyrightYear();
 setupHeroPlayer();
 renderSampleVoices();
 loadPricing();
