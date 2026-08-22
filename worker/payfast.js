@@ -187,7 +187,10 @@ async function activateSubscription(data, env) {
     env.DB.prepare(`INSERT INTO subscriptions (id,user_id,plan,status,payfast_payment_id,payfast_token,amount_zar,amount_net_zar,paid_at,billing_currency,billing_interval,period_start,period_end) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(subscriptionId,pending.user_id,plan,"active",paymentReference,String(data.token || "") || null,expectedZar,Number(data.amount_net) || null,start,"USD","year",start,end),
     env.DB.prepare(`INSERT INTO credit_ledger (id,user_id,amount,balance_after,reason,reference_id,period_key) VALUES (?,?,?,?,?,?,?)`).bind(crypto.randomUUID(),pending.user_id,config.credits,balance+config.credits,"subscription_credit",subscriptionId,key),
     env.DB.prepare(`INSERT INTO account_events (id,user_id,event_type,reference_id,metadata_json) VALUES (?,?,?,?,?)`).bind(crypto.randomUUID(),pending.user_id,"subscription_activated",subscriptionId,JSON.stringify({ provider:"payfast", payment_id:data.pf_payment_id, plan, credits:config.credits, voice_count:selectedVoices.length, amount_zar:expectedZar, amount_net_zar:Number(data.amount_net)||null })),
-    ...selectedVoices.map(voice => env.DB.prepare(`INSERT OR IGNORE INTO user_voices (id,user_id,voice_id,revoked_at) VALUES (?,?,?,NULL)`).bind(crypto.randomUUID(),pending.user_id,voice.canonical_name))
+    ...selectedVoices.flatMap(voice => [
+      env.DB.prepare(`UPDATE user_voices SET revoked_at=NULL WHERE user_id=? AND voice_id=?`).bind(pending.user_id,voice.canonical_name),
+      env.DB.prepare(`INSERT OR IGNORE INTO user_voices (id,user_id,voice_id,revoked_at) VALUES (?,?,?,NULL)`).bind(crypto.randomUUID(),pending.user_id,voice.canonical_name)
+    ])
   ];
   await env.DB.batch(statements);
 }
