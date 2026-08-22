@@ -1,5 +1,6 @@
 import app from "./index.js";
 import { handleAuth } from "./auth.js";
+import { handlePayfast, runBillingCron } from "./payfast.js";
 
 const PORTRAIT_NAMES = {
   en: "thalia",
@@ -144,6 +145,9 @@ export default {
     const authResponse = await handleAuth(request, env);
     if (authResponse) return authResponse;
 
+    const payfastResponse = await handlePayfast(request, env);
+    if (payfastResponse) return payfastResponse;
+
     const url = new URL(request.url);
 
     if (request.method === "GET" && url.pathname === "/api/pricing") {
@@ -191,5 +195,9 @@ export default {
     }
 
     return app.fetch(request, env, ctx);
+  },
+
+  async scheduled(controller, env, ctx) {
+    ctx.waitUntil(runBillingCron(env));
   }
 };
