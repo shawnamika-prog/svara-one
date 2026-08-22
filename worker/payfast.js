@@ -11,16 +11,40 @@ function payfastHost(env) {
     : "sandbox.payfast.co.za";
 }
 
+// Payfast's custom-payment signature uses PHP urlencode semantics, not
+// encodeURIComponent semantics. In particular, spaces become '+' and
+// characters such as '~' are percent-encoded.
 function pfEncode(value) {
-  return encodeURIComponent(String(value).trim())
-    .replace(/%20/g, "+")
-    .replace(/[!'()*]/g, char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
+  const bytes = new TextEncoder().encode(String(value).trim());
+  let output = "";
+  for (const byte of bytes) {
+    const safe = (byte >= 0x30 && byte <= 0x39) ||
+      (byte >= 0x41 && byte <= 0x5a) ||
+      (byte >= 0x61 && byte <= 0x7a) ||
+      byte === 0x2d || byte === 0x2e || byte === 0x5f;
+    if (safe) output += String.fromCharCode(byte);
+    else if (byte === 0x20) output += "+";
+    else output += `%${byte.toString(16).toUpperCase().padStart(2, "0")}`;
+  }
+  return output;
 }
 
+const PAYFAST_SIGNATURE_FIELDS = [
+  "merchant_id", "merchant_key", "return_url", "cancel_url", "notify_url",
+  "notify_method", "name_first", "name_last", "email_address", "cell_number",
+  "m_payment_id", "amount", "item_name", "item_description",
+  "custom_int1", "custom_int2", "custom_int3", "custom_int4", "custom_int5",
+  "custom_str1", "custom_str2", "custom_str3", "custom_str4", "custom_str5",
+  "email_confirmation", "confirmation_address", "currency", "payment_method",
+  "subscription_type", "billing_date", "recurring_amount", "frequency", "cycles",
+  "subscription_notify_email", "subscription_notify_webhook", "subscription_notify_buyer"
+];
+
 function pfParamString(entries) {
-  return entries
-    .filter(([, value]) => value !== undefined && value !== null && String(value) !== "")
-    .map(([key, value]) => `${key}=${pfEncode(value)}`)
+  const values = new Map(entries.map(([key, value]) => [key, value]));
+  return PAYFAST_SIGNATURE_FIELDS
+    .filter(key => values.has(key) && values.get(key) !== undefined && values.get(key) !== null && String(values.get(key)) !== "")
+    .map(key => `${key}=${pfEncode(values.get(key))}`)
     .join("&");
 }
 
