@@ -42,10 +42,14 @@ function pfParamString(entries) {
     .join("&");
 }
 
-function pfRawParamString(entries) {
+// ITN signatures are different from the outgoing custom-payment signature:
+// PayFast posts a complete ordered set of fields, including blank custom/name
+// fields. Keep those blank fields in the parameter string and exclude ONLY
+// the signature field itself.
+function pfItnParamString(entries) {
   return entries
-    .filter(([, value]) => value !== undefined && value !== null && String(value) !== "")
-    .map(([key, value]) => `${key}=${pfEncode(value)}`)
+    .filter(([key]) => key !== "signature")
+    .map(([key, value]) => `${key}=${pfEncode(value ?? "")}`)
     .join("&");
 }
 
@@ -196,17 +200,20 @@ async function verifyItn(request, env) {
   const params = [...new URLSearchParams(raw).entries()];
   const received = Object.fromEntries(params);
   if (!received.signature) return new Response("INVALID", { status: 400 });
-  const merchantId = String(env.PAYFAST_MERCHANT_ID || "").trim(); if (received.merchant_id !== merchantId) return new Response("INVALID", { status: 400 });
+  const merchantId = String(env.PAYFAST_MERCHANT_ID || "").trim();
+  if (received.merchant_id !== merchantId) return new Response("INVALID", { status: 400 });
   const passphrase = String(env.PAYFAST_PASSPHRASE || "").trim();
-  const rawSignatureBase = pfRawParamString(params.filter(([key]) => key !== "signature"));
-  const expectedSignature = md5(passphrase ? `${rawSignatureBase}&passphrase=${pfEncode(passphrase)}` : rawSignatureBase);
+  // PayFast ITN documentation requires ALL posted fields before signature,
+  // including blank custom/name fields. Only the signature itself is removed.
+  const itnParamString = pfItnParamString(params);
+  const expectedSignature = md5(passphrase ? `${itnParamString}&passphrase=${pfEncode(passphrase)}` : itnParamString);
   if (received.signature !== expectedSignature) return new Response("INVALID", { status: 400 });
 
   const host = payfastHost(env);
   const validationResponse = await fetch(`https://${host}/eng/query/validate`, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
-    body: rawSignatureBase
+    body: itnParamString
   });
   const validationText = (await validationResponse.text()).trim();
   if (validationText !== "VALID") throw new Error(`Payfast ITN validation failed: ${validationText || "empty response"}`);
