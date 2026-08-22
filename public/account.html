@@ -7,40 +7,26 @@
   <title>SvaraONE — Settings</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    :root{color-scheme:dark;--bg:#06101f;--panel:#0b1a2b;--line:#203248;--text:#eaf2ff;--muted:#9db0c8;--accent:#18d6c2;--danger:#ff6b6b;--blue:#39a9ff}
-    *{box-sizing:border-box}body{margin:0;background:#06101f;color:var(--text);font:14px Inter,system-ui,sans-serif;line-height:1.6;min-height:100vh}
-    a{color:inherit;text-decoration:none}.nav{height:76px;border-bottom:1px solid #ffffff12;display:flex;align-items:center;padding:0 5vw;gap:22px;position:sticky;top:0;background:#06101fee;backdrop-filter:blur(18px);z-index:10}.brand{font-size:20px;font-weight:800}.title{font-size:15px;color:var(--muted)}.back{margin-left:auto;color:var(--muted)}
-    main{width:min(1280px,92vw);margin:54px auto 80px}.eyebrow{letter-spacing:.18em;color:#31d7c1;font-size:11px;font-weight:800;margin-bottom:14px}.card{background:rgba(11,26,43,.9);border:1px solid var(--line);border-radius:22px;padding:32px;margin-top:14px;box-shadow:0 20px 60px rgba(0,0,0,.22)}
-    h1{font-size:38px;margin:10px 0 8px}h2{font-size:21px;margin:0 0 10px}.muted{color:var(--muted);line-height:1.7}.account-meta{display:grid;gap:0;margin-top:24px}.row{display:flex;justify-content:space-between;gap:20px;padding:14px 0;border-bottom:1px solid var(--line)}.row:last-child{border-bottom:0}.label{color:var(--muted)}
-    .status{display:none;margin-top:16px;padding:13px 15px;border-radius:12px;line-height:1.5}.status.show{display:block}.status.success{background:#0d2a27;border:1px solid #1d766b;color:#9ff4e5}.status.pending{background:#1c2632;border:1px solid #38516b;color:#c7dcf3}.status.error{background:#301b20;border:1px solid #6d3039;color:#ffb5bb}
-    .plan-header{display:flex;justify-content:space-between;gap:20px;align-items:flex-start}.plan-badge{display:inline-flex;align-items:center;padding:8px 12px;border-radius:999px;background:#102e3b;border:1px solid #1d6e6b;color:#8ff4e5;font-weight:800;font-size:13px;text-transform:capitalize}.plan-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-top:24px}.plan-option{position:relative;padding:28px;border:1px solid #ffffff10;background:#ffffff05;border-radius:18px;display:flex;flex-direction:column;min-height:430px}.plan-option.popular{border-color:#1ed8bd66;box-shadow:0 0 50px #12cdbb14}.plan-option h3{font-size:24px;margin:0}.tag{position:absolute;right:16px;top:16px;background:#13dfbd;color:#03111e;padding:4px 8px;border-radius:9px;font-size:9px;font-weight:900}.plan-price{font-size:28px;font-weight:800;margin:15px 0;display:flex;align-items:baseline;gap:6px;white-space:nowrap}.plan-price span{font-size:11px;color:#7f94aa;font-weight:600}.plan-credit{font-weight:800;min-height:58px}.plan-features{padding:0;list-style:none;color:#9fb0c3;min-height:105px;flex:1;margin:16px 0}.plan-features li{margin:8px 0}.plan-features li:before{content:'✓';color:#24dcc1;margin-right:8px}.upgrade-difference{font-size:12px;color:#9db0c8;margin:0 0 14px}.upgrade-difference strong{color:#eef6ff}.plan-button{margin-top:auto;width:100%;padding:13px 19px;border:0;border-radius:12px;background:linear-gradient(100deg,#13e2bd,#24baff);color:#03111e;font-weight:800;font:inherit;cursor:pointer}.plan-button:disabled{opacity:.55;cursor:not-allowed}.upgrade-note{margin-top:18px;color:var(--muted);font-size:13px}
-    .danger{border-color:#5a2932}.danger h2{color:#ffb1b1}.warning{background:#1b1420;border:1px solid #5a2932;border-radius:14px;padding:16px;color:#e8c7cd;line-height:1.6}.form{display:grid;gap:14px;margin-top:22px}label{font-size:13px;color:var(--muted)}input{width:100%;margin-top:7px;padding:13px 14px;border:1px solid var(--line);border-radius:10px;background:#071423;color:var(--text);font:inherit}button{padding:13px 18px;border:0;border-radius:10px;background:var(--danger);color:#160b0b;font-weight:800;font:inherit;cursor:pointer}button:disabled{opacity:.6;cursor:not-allowed}.error{color:#ff9d9d;min-height:20px}
-    @media(max-width:1050px){.plan-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){main{margin:36px auto 60px}h1{font-size:30px}.row{display:grid;gap:4px}.plan-grid{grid-template-columns:1fr}.plan-header{display:grid}.plan-option{min-height:400px}}
-  </style>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/account.css">
 </head>
 <body>
-  <header class="nav"><a class="brand" href="/studio">SvaraONE</a><span class="title">Settings</span><a class="back" href="/studio">← Back to Studio</a></header>
-  <main>
+  <header class="nav account-nav"><a class="brand account-brand" href="/studio"><span class="brand-svara">Svara</span><span class="brand-one">ONE</span></a><span class="title">Settings</span><a class="back" href="/studio">← Back to Studio</a></header>
+  <main class="account-main">
     <div class="eyebrow">ACCOUNT</div>
     <h1>Settings</h1>
     <p class="muted">Manage your account, plan and subscription access.</p>
-
     <div id="status" class="status" role="status" aria-live="polite"></div>
-
-    <section class="card">
+    <section class="account-card">
       <div class="plan-header"><div><h2>Current plan</h2><p class="muted">Your active plan, available credits and voice access.</p></div><span id="currentPlanBadge" class="plan-badge">Loading…</span></div>
       <div id="accountMeta" class="account-meta"><div class="muted">Loading account…</div></div>
     </section>
-
-    <section class="card" id="upgradeSection">
-      <h2>Upgrade your plan</h2>
-      <p class="muted">Move to a higher plan at any time. For an existing paid plan, you pay only the annual price difference.</p>
-      <div id="planGrid" class="plan-grid"><div class="muted">Loading plans…</div></div>
+    <section class="account-upgrade" id="upgradeSection">
+      <div class="section-head"><div><div class="eyebrow">PRICING</div><h2>Simple plans. <span>Room to grow.</span></h2><p>Plans are billed annually. Your <span class="brand-svara">Svara</span><span class="brand-one">ONE</span> Credits refresh every month.</p></div></div>
+      <div id="planGrid" class="prices"><div class="muted">Loading plans…</div></div>
       <p id="upgradeNote" class="upgrade-note"></p>
     </section>
-
-    <section class="card danger">
+    <section class="account-card danger">
       <h2>Danger zone</h2>
       <p class="muted">Permanently remove your SvaraONE account, sessions, credits, voice entitlements and subscription record from our database.</p>
       <div class="warning">This action cannot be undone. A paid payment already made is not refunded by account deletion. PayFast may retain transaction records as required by its own policies.</div>
