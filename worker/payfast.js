@@ -42,10 +42,6 @@ function pfParamString(entries) {
     .join("&");
 }
 
-// ITN signatures are different from the outgoing custom-payment signature:
-// PayFast posts a complete ordered set of fields, including blank custom/name
-// fields. Keep those blank fields in the parameter string and exclude ONLY
-// the signature field itself.
 function pfItnParamString(entries) {
   return entries
     .filter(([key]) => key !== "signature")
@@ -187,6 +183,7 @@ async function activateSubscription(data, env) {
   const balance = Number(balanceRow?.balance_after || 0); const subscriptionId = crypto.randomUUID(); const paymentReference = String(data.pf_payment_id || paymentId);
   const voices = await deepgramVoices(env); const desiredVoiceCount = config.voices || voices.length; const selectedVoices = voices.slice(0, Math.max(0, desiredVoiceCount));
   const statements = [
+    env.DB.prepare(`UPDATE user_voices SET revoked_at=? WHERE user_id=? AND revoked_at IS NULL`).bind(start, pending.user_id),
     env.DB.prepare(`INSERT INTO subscriptions (id,user_id,plan,status,payfast_payment_id,payfast_token,amount_zar,amount_net_zar,paid_at,billing_currency,billing_interval,period_start,period_end) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(subscriptionId,pending.user_id,plan,"active",paymentReference,String(data.token || "") || null,expectedZar,Number(data.amount_net) || null,start,"USD","year",start,end),
     env.DB.prepare(`INSERT INTO credit_ledger (id,user_id,amount,balance_after,reason,reference_id,period_key) VALUES (?,?,?,?,?,?,?)`).bind(crypto.randomUUID(),pending.user_id,config.credits,balance+config.credits,"subscription_credit",subscriptionId,key),
     env.DB.prepare(`INSERT INTO account_events (id,user_id,event_type,reference_id,metadata_json) VALUES (?,?,?,?,?)`).bind(crypto.randomUUID(),pending.user_id,"subscription_activated",subscriptionId,JSON.stringify({ provider:"payfast", payment_id:data.pf_payment_id, plan, credits:config.credits, voice_count:selectedVoices.length, amount_zar:expectedZar, amount_net_zar:Number(data.amount_net)||null })),
@@ -203,8 +200,6 @@ async function verifyItn(request, env) {
   const merchantId = String(env.PAYFAST_MERCHANT_ID || "").trim();
   if (received.merchant_id !== merchantId) return new Response("INVALID", { status: 400 });
   const passphrase = String(env.PAYFAST_PASSPHRASE || "").trim();
-  // PayFast ITN documentation requires ALL posted fields before signature,
-  // including blank custom/name fields. Only the signature itself is removed.
   const itnParamString = pfItnParamString(params);
   const expectedSignature = md5(passphrase ? `${itnParamString}&passphrase=${pfEncode(passphrase)}` : itnParamString);
   if (received.signature !== expectedSignature) return new Response("INVALID", { status: 400 });
