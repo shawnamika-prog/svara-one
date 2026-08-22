@@ -197,6 +197,9 @@ async function activateSubscription(data, env) {
 
   const active = await activeSubscription(pending.user_id, env);
   if (active && planIndex(plan) <= planIndex(active.plan)) throw new Error("User already has this plan or a higher plan");
+  const activeConfig = active ? planConfig(env, String(active.plan).toLowerCase()) : null;
+  const creditAllocation = activeConfig ? config.credits - activeConfig.credits : config.credits;
+  if (!Number.isFinite(creditAllocation) || creditAllocation <= 0) throw new Error("Invalid credit allocation for plan upgrade");
 
   const start = new Date().toISOString(), end = addYear(start), key = periodKey(new Date(start));
   const balanceRow = await env.DB.prepare("SELECT balance_after FROM credit_ledger WHERE user_id=? ORDER BY created_at DESC LIMIT 1").bind(pending.user_id).first();
@@ -207,8 +210,8 @@ async function activateSubscription(data, env) {
   statements.push(
     env.DB.prepare(`UPDATE user_voices SET revoked_at=? WHERE user_id=? AND revoked_at IS NULL`).bind(start, pending.user_id),
     env.DB.prepare(`INSERT INTO subscriptions (id,user_id,plan,status,payfast_payment_id,payfast_token,amount_zar,amount_net_zar,paid_at,billing_currency,billing_interval,period_start,period_end) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(subscriptionId,pending.user_id,plan,"active",paymentReference,String(data.token || "") || null,expectedZar,Number(data.amount_net) || null,start,"USD","year",start,end),
-    env.DB.prepare(`INSERT INTO credit_ledger (id,user_id,amount,balance_after,reason,reference_id,period_key) VALUES (?,?,?,?,?,?,?)`).bind(crypto.randomUUID(),pending.user_id,config.credits,balance+config.credits,"subscription_credit",subscriptionId,key),
-    env.DB.prepare(`INSERT INTO account_events (id,user_id,event_type,reference_id,metadata_json) VALUES (?,?,?,?,?)`).bind(crypto.randomUUID(),pending.user_id,"subscription_activated",subscriptionId,JSON.stringify({ provider:"payfast", payment_id:data.pf_payment_id, plan, previous_plan:active?.plan || "free", credits:config.credits, voice_count:selectedVoices.length, amount_zar:expectedZar, amount_net_zar:Number(data.amount_net)||null, upgrade:true })),
+    env.DB.prepare(`INSERT INTO credit_ledger (id,user_id,amount,balance_after,reason,reference_id,period_key) VALUES (?,?,?,?,?,?,?)`).bind(crypto.randomUUID(),pending.user_id,creditAllocation,balance+creditAllocation,"subscription_credit",subscriptionId,key),
+    env.DB.prepare(`INSERT INTO account_events (id,user_id,event_type,reference_id,metadata_json) VALUES (?,?,?,?,?)`).bind(crypto.randomUUID(),pending.user_id,"subscription_activated",subscriptionId,JSON.stringify({ provider:"payfast", payment_id:data.pf_payment_id, plan, previous_plan:active?.plan || "free", credits:creditAllocation, plan_credits:config.credits, previous_plan_credits:activeConfig?.credits || 0, voice_count:selectedVoices.length, amount_zar:expectedZar, amount_net_zar:Number(data.amount_net)||null, upgrade:true })),
     ...selectedVoices.flatMap(voice => [
       env.DB.prepare(`UPDATE user_voices SET revoked_at=NULL WHERE user_id=? AND voice_id=?`).bind(pending.user_id,voice.canonical_name),
       env.DB.prepare(`INSERT OR IGNORE INTO user_voices (id,user_id,voice_id,revoked_at) VALUES (?,?,?,NULL)`).bind(crypto.randomUUID(),pending.user_id,voice.canonical_name)
