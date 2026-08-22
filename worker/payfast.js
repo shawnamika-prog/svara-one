@@ -202,14 +202,11 @@ async function verifyItn(request, env) {
   const expectedSignature = md5(passphrase ? `${rawSignatureBase}&passphrase=${pfEncode(passphrase)}` : rawSignatureBase);
   if (received.signature !== expectedSignature) return new Response("INVALID", { status: 400 });
 
-  // PayFast ITN validation expects the exact POST body that PayFast sent us,
-  // including the signature. Re-sending a reconstructed body without the
-  // signature causes validation to fail even when our local signature check passes.
   const host = payfastHost(env);
   const validationResponse = await fetch(`https://${host}/eng/query/validate`, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
-    body: raw
+    body: rawSignatureBase
   });
   const validationText = (await validationResponse.text()).trim();
   if (validationText !== "VALID") throw new Error(`Payfast ITN validation failed: ${validationText || "empty response"}`);
