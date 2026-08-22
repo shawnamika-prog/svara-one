@@ -11,9 +11,7 @@ function payfastHost(env) {
     : "sandbox.payfast.co.za";
 }
 
-// Payfast's custom-payment signature uses PHP urlencode semantics, not
-// encodeURIComponent semantics. In particular, spaces become '+' and
-// characters such as '~' are percent-encoded.
+// Payfast custom-payment signatures use PHP urlencode semantics.
 function pfEncode(value) {
   const bytes = new TextEncoder().encode(String(value).trim());
   let output = "";
@@ -45,6 +43,13 @@ function pfParamString(entries) {
   return PAYFAST_SIGNATURE_FIELDS
     .filter(key => values.has(key) && values.get(key) !== undefined && values.get(key) !== null && String(values.get(key)) !== "")
     .map(key => `${key}=${pfEncode(values.get(key))}`)
+    .join("&");
+}
+
+function pfRawParamString(entries) {
+  return entries
+    .filter(([, value]) => value !== undefined && value !== null && String(value) !== "")
+    .map(([key, value]) => `${key}=${pfEncode(value)}`)
     .join("&");
 }
 
@@ -236,13 +241,12 @@ async function verifyItn(request, env) {
   const merchantId = String(env.PAYFAST_MERCHANT_ID || "").trim();
   if (received.merchant_id !== merchantId) return new Response("INVALID", { status: 400 });
   const passphrase = String(env.PAYFAST_PASSPHRASE || "").trim();
-  const signatureEntries = params.filter(([key]) => key !== "signature");
-  const expectedSignature = signature(signatureEntries, passphrase);
+  const rawSignatureBase = pfRawParamString(params.filter(([key]) => key !== "signature"));
+  const expectedSignature = md5(passphrase ? `${rawSignatureBase}&passphrase=${pfEncode(passphrase)}` : rawSignatureBase);
   if (received.signature !== expectedSignature) return new Response("INVALID", { status: 400 });
 
   const host = payfastHost(env);
-  const validationBody = pfParamString(signatureEntries);
-  const validationResponse = await fetch(`https://${host}/eng/query/validate`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: validationBody });
+  const validationResponse = await fetch(`https://${host}/eng/query/validate`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: rawSignatureBase });
   const validationText = (await validationResponse.text()).trim();
   if (validationText !== "VALID") return new Response("INVALID", { status: 400 });
 
