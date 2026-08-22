@@ -1,5 +1,11 @@
 const PLAN_ORDER = ["starter", "creator", "pro", "studio"];
 const PLAN_NAMES = { starter: "Starter", creator: "Creator", pro: "Pro", studio: "Studio" };
+const PLAN_FEATURES = {
+  starter: ["10 voices", "MP3 download", "Commercial use"],
+  creator: ["20 voices", "MP3 download", "Commercial use", "Premium voice collection"],
+  pro: ["Full voice library", "MP3 download", "Commercial use", "Priority generation"],
+  studio: ["Full voice library", "MP3 download", "Commercial use", "Built for high-volume creation"]
+};
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
@@ -74,14 +80,20 @@ function renderPlans(user, pricing) {
     const config = pricing.plans?.[plan];
     if (!config) return "";
     const difference = Math.max(0, Number(config.price) - currentPrice);
-    const voices = Number.isFinite(Number(config.voices)) ? `${Number(config.voices).toLocaleString()} voices` : "Expanded voice access";
+    const features = PLAN_FEATURES[plan] || [];
+    const popular = plan === "creator" ? `<div class="tag">MOST POPULAR</div>` : "";
+    const differenceCopy = current === "free"
+      ? `<p class="upgrade-difference">Annual price: <strong>$${money(difference)}</strong></p>`
+      : `<p class="upgrade-difference">Upgrade difference: <strong>$${money(difference)}</strong></p>`;
     return `
-      <article class="plan-option">
+      <article class="plan-option${plan === "creator" ? " popular" : ""}">
+        ${popular}
         <h3>${escapeHtml(PLAN_NAMES[plan])}</h3>
         <div class="plan-price">$${money(config.price)} <span>/ year</span></div>
-        <p class="plan-copy">${Number(config.credits).toLocaleString()} credits / month · ${voices}</p>
-        <p class="plan-copy"><strong>${current === "free" ? "Annual price" : "Upgrade difference"}: $${money(difference)}</strong></p>
-        <button class="plan-button" type="button" data-plan="${plan}">Upgrade to ${escapeHtml(PLAN_NAMES[plan])}</button>
+        <b class="plan-credit">${Number(config.credits).toLocaleString()} <span class="brand-svara">SvaraONE</span> Credits / month</b>
+        <ul class="plan-features">${features.map(feature => `<li>${escapeHtml(feature)}</li>`).join("")}</ul>
+        ${differenceCopy}
+        <button class="plan-button" type="button" data-plan="${plan}">${current === "free" ? "Choose" : "Upgrade to"} ${escapeHtml(PLAN_NAMES[plan])}</button>
       </article>`;
   }).join("");
 
