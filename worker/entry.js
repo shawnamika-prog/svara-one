@@ -115,6 +115,20 @@ async function storedPortrait(env, code) {
   return null;
 }
 
+async function storedBrandLogo(env) {
+  if (!env.VOICE_SAMPLES) return null;
+  const object = await env.VOICE_SAMPLES.get("branding/svaraone-logo.png");
+  if (!object) return null;
+
+  return new Response(object.body, {
+    headers: {
+      "content-type": "image/png",
+      "cache-control": "public, max-age=31536000, immutable",
+      "etag": object.httpEtag || ""
+    }
+  });
+}
+
 function pricing(env) {
   const number = (name, fallback) => {
     const value = Number(env[name]);
@@ -149,6 +163,12 @@ export default {
     if (payfastResponse) return payfastResponse;
 
     const url = new URL(request.url);
+
+    if (request.method === "GET" && url.pathname === "/api/branding/svaraone-logo.png") {
+      const logo = await storedBrandLogo(env);
+      if (logo) return logo;
+      return new Response("Not found", { status: 404 });
+    }
 
     if (request.method === "GET" && url.pathname === "/api/pricing") {
       return new Response(JSON.stringify(pricing(env)), {
