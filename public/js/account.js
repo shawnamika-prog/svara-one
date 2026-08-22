@@ -1,11 +1,13 @@
-const PLAN_ORDER = ["starter", "creator", "pro", "studio"];
-const PLAN_NAMES = { starter: "Starter", creator: "Creator", pro: "Pro", studio: "Studio" };
+const PLAN_ORDER = ["free", "starter", "creator", "pro", "studio"];
+const PLAN_NAMES = { free: "Free", starter: "Starter", creator: "Creator", pro: "Pro", studio: "Studio" };
 const PLAN_FEATURES = {
+  free: ["3 voices", "MP3 download", "Try the full workflow"],
   starter: ["10 voices", "MP3 download", "Commercial use"],
   creator: ["20 voices", "MP3 download", "Commercial use", "Premium voice collection"],
   pro: ["Full voice library", "MP3 download", "Commercial use", "Priority generation"],
   studio: ["Full voice library", "MP3 download", "Commercial use", "Built for high-volume creation"]
 };
+const FREE_PLAN = { price: 0, period: "once-off", credits: 5000 };
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
@@ -60,47 +62,67 @@ function showAccount(user) {
     ${subscription?.period_end ? `<div class="row"><span class="label">Plan period ends</span><strong>${new Date(subscription.period_end).toLocaleDateString()}</strong></div>` : ""}`;
 }
 
+function planConfig(plan, pricing) {
+  if (plan === "free") return FREE_PLAN;
+  return pricing.plans?.[plan] || null;
+}
+
+function renderBrand() {
+  return `<span class="brand-svara">Svara</span><span class="brand-one">ONE</span>`;
+}
+
 function renderPlans(user, pricing) {
   const grid = document.querySelector("#planGrid");
   const note = document.querySelector("#upgradeNote");
   if (!grid) return;
 
   const current = currentPlanKey(user);
-  const currentIndex = current === "free" ? -1 : PLAN_ORDER.indexOf(current);
+  const currentIndex = PLAN_ORDER.indexOf(current);
   const currentPrice = currentPlanPrice(user, pricing);
-  const plans = PLAN_ORDER.filter(plan => PLAN_ORDER.indexOf(plan) > currentIndex);
 
-  if (!plans.length) {
-    grid.innerHTML = `<div class="muted">You're already on the highest available plan.</div>`;
-    if (note) note.textContent = "";
-    return;
-  }
-
-  grid.innerHTML = plans.map(plan => {
-    const config = pricing.plans?.[plan];
+  grid.innerHTML = PLAN_ORDER.map(plan => {
+    const config = planConfig(plan, pricing);
     if (!config) return "";
-    const difference = Math.max(0, Number(config.price) - currentPrice);
-    const features = PLAN_FEATURES[plan] || [];
+
+    const planIndex = PLAN_ORDER.indexOf(plan);
+    const isCurrent = plan === current;
+    const isUpgrade = planIndex > currentIndex;
+    const isFree = plan === "free";
     const popular = plan === "creator" ? `<div class="tag">MOST POPULAR</div>` : "";
-    const differenceCopy = current === "free"
-      ? `<p class="upgrade-difference">Annual price: <strong>$${money(difference)}</strong></p>`
-      : `<p class="upgrade-difference">Upgrade difference: <strong>$${money(difference)}</strong></p>`;
+    const features = PLAN_FEATURES[plan] || [];
+    const creditText = `${Number(config.credits).toLocaleString()} ${renderBrand()} Credits / ${isFree ? "once-off" : "month"}`;
+
+    let action;
+    if (isCurrent) {
+      action = `<button class="ghost button full current-plan" type="button" disabled>Current plan</button>`;
+    } else if (isFree) {
+      action = `<a class="ghost button full" href="/signup.html">Get started</a>`;
+    } else if (isUpgrade) {
+      action = `<button class="${plan === "creator" ? "button" : "ghost button"} full" type="button" data-plan="${plan}">Choose ${escapeHtml(PLAN_NAMES[plan])}</button>`;
+    } else {
+      action = `<button class="ghost button full current-plan" type="button" disabled>Unavailable</button>`;
+    }
+
     return `
-      <article class="plan-option${plan === "creator" ? " popular" : ""}">
+      <article${plan === "creator" ? ` class="popular"` : ""}>
         ${popular}
         <h3>${escapeHtml(PLAN_NAMES[plan])}</h3>
-        <div class="plan-price">$${money(config.price)} <span>/ year</span></div>
-        <b class="plan-credit">${Number(config.credits).toLocaleString()} <span class="brand-svara">SvaraONE</span> Credits / month</b>
-        <ul class="plan-features">${features.map(feature => `<li>${escapeHtml(feature)}</li>`).join("")}</ul>
-        ${differenceCopy}
-        <button class="plan-button" type="button" data-plan="${plan}">${current === "free" ? "Choose" : "Upgrade to"} ${escapeHtml(PLAN_NAMES[plan])}</button>
+        <div class="price">$${money(config.price)} <small>/ ${escapeHtml(config.period || (isFree ? "once-off" : "year"))}</small></div>
+        <b>${creditText}</b>
+        <ul>${features.map(feature => `<li>${escapeHtml(feature)}</li>`).join("")}</ul>
+        ${action}
       </article>`;
   }).join("");
 
-  grid.querySelectorAll("[data-plan]").forEach(button => button.addEventListener("click", () => beginUpgrade(button.dataset.plan)));
-  if (note) note.textContent = current === "free"
-    ? "You're on the Free plan. Choosing a paid plan starts a new annual subscription."
-    : "Upgrades are charged only for the difference between your current annual plan and the selected plan.";
+  grid.querySelectorAll("[data-plan]").forEach(button => {
+    button.addEventListener("click", () => beginUpgrade(button.dataset.plan));
+  });
+
+  if (note) {
+    note.textContent = current === "free"
+      ? "You're on the Free plan. Choosing a paid plan starts a new annual subscription."
+      : "Upgrades are charged only for the difference between your current annual plan and the selected plan.";
+  }
 }
 
 async function beginUpgrade(plan) {
