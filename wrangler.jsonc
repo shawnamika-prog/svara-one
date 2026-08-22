@@ -9,6 +9,9 @@
     "binding": "ASSETS",
     "run_worker_first": ["/api/*"]
   },
+  "triggers": {
+    "crons": ["5 * * * *"]
+  },
   "vars": {
     "SVARAONE_CREDIT_FACTOR": "0.5",
     "SVARAONE_FREE_CREDITS": "5000",
