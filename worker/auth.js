@@ -224,6 +224,44 @@ async function logout(request, env) {
   return json({ ok: true }, 200, request, { "Set-Cookie": sessionCookie("", 0) });
 }
 
+async function deleteAccount(request, env) {
+  const body = await request.json().catch(() => ({}));
+  const password = String(body.password || "");
+  const confirmation = String(body.confirmation || "").trim();
+  if (confirmation !== "DELETE MY ACCOUNT") return json({ error: "Type DELETE MY ACCOUNT to confirm." }, 400, request);
+  if (!password) return json({ error: "Password is required to delete the account." }, 400, request);
+  if (!env.DB) return json({ error: "Account service is not configured." }, 503, request);
+
+  const token = parseCookies(request)[SESSION_COOKIE];
+  if (!token) return json({ error: "Authentication required." }, 401, request);
+  const tokenHash = await sha256(token);
+  const user = await env.DB.prepare(`
+    SELECT u.id, u.password_hash, u.password_salt
+    FROM sessions s
+    JOIN users u ON u.id = s.user_id
+    WHERE s.token_hash = ?
+      AND s.revoked_at IS NULL
+      AND s.expires_at > strftime('%Y-%m-%dT%H:%M:%fZ','now')
+      AND u.status = 'active'
+    LIMIT 1
+  `).bind(tokenHash).first();
+
+  if (!user || !user.password_hash || !user.password_salt) return json({ error: "Authentication required." }, 401, request);
+  if (!await verifyPassword(password, user.password_hash, user.password_salt)) return json({ error: "Incorrect password." }, 401, request);
+
+  try {
+    await env.DB.batch([
+      env.DB.prepare("DELETE FROM account_events WHERE user_id = ?").bind(user.id),
+      env.DB.prepare("DELETE FROM users WHERE id = ?").bind(user.id)
+    ]);
+  } catch (error) {
+    console.error("account_delete_error", error);
+    return json({ error: "Unable to delete the account. No changes were made." }, 500, request);
+  }
+
+  return json({ ok: true }, 200, request, { "Set-Cookie": sessionCookie("", 0) });
+}
+
 async function me(request, env) {
   const user = await currentUser(request, env);
   return json({ authenticated: !!user, user }, 200, request);
@@ -237,6 +275,7 @@ export async function handleAuth(request, env) {
     if (url.pathname === "/api/auth/register" && request.method === "POST") return await register(request, env);
     if (url.pathname === "/api/auth/login" && request.method === "POST") return await login(request, env);
     if (url.pathname === "/api/auth/logout" && request.method === "POST") return await logout(request, env);
+    if (url.pathname === "/api/auth/delete" && request.method === "POST") return await deleteAccount(request, env);
     if (url.pathname === "/api/auth/me" && request.method === "GET") return await me(request, env);
     return json({ error: "Not found" }, 404, request);
   } catch (error) {
