@@ -11,15 +11,12 @@ function payfastHost(env) {
     : "sandbox.payfast.co.za";
 }
 
-// Payfast custom-payment signatures use PHP urlencode semantics.
 function pfEncode(value) {
   const bytes = new TextEncoder().encode(String(value).trim());
   let output = "";
   for (const byte of bytes) {
-    const safe = (byte >= 0x30 && byte <= 0x39) ||
-      (byte >= 0x41 && byte <= 0x5a) ||
-      (byte >= 0x61 && byte <= 0x7a) ||
-      byte === 0x2d || byte === 0x2e || byte === 0x5f;
+    const safe = (byte >= 0x30 && byte <= 0x39) || (byte >= 0x41 && byte <= 0x5a) ||
+      (byte >= 0x61 && byte <= 0x7a) || byte === 0x2d || byte === 0x2e || byte === 0x5f;
     if (safe) output += String.fromCharCode(byte);
     else if (byte === 0x20) output += "+";
     else output += `%${byte.toString(16).toUpperCase().padStart(2, "0")}`;
@@ -28,14 +25,13 @@ function pfEncode(value) {
 }
 
 const PAYFAST_SIGNATURE_FIELDS = [
-  "merchant_id", "merchant_key", "return_url", "cancel_url", "notify_url",
-  "notify_method", "name_first", "name_last", "email_address", "cell_number",
-  "m_payment_id", "amount", "item_name", "item_description",
-  "custom_int1", "custom_int2", "custom_int3", "custom_int4", "custom_int5",
-  "custom_str1", "custom_str2", "custom_str3", "custom_str4", "custom_str5",
-  "email_confirmation", "confirmation_address", "currency", "payment_method",
-  "subscription_type", "billing_date", "recurring_amount", "frequency", "cycles",
-  "subscription_notify_email", "subscription_notify_webhook", "subscription_notify_buyer"
+  "merchant_id", "merchant_key", "return_url", "cancel_url", "notify_url", "notify_method",
+  "name_first", "name_last", "email_address", "cell_number", "m_payment_id", "amount",
+  "item_name", "item_description", "custom_int1", "custom_int2", "custom_int3", "custom_int4",
+  "custom_int5", "custom_str1", "custom_str2", "custom_str3", "custom_str4", "custom_str5",
+  "email_confirmation", "confirmation_address", "currency", "payment_method", "subscription_type",
+  "billing_date", "recurring_amount", "frequency", "cycles", "subscription_notify_email",
+  "subscription_notify_webhook", "subscription_notify_buyer"
 ];
 
 function pfParamString(entries) {
@@ -58,12 +54,10 @@ function md5(input) {
   const bitLen = bytes.length * 8;
   const total = (((bytes.length + 8) >> 6) + 1) * 64;
   const data = new Uint8Array(total);
-  data.set(bytes);
-  data[bytes.length] = 0x80;
+  data.set(bytes); data[bytes.length] = 0x80;
   const view = new DataView(data.buffer);
   view.setUint32(total - 8, bitLen >>> 0, true);
   view.setUint32(total - 4, Math.floor(bitLen / 0x100000000), true);
-
   const add = (a, b) => (a + b) >>> 0;
   const rol = (x, n) => (x << n) | (x >>> (32 - n));
   const F = (x, y, z) => (x & y) | (~x & z);
@@ -73,7 +67,6 @@ function md5(input) {
   const T = Array.from({ length: 64 }, (_, i) => Math.floor(Math.abs(Math.sin(i + 1)) * 0x100000000) >>> 0);
   const S = [7,12,17,22,7,12,17,22,7,12,17,22,7,12,17,22,5,9,14,20,5,9,14,20,5,9,14,20,5,9,14,20,4,11,16,23,4,11,16,23,4,11,16,23,4,11,16,23,6,10,15,21,6,10,15,21,6,10,15,21,6,10,15,21];
   let a0 = 0x67452301, b0 = 0xefcdab89, c0 = 0x98badcfe, d0 = 0x10325476;
-
   for (let offset = 0; offset < total; offset += 64) {
     const M = new Uint32Array(16);
     for (let i = 0; i < 16; i++) M[i] = view.getUint32(offset + i * 4, true);
@@ -86,16 +79,11 @@ function md5(input) {
       else { f = I(b,c,d); g = (7*i) % 16; }
       const next = d;
       const sum = add(add(add(a, f), M[g]), T[i]);
-      d = c;
-      c = b;
-      b = add(b, rol(sum, S[i]));
-      a = next;
+      d = c; c = b; b = add(b, rol(sum, S[i])); a = next;
     }
     a0 = add(a0, a); b0 = add(b0, b); c0 = add(c0, c); d0 = add(d0, d);
   }
-
-  const out = new Uint8Array(16);
-  const outView = new DataView(out.buffer);
+  const out = new Uint8Array(16); const outView = new DataView(out.buffer);
   outView.setUint32(0, a0, true); outView.setUint32(4, b0, true); outView.setUint32(8, c0, true); outView.setUint32(12, d0, true);
   return [...out].map(byte => byte.toString(16).padStart(2, "0")).join("");
 }
@@ -122,20 +110,12 @@ function zarAmountForPlan(env, plan) {
   return Math.round(config.price * rate * 100) / 100;
 }
 
-function addYear(iso) {
-  const date = new Date(iso);
-  date.setUTCFullYear(date.getUTCFullYear() + 1);
-  return date.toISOString();
-}
-
-function periodKey(date = new Date()) {
-  return date.toISOString().slice(0, 7);
-}
+function addYear(iso) { const date = new Date(iso); date.setUTCFullYear(date.getUTCFullYear() + 1); return date.toISOString(); }
+function periodKey(date = new Date()) { return date.toISOString().slice(0, 7); }
 
 async function sha256(value) {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
-  const bytes = new Uint8Array(digest);
-  let binary = "";
+  const bytes = new Uint8Array(digest); let binary = "";
   for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
@@ -159,7 +139,6 @@ async function authenticatedUser(request, env) {
 async function checkout(request, env) {
   const user = await authenticatedUser(request, env);
   if (!user) return new Response(JSON.stringify({ error: "Authentication required." }), { status: 401, headers: { "content-type": "application/json" } });
-
   const body = await request.json().catch(() => ({}));
   const plan = String(body.plan || "").toLowerCase();
   const config = planConfig(env, plan);
@@ -170,28 +149,20 @@ async function checkout(request, env) {
   const merchantKey = String(env.PAYFAST_MERCHANT_KEY || "").trim();
   const passphrase = String(env.PAYFAST_PASSPHRASE || "").trim();
   if (!merchantId || !merchantKey || !passphrase) return new Response(JSON.stringify({ error: "Payfast sandbox credentials are not configured yet." }), { status: 503, headers: { "content-type": "application/json" } });
-
-  const origin = new URL(request.url).origin;
-  const paymentId = crypto.randomUUID();
+  const origin = new URL(request.url); const paymentId = crypto.randomUUID();
   const entries = [
     ["merchant_id", merchantId], ["merchant_key", merchantKey],
-    ["return_url", `${origin}/billing.html?status=success&plan=${encodeURIComponent(plan)}`],
-    ["cancel_url", `${origin}/billing.html?status=cancelled&plan=${encodeURIComponent(plan)}`],
-    ["notify_url", `${origin}/api/payments/payfast/itn`],
+    ["return_url", `${origin.origin}/billing.html?status=success&plan=${encodeURIComponent(plan)}`],
+    ["cancel_url", `${origin.origin}/billing.html?status=cancelled&plan=${encodeURIComponent(plan)}`],
+    ["notify_url", `${origin.origin}/api/payments/payfast/itn`],
     ["name_first", user.display_name || "SvaraONE Customer"], ["email_address", user.email],
     ["m_payment_id", paymentId], ["amount", amountZar.toFixed(2)],
     ["item_name", `SvaraONE ${plan[0].toUpperCase()}${plan.slice(1)} — Annual`],
     ["item_description", `${config.credits.toLocaleString("en-US")} SvaraONE Credits per month`],
     ["custom_str1", plan], ["custom_str2", user.id]
   ];
-
-  await env.DB.prepare(`INSERT INTO account_events (id,user_id,event_type,reference_id,metadata_json) VALUES (?,?,?,?,?)`).bind(
-    crypto.randomUUID(), user.id, "payment_pending", paymentId,
-    JSON.stringify({ provider: "payfast", plan, amount_usd: config.price, amount_zar: amountZar, credits: config.credits, sandbox: payfastHost(env).startsWith("sandbox.") })
-  ).run();
-
-  const fields = Object.fromEntries(entries.map(([key, value]) => [key, String(value)]));
-  fields.signature = signature(entries, passphrase);
+  await env.DB.prepare(`INSERT INTO account_events (id,user_id,event_type,reference_id,metadata_json) VALUES (?,?,?,?,?)`).bind(crypto.randomUUID(), user.id, "payment_pending", paymentId, JSON.stringify({ provider: "payfast", plan, amount_usd: config.price, amount_zar: amountZar, credits: config.credits, sandbox: payfastHost(env).startsWith("sandbox.") })).run();
+  const fields = Object.fromEntries(entries.map(([key, value]) => [key, String(value)])); fields.signature = signature(entries, passphrase);
   return new Response(JSON.stringify({ ok: true, provider: "payfast", sandbox: payfastHost(env).startsWith("sandbox."), action: `https://${payfastHost(env)}/eng/process`, fields, plan, amount_usd: config.price, amount_zar: amountZar }), { headers: { "content-type": "application/json", "cache-control": "no-store" } });
 }
 
@@ -202,28 +173,15 @@ async function activateSubscription(data, env) {
   if (!pending) throw new Error("Unknown Payfast payment reference");
   const meta = JSON.parse(pending.metadata_json || "{}");
   const plan = String(meta.plan || data.custom_str1 || "").toLowerCase();
-  const config = planConfig(env, plan);
-  if (!config) throw new Error("Unknown plan in payment reference");
-  const expectedZar = Number(meta.amount_zar);
-  const grossZar = Number(data.amount_gross);
+  const config = planConfig(env, plan); if (!config) throw new Error("Unknown plan in payment reference");
+  const expectedZar = Number(meta.amount_zar); const grossZar = Number(data.amount_gross);
   if (!Number.isFinite(expectedZar) || !Number.isFinite(grossZar) || Math.abs(expectedZar - grossZar) > 0.01) throw new Error("Payfast amount mismatch");
-
-  const existing = await env.DB.prepare("SELECT id FROM subscriptions WHERE payfast_payment_id=? LIMIT 1").bind(String(data.pf_payment_id || "")).first();
-  if (existing) return;
-
-  const active = await env.DB.prepare("SELECT id FROM subscriptions WHERE user_id=? AND status='active' AND period_end > strftime('%Y-%m-%dT%H:%M:%fZ','now') LIMIT 1").bind(pending.user_id).first();
-  if (active) throw new Error("User already has an active subscription");
-
-  const start = new Date().toISOString();
-  const end = addYear(start);
-  const key = periodKey(new Date(start));
+  const existing = await env.DB.prepare("SELECT id FROM subscriptions WHERE payfast_payment_id=? LIMIT 1").bind(String(data.pf_payment_id || "")).first(); if (existing) return;
+  const active = await env.DB.prepare("SELECT id FROM subscriptions WHERE user_id=? AND status='active' AND period_end > strftime('%Y-%m-%dT%H:%M:%fZ','now') LIMIT 1").bind(pending.user_id).first(); if (active) throw new Error("User already has an active subscription");
+  const start = new Date().toISOString(), end = addYear(start), key = periodKey(new Date(start));
   const balanceRow = await env.DB.prepare("SELECT balance_after FROM credit_ledger WHERE user_id=? ORDER BY created_at DESC LIMIT 1").bind(pending.user_id).first();
-  const balance = Number(balanceRow?.balance_after || 0);
-  const subscriptionId = crypto.randomUUID();
-  const paymentReference = String(data.pf_payment_id || paymentId);
-  const voices = await deepgramVoices(env);
-  const desiredVoiceCount = config.voices || voices.length;
-  const selectedVoices = voices.slice(0, Math.max(0, desiredVoiceCount));
+  const balance = Number(balanceRow?.balance_after || 0); const subscriptionId = crypto.randomUUID(); const paymentReference = String(data.pf_payment_id || paymentId);
+  const voices = await deepgramVoices(env); const desiredVoiceCount = config.voices || voices.length; const selectedVoices = voices.slice(0, Math.max(0, desiredVoiceCount));
   const statements = [
     env.DB.prepare(`INSERT INTO subscriptions (id,user_id,plan,status,payfast_payment_id,payfast_token,amount_zar,amount_net_zar,paid_at,billing_currency,billing_interval,period_start,period_end) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(subscriptionId,pending.user_id,plan,"active",paymentReference,String(data.token || "") || null,expectedZar,Number(data.amount_net) || null,start,"USD","year",start,end),
     env.DB.prepare(`INSERT INTO credit_ledger (id,user_id,amount,balance_after,reason,reference_id,period_key) VALUES (?,?,?,?,?,?,?)`).bind(crypto.randomUUID(),pending.user_id,config.credits,balance+config.credits,"subscription_credit",subscriptionId,key),
@@ -238,17 +196,23 @@ async function verifyItn(request, env) {
   const params = [...new URLSearchParams(raw).entries()];
   const received = Object.fromEntries(params);
   if (!received.signature) return new Response("INVALID", { status: 400 });
-  const merchantId = String(env.PAYFAST_MERCHANT_ID || "").trim();
-  if (received.merchant_id !== merchantId) return new Response("INVALID", { status: 400 });
+  const merchantId = String(env.PAYFAST_MERCHANT_ID || "").trim(); if (received.merchant_id !== merchantId) return new Response("INVALID", { status: 400 });
   const passphrase = String(env.PAYFAST_PASSPHRASE || "").trim();
   const rawSignatureBase = pfRawParamString(params.filter(([key]) => key !== "signature"));
   const expectedSignature = md5(passphrase ? `${rawSignatureBase}&passphrase=${pfEncode(passphrase)}` : rawSignatureBase);
   if (received.signature !== expectedSignature) return new Response("INVALID", { status: 400 });
 
+  // PayFast ITN validation expects the exact POST body that PayFast sent us,
+  // including the signature. Re-sending a reconstructed body without the
+  // signature causes validation to fail even when our local signature check passes.
   const host = payfastHost(env);
-  const validationResponse = await fetch(`https://${host}/eng/query/validate`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: rawSignatureBase });
+  const validationResponse = await fetch(`https://${host}/eng/query/validate`, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: raw
+  });
   const validationText = (await validationResponse.text()).trim();
-  if (validationText !== "VALID") return new Response("INVALID", { status: 400 });
+  if (validationText !== "VALID") throw new Error(`Payfast ITN validation failed: ${validationText || "empty response"}`);
 
   if (received.payment_status === "COMPLETE") await activateSubscription(received, env);
   else if (received.payment_status === "CANCELLED") {
@@ -260,13 +224,10 @@ async function verifyItn(request, env) {
 async function allocateMonthlyCredits(env) {
   if (!env.DB) return;
   const rows = await env.DB.prepare(`SELECT id,user_id,plan,period_start,period_end FROM subscriptions WHERE status='active' AND period_end > strftime('%Y-%m-%dT%H:%M:%fZ','now')`).all();
-  const now = new Date();
-  const key = periodKey(now);
+  const now = new Date(); const key = periodKey(now);
   for (const subscription of rows.results || []) {
-    const config = planConfig(env, subscription.plan);
-    if (!config) continue;
-    const already = await env.DB.prepare("SELECT id FROM credit_ledger WHERE user_id=? AND reason='subscription_credit' AND period_key=? LIMIT 1").bind(subscription.user_id,key).first();
-    if (already) continue;
+    const config = planConfig(env, subscription.plan); if (!config) continue;
+    const already = await env.DB.prepare("SELECT id FROM credit_ledger WHERE user_id=? AND reason='subscription_credit' AND period_key=? LIMIT 1").bind(subscription.user_id,key).first(); if (already) continue;
     const balanceRow = await env.DB.prepare("SELECT balance_after FROM credit_ledger WHERE user_id=? ORDER BY created_at DESC LIMIT 1").bind(subscription.user_id).first();
     const balance = Number(balanceRow?.balance_after || 0);
     await env.DB.batch([
