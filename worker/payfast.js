@@ -218,16 +218,45 @@ async function activateSubscription(data, env) {
 }
 
 async function verifyItn(request, env) {
-  const raw = await request.text();
-  const params = [...new URLSearchParams(raw).entries()];
+  const contentType = request.headers.get("content-type") || "";
+  let params;
+
+  if (contentType.toLowerCase().includes("multipart/form-data")) {
+    const form = await request.formData();
+    params = [...form.entries()].map(([key, value]) => [
+      key,
+      typeof value === "string" ? value : String(value)
+    ]);
+  } else {
+    const raw = await request.text();
+    params = [...new URLSearchParams(raw).entries()];
+  }
+
   const received = Object.fromEntries(params);
-  if (!received.signature) return new Response("INVALID", { status: 400 });
+
+  if (!received.signature) {
+    console.error("payfast_itn_error", "Missing signature");
+    return new Response("INVALID", { status: 400 });
+  }
+
   const merchantId = String(env.PAYFAST_MERCHANT_ID || "").trim();
-  if (received.merchant_id !== merchantId) return new Response("INVALID", { status: 400 });
+  if (received.merchant_id !== merchantId) {
+    console.error("payfast_itn_error", "Merchant ID mismatch");
+    return new Response("INVALID", { status: 400 });
+  }
+
   const passphrase = String(env.PAYFAST_PASSPHRASE || "").trim();
   const itnParamString = pfItnParamString(params);
-  const expectedSignature = md5(passphrase ? `${itnParamString}&passphrase=${pfEncode(passphrase)}` : itnParamString);
-  if (received.signature !== expectedSignature) return new Response("INVALID", { status: 400 });
+  const expectedSignature = md5(
+    passphrase
+      ? `${itnParamString}&passphrase=${pfEncode(passphrase)}`
+      : itnParamString
+  );
+
+  if (received.signature !== expectedSignature) {
+    console.error("payfast_itn_error", "Signature mismatch");
+    return new Response("INVALID", { status: 400 });
+  }
 
   const host = payfastHost(env);
   const validationResponse = await fetch(`https://${host}/eng/query/validate`, {
