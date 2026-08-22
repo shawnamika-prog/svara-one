@@ -5,6 +5,8 @@ const PLANS = {
   studio: { priceVar: "SVARAONE_STUDIO_PRICE", creditVar: "SVARAONE_STUDIO_CREDITS", voiceVar: null }
 };
 
+const PLAN_ORDER = ["starter", "creator", "pro", "studio"];
+
 function payfastHost(env) {
   return String(env.PAYFAST_SANDBOX || "true").toLowerCase() === "false"
     ? "www.payfast.co.za"
@@ -103,11 +105,10 @@ function planConfig(env, plan) {
   return { price, credits, voices: Number.isFinite(voices) ? voices : null };
 }
 
-function zarAmountForPlan(env, plan) {
-  const config = planConfig(env, plan);
+function zarAmountForUsd(env, usdAmount) {
   const rate = Number(env.SVARAONE_PAYFAST_ZAR_PER_USD);
-  if (!config || !Number.isFinite(rate) || rate <= 0) return null;
-  return Math.round(config.price * rate * 100) / 100;
+  if (!Number.isFinite(usdAmount) || usdAmount <= 0 || !Number.isFinite(rate) || rate <= 0) return null;
+  return Math.round(usdAmount * rate * 100) / 100;
 }
 
 function addYear(iso) { const date = new Date(iso); date.setUTCFullYear(date.getUTCFullYear() + 1); return date.toISOString(); }
@@ -136,6 +137,12 @@ async function authenticatedUser(request, env) {
   return env.DB.prepare(`SELECT id,email,display_name FROM users WHERE id=(SELECT user_id FROM sessions WHERE token_hash=? AND revoked_at IS NULL AND expires_at > strftime('%Y-%m-%dT%H:%M:%fZ','now') LIMIT 1) AND status='active'`).bind(tokenHash).first();
 }
 
+async function activeSubscription(userId, env) {
+  return env.DB.prepare("SELECT id,plan,status,period_start,period_end FROM subscriptions WHERE user_id=? AND status='active' AND period_end > strftime('%Y-%m-%dT%H:%M:%fZ','now') ORDER BY created_at DESC LIMIT 1").bind(userId).first();
+}
+
+function planIndex(plan) { return PLAN_ORDER.indexOf(String(plan || "").toLowerCase()); }
+
 async function checkout(request, env) {
   const user = await authenticatedUser(request, env);
   if (!user) return new Response(JSON.stringify({ error: "Authentication required." }), { status: 401, headers: { "content-type": "application/json" } });
@@ -143,17 +150,27 @@ async function checkout(request, env) {
   const plan = String(body.plan || "").toLowerCase();
   const config = planConfig(env, plan);
   if (!config) return new Response(JSON.stringify({ error: "Invalid paid plan." }), { status: 400, headers: { "content-type": "application/json" } });
-  const amountZar = zarAmountForPlan(env, plan);
+
+  const current = await activeSubscription(user.id, env);
+  const currentPlan = current?.plan ? String(current.plan).toLowerCase() : "free";
+  const currentConfig = currentPlan === "free" ? null : planConfig(env, currentPlan);
+  if (currentConfig && planIndex(plan) <= planIndex(currentPlan)) {
+    return new Response(JSON.stringify({ error: `You are already on ${currentPlan}. Select a higher plan to upgrade.` }), { status: 409, headers: { "content-type": "application/json" } });
+  }
+
+  const amountUsd = currentConfig ? Math.max(0, config.price - currentConfig.price) : config.price;
+  const amountZar = zarAmountForUsd(env, amountUsd);
   if (amountZar === null) return new Response(JSON.stringify({ error: "Payfast ZAR pricing is not configured yet." }), { status: 503, headers: { "content-type": "application/json" } });
   const merchantId = String(env.PAYFAST_MERCHANT_ID || "").trim();
   const merchantKey = String(env.PAYFAST_MERCHANT_KEY || "").trim();
   const passphrase = String(env.PAYFAST_PASSPHRASE || "").trim();
   if (!merchantId || !merchantKey || !passphrase) return new Response(JSON.stringify({ error: "Payfast sandbox credentials are not configured yet." }), { status: 503, headers: { "content-type": "application/json" } });
+
   const origin = new URL(request.url); const paymentId = crypto.randomUUID();
   const entries = [
     ["merchant_id", merchantId], ["merchant_key", merchantKey],
-    ["return_url", `${origin.origin}/billing.html?status=success&plan=${encodeURIComponent(plan)}`],
-    ["cancel_url", `${origin.origin}/billing.html?status=cancelled&plan=${encodeURIComponent(plan)}`],
+    ["return_url", `${origin.origin}/account.html?status=success&plan=${encodeURIComponent(plan)}`],
+    ["cancel_url", `${origin.origin}/account.html?status=cancelled&plan=${encodeURIComponent(plan)}`],
     ["notify_url", `${origin.origin}/api/payments/payfast/itn`],
     ["name_first", user.display_name || "SvaraONE Customer"], ["email_address", user.email],
     ["m_payment_id", paymentId], ["amount", amountZar.toFixed(2)],
@@ -161,9 +178,9 @@ async function checkout(request, env) {
     ["item_description", `${config.credits.toLocaleString("en-US")} SvaraONE Credits per month`],
     ["custom_str1", plan], ["custom_str2", user.id]
   ];
-  await env.DB.prepare(`INSERT INTO account_events (id,user_id,event_type,reference_id,metadata_json) VALUES (?,?,?,?,?)`).bind(crypto.randomUUID(), user.id, "payment_pending", paymentId, JSON.stringify({ provider: "payfast", plan, amount_usd: config.price, amount_zar: amountZar, credits: config.credits, sandbox: payfastHost(env).startsWith("sandbox.") })).run();
+  await env.DB.prepare(`INSERT INTO account_events (id,user_id,event_type,reference_id,metadata_json) VALUES (?,?,?,?,?)`).bind(crypto.randomUUID(), user.id, "payment_pending", paymentId, JSON.stringify({ provider: "payfast", plan, current_plan: currentPlan, amount_usd: amountUsd, amount_zar: amountZar, full_plan_price_usd: config.price, credits: config.credits, sandbox: payfastHost(env).startsWith("sandbox.") })).run();
   const fields = Object.fromEntries(entries.map(([key, value]) => [key, String(value)])); fields.signature = signature(entries, passphrase);
-  return new Response(JSON.stringify({ ok: true, provider: "payfast", sandbox: payfastHost(env).startsWith("sandbox."), action: `https://${payfastHost(env)}/eng/process`, fields, plan, amount_usd: config.price, amount_zar: amountZar }), { headers: { "content-type": "application/json", "cache-control": "no-store" } });
+  return new Response(JSON.stringify({ ok: true, provider: "payfast", sandbox: payfastHost(env).startsWith("sandbox."), action: `https://${payfastHost(env)}/eng/process`, fields, plan, current_plan: currentPlan, amount_usd: amountUsd, amount_zar: amountZar }), { headers: { "content-type": "application/json", "cache-control": "no-store" } });
 }
 
 async function activateSubscription(data, env) {
@@ -177,21 +194,26 @@ async function activateSubscription(data, env) {
   const expectedZar = Number(meta.amount_zar); const grossZar = Number(data.amount_gross);
   if (!Number.isFinite(expectedZar) || !Number.isFinite(grossZar) || Math.abs(expectedZar - grossZar) > 0.01) throw new Error("Payfast amount mismatch");
   const existing = await env.DB.prepare("SELECT id FROM subscriptions WHERE payfast_payment_id=? LIMIT 1").bind(String(data.pf_payment_id || "")).first(); if (existing) return;
-  const active = await env.DB.prepare("SELECT id FROM subscriptions WHERE user_id=? AND status='active' AND period_end > strftime('%Y-%m-%dT%H:%M:%fZ','now') LIMIT 1").bind(pending.user_id).first(); if (active) throw new Error("User already has an active subscription");
+
+  const active = await activeSubscription(pending.user_id, env);
+  if (active && planIndex(plan) <= planIndex(active.plan)) throw new Error("User already has this plan or a higher plan");
+
   const start = new Date().toISOString(), end = addYear(start), key = periodKey(new Date(start));
   const balanceRow = await env.DB.prepare("SELECT balance_after FROM credit_ledger WHERE user_id=? ORDER BY created_at DESC LIMIT 1").bind(pending.user_id).first();
   const balance = Number(balanceRow?.balance_after || 0); const subscriptionId = crypto.randomUUID(); const paymentReference = String(data.pf_payment_id || paymentId);
   const voices = await deepgramVoices(env); const desiredVoiceCount = config.voices || voices.length; const selectedVoices = voices.slice(0, Math.max(0, desiredVoiceCount));
-  const statements = [
+  const statements = [];
+  if (active) statements.push(env.DB.prepare("UPDATE subscriptions SET status='upgraded' WHERE id=?").bind(active.id));
+  statements.push(
     env.DB.prepare(`UPDATE user_voices SET revoked_at=? WHERE user_id=? AND revoked_at IS NULL`).bind(start, pending.user_id),
     env.DB.prepare(`INSERT INTO subscriptions (id,user_id,plan,status,payfast_payment_id,payfast_token,amount_zar,amount_net_zar,paid_at,billing_currency,billing_interval,period_start,period_end) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(subscriptionId,pending.user_id,plan,"active",paymentReference,String(data.token || "") || null,expectedZar,Number(data.amount_net) || null,start,"USD","year",start,end),
     env.DB.prepare(`INSERT INTO credit_ledger (id,user_id,amount,balance_after,reason,reference_id,period_key) VALUES (?,?,?,?,?,?,?)`).bind(crypto.randomUUID(),pending.user_id,config.credits,balance+config.credits,"subscription_credit",subscriptionId,key),
-    env.DB.prepare(`INSERT INTO account_events (id,user_id,event_type,reference_id,metadata_json) VALUES (?,?,?,?,?)`).bind(crypto.randomUUID(),pending.user_id,"subscription_activated",subscriptionId,JSON.stringify({ provider:"payfast", payment_id:data.pf_payment_id, plan, credits:config.credits, voice_count:selectedVoices.length, amount_zar:expectedZar, amount_net_zar:Number(data.amount_net)||null })),
+    env.DB.prepare(`INSERT INTO account_events (id,user_id,event_type,reference_id,metadata_json) VALUES (?,?,?,?,?)`).bind(crypto.randomUUID(),pending.user_id,"subscription_activated",subscriptionId,JSON.stringify({ provider:"payfast", payment_id:data.pf_payment_id, plan, previous_plan:active?.plan || "free", credits:config.credits, voice_count:selectedVoices.length, amount_zar:expectedZar, amount_net_zar:Number(data.amount_net)||null, upgrade:true })),
     ...selectedVoices.flatMap(voice => [
       env.DB.prepare(`UPDATE user_voices SET revoked_at=NULL WHERE user_id=? AND voice_id=?`).bind(pending.user_id,voice.canonical_name),
       env.DB.prepare(`INSERT OR IGNORE INTO user_voices (id,user_id,voice_id,revoked_at) VALUES (?,?,?,NULL)`).bind(crypto.randomUUID(),pending.user_id,voice.canonical_name)
     ])
-  ];
+  );
   await env.DB.batch(statements);
 }
 
