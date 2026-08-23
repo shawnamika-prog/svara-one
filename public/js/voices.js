@@ -5,11 +5,20 @@ window.SVARA_VOICES = [
 
 (async () => {
   try {
-    const response = await fetch('/api/voices', { cache: 'no-store' });
-    if (!response.ok) throw new Error(`Catalogue ${response.status}`);
-    const data = await response.json();
+    const [catalogueResponse, accessResponse] = await Promise.all([
+      fetch('/api/voices', { cache: 'no-store' }),
+      fetch('/api/voice-access', { cache: 'no-store', credentials: 'same-origin' })
+    ]);
+    if (!catalogueResponse.ok) throw new Error(`Catalogue ${catalogueResponse.status}`);
+    if (!accessResponse.ok) throw new Error(`Voice access ${accessResponse.status}`);
+
+    const data = await catalogueResponse.json();
+    const access = await accessResponse.json();
     const catalogue = Array.isArray(data.voices) ? data.voices : [];
+    const allowed = new Set(Array.isArray(access.voiceIds) ? access.voiceIds.map(String) : []);
+
     if (!catalogue.length) return;
+
     window.SVARA_VOICES = catalogue.map((voice, index) => {
       const id = String(voice.voice_id || '');
       const meta = voice.metadata || {};
@@ -28,9 +37,10 @@ window.SVARA_VOICES = [
         provider: 'deepgram',
         providerVoiceId: id
       };
-    }).filter(v => v.providerVoiceId);
+    }).filter(v => v.providerVoiceId && (access.fullCatalogue === true || allowed.has(v.providerVoiceId)));
+
     window.dispatchEvent(new CustomEvent('svara:voices-updated'));
   } catch (error) {
-    console.warn('Svara voice catalogue unavailable; using fallback voices.', error);
+    console.warn('Svara voice catalogue unavailable; keeping the safe fallback.', error);
   }
 })();
