@@ -1,4 +1,5 @@
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html{scroll-behavior:smooth}
 body{margin:0;background:#040b16;color:#eef6ff;font:13px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 .studio-nav{height:72px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;padding:0 28px;gap:26px;background:rgba(5,13,25,.94);position:sticky;top:0;z-index:20;backdrop-filter:blur(18px)}
