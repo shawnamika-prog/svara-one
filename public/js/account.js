@@ -47,8 +47,8 @@ function showStatus(message, type = "pending") {
   el.className = `status show ${type}`;
 }
 
-function voiceCountForPlan(plan, pricing, catalogueCount) {
-  if (pricing?.fullVoiceCatalogue === true && Number.isFinite(catalogueCount)) return catalogueCount;
+function voiceCountForPlan(plan, pricing, catalogueCount, fullCatalogue) {
+  if (fullCatalogue === true && Number.isFinite(catalogueCount)) return catalogueCount;
   if (plan === "free") return Number(pricing?.free?.voices ?? FREE_PLAN.voices);
   return Number(pricing?.plans?.[plan]?.voices);
 }
@@ -57,13 +57,13 @@ function voiceLabel(count) {
   return Number.isFinite(count) && count > 0 ? `${count.toLocaleString("en-US")} voices` : "Voice access";
 }
 
-function showAccount(user, pricing, catalogueCount) {
+function showAccount(user, pricing, catalogueCount, fullCatalogue) {
   const meta = document.querySelector("#accountMeta");
   const badge = document.querySelector("#currentPlanBadge");
   if (!meta) return;
   const subscription = user.subscription;
   const plan = currentPlanKey(user);
-  const voices = voiceCountForPlan(plan, pricing, catalogueCount);
+  const voices = voiceCountForPlan(plan, pricing, catalogueCount, fullCatalogue);
   if (badge) badge.textContent = PLAN_NAMES[plan] || "Free";
   meta.innerHTML = `
     <div class="row"><span class="label">Email</span><strong>${escapeHtml(user.email)}</strong></div>
@@ -82,7 +82,7 @@ function renderBrand() {
   return `<span class="brand-svara">Svara</span><span class="brand-one">ONE</span>`;
 }
 
-function renderPlans(user, pricing, catalogueCount) {
+function renderPlans(user, pricing, catalogueCount, fullCatalogue) {
   const grid = document.querySelector("#planGrid");
   const note = document.querySelector("#upgradeNote");
   if (!grid) return;
@@ -99,7 +99,7 @@ function renderPlans(user, pricing, catalogueCount) {
     const isUpgrade = planIndex > currentIndex;
     const isFree = plan === "free";
     const popular = plan === "creator" ? `<div class="tag">MOST POPULAR</div>` : "";
-    const voiceCount = voiceCountForPlan(plan, pricing, catalogueCount);
+    const voiceCount = voiceCountForPlan(plan, pricing, catalogueCount, fullCatalogue);
     const features = [voiceLabel(voiceCount), ...(PLAN_FEATURES[plan] || [])];
     const creditText = `${Number(config.credits).toLocaleString()} ${renderBrand()} Credits / ${isFree ? "once-off" : "month"}`;
 
@@ -167,7 +167,7 @@ async function beginUpgrade(plan) {
   }
 }
 
-async function handlePaymentReturn(user, pricing, catalogueCount) {
+async function handlePaymentReturn(user, pricing, catalogueCount, fullCatalogue) {
   const params = new URLSearchParams(window.location.search);
   const status = params.get("status");
   const plan = (params.get("plan") || "").toLowerCase();
@@ -181,8 +181,8 @@ async function handlePaymentReturn(user, pricing, catalogueCount) {
   try {
     const fresh = await api("/api/auth/me", { method: "GET" });
     if (fresh.authenticated && fresh.user) {
-      showAccount(fresh.user, pricing, catalogueCount);
-      renderPlans(fresh.user, pricing, catalogueCount);
+      showAccount(fresh.user, pricing, catalogueCount, fullCatalogue);
+      renderPlans(fresh.user, pricing, catalogueCount, fullCatalogue);
       if (currentPlanKey(fresh.user) === plan) showStatus(`${PLAN_NAMES[plan] || "Plan"} is active. Upgrade complete.`, "success");
       else showStatus("Payment was submitted. PayFast activation is still being confirmed; refresh this page in a moment.", "pending");
     }
@@ -198,19 +198,21 @@ async function init() {
   const error = document.querySelector("#deleteError");
 
   try {
-    const [me, pricing, voices] = await Promise.all([
+    const [me, pricing, voices, access] = await Promise.all([
       api("/api/auth/me", { method: "GET" }),
       api("/api/pricing", { method: "GET" }),
-      api("/api/voices", { method: "GET" })
+      api("/api/voices", { method: "GET" }),
+      api("/api/voice-access", { method: "GET" })
     ]);
     if (!me.authenticated || !me.user) {
       window.location.replace("/login.html?next=/account.html");
       return;
     }
     const catalogueCount = Array.isArray(voices.voices) ? voices.voices.length : null;
-    showAccount(me.user, pricing, catalogueCount);
-    renderPlans(me.user, pricing, catalogueCount);
-    await handlePaymentReturn(me.user, pricing, catalogueCount);
+    const fullCatalogue = access?.fullCatalogue === true;
+    showAccount(me.user, pricing, catalogueCount, fullCatalogue);
+    renderPlans(me.user, pricing, catalogueCount, fullCatalogue);
+    await handlePaymentReturn(me.user, pricing, catalogueCount, fullCatalogue);
   } catch (err) {
     if (meta) meta.innerHTML = `<div class="error">${escapeHtml(err.message)}</div>`;
     return;
