@@ -134,11 +134,18 @@ function pricing(env) {
     const value = Number(env[name]);
     return Number.isFinite(value) ? value : fallback;
   };
+  const boolean = (name, fallback) => {
+    const value = String(env[name] ?? "").trim().toLowerCase();
+    if (value === "true" || value === "1" || value === "yes") return true;
+    if (value === "false" || value === "0" || value === "no") return false;
+    return fallback;
+  };
 
   return {
     currency: "USD",
     billing: "annual",
     creditFactor: number("SVARAONE_CREDIT_FACTOR", 0.5),
+    fullVoiceCatalogue: boolean("SVARAONE_FULL_VOICE_CATALOGUE", false),
     free: {
       price: 0,
       credits: number("SVARAONE_FREE_CREDITS", 5000),
