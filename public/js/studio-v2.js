@@ -56,7 +56,7 @@ async function loadDeepgramVoices(){
     if(!fullVoiceCatalogue&&allowed.size)discovered=discovered.filter(v=>allowed.has(v.providerVoiceId));
     voices=discovered;selected=voices[0]||null;
     status.textContent=voices.length?`${voices.length} voices available on your plan`:'No voices are currently assigned to this account';
-    render();updateLanguageWarning();
+    render();hideLanguageWarning();
   }catch(err){status.textContent='Could not load the voice catalogue';render()}
 }
 function render(){
@@ -65,7 +65,9 @@ function render(){
   list.innerHTML=voices.filter(v=>(filter==='all'||v.providerVoiceId.endsWith(`-${filter}`))&&`${v.name} ${v.region} ${v.style} ${v.providerVoiceId} ${JSON.stringify(v.metadata||{})}`.toLowerCase().includes(q))
     .map(v=>`<button class="voice ${selected&&selected.id===v.id?'selected':''}" data-id="${escapeHtml(v.id)}"><span class="avatar">${escapeHtml((v.name||'V')[0])}</span><span><b>${escapeHtml(v.name)}</b><small>${escapeHtml(v.region)} · ${escapeHtml(v.style)}${v.gender?` · ${escapeHtml(v.gender)}`:''}</small></span><em>›</em></button>`).join('');
   list.querySelectorAll('.voice').forEach(b=>b.onclick=()=>{
-    selected=voices.find(v=>v.id===b.dataset.id)||selected;render();updateLanguageWarning();
+    selected=voices.find(v=>v.id===b.dataset.id)||selected;
+    render();
+    hideLanguageWarning();
   });
 }
 document.querySelectorAll('#voiceFilters button').forEach(b=>b.onclick=()=>{
@@ -91,22 +93,29 @@ function detectTextLanguage(text){
   if(ranked[1]&&ranked[0][1]-ranked[1][1]<1)return null;
   return ranked[0][0];
 }
-function updateLanguageWarning(){
+function hideLanguageWarning(){
   const box=$('languageWarning');
   if(!box)return;
-  const voiceLang=selected?.category||'en';
-  if(!selected||voiceLang==='en'){box.hidden=true;return}
-  const detected=detectTextLanguage(script.value);
-  const voiceName=LANGUAGE_NAMES[voiceLang]||voiceLang.toUpperCase();
-  if(detected&&detected!==voiceLang){
-    const detectedName=LANGUAGE_NAMES[detected]||detected.toUpperCase();
-    box.innerHTML=`<strong>Language mismatch</strong><span>This voice is ${escapeHtml(voiceName)}, but your script appears to be ${escapeHtml(detectedName)}. Aura-2 voices are language-specific. Switch the voice or rewrite the script before generating.</span>`;
-  }else{
-    box.innerHTML=`<strong>${escapeHtml(voiceName)} voice</strong><span>Use ${escapeHtml(voiceName)} text with this voice. Deepgram documents English/Spanish code-switching only for specific Spanish voices.</span>`;
-  }
-  box.hidden=false;
+  box.hidden=true;
+  box.innerHTML='';
 }
-script.addEventListener('input',updateLanguageWarning);
+function languageMismatch(){
+  const voiceLang=selected?.category||'en';
+  if(!selected||voiceLang==='en')return null;
+  const detected=detectTextLanguage(script.value);
+  if(!detected||detected===voiceLang)return null;
+  return {voiceLang,detected};
+}
+function showLanguageMismatch(mismatch){
+  const box=$('languageWarning');
+  if(!box||!mismatch)return;
+  const voiceName=LANGUAGE_NAMES[mismatch.voiceLang]||mismatch.voiceLang.toUpperCase();
+  const detectedName=LANGUAGE_NAMES[mismatch.detected]||mismatch.detected.toUpperCase();
+  box.innerHTML=`<strong>Language mismatch</strong><span>This voice is ${escapeHtml(voiceName)}, but your script appears to be ${escapeHtml(detectedName)}. Aura-2 voices are language-specific. Switch the voice or rewrite the script before generating.</span>`;
+  box.hidden=false;
+  box.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+script.addEventListener('input',hideLanguageWarning);
 
 function outputSettings(){
   const format=$('outputFormat')?.value||'mp3';
@@ -185,6 +194,13 @@ $('waveformShell').onclick=e=>{
 
 $('generate').onclick=async()=>{
   const text=script.value.trim();if(!text||!selected)return;
+  hideLanguageWarning();
+  const mismatch=languageMismatch();
+  if(mismatch){
+    showLanguageMismatch(mismatch);
+    $('status').textContent='Review language';
+    return;
+  }
   const n=text.length;
   if(n>maxGenerationChars){$('status').textContent=`Maximum ${maxGenerationChars.toLocaleString()} characters`;return}
   const costInCredits=generationCost(n);
@@ -219,7 +235,7 @@ $('generate').onclick=async()=>{
   if(account){
     script.maxLength=maxGenerationChars;
     const logoutButton=document.querySelector('#logoutButton');if(logoutButton)logoutButton.onclick=logout;
-    render();loadDeepgramVoices();updateLanguageWarning();
+    render();loadDeepgramVoices();hideLanguageWarning();
   }
 })();
 })();
