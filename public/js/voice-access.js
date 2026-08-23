@@ -17,6 +17,12 @@
     if(target)target.textContent=`${count.toLocaleString('en-US')} voices`;
   }
 
+  function setFreeCredits(pricing){
+    const target=document.querySelector('#freeCredits');
+    const credits=Number(pricing?.free?.credits);
+    if(target&&Number.isFinite(credits)) target.textContent=credits.toLocaleString('en-US');
+  }
+
   function updatePricingCards(pricing,catalogueCount,fullCatalogue){
     const articles=[...document.querySelectorAll('.prices article')];
     if(!articles.length)return;
@@ -28,21 +34,24 @@
 
   async function init(){
     const prices=document.querySelector('.prices');
-    if(!prices)return;
     try{
       const [pricing,access,voices]=await Promise.all([
         api('/api/pricing'),
         api('/api/voice-access'),
         api('/api/voices')
       ]);
+      setFreeCredits(pricing);
+      if(!prices)return;
       const count=catalogueCount(voices);
       const fullCatalogue=access?.fullCatalogue===true;
       updatePricingCards(pricing,count,fullCatalogue);
       prices.style.visibility='visible';
     }catch(error){
       console.error('Voice access display unavailable:',error);
-      prices.style.visibility='visible';
-      prices.querySelectorAll('[data-voice-count]').forEach(target=>{target.textContent='Voice count unavailable';});
+      if(prices){
+        prices.style.visibility='visible';
+        prices.querySelectorAll('[data-voice-count]').forEach(target=>{target.textContent='Voice count unavailable';});
+      }
     }
   }
 
