@@ -1,13 +1,13 @@
 const PLAN_ORDER = ["free", "starter", "creator", "pro", "studio"];
 const PLAN_NAMES = { free: "Free", starter: "Starter", creator: "Creator", pro: "Pro", studio: "Studio" };
 const PLAN_FEATURES = {
-  free: ["3 voices", "MP3 download", "Try the full workflow"],
-  starter: ["10 voices", "MP3 download", "Commercial use"],
-  creator: ["20 voices", "MP3 download", "Commercial use", "Premium voice collection"],
-  pro: ["Full voice library", "MP3 download", "Commercial use", "Priority generation"],
-  studio: ["Full voice library", "MP3 download", "Commercial use", "Built for high-volume creation"]
+  free: ["MP3 download", "Try the full workflow"],
+  starter: ["MP3 download", "Commercial use"],
+  creator: ["MP3 download", "Commercial use", "Premium voice collection"],
+  pro: ["MP3 download", "Commercial use", "Priority generation"],
+  studio: ["MP3 download", "Commercial use", "Built for high-volume creation"]
 };
-const FREE_PLAN = { price: 0, period: "once-off", credits: 5000 };
+const FREE_PLAN = { price: 0, period: "once-off", credits: 5000, voices: 3 };
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
@@ -47,23 +47,34 @@ function showStatus(message, type = "pending") {
   el.className = `status show ${type}`;
 }
 
-function showAccount(user) {
+function voiceCountForPlan(plan, pricing, catalogueCount) {
+  if (pricing?.fullVoiceCatalogue === true && Number.isFinite(catalogueCount)) return catalogueCount;
+  if (plan === "free") return Number(pricing?.free?.voices ?? FREE_PLAN.voices);
+  return Number(pricing?.plans?.[plan]?.voices);
+}
+
+function voiceLabel(count) {
+  return Number.isFinite(count) && count > 0 ? `${count.toLocaleString("en-US")} voices` : "Voice access";
+}
+
+function showAccount(user, pricing, catalogueCount) {
   const meta = document.querySelector("#accountMeta");
   const badge = document.querySelector("#currentPlanBadge");
   if (!meta) return;
   const subscription = user.subscription;
   const plan = currentPlanKey(user);
+  const voices = voiceCountForPlan(plan, pricing, catalogueCount);
   if (badge) badge.textContent = PLAN_NAMES[plan] || "Free";
   meta.innerHTML = `
     <div class="row"><span class="label">Email</span><strong>${escapeHtml(user.email)}</strong></div>
     <div class="row"><span class="label">Plan</span><strong>${escapeHtml(PLAN_NAMES[plan] || "Free")}</strong></div>
     <div class="row"><span class="label">Credits</span><strong>${Number(user.credits || 0).toLocaleString()}</strong></div>
-    <div class="row"><span class="label">Voices</span><strong>${Array.isArray(user.voices) ? user.voices.length : 0}</strong></div>
+    <div class="row"><span class="label">Voices</span><strong>${escapeHtml(voiceLabel(voices))}</strong></div>
     ${subscription?.period_end ? `<div class="row"><span class="label">Plan period ends</span><strong>${new Date(subscription.period_end).toLocaleDateString()}</strong></div>` : ""}`;
 }
 
 function planConfig(plan, pricing) {
-  if (plan === "free") return FREE_PLAN;
+  if (plan === "free") return { ...FREE_PLAN, ...(pricing?.free || {}) };
   return pricing.plans?.[plan] || null;
 }
 
@@ -71,14 +82,13 @@ function renderBrand() {
   return `<span class="brand-svara">Svara</span><span class="brand-one">ONE</span>`;
 }
 
-function renderPlans(user, pricing) {
+function renderPlans(user, pricing, catalogueCount) {
   const grid = document.querySelector("#planGrid");
   const note = document.querySelector("#upgradeNote");
   if (!grid) return;
 
   const current = currentPlanKey(user);
   const currentIndex = PLAN_ORDER.indexOf(current);
-  const currentPrice = currentPlanPrice(user, pricing);
 
   grid.innerHTML = PLAN_ORDER.map(plan => {
     const config = planConfig(plan, pricing);
@@ -89,7 +99,8 @@ function renderPlans(user, pricing) {
     const isUpgrade = planIndex > currentIndex;
     const isFree = plan === "free";
     const popular = plan === "creator" ? `<div class="tag">MOST POPULAR</div>` : "";
-    const features = PLAN_FEATURES[plan] || [];
+    const voiceCount = voiceCountForPlan(plan, pricing, catalogueCount);
+    const features = [voiceLabel(voiceCount), ...(PLAN_FEATURES[plan] || [])];
     const creditText = `${Number(config.credits).toLocaleString()} ${renderBrand()} Credits / ${isFree ? "once-off" : "month"}`;
 
     let action;
@@ -156,7 +167,7 @@ async function beginUpgrade(plan) {
   }
 }
 
-async function handlePaymentReturn(user, pricing) {
+async function handlePaymentReturn(user, pricing, catalogueCount) {
   const params = new URLSearchParams(window.location.search);
   const status = params.get("status");
   const plan = (params.get("plan") || "").toLowerCase();
@@ -170,8 +181,8 @@ async function handlePaymentReturn(user, pricing) {
   try {
     const fresh = await api("/api/auth/me", { method: "GET" });
     if (fresh.authenticated && fresh.user) {
-      showAccount(fresh.user);
-      renderPlans(fresh.user, pricing);
+      showAccount(fresh.user, pricing, catalogueCount);
+      renderPlans(fresh.user, pricing, catalogueCount);
       if (currentPlanKey(fresh.user) === plan) showStatus(`${PLAN_NAMES[plan] || "Plan"} is active. Upgrade complete.`, "success");
       else showStatus("Payment was submitted. PayFast activation is still being confirmed; refresh this page in a moment.", "pending");
     }
@@ -187,17 +198,19 @@ async function init() {
   const error = document.querySelector("#deleteError");
 
   try {
-    const [me, pricing] = await Promise.all([
+    const [me, pricing, voices] = await Promise.all([
       api("/api/auth/me", { method: "GET" }),
-      api("/api/pricing", { method: "GET" })
+      api("/api/pricing", { method: "GET" }),
+      api("/api/voices", { method: "GET" })
     ]);
     if (!me.authenticated || !me.user) {
       window.location.replace("/login.html?next=/account.html");
       return;
     }
-    showAccount(me.user);
-    renderPlans(me.user, pricing);
-    await handlePaymentReturn(me.user, pricing);
+    const catalogueCount = Array.isArray(voices.voices) ? voices.voices.length : null;
+    showAccount(me.user, pricing, catalogueCount);
+    renderPlans(me.user, pricing, catalogueCount);
+    await handlePaymentReturn(me.user, pricing, catalogueCount);
   } catch (err) {
     if (meta) meta.innerHTML = `<div class="error">${escapeHtml(err.message)}</div>`;
     return;
