@@ -177,7 +177,31 @@ export default {
   }
 
   if(url.pathname==="/api/voice/generate"&&request.method==="POST"){
-    try {const body=await request.json();const text=String(body.text||"").trim();if(!text)return json({error:"Text is required"},400,request);if(text.length>MAX_CHARS)return json({error:`Maximum ${MAX_CHARS} characters per generation`},400,request);let voice=VOICES[body.voiceId]||VOICES["svara-amara-01"];const providerVoiceId=String(body.providerVoiceId||"").trim();if(/^aura-2-[a-z0-9-]+$/.test(providerVoiceId))voice={provider:"deepgram",providerVoiceId};const provider=getProvider(env,voice);const upstream=await provider.generate({text,voice,speed:Number(body.speed)||1,stability:Number(body.stability)||50,style:String(body.style||"")});const headers=new Headers(upstream.headers);headers.set("content-type","audio/mpeg");headers.set("cache-control","private, no-store");return new Response(upstream.body,{status:200,headers});}catch(err){console.error("generation_error",err);if(url.searchParams.get("debug")==="1"){const message=String(err?.message||"Unknown provider error").slice(0,500);return json({error:"Voice generation failed",diagnostic:true,message,provider:"deepgram"},502,request);}return json({error:"Voice generation failed. Please try again."},502,request);}
+    try {
+      const body=await request.json();
+      const text=String(body.text||"").trim();
+      if(!text)return json({error:"Text is required"},400,request);
+      if(text.length>MAX_CHARS)return json({error:`Maximum ${MAX_CHARS} characters per generation`},400,request);
+      let voice=VOICES[body.voiceId]||VOICES["svara-amara-01"];
+      const providerVoiceId=String(body.providerVoiceId||"").trim();
+      if(/^aura-2-[a-z0-9-]+$/.test(providerVoiceId))voice={provider:"deepgram",providerVoiceId};
+      const format=String(body.format||"mp3").toLowerCase();
+      if(!["mp3","wav","pcm"].includes(format))return json({error:"Unsupported audio output format"},400,request);
+      const provider=getProvider(env,voice);
+      const upstream=await provider.generate({text,voice,format,speed:Number(body.speed)||1,stability:Number(body.stability)||50,style:String(body.style||"")});
+      const headers=new Headers(upstream.headers);
+      const contentType=format==="wav"?"audio/wav":format==="pcm"?"audio/l16;rate=24000":"audio/mpeg";
+      headers.set("content-type",contentType);
+      headers.set("cache-control","private, no-store");
+      return new Response(upstream.body,{status:200,headers});
+    }catch(err){
+      console.error("generation_error",err);
+      if(url.searchParams.get("debug")==="1"){
+        const message=String(err?.message||"Unknown provider error").slice(0,500);
+        return json({error:"Voice generation failed",diagnostic:true,message,provider:"deepgram"},502,request);
+      }
+      return json({error:"Voice generation failed. Please try again."},502,request);
+    }
   }
 
   if(env.ASSETS) return env.ASSETS.fetch(request);
