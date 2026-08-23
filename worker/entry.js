@@ -224,7 +224,7 @@ export default {
       return new Response(JSON.stringify(pricing(env)), {
         headers: {
           "content-type": "application/json; charset=utf-8",
-          "cache-control": "public, max-age=60"
+          "cache-control": "no-store"
         }
       });
     }
