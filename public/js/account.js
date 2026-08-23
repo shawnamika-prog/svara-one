@@ -1,13 +1,13 @@
 const PLAN_ORDER = ["free", "starter", "creator", "pro", "studio"];
 const PLAN_NAMES = { free: "Free", starter: "Starter", creator: "Creator", pro: "Pro", studio: "Studio" };
 const PLAN_FEATURES = {
-  free: ["MP3 download", "Try the full workflow"],
-  starter: ["MP3 download", "Commercial use"],
-  creator: ["MP3 download", "Commercial use", "Premium voice collection"],
-  pro: ["MP3 download", "Commercial use", "Priority generation"],
-  studio: ["MP3 download", "Commercial use", "Built for high-volume creation"]
+  free: ["MP3 / WAV / PCM (Linear 16)", "Try the full workflow"],
+  starter: ["MP3 / WAV / PCM (Linear 16)", "Commercial use"],
+  creator: ["MP3 / WAV / PCM (Linear 16)", "Commercial use", "Premium voice collection"],
+  pro: ["MP3 / WAV / PCM (Linear 16)", "Commercial use", "Priority generation"],
+  studio: ["MP3 / WAV / PCM (Linear 16)", "Commercial use", "Built for high-volume creation"]
 };
-const FREE_PLAN = { price: 0, period: "once-off", credits: 5000, voices: 3 };
+const FREE_PLAN = { price: 0, period: "once-off", voices: 3 };
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
