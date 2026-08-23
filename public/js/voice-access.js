@@ -18,9 +18,11 @@
   }
 
   function setFreeCredits(pricing){
-    const target=document.querySelector('#freeCredits');
     const credits=Number(pricing?.free?.credits);
-    if(target&&Number.isFinite(credits)) target.textContent=credits.toLocaleString('en-US');
+    if(!Number.isFinite(credits))return;
+    document.querySelectorAll('#freeCredits,[data-free-credits]').forEach(target=>{
+      target.textContent=credits.toLocaleString('en-US');
+    });
   }
 
   function updatePricingCards(pricing,catalogueCount,fullCatalogue){
