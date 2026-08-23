@@ -17,7 +17,7 @@ const LANGUAGE_WORDS={
 function credits(){return Number(localStorage.getItem(CREDIT_KEY)??START_CREDITS)}
 function setCredits(n){const value=Math.max(0,n);localStorage.setItem(CREDIT_KEY,String(value));if($('creditBalance'))$('creditBalance').textContent=`${value.toLocaleString()} credits`;if($('topCredits'))$('topCredits').textContent=value.toLocaleString()}
 function generationCost(n){return Math.max(1,Math.ceil(n/creditFactor))}
-function escapeHtml(s){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+function escapeHtml(s){return String(s).replace(/[&<>'\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]))}
 function displayName(v){return String(v.name||v.voice_id||'Voice').replace(/-/g,' ').replace(/\b\w/g,m=>m.toUpperCase())}
 function normalizeVoice(v){const id=v.voice_id||'',parts=id.split('-'),lang=parts[parts.length-1]||'en',meta=v.metadata||{};return {id:`deepgram-${id}`,name:meta.name||displayName(v),region:meta.accent||meta.language||lang.toUpperCase(),category:lang,style:(meta.characteristics||[])[0]||'Natural',gender:meta.gender||'',provider:'deepgram',providerVoiceId:id,metadata:meta}}
 
@@ -123,6 +123,16 @@ function outputSettings(){
   if(format==='pcm')return {format,extension:'pcm',downloadLabel:'Download PCM',mime:'audio/l16;rate=24000'};
   return {format:'mp3',extension:'mp3',downloadLabel:'Download MP3',mime:'audio/mpeg'}
 }
+function updateFormatReady(format){
+  const card=$('formatReady'),badge=$('formatBadge'),title=$('formatTitle'),description=$('formatDescription');
+  if(!card)return;
+  const info={
+    mp3:{badge:'MP3',title:'MP3 audio ready',description:'Compressed audio output — ready to play, share or download.'},
+    wav:{badge:'WAV',title:'WAV audio ready',description:'Uncompressed audio output — ideal for editing and production workflows.'},
+    pcm:{badge:'PCM',title:'Linear16 audio ready',description:'Raw PCM output — download the file to use it in your audio workflow.'}
+  }[format]||{badge:format.toUpperCase(),title:`${format.toUpperCase()} audio ready`,description:'Audio output is ready to download and use in your workflow.'};
+  badge.textContent=info.badge;title.textContent=info.title;description.textContent=info.description;
+}
 function formatTime(seconds){
   if(!Number.isFinite(seconds)||seconds<0)return '0:00';
   const s=Math.floor(seconds),m=Math.floor(s/60),r=String(s%60).padStart(2,'0');
@@ -221,9 +231,9 @@ $('generate').onclick=async()=>{
     if(output.format!=='pcm')player.load();
     $('download').href=currentUrl;$('download').download=`svaraone-generation.${output.extension}`;$('download').textContent=output.downloadLabel;
     $('result').hidden=false;$('empty').hidden=true;$('status').textContent=output.format==='pcm'?'Ready · PCM':'Ready';
-    $('customPlayer').hidden=output.format==='pcm';$('pcmReady').hidden=output.format!=='pcm';
+    $('customPlayer').hidden=output.format==='pcm';$('formatReady').hidden=false;
     $('playerTitle').textContent=`${selected.name} · ${output.extension.toUpperCase()}`;
-    refreshPlayer();
+    updateFormatReady(output.format);refreshPlayer();
     const remaining=Number(res.headers.get('X-SvaraONE-Credits-Remaining'));
     if(Number.isFinite(remaining))setCredits(remaining);else await loadAccount();
   }catch(e){$('status').textContent='Error';$('debug').textContent=e.message}
