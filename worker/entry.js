@@ -14,6 +14,14 @@ const PORTRAIT_NAMES = {
 
 const SESSION_COOKIE = "svara_session";
 const MAX_GENERATION_CHARS = 10000;
+const LEGACY_PROVIDER_VOICE_IDS = {
+  "svara-amara-01": "aura-2-thalia-en",
+  "svara-james-01": "aura-2-orion-en",
+  "svara-thandi-01": "aura-2-thalia-en",
+  "svara-daniel-01": "aura-2-orion-en",
+  "svara-lea-01": "aura-2-thalia-en",
+  "svara-premium-01": "aura-2-thalia-en"
+};
 
 async function sha256(value) {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
@@ -47,6 +55,41 @@ async function authenticatedUserId(request, env) {
     LIMIT 1
   `).bind(tokenHash).first();
   return row?.id || null;
+}
+
+function fullVoiceCatalogueEnabled(env) {
+  const value = String(env.SVARAONE_FULL_VOICE_CATALOGUE ?? "").trim().toLowerCase();
+  if (value === "true" || value === "1" || value === "yes") return true;
+  if (value === "false" || value === "0" || value === "no") return false;
+  return false;
+}
+
+async function voiceAccess(request, env) {
+  const fullCatalogue = fullVoiceCatalogueEnabled(env);
+  if (fullCatalogue) return { fullCatalogue: true, voiceIds: [] };
+
+  const userId = await authenticatedUserId(request, env);
+  if (!userId || !env.DB) return { fullCatalogue: false, voiceIds: [] };
+  const rows = await env.DB.prepare(
+    "SELECT voice_id FROM user_voices WHERE user_id = ? AND revoked_at IS NULL ORDER BY granted_at ASC"
+  ).bind(userId).all();
+  return {
+    fullCatalogue: false,
+    voiceIds: (rows.results || []).map(row => String(row.voice_id || "")).filter(Boolean)
+  };
+}
+
+function legacyProviderVoiceId(body) {
+  const requested = String(body?.providerVoiceId || "").trim();
+  if (/^aura-2-[a-z0-9-]+$/.test(requested)) return requested;
+  return LEGACY_PROVIDER_VOICE_IDS[String(body?.voiceId || "").trim()] || "";
+}
+
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" }
+  });
 }
 
 function generationCost(text, env) {
@@ -186,6 +229,15 @@ export default {
       });
     }
 
+    if (request.method === "GET" && url.pathname === "/api/voice-access") {
+      try {
+        return json(await voiceAccess(request, env));
+      } catch (error) {
+        console.error("voice_access_error", error);
+        return json({ fullCatalogue: false, voiceIds: [], error: "Voice access service unavailable." }, 503);
+      }
+    }
+
     if (request.method === "GET" && url.pathname.startsWith("/api/voice-portraits/")) {
       const code = url.pathname.split("/").pop();
       const portrait = await storedPortrait(env, code);
@@ -201,6 +253,12 @@ export default {
       const userId = await authenticatedUserId(request, env);
       if (!userId) return new Response(JSON.stringify({ error: "Authentication required." }), { status: 401, headers: { "content-type": "application/json" } });
       if (!env.DB) return new Response(JSON.stringify({ error: "Account service is not configured." }), { status: 503, headers: { "content-type": "application/json" } });
+
+      const access = await voiceAccess(request, env);
+      const providerVoiceId = legacyProviderVoiceId(body);
+      if (!access.fullCatalogue && providerVoiceId && !access.voiceIds.includes(providerVoiceId)) {
+        return new Response(JSON.stringify({ error: "That voice is not available on your current plan." }), { status: 403, headers: { "content-type": "application/json" } });
+      }
 
       const cost = generationCost(text, env);
       const reservation = await reserveCredits(userId, cost, env);
