@@ -5,42 +5,44 @@
     return Array.isArray(data?.voices)?data.voices.length:null;
   }
 
-  function planVoiceCount(pricing,plan,catalogueCount){
-    if(pricing?.fullVoiceCatalogue===true && Number.isFinite(catalogueCount)) return catalogueCount;
+  function planVoiceCount(pricing,plan,catalogueCount,fullCatalogue){
+    if(fullCatalogue===true && Number.isFinite(catalogueCount)) return catalogueCount;
     if(plan==='free') return Number(pricing?.free?.voices);
     return Number(pricing?.plans?.[plan]?.voices);
   }
 
   function setVoiceLabel(article,count){
     if(!article||!Number.isFinite(count))return;
-    const items=[...article.querySelectorAll('li')];
-    const target=items.find(li=>/voices|voice library/i.test(li.textContent));
+    const target=article.querySelector('[data-voice-count]');
     if(target)target.textContent=`${count.toLocaleString('en-US')} voices`;
   }
 
-  function updatePricingCards(pricing,catalogueCount){
+  function updatePricingCards(pricing,catalogueCount,fullCatalogue){
     const articles=[...document.querySelectorAll('.prices article')];
     if(!articles.length)return;
     const byName=Object.fromEntries(articles.map(article=>[article.querySelector('h3')?.textContent.trim().toLowerCase(),article]));
     ['free','starter','creator','pro','studio'].forEach(plan=>{
-      setVoiceLabel(byName[plan],planVoiceCount(pricing,plan,catalogueCount));
+      setVoiceLabel(byName[plan],planVoiceCount(pricing,plan,catalogueCount,fullCatalogue));
     });
   }
 
   async function init(){
+    const prices=document.querySelector('.prices');
+    if(!prices)return;
     try{
-      const [pricing,voices]=await Promise.all([api('/api/pricing'),api('/api/voices')]);
+      const [pricing,access,voices]=await Promise.all([
+        api('/api/pricing'),
+        api('/api/voice-access'),
+        api('/api/voices')
+      ]);
       const count=catalogueCount(voices);
-      updatePricingCards(pricing,count);
-
-      const grid=document.querySelector('#planGrid');
-      if(grid){
-        const observer=new MutationObserver(()=>updatePricingCards(pricing,count));
-        observer.observe(grid,{childList:true,subtree:true});
-        setTimeout(()=>observer.disconnect(),5000);
-      }
+      const fullCatalogue=access?.fullCatalogue===true;
+      updatePricingCards(pricing,count,fullCatalogue);
+      prices.style.visibility='visible';
     }catch(error){
       console.error('Voice access display unavailable:',error);
+      prices.style.visibility='visible';
+      prices.querySelectorAll('[data-voice-count]').forEach(target=>{target.textContent='Voice count unavailable';});
     }
   }
 
