@@ -1,5 +1,6 @@
 (()=>{
   const escapeHtml=s=>String(s??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
+  const genderValues=new Set(['male','female','masculine','feminine']);
 
   function updateCards(){
     const catalogue=window.SVARA_VOICES||[];
@@ -15,30 +16,23 @@
         label.insertAdjacentElement('afterend',meta);
       }
 
+      const gender=String(voice.gender||'').trim();
       const region=String(voice.region||'').trim();
       const language=String(voice.languageName||'').trim();
-      const gender=String(voice.gender||'').trim();
-
-      // The card should show only: Region · Language · Gender.
-      // Never include the legacy style field, which can contain masculine/feminine.
-      const values=[region,language,gender].filter(Boolean);
-      const unique=[];
-      values.forEach(value=>{
-        const key=value.toLowerCase();
-        if(!unique.some(existing=>existing.toLowerCase()===key))unique.push(value);
-      });
-
-      meta.innerHTML=unique.map((value,index)=>
-        `<span class="${index===unique.length-1?'voice-gender':'voice-meta-rest'}">${escapeHtml(value)}</span>`
-      ).join(' · ');
-      meta.title=unique.join(' · ');
+      const parts=[];
+      if(region)parts.push(`<span class="voice-meta-rest">${escapeHtml(region)}</span>`);
+      if(language)parts.push(`<span class="voice-meta-rest">${escapeHtml(language)}</span>`);
+      if(gender)parts.push(`<span class="voice-gender">${escapeHtml(gender)}</span>`);
+      meta.innerHTML=parts.join(' · ');
+      meta.title=[region,language,gender].filter(Boolean).join(' · ');
     });
   }
 
   const list=document.getElementById('voiceList');
   if(!list)return;
-  const observer=new MutationObserver(updateCards);
+  const observer=new MutationObserver(()=>requestAnimationFrame(updateCards));
   observer.observe(list,{childList:true,subtree:true});
   updateCards();
   window.addEventListener('svara:voices-updated',updateCards);
+  [100,300,700,1500,3000].forEach(ms=>setTimeout(updateCards,ms));
 })();
