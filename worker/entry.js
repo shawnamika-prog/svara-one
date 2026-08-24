@@ -1,6 +1,7 @@
 import app from "./index.js";
 import { handleAuth } from "./auth.js";
 import { handlePayfast, runBillingCron } from "./payfast.js";
+import { getVoiceById, getVoiceByProviderId, syncVoiceRegistry, seedMissingVoiceSamples } from "./voice-registry.js";
 
 const PORTRAIT_NAMES = {
   en: "thalia",
@@ -79,10 +80,17 @@ async function voiceAccess(request, env) {
   };
 }
 
-function legacyProviderVoiceId(body) {
+async function resolveProviderVoiceId(body, env) {
   const requested = String(body?.providerVoiceId || "").trim();
   if (/^aura-2-[a-z0-9-]+$/.test(requested)) return requested;
-  return LEGACY_PROVIDER_VOICE_IDS[String(body?.voiceId || "").trim()] || "";
+  const svaraId = String(body?.voiceId || "").trim();
+  if (/^svara-[a-z0-9-]+$/.test(svaraId)) {
+    const voice = await getVoiceById(env, svaraId);
+    if (voice) return voice.providerVoiceId;
+  }
+  const legacy = LEGACY_PROVIDER_VOICE_IDS[svaraId] || "";
+  if (legacy) return legacy;
+  return "";
 }
 
 function json(data, status = 200) {
@@ -255,8 +263,9 @@ export default {
       if (!env.DB) return new Response(JSON.stringify({ error: "Account service is not configured." }), { status: 503, headers: { "content-type": "application/json" } });
 
       const access = await voiceAccess(request, env);
-      const providerVoiceId = legacyProviderVoiceId(body);
-      if (!access.fullCatalogue && providerVoiceId && !access.voiceIds.includes(providerVoiceId)) {
+      const providerVoiceId = await resolveProviderVoiceId(body, env);
+      if (!providerVoiceId) return new Response(JSON.stringify({ error: "Voice not found." }), { status: 404, headers: { "content-type": "application/json" } });
+      if (!access.fullCatalogue && !access.voiceIds.includes(providerVoiceId)) {
         return new Response(JSON.stringify({ error: "That voice is not available on your current plan." }), { status: 403, headers: { "content-type": "application/json" } });
       }
 
@@ -284,5 +293,13 @@ export default {
 
   async scheduled(controller, env, ctx) {
     ctx.waitUntil(runBillingCron(env));
+    ctx.waitUntil((async()=>{
+      try {
+        await syncVoiceRegistry(env);
+        await seedMissingVoiceSamples(env, 3);
+      } catch (error) {
+        console.error("voice_registry_sync_error", error);
+      }
+    })());
   }
 };
