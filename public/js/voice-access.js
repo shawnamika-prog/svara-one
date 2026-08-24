@@ -44,9 +44,25 @@
     });
   }
 
+  // The public homepage must always label paid plans by their monthly equivalent.
+  // Keep this separate from the price value so no stale/legacy markup can show "/ year".
+  function setMonthlyBillingLabels(){
+    document.querySelectorAll('.prices article').forEach(article=>{
+      const name=article.querySelector('h3')?.textContent.trim().toLowerCase();
+      if(name==='starter'||name==='creator'||name==='pro'||name==='studio'){
+        const small=article.querySelector('.price small');
+        if(small)small.textContent='/ month';
+      }
+    });
+  }
+
   function reinforcePlanPrices(pricing){
     setPlanPrices(pricing);
-    const timer=setInterval(()=>setPlanPrices(pricing),250);
+    setMonthlyBillingLabels();
+    const timer=setInterval(()=>{
+      setPlanPrices(pricing);
+      setMonthlyBillingLabels();
+    },250);
     setTimeout(()=>clearInterval(timer),5000);
   }
 
