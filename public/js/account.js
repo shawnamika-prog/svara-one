@@ -28,16 +28,16 @@ function escapeHtml(value) {
 }
 
 function money(value) {
-  return Number(value || 0).toLocaleString("en-US", { maximumFractionDigits: 0 });
+  return Number(value || 0).toLocaleString("en-US", { maximumFractionDigits: 2 });
+}
+
+function monthlyPrice(value) {
+  const annual = Number(value);
+  return Number.isFinite(annual) ? annual / 12 : null;
 }
 
 function currentPlanKey(user) {
   return String(user?.subscription?.plan || "free").toLowerCase();
-}
-
-function currentPlanPrice(user, pricing) {
-  const key = currentPlanKey(user);
-  return key === "free" ? 0 : Number(pricing.plans?.[key]?.price || 0);
 }
 
 function showStatus(message, type = "pending") {
@@ -102,6 +102,12 @@ function renderPlans(user, pricing, catalogueCount, fullCatalogue) {
     const voiceCount = voiceCountForPlan(plan, pricing, catalogueCount, fullCatalogue);
     const features = [voiceLabel(voiceCount), ...(PLAN_FEATURES[plan] || [])];
     const creditText = `${Number(config.credits).toLocaleString()} ${renderBrand()} Credits / ${isFree ? "once-off" : "month"}`;
+    const annualPrice = Number(config.price || 0);
+    const monthly = monthlyPrice(annualPrice);
+    const priceText = isFree ? "$0" : `$${money(monthly)}`;
+    const priceMarkup = isFree
+      ? `<div class="price">${priceText} <small>/ once-off</small></div>`
+      : `<div class="price">${priceText} <small>/ month</small><em>billed annually</em></div>`;
 
     let action;
     if (isCurrent) {
@@ -118,7 +124,7 @@ function renderPlans(user, pricing, catalogueCount, fullCatalogue) {
       <article${plan === "creator" ? ` class="popular"` : ""}>
         ${popular}
         <h3>${escapeHtml(PLAN_NAMES[plan])}</h3>
-        <div class="price">$${money(config.price)} <small>/ ${escapeHtml(config.period || (isFree ? "once-off" : "year"))}</small></div>
+        ${priceMarkup}
         <b>${creditText}</b>
         <ul>${features.map(feature => `<li>${escapeHtml(feature)}</li>`).join("")}</ul>
         ${action}
