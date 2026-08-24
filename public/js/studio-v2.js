@@ -88,7 +88,14 @@ function render(){
   if(!list)return;
   const q=(search.value||'').toLowerCase();
   list.innerHTML=voices.filter(v=>(filter==='all'||v.category===filter)&&`${v.name} ${v.region} ${v.style} ${v.languageName} ${v.providerVoiceId} ${JSON.stringify(v.metadata||{})}`.toLowerCase().includes(q))
-    .map(v=>`<button class="voice ${selected&&selected.id===v.id?'selected':''}" data-id="${escapeHtml(v.id)}"><div class="voice-main"><span class="avatar">${escapeHtml((v.name||'V')[0])}</span><span class="voice-copy"><b>${escapeHtml(v.name)}</b><small>${escapeHtml(v.region||v.languageName)} · ${escapeHtml(v.style)}${v.gender?` · ${escapeHtml(v.gender)}`:''}</small></span><span class="preview-button ${previewVoiceId===v.id&&!previewAudio?.paused?'playing':''}" data-preview-id="${escapeHtml(v.id)}" aria-label="${previewVoiceId===v.id&&!previewAudio?.paused?'Pause':'Play'} ${escapeHtml(v.name)} preview">${previewVoiceId===v.id&&!previewAudio?.paused?'❚❚':'▶'}</span></div><div class="voice-wave ${previewVoiceId===v.id&&!previewAudio?.paused?'playing':''}" aria-hidden="true">${voiceWave()}</div><div class="voice-preview-label"><span>${v.sampleStatus==='ready'?'Voice preview':'Preview'}</span><span>${previewVoiceId===v.id&&!previewAudio?.paused?'Playing':'Listen'}</span></div></button>`).join('');
+    .map(v=>{
+      const gender=String(v.gender||'').trim();
+      const region=String(v.region||'').trim();
+      const language=String(v.languageName||'').trim();
+      const style=String(v.style||'').trim();
+      const tags=[gender,region,language,style&&style!=='Natural'?style:''].filter(Boolean).map(escapeHtml).join(' · ');
+      return `<button class="voice ${selected&&selected.id===v.id?'selected':''}" data-id="${escapeHtml(v.id)}"><div class="voice-main"><span class="avatar">${escapeHtml((v.name||'V')[0])}</span><span class="voice-copy"><b>${escapeHtml(v.name)}</b></span><span class="preview-button ${previewVoiceId===v.id&&!previewAudio?.paused?'playing':''}" data-preview-id="${escapeHtml(v.id)}" aria-label="${previewVoiceId===v.id&&!previewAudio?.paused?'Pause':'Play'} ${escapeHtml(v.name)} preview">${previewVoiceId===v.id&&!previewAudio?.paused?'❚❚':'▶'}</span></div><div class="voice-wave ${previewVoiceId===v.id&&!previewAudio?.paused?'playing':''}" aria-hidden="true">${voiceWave()}</div><div class="voice-preview-label"><span>${v.sampleStatus==='ready'?'Voice preview':'Preview'}</span><span>${previewVoiceId===v.id&&!previewAudio?.paused?'Playing':'Listen'}</span></div><div class="voice-card-meta" title="${escapeHtml(tags)}">${tags}</div></button>`;
+    }).join('');
   list.querySelectorAll('.voice').forEach(b=>b.onclick=e=>{
     const preview=e.target.closest('[data-preview-id]');
     const voice=voices.find(v=>v.id===b.dataset.id);
@@ -178,12 +185,22 @@ $('generate').onclick=async()=>{
   const btn=$('generate'),output=outputSettings();btn.disabled=true;btn.textContent='Generating…';$('status').textContent='Generating';$('debug').textContent='';
   try{
     const res=await fetch('/api/voice/generate',{method:'POST',headers:{'content-type':'application/json'},credentials:'same-origin',body:JSON.stringify({voiceId:selected.id,text,format:output.format,speed:Number($('speed').value),stability:Number($('stability').value),style:$('style').value})});
-    if(!res.ok){const data=await res.json().catch(()=>({}));throw new Error(data.error||`Generation failed (${res.status})`)}
-    const blob=await res.blob();if(currentUrl)URL.revokeObjectURL(currentUrl);currentUrl=URL.createObjectURL(blob);const player=$('player');player.pause();player.src=output.format==='pcm'?'':currentUrl;player.hidden=output.format==='pcm';if(output.format!=='pcm')player.load();
-    $('download').href=currentUrl;$('download').download=`svaraone-generation.${output.extension}`;$('download').textContent=output.downloadLabel;$('result').hidden=false;$('empty').hidden=true;$('status').textContent=output.format==='pcm'?'Ready · PCM':'Ready';$('customPlayer').hidden=output.format==='pcm';$('formatReady').hidden=false;$('playerTitle').textContent=`${selected.name} · ${output.extension.toUpperCase()}`;updateFormatReady(output.format);refreshPlayer();
-    const remaining=Number(res.headers.get('X-SvaraONE-Credits-Remaining'));if(Number.isFinite(remaining))setCredits(remaining);else await loadAccount();
-  }catch(e){$('status').textContent='Error';$('debug').textContent=e.message}finally{btn.disabled=false;btn.textContent='✦ Generate voice'}
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok){
+      if(res.status===402&&data.code==='INSUFFICIENT_CREDITS'){$('status').textContent='Not enough credits';$('creditWarning').hidden=false;$('creditWarning').innerHTML='<strong>Insufficient credits</strong><span>Your script exceeds your remaining credit limit. Upgrade or purchase more credits to continue.</span>';}
+      else{$('status').textContent=data.error||'Generation failed';$('debug').textContent=data.details||''}
+      return
+    }
+    const previous=Number(account?.credits||credits());
+    const remaining=Number(data.remainingCredits);
+    if(Number.isFinite(remaining)){setCredits(remaining);if(account)account.credits=remaining}else if(Number.isFinite(data.cost))setCredits(previous-Number(data.cost));
+    $('creditWarning').hidden=true;$('status').textContent='Ready';
+    if(currentUrl)URL.revokeObjectURL(currentUrl);currentUrl=URL.createObjectURL(new Blob([Uint8Array.from(atob(data.audio),c=>c.charCodeAt(0))],{type:output.mime}));
+    const audio=$('player');audio.src=currentUrl;audio.load();$('playerTitle').textContent=`${selected.name} · ${output.format.toUpperCase()}`;$('empty').hidden=true;$('result').hidden=false;$('customPlayer').hidden=false;updateFormatReady(output.format);$('download').href=currentUrl;$('download').download=`svaraone-${selected.name.toLowerCase().replace(/[^a-z0-9]+/g,'-')}.${output.extension}`;refreshPlayer();
+  }catch(err){$('status').textContent='Generation failed';$('debug').textContent=err?.message||String(err)}
+  finally{btn.disabled=false;btn.textContent='✦ Generate voice'}
 };
 
-(async()=>{await loadAccount();await loadPricing();if(account){script.maxLength=maxGenerationChars;const logoutButton=document.querySelector('#logoutButton');if(logoutButton)logoutButton.onclick=logout;render();loadVoiceRegistry();hideLanguageWarning()}})();
+$('logoutButton').onclick=logout;
+loadPricing().then(loadAccount).then(ok=>ok&&loadVoiceRegistry());
 })();
