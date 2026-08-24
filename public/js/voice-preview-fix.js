@@ -30,7 +30,11 @@
 
   async function playPreview(card,id){
     if(activeId===id && audio){
-      if(!audio.paused){audio.pause();return false;}
+      if(!audio.paused){
+        audio.pause();
+        setCard(card,'idle');
+        return false;
+      }
       try{await audio.play();setCard(card,'playing');return true;}catch(e){setCard(card,'idle');return false;}
     }
 
