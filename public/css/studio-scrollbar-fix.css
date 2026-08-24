@@ -1,0 +1,3 @@
+.editor textarea::-webkit-scrollbar-button{display:none;width:0;height:0}
+.editor textarea::-webkit-scrollbar-corner{background:transparent}
+.editor textarea::-webkit-resizer{background:transparent}
