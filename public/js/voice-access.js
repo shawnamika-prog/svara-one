@@ -44,6 +44,12 @@
     });
   }
 
+  function reinforcePlanPrices(pricing){
+    setPlanPrices(pricing);
+    const timer=setInterval(()=>setPlanPrices(pricing),250);
+    setTimeout(()=>clearInterval(timer),5000);
+  }
+
   function updatePricingCards(pricing,catalogueCount,fullCatalogue){
     const articles=[...document.querySelectorAll('.prices article')];
     if(!articles.length)return;
@@ -62,7 +68,7 @@
         api('/api/voices')
       ]);
       setFreeCredits(pricing);
-      setPlanPrices(pricing);
+      reinforcePlanPrices(pricing);
       if(!prices)return;
       const count=catalogueCount(voices);
       const fullCatalogue=access?.fullCatalogue===true;
