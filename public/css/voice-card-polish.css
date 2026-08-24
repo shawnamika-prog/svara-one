@@ -1,0 +1,2 @@
+.voice-wave{height:34px;margin-top:8px;padding:4px 7px}.voice-wave i{max-height:22px;min-height:4px}.voice-copy{flex:1;min-width:0}.voice-copy small{max-width:none;overflow:hidden;text-overflow:ellipsis}.voice-gender{color:#b7c7d8;font-weight:600}
+@media(max-width:560px){.voice-wave{height:31px;margin-top:7px}.voice-wave i{max-height:20px}}
