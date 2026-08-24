@@ -30,9 +30,8 @@
 
   async function playPreview(card,id){
     if(activeId===id && audio){
-      if(!audio.paused){audio.pause();return;}
-      try{await audio.play();setCard(card,'playing');}catch(e){setCard(card,'idle');}
-      return;
+      if(!audio.paused){audio.pause();return false;}
+      try{await audio.play();setCard(card,'playing');return true;}catch(e){setCard(card,'idle');return false;}
     }
 
     if(audio){audio.pause();audio.removeAttribute('src');audio.load();}
@@ -62,12 +61,14 @@
       audio.addEventListener('error',()=>{activeId=null;setCard(card,'idle');});
       await audio.play();
       setCard(card,'playing');
+      return true;
     }catch(error){
       console.error('SvaraONE voice preview failed:',error);
       activeId=null;
       setCard(card,'idle');
       const labels=card.querySelectorAll('.voice-preview-label span');
       if(labels[1])labels[1].textContent='Unavailable';
+      return false;
     }
   }
 
@@ -79,6 +80,11 @@
     event.preventDefault();
     event.stopPropagation();
     event.stopImmediatePropagation();
-    playPreview(card,id);
+    playPreview(card,id).then(success=>{
+      if(!success || !card?.isConnected)return;
+      card.click();
+      const selectedCard=list.querySelector(`.voice[data-id="${CSS.escape(id)}"]`);
+      if(selectedCard)setCard(selectedCard,'playing');
+    });
   },true);
 })();
