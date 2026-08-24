@@ -1,5 +1,6 @@
 (()=>{
   const escapeHtml=s=>String(s??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
+
   function updateCards(){
     const catalogue=window.SVARA_VOICES||[];
     document.querySelectorAll('#voiceList .voice').forEach(card=>{
@@ -9,12 +10,16 @@
       const gender=String(voice.gender||'').trim();
       const region=String(voice.region||voice.languageName||'').trim();
       if(!gender)return;
-      meta.innerHTML=`<span class="voice-gender">${escapeHtml(gender)}</span>${region?` · ${escapeHtml(region)}`:''}`;
+      meta.innerHTML=`<span class="voice-gender">${escapeHtml(gender)}</span>${region?`<span class="voice-meta-rest">${escapeHtml(region)}</span>`:''}`;
       meta.title=region?`${gender} · ${region}`:gender;
     });
   }
-  updateCards();
+
   const list=document.getElementById('voiceList');
-  if(list)new MutationObserver(updateCards).observe(list,{childList:true});
+  if(!list)return;
+  const observer=new MutationObserver(updateCards);
+  observer.observe(list,{childList:true,subtree:true});
+  updateCards();
   window.addEventListener('svara:voices-updated',updateCards);
+  [100,300,700,1500].forEach(ms=>setTimeout(updateCards,ms));
 })();
