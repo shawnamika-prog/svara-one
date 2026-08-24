@@ -3,28 +3,31 @@
   const genderValues=new Set(['male','female','masculine','feminine']);
 
   function updateCards(){
-    const catalogue=window.SVARA_VOICES||[];
     document.querySelectorAll('#voiceList .voice').forEach(card=>{
-      const voice=catalogue.find(v=>String(v.id)===String(card.dataset.id));
-      if(!voice)return;
-      const label=card.querySelector('.voice-preview-label');
-      if(!label)return;
-      let meta=card.querySelector('.voice-card-meta');
-      if(!meta){
-        meta=document.createElement('div');
-        meta.className='voice-card-meta';
-        label.insertAdjacentElement('afterend',meta);
-      }
+      const meta=card.querySelector('.voice-card-meta');
+      if(!meta)return;
 
-      const gender=String(voice.gender||'').trim();
-      const region=String(voice.region||'').trim();
-      const language=String(voice.languageName||'').trim();
-      const parts=[];
-      if(region)parts.push(`<span class="voice-meta-rest">${escapeHtml(region)}</span>`);
-      if(language)parts.push(`<span class="voice-meta-rest">${escapeHtml(language)}</span>`);
-      if(gender)parts.push(`<span class="voice-gender">${escapeHtml(gender)}</span>`);
-      meta.innerHTML=parts.join(' · ');
-      meta.title=[region,language,gender].filter(Boolean).join(' · ');
+      // studio-v2 currently renders: gender · region · language · style.
+      // Do not depend on a separate voice catalogue object; use the metadata
+      // already rendered into this card so this remains correct after every render.
+      const raw=meta.textContent.split('·').map(v=>v.trim()).filter(Boolean);
+      if(!raw.length)return;
+
+      const genderIndex=raw.findIndex(v=>genderValues.has(v.toLowerCase()));
+      const gender=genderIndex>=0?raw[genderIndex]:'';
+      const withoutGender=genderIndex>=0?raw.filter((_,i)=>i!==genderIndex):raw;
+
+      // Remove any duplicate gender/style value from the remaining metadata.
+      const clean=withoutGender.filter(v=>!genderValues.has(v.toLowerCase()));
+      const region=clean[0]||'';
+      const language=clean[1]||'';
+      const parts=[region,language,gender].filter(Boolean);
+      const next=parts.join(' · ');
+
+      if(meta.textContent.trim()!==next){
+        meta.innerHTML=parts.map((value,i)=>`<span class="${i===2?'voice-gender':'voice-meta-rest'}">${escapeHtml(value)}</span>`).join(' · ');
+      }
+      meta.title=next;
     });
   }
 
