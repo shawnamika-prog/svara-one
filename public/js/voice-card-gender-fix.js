@@ -17,14 +17,12 @@
       const gender=String(voice.gender||'').trim();
       const region=String(voice.region||'').trim();
       const language=String(voice.languageName||'').trim();
-      const style=String(voice.style||'').trim();
       const parts=[];
       if(gender)parts.push(`<span class="voice-gender">${escapeHtml(gender)}</span>`);
       if(region)parts.push(`<span class="voice-meta-rest">${escapeHtml(region)}</span>`);
       if(language)parts.push(`<span class="voice-meta-rest">${escapeHtml(language)}</span>`);
-      if(style&&style!=='Natural')parts.push(`<span class="voice-meta-rest">${escapeHtml(style)}</span>`);
       meta.innerHTML=parts.join(' · ');
-      meta.title=[gender,region,language,style&&style!=='Natural'?style:''].filter(Boolean).join(' · ');
+      meta.title=[gender,region,language].filter(Boolean).join(' · ');
     });
   }
 
