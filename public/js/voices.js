@@ -25,8 +25,8 @@ window.SVARA_VOICES = [
       const language = String(meta.language || meta.languages?.[0] || 'English');
       const accent = String(meta.accent || meta.region || 'Global');
       const characteristics = Array.isArray(meta.characteristics) ? meta.characteristics : [];
-      const gender = String(meta.gender || characteristics.find(x => /male|female/i.test(String(x))) || 'Voice');
-      const style = characteristics.filter(x => !/male|female/i.test(String(x))).slice(0,2).join(' · ') || 'Natural';
+      const gender = String(meta.gender || characteristics.find(x => /male|female|masculine|feminine/i.test(String(x))) || 'Voice');
+      const style = characteristics.filter(x => !/male|female|masculine|feminine/i.test(String(x))).slice(0,2).join(' · ') || 'Natural';
       return {
         id: `deepgram-${id || index}`,
         name: id.replace(/^aura-2-/, '').replace(/-en$/, '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
