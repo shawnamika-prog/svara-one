@@ -25,6 +25,25 @@
     });
   }
 
+  function monthlyEquivalent(value){
+    const annual=Number(value);
+    if(!Number.isFinite(annual))return null;
+    return annual/12;
+  }
+
+  function setPlanPrices(pricing){
+    ['starter','creator','pro','studio'].forEach(plan=>{
+      const annual=Number(pricing?.plans?.[plan]?.price);
+      const monthly=monthlyEquivalent(annual);
+      const target=document.querySelector(`[data-plan-price="${plan}"]`);
+      const billing=document.querySelector(`[data-plan-billing="${plan}"]`);
+      if(target&&Number.isFinite(monthly)){
+        target.textContent=`$${monthly.toLocaleString('en-US',{minimumFractionDigits:monthly%1?2:0,maximumFractionDigits:2})}`;
+      }
+      if(billing&&Number.isFinite(annual)) billing.textContent='billed annually';
+    });
+  }
+
   function updatePricingCards(pricing,catalogueCount,fullCatalogue){
     const articles=[...document.querySelectorAll('.prices article')];
     if(!articles.length)return;
@@ -43,6 +62,7 @@
         api('/api/voices')
       ]);
       setFreeCredits(pricing);
+      setPlanPrices(pricing);
       if(!prices)return;
       const count=catalogueCount(voices);
       const fullCatalogue=access?.fullCatalogue===true;
