@@ -46,7 +46,7 @@ async function loadAccount(){
   localStorage.setItem(CREDIT_KEY,String(balance));setCredits(balance);
   const pill=document.querySelector('.user-pill');
   if(pill)pill.textContent=`${account?.display_name||account?.email||'Account'} · ${account?.subscription?.plan||'Free'}`;
-  return true
+  return true;
 }
 async function logout(){stopPreview();await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'}).catch(()=>{});localStorage.removeItem(CREDIT_KEY);window.location.replace('/')}
 
@@ -184,18 +184,19 @@ $('generate').onclick=async()=>{
   const costInCredits=generationCost(n);if(costInCredits>credits()){$('status').textContent='Not enough credits';return}
   const btn=$('generate'),output=outputSettings();btn.disabled=true;btn.textContent='Generating…';$('status').textContent='Generating';$('debug').textContent='';
   try{
-    const res=await fetch('/api/voice/generate',{method:'POST',headers:{'content-type':'application/json'},credentials:'same-origin',body:JSON.stringify({voiceId:selected.id,text,format:output.format,speed:Number($('speed').value),stability:Number($('stability').value),style:$('style').value})});
-    const data=await res.json().catch(()=>({}));
+    const res=await fetch('/api/voice/generate',{method:'POST',headers:{'content-type':'application/json'},credentials:'same-origin',body:JSON.stringify({voiceId:selected.id,text,format:output.format,speed:Number($('speed').value),stability:Number($('stability').value),style:$('style')?.value||''})});
     if(!res.ok){
-      if(res.status===402&&data.code==='INSUFFICIENT_CREDITS'){$('status').textContent='Not enough credits';$('creditWarning').hidden=false;$('creditWarning').innerHTML='<strong>Insufficient credits</strong><span>Your script exceeds your remaining credit limit. Upgrade or purchase more credits to continue.</span>';}
-      else{$('status').textContent=data.error||'Generation failed';$('debug').textContent=data.details||''}
+      const data=await res.json().catch(()=>({}));
+      if(res.status===402){$('status').textContent='Not enough credits';$('creditWarning').hidden=false;$('creditWarning').innerHTML='<strong>Insufficient credits</strong><span>Your script exceeds your remaining credit limit. Upgrade or purchase more credits to continue.';}
+      else{$('status').textContent=data.error||'Generation failed';$('debug').textContent=data.details||data.message||''}
       return
     }
-    const previous=Number(account?.credits||credits());
-    const remaining=Number(data.remainingCredits);
-    if(Number.isFinite(remaining)){setCredits(remaining);if(account)account.credits=remaining}else if(Number.isFinite(data.cost))setCredits(previous-Number(data.cost));
+    const remaining=Number(res.headers.get('X-SvaraONE-Credits-Remaining'));
+    if(Number.isFinite(remaining)){setCredits(remaining);if(account)account.credits=remaining}
+    const audioBlob=await res.blob();
+    if(!audioBlob.size)throw new Error('Generated audio response was empty');
     $('creditWarning').hidden=true;$('status').textContent='Ready';
-    if(currentUrl)URL.revokeObjectURL(currentUrl);currentUrl=URL.createObjectURL(new Blob([Uint8Array.from(atob(data.audio),c=>c.charCodeAt(0))],{type:output.mime}));
+    if(currentUrl)URL.revokeObjectURL(currentUrl);currentUrl=URL.createObjectURL(audioBlob);
     const audio=$('player');audio.src=currentUrl;audio.load();$('playerTitle').textContent=`${selected.name} · ${output.format.toUpperCase()}`;$('empty').hidden=true;$('result').hidden=false;$('customPlayer').hidden=false;updateFormatReady(output.format);$('download').href=currentUrl;$('download').download=`svaraone-${selected.name.toLowerCase().replace(/[^a-z0-9]+/g,'-')}.${output.extension}`;refreshPlayer();
   }catch(err){$('status').textContent='Generation failed';$('debug').textContent=err?.message||String(err)}
   finally{btn.disabled=false;btn.textContent='✦ Generate voice'}
