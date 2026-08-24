@@ -1,5 +1,6 @@
 import { getProvider, getProviderStatus } from "./providers/index.js";
 import { getPortrait } from "./voice-portraits.js";
+import { getVoiceById, listVoiceRegistry, syncVoiceRegistry, ensureVoiceSample, seedMissingVoiceSamples } from "./voice-registry.js";
 
 const LAB_TESTS = [
   ["conversation", "Hey, thanks for joining us. I wanted to tell you about something we've been working on."],
@@ -58,7 +59,7 @@ function cors(request) {
   return {
     "Access-Control-Allow-Origin": ALLOWED_ORIGINS.has(origin) ? origin : "null",
     "Access-Control-Allow-Methods":"GET,POST,OPTIONS",
-    "Access-Control-Allow-Headers":"Content-Type,Authorization,X-Svara-Lab-Token",
+    "Access-Control-Allow-Headers":"Content-Type,Authorization,X-Svara-Lab-Token,X-Svara-Voice-Seed-Token",
     "Vary":"Origin"
   };
 }
@@ -137,7 +138,7 @@ export default {
   if(request.method==="OPTIONS") return new Response(null,{headers:cors(request)});
   const url=new URL(request.url);
 
-  if(url.pathname==="/api/health") return json({ok:true,service:"svara-origins-api",version:"3",providers:getProviderStatus(env)},200,request);
+  if(url.pathname==="/api/health") return json({ok:true,service:"svara-origins-api",version:"4",providers:getProviderStatus(env)},200,request);
 
   if(url.pathname==="/api/sample-voices"&&request.method==="GET") return json({voices:SAMPLE_VOICES.map(({code,language,name,accent,voiceId})=>({code,language,name,accent,voiceId}))},200,request);
 
@@ -156,6 +157,27 @@ export default {
     try{return await storedSample(env,sample);}catch(err){return json({error:String(err?.message||"Sample generation failed").slice(0,300)},502,request);}
   }
 
+  if(url.pathname.startsWith("/api/voice-samples/")&&request.method==="GET"){
+    const svaraId=decodeURIComponent(url.pathname.split("/").pop()||"");
+    try{
+      const result=await ensureVoiceSample(env,svaraId);
+      if(result.error)return json({error:result.error},result.status||404,request);
+      return new Response(result.body,{headers:result.headers});
+    }catch(err){return json({error:String(err?.message||"Voice sample failed").slice(0,300)},502,request);}
+  }
+
+  if(url.pathname==="/api/admin/sync-voices"&&request.method==="POST"){
+    const token=request.headers.get("X-Svara-Voice-Seed-Token")||request.headers.get("X-Svara-Sample-Seed-Token")||"";
+    if(!env.SAMPLE_SEED_TOKEN || token!==env.SAMPLE_SEED_TOKEN)return new Response("Not found",{status:404});
+    try{return json({ok:true,registry:await syncVoiceRegistry(env)},200,request);}catch(err){return json({error:String(err?.message||"Voice sync failed").slice(0,300)},502,request);}
+  }
+
+  if(url.pathname==="/api/admin/seed-voice-samples"&&request.method==="POST"){
+    const token=request.headers.get("X-Svara-Voice-Seed-Token")||request.headers.get("X-Svara-Sample-Seed-Token")||"";
+    if(!env.SAMPLE_SEED_TOKEN || token!==env.SAMPLE_SEED_TOKEN)return new Response("Not found",{status:404});
+    try{return json({ok:true,results:await seedMissingVoiceSamples(env,Number(new URL(request.url).searchParams.get("limit"))||3)},200,request);}catch(err){return json({error:String(err?.message||"Voice sample seeding failed").slice(0,300)},502,request);}
+  }
+
   if(url.pathname==="/api/admin/seed-sample-voices"&&request.method==="POST"){
     const token=request.headers.get("X-Svara-Sample-Seed-Token")||"";
     if(!env.SAMPLE_SEED_TOKEN || token!==env.SAMPLE_SEED_TOKEN) return new Response("Not found",{status:404});
@@ -163,7 +185,13 @@ export default {
   }
 
   if(url.pathname==="/api/voices"&&request.method==="GET"){
-    try {const voices=await deepgramCatalogue(env);return json({provider:"deepgram",family:"aura-2",voices:voices.map(v=>({voice_id:v.canonical_name,metadata:v.metadata||{}}))},200,request);}catch(err){return json({error:String(err?.message||"Voice catalogue failed").slice(0,300)},502,request);}
+    try{
+      let voices=await listVoiceRegistry(env);
+      if(!voices.length){await syncVoiceRegistry(env);voices=await listVoiceRegistry(env);}
+      return json({provider:"svara",family:"aura-2",voices},200,request);
+    }catch(err){
+      try{const voices=await deepgramCatalogue(env);return json({provider:"deepgram-fallback",family:"aura-2",voices:voices.map(v=>({voice_id:v.canonical_name,metadata:v.metadata||{}}))},200,request);}catch(fallbackError){return json({error:String(err?.message||"Voice catalogue failed").slice(0,300)},502,request);}
+    }
   }
 
   if(url.pathname==="/api/lab/catalogue"&&request.method==="GET"){
@@ -184,7 +212,13 @@ export default {
       if(text.length>MAX_CHARS)return json({error:`Maximum ${MAX_CHARS} characters per generation`},400,request);
       let voice=VOICES[body.voiceId]||VOICES["svara-amara-01"];
       const providerVoiceId=String(body.providerVoiceId||"").trim();
-      if(/^aura-2-[a-z0-9-]+$/.test(providerVoiceId))voice={provider:"deepgram",providerVoiceId};
+      if(/^svara-[a-z0-9-]+$/.test(String(body.voiceId||""))){
+        const registryVoice=await getVoiceById(env,body.voiceId);
+        if(!registryVoice)return json({error:"Voice not found"},404,request);
+        voice={provider:"deepgram",providerVoiceId:registryVoice.providerVoiceId};
+      }else if(/^aura-2-[a-z0-9-]+$/.test(providerVoiceId)){
+        voice={provider:"deepgram",providerVoiceId};
+      }
       const format=String(body.format||"mp3").toLowerCase();
       if(!["mp3","wav","pcm"].includes(format))return json({error:"Unsupported audio output format"},400,request);
       const provider=getProvider(env,voice);
