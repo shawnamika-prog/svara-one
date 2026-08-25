@@ -34,13 +34,18 @@
     {
       "binding": "DB",
       "database_name": "svaraone-db",
-      "database_id": "5f6cdada-a902-4c38-bf60-6e42825eec84"
+      "database_id": "5f6cdada-a902-4c38-bf60-6e42825eec84",
+      "migrations_dir": "migrations"
     }
   ],
   "r2_buckets": [
     {
       "binding": "VOICE_SAMPLES",
       "bucket_name": "svaraone-voice-samples"
+    },
+    {
+      "binding": "GENERATED_AUDIO",
+      "bucket_name": "svaraone-generations"
     }
   ]
 }
