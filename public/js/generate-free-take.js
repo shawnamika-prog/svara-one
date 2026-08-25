@@ -55,7 +55,7 @@
       if(!res.ok){const data=await res.json().catch(()=>({}));$('status').textContent=data.error||'Free take failed';$('debug').textContent=data.details||data.message||'';return}
       const audioBlob=await res.blob();if(!audioBlob.size)throw new Error('Free take audio response was empty');
       const audio=$('player');if(window.__svaraFreeTakeUrl)URL.revokeObjectURL(window.__svaraFreeTakeUrl);window.__svaraFreeTakeUrl=URL.createObjectURL(audioBlob);audio.src=window.__svaraFreeTakeUrl;audio.load();
-      $('playerTitle').textContent=`${generation.voiceName} · ${generation.format.toUpperCase()}`;$('empty').hidden=true;$('result').hidden=false;$('customPlayer').hidden=generation.format==='pcm';$('formatReady').hidden=false;$('download').href=window.__svaraFreeTakeUrl;$('download').download=`svaraone-${generation.voiceName.toLowerCase().replace(/[^a-z0-9]+/g,'-')}.${generation.format}`;$('status').textContent='Ready';
+      $('playerTitle').textContent=`${generation.voiceName} · ${generation.format.toUpperCase()}`;$('empty').hidden=true;$('result').hidden=false;$('customPlayer').hidden=generation.format==='pcm';$('formatReady').hidden=false;$('download').href=window.__svaraFreeTakeUrl;if(window.__svaraGenerationFilename)$('download').download=window.__svaraGenerationFilename;$('status').textContent='Ready';
       generation.used=true;setCounter('1 / 1');setBilledButton();window.dispatchEvent(new CustomEvent('svara:free-take-ready',{detail:{generationId:generation.id}}));
     }catch(err){$('status').textContent='Free take failed';$('debug').textContent=err?.message||String(err)}
     finally{busy=false;if(generation?.used||invalidated)setBilledButton();else if(generation)setFreeButton();else setBilledButton()}
