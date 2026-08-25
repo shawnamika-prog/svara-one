@@ -1,0 +1,1 @@
+R2 persistence fix: generation responses are materialized with arrayBuffer(), persisted to GENERATED_AUDIO using concrete bytes, and the same bytes are returned to Studio. No D1 schema or binding changes.
