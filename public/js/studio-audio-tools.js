@@ -90,11 +90,22 @@ function drawProcessedWave(){
 }
 function toggleProcessed(){if(!processedAudio?.src)return;if(processedAudio.paused)processedAudio.play().catch(()=>{});else processedAudio.pause()}
 function syncProcessed(){if(!processedAudio)return;const playing=!processedAudio.paused;const btn=$('processedPlay');btn.classList.toggle('playing',playing);btn.setAttribute('aria-label',playing?'Pause processed audio':'Play processed audio');$('processedTime').textContent=`${formatTime(processedAudio.currentTime)} / ${formatTime(processedAudio.duration)}`;drawProcessedWave()}
+function resetAudioTools(){
+  rendering=false;
+  setBusy(false);
+  if(processedVisualFrame){cancelAnimationFrame(processedVisualFrame);processedVisualFrame=0}
+  if(processedAudio){processedAudio.pause();processedAudio.removeAttribute('src');processedAudio.load()}
+  if(processedUrl){URL.revokeObjectURL(processedUrl);processedUrl=null}
+  processedAudio=null;processedBuffer=null;sourceBuffer=null;sourceFormat='mp3';
+  processed.hidden=true;
+  setStatus('Choose an audio tool to create a processed version.');
+}
 
 tools.querySelectorAll('.audio-tool').forEach(b=>b.addEventListener('click',()=>renderEffect(b.dataset.tool)));
 $('processedPlay')?.addEventListener('click',toggleProcessed);
 $('processedAudio')?.addEventListener('play',syncProcessed);$('processedAudio')?.addEventListener('pause',syncProcessed);$('processedAudio')?.addEventListener('timeupdate',syncProcessed);$('processedAudio')?.addEventListener('ended',syncProcessed);
 $('processedWaveformShell')?.addEventListener('click',e=>{if(!processedAudio?.src||!Number.isFinite(processedAudio.duration))return;const rect=e.currentTarget.getBoundingClientRect();processedAudio.currentTime=Math.max(0,Math.min(processedAudio.duration,(e.clientX-rect.left)/rect.width));drawProcessedWave()});
+window.addEventListener('svara:reset-output',resetAudioTools);
 
 const observer=new MutationObserver(()=>{if(!result.hidden){tools.hidden=false;sourceBuffer=null;processed.hidden=true;setStatus('Choose an audio tool to create a processed version.')}});
 observer.observe(result,{attributes:true,attributeFilter:['hidden']});
