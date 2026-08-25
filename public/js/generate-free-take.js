@@ -26,16 +26,28 @@
     try{const res=await fetch('/api/pricing',{cache:'no-store',credentials:'same-origin'});if(res.ok){const data=await res.json();const factor=Number(data.creditFactor);if(Number.isFinite(factor)&&factor>0)creditFactor=factor}}catch(_){ }
     setBilledButton();if(!generation)setCounter('0 / 0');
   }
+  function clearOutputPanel(){
+    const audio=$('player');
+    if(audio){audio.pause();audio.removeAttribute('src');audio.load()}
+    if(window.__svaraFreeTakeUrl){URL.revokeObjectURL(window.__svaraFreeTakeUrl);window.__svaraFreeTakeUrl=null}
+    const empty=$('empty'),result=$('result'),customPlayer=$('customPlayer'),formatReady=$('formatReady'),download=$('download'),audioTools=$('audioTools'),processedResult=$('processedResult');
+    if(empty)empty.hidden=false;
+    if(result)result.hidden=true;
+    if(customPlayer)customPlayer.hidden=true;
+    if(formatReady)formatReady.hidden=true;
+    if(download){download.removeAttribute('href');download.removeAttribute('download')}
+    if(audioTools)audioTools.hidden=true;
+    if(processedResult)processedResult.hidden=true;
+    const status=$('status');if(status)status.textContent='Ready';
+    const debug=$('debug');if(debug)debug.textContent='';
+  }
   async function useFreeTake(){
     if(busy||!generation||generation.used||invalidated)return;
     if(script.value!==generation.script){invalidated=true;setCounter('0 / 0');setBilledButton();return}
 
-    // Clear the output panel exactly as a new generation does, but preserve
-    // the current generation object so the free-take claim remains valid.
-    const freeTakeGeneration=generation;
-    window.dispatchEvent(new Event('svara:reset-output'));
-    generation=freeTakeGeneration;
-    invalidated=false;
+    // Clear only the visible output. Preserve the generation object because
+    // it is required to authorize the free take on the server.
+    clearOutputPanel();
     busy=true;
     btn.disabled=true;btn.textContent='Generating Free Take…';
     try{
