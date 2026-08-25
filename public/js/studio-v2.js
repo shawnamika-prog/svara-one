@@ -141,7 +141,6 @@ function languageMismatch(){
 function showLanguageMismatch(mismatch){
   const box=$('languageWarning');if(!box||!mismatch)return;
   const voiceName=LANGUAGE_NAMES[mismatch.voiceLang]||mismatch.voiceLang.toUpperCase();
-  const detectedName=LANGUAGE_NAMES[mismatch.detected]||mismatch.detected.toUpperCase();
   box.innerHTML=`<strong>Language mismatch</strong><span>The selected voice is ${escapeHtml(voiceName)}. Switch to a voice that matches your script language. Alternatively rewrite the script language for the selected voice.</span>`;
   box.hidden=false;box.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
@@ -178,11 +177,27 @@ async function togglePlayback(){const audio=$('player');if(!audio.src)return;try
 $('playToggle').onclick=togglePlayback;$('player').addEventListener('play',refreshPlayer);$('player').addEventListener('pause',refreshPlayer);$('player').addEventListener('ended',()=>{refreshPlayer();drawWaveform()});$('player').addEventListener('timeupdate',refreshPlayer);$('player').addEventListener('loadedmetadata',refreshPlayer);
 $('waveformShell').onclick=e=>{const audio=$('player');if(!audio.src||!Number.isFinite(audio.duration))return;const rect=e.currentTarget.getBoundingClientRect();audio.currentTime=Math.max(0,Math.min(audio.duration,(e.clientX-rect.left)/rect.width*audio.duration));refreshPlayer()};
 
+function resetOutputForGeneration(){
+  const audio=$('player');
+  if(audio){audio.pause();audio.removeAttribute('src');audio.load()}
+  if(currentUrl){URL.revokeObjectURL(currentUrl);currentUrl=null}
+  if(visualFrame){cancelAnimationFrame(visualFrame);visualFrame=0}
+  $('empty').hidden=false;
+  $('result').hidden=true;
+  $('customPlayer').hidden=true;
+  $('formatReady').hidden=true;
+  $('download').removeAttribute('href');
+  $('download').removeAttribute('download');
+  $('audioTools').hidden=true;
+  $('processedResult').hidden=true;
+  window.dispatchEvent(new Event('svara:reset-output'));
+}
+
 $('generate').onclick=async()=>{
   const text=script.value.trim();if(!text||!selected)return;hideLanguageWarning();const mismatch=languageMismatch();if(mismatch){showLanguageMismatch(mismatch);$('status').textContent='Review language';return}
   const n=text.length;if(n>maxGenerationChars){$('status').textContent=`Maximum ${maxGenerationChars.toLocaleString()} characters`;return}
   const costInCredits=generationCost(n);if(costInCredits>credits()){$('status').textContent='Not enough credits';return}
-  const btn=$('generate'),output=outputSettings();btn.disabled=true;btn.textContent='Generating…';$('status').textContent='Generating';$('debug').textContent='';
+  const btn=$('generate'),output=outputSettings();resetOutputForGeneration();btn.disabled=true;btn.textContent='Generating…';$('status').textContent='Generating';$('debug').textContent='';
   try{
     const res=await fetch('/api/voice/generate',{method:'POST',headers:{'content-type':'application/json'},credentials:'same-origin',body:JSON.stringify({voiceId:selected.id,text,format:output.format,speed:Number($('speed').value),stability:Number($('stability').value),style:$('style')?.value||''})});
     if(!res.ok){
