@@ -300,8 +300,14 @@ export default {
         }
 
         if (!response.body) throw new Error("Generated audio response had no body");
-        const storageResponse = response.clone();
-        const storedObject = await env.GENERATED_AUDIO.put(generation.r2Key, storageResponse.body, {
+
+        // Materialize the provider response once. This gives R2 a concrete
+        // payload instead of relying on a cloned ReadableStream and lets us
+        // return the exact bytes that were persisted.
+        const audioBytes = await response.arrayBuffer();
+        if (!audioBytes.byteLength) throw new Error("Generated audio response was empty");
+
+        const storedObject = await env.GENERATED_AUDIO.put(generation.r2Key, audioBytes, {
           httpMetadata: {
             contentType: mimeTypeForFormat(format),
             cacheControl: "private, no-store"
@@ -316,12 +322,12 @@ export default {
         });
 
         if (!storedObject) throw new Error("R2 did not confirm the generated audio upload");
-        await markGenerationReady(env, generation.id, storedObject);
+        await markGenerationReady(env, generation.id, storedObject, audioBytes.byteLength);
 
         const headers = new Headers(response.headers);
         headers.set("X-SvaraONE-Credits-Remaining", String(reservation.balance));
         headers.set("X-SvaraONE-Generation-ID", generation.id);
-        return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+        return new Response(audioBytes, { status: response.status, statusText: response.statusText, headers });
       } catch (error) {
         try { await markGenerationFailed(env, generationId, "storage_failed"); } catch (markError) { console.error("generation_failure_mark_error", markError); }
         await refundCredits(userId, cost, reservation.referenceId, env);
