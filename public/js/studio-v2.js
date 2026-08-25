@@ -1,6 +1,6 @@
 (()=>{
 let voices=window.SVARA_VOICES||[],list=document.getElementById('voiceList'),search=document.getElementById('voiceSearch');
-let filter='all',selected=voices[0]||null,currentUrl=null,account=null,creditFactor=0.5,maxGenerationChars=10000;
+let filter='all',selected=voices[0]||null,currentUrl=null,currentGenerationId=null,account=null,creditFactor=0.5,maxGenerationChars=10000;
 const $=id=>document.getElementById(id),CREDIT_KEY='svaraOrigins.demoCredits.v2',START_CREDITS=5000;
 let fullVoiceCatalogue=false,audioContext=null,analyser=null,sourceNode=null,visualFrame=0,previewAudio=null,previewVoiceId=null;
 
@@ -181,6 +181,7 @@ function resetOutputForGeneration(){
   const audio=$('player');
   if(audio){audio.pause();audio.removeAttribute('src');audio.load()}
   if(currentUrl){URL.revokeObjectURL(currentUrl);currentUrl=null}
+  currentGenerationId=null;
   if(visualFrame){cancelAnimationFrame(visualFrame);visualFrame=0}
   $('empty').hidden=false;
   $('result').hidden=true;
@@ -199,7 +200,7 @@ $('generate').onclick=async()=>{
   const costInCredits=generationCost(n);if(costInCredits>credits()){$('status').textContent='Not enough credits';return}
   const btn=$('generate'),output=outputSettings();resetOutputForGeneration();btn.disabled=true;btn.textContent='Generating…';$('status').textContent='Generating';$('debug').textContent='';
   try{
-    const res=await fetch('/api/voice/generate',{method:'POST',headers:{'content-type':'application/json'},credentials:'same-origin',body:JSON.stringify({voiceId:selected.id,text,format:output.format,speed:Number($('speed').value),stability:Number($('stability').value),style:$('style')?.value||''})});
+    const res=await fetch('/api/voice/generate',{method:'POST',headers:{'content-type':'application/json'},credentials:'same-origin',body:JSON.stringify({voiceId:selected.id,voiceName:selected.name,providerVoiceId:selected.providerVoiceId,text,format:output.format,speed:Number($('speed').value),stability:Number($('stability').value),style:$('style')?.value||''})});
     if(!res.ok){
       const data=await res.json().catch(()=>({}));
       if(res.status===402){$('status').textContent='Not enough credits';$('creditWarning').hidden=false;$('creditWarning').innerHTML='<strong>Insufficient credits</strong><span>Your script exceeds your remaining credit limit. Upgrade or purchase more credits to continue.';}
@@ -208,11 +209,13 @@ $('generate').onclick=async()=>{
     }
     const remaining=Number(res.headers.get('X-SvaraONE-Credits-Remaining'));
     if(Number.isFinite(remaining)){setCredits(remaining);if(account)account.credits=remaining}
+    currentGenerationId=res.headers.get('X-SvaraONE-Generation-ID')||null;
     const audioBlob=await res.blob();
     if(!audioBlob.size)throw new Error('Generated audio response was empty');
     $('creditWarning').hidden=true;$('status').textContent='Ready';
     if(currentUrl)URL.revokeObjectURL(currentUrl);currentUrl=URL.createObjectURL(audioBlob);
     const audio=$('player');audio.src=currentUrl;audio.load();$('playerTitle').textContent=`${selected.name} · ${output.format.toUpperCase()}`;$('empty').hidden=true;$('result').hidden=false;$('customPlayer').hidden=false;updateFormatReady(output.format);$('download').href=currentUrl;$('download').download=`svaraone-${selected.name.toLowerCase().replace(/[^a-z0-9]+/g,'-')}.${output.extension}`;refreshPlayer();
+    window.dispatchEvent(new CustomEvent('svara:generation-ready',{detail:{generationId:currentGenerationId,voiceId:selected.id,providerVoiceId:selected.providerVoiceId,voiceName:selected.name,format:output.format,script:text}}));
   }catch(err){$('status').textContent='Generation failed';$('debug').textContent=err?.message||String(err)}
   finally{btn.disabled=false;btn.textContent='✦ Generate voice'}
 };
