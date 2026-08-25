@@ -29,7 +29,15 @@
   async function useFreeTake(){
     if(busy||!generation||generation.used||invalidated)return;
     if(script.value!==generation.script){invalidated=true;setCounter('0 / 0');setBilledButton();return}
-    busy=true;btn.disabled=true;btn.textContent='Generating Free Take…';
+
+    // Clear the output panel exactly as a new generation does, but preserve
+    // the current generation object so the free-take claim remains valid.
+    const freeTakeGeneration=generation;
+    window.dispatchEvent(new Event('svara:reset-output'));
+    generation=freeTakeGeneration;
+    invalidated=false;
+    busy=true;
+    btn.disabled=true;btn.textContent='Generating Free Take…';
     try{
       const res=await fetch('/api/voice/generate',{method:'POST',headers:{'content-type':'application/json','X-SvaraONE-Free-Take':'true'},credentials:'same-origin',body:JSON.stringify({generationId:generation.id,text:generation.script})});
       if(!res.ok){const data=await res.json().catch(()=>({}));$('status').textContent=data.error||'Free take failed';$('debug').textContent=data.details||data.message||'';return}
