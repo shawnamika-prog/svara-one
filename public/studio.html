@@ -64,7 +64,11 @@
       <div class="player-badge">Svara</div>
     </div>
     <audio id="player" preload="metadata"></audio>
+
     <div id="formatReady" class="pcm-ready" hidden><span id="formatBadge">MP3</span><div><strong id="formatTitle">MP3 audio ready</strong><small id="formatDescription">Audio output is ready to download and use in your workflow.</small></div></div>
+
+    <div class="output-actions"><a id="download" class="button" download="svaraone-generation.mp3">Download MP3</a></div>
+
     <div id="audioTools" class="audio-tools" hidden>
       <div class="audio-tools-head"><small>AUDIO TOOLS</small><span>Post-generation processing</span></div>
       <div class="audio-tool-grid">
@@ -75,13 +79,13 @@
       </div>
       <div id="audioToolsStatus" class="audio-tools-status">Choose an audio tool to create a processed version.</div>
     </div>
+
     <div id="processedResult" class="processed-result" hidden>
       <div class="processed-head"><strong id="processedTitle">Processed audio</strong><span id="processedTime">0:00 / 0:00</span></div>
-      <div class="processed-player"><button id="processedPlay" class="processed-play" type="button" aria-label="Play processed audio"><span></span></button><div class="processed-wave"><canvas id="processedCanvas"></canvas></div></div>
+      <div class="processed-player"><button id="processedPlay" class="processed-play" type="button" aria-label="Play processed audio"><span></span></button><div class="processed-wave"><canvas id="processedCanvas"></canvas></div><div class="player-badge processed-badge">Svara</div></div>
       <audio id="processedAudio" preload="metadata"></audio>
       <div class="processed-actions"><a id="processedDownload" class="button" download="svaraone-processed.wav">Download processed WAV</a></div>
     </div>
-    <div class="output-actions"><a id="download" class="button" download="svaraone-generation.mp3">Download MP3</a></div>
     <pre id="debug"></pre>
   </div>
 </section>
