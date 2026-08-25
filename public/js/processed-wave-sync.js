@@ -1,8 +1,15 @@
 (()=>{
 const audio=document.getElementById('processedAudio');
 const shell=document.getElementById('processedWaveformShell');
-let canvas=document.getElementById('processedCanvas');
-if(!audio||!shell||!canvas)return;
+const originalCanvas=document.getElementById('processedCanvas');
+if(!audio||!shell||!originalCanvas)return;
+
+// Take ownership of the canvas so the older renderer cannot overwrite it.
+originalCanvas.id='processedCanvasLegacy';
+const canvas=document.createElement('canvas');
+canvas.id='processedCanvas';
+canvas.setAttribute('aria-hidden','true');
+originalCanvas.replaceWith(canvas);
 
 let ctxAudio=null,source=null,analyser=null,frame=0;
 
@@ -21,19 +28,11 @@ function setup(){
   }catch(_){analyser=null}
 }
 
-function ensureCanvas(){
-  const current=document.getElementById('processedCanvas');
-  if(current!==canvas){canvas=current}
-  return canvas;
-}
-
 function draw(){
-  const c=ensureCanvas();
-  if(!c)return;
-  const rect=c.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
+  const rect=canvas.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
   const w=Math.max(1,Math.floor(rect.width*dpr)),h=Math.max(1,Math.floor(rect.height*dpr));
-  if(c.width!==w||c.height!==h){c.width=w;c.height=h}
-  const g=c.getContext('2d');g.clearRect(0,0,w,h);
+  if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}
+  const g=canvas.getContext('2d');g.clearRect(0,0,w,h);
   const bars=48,gap=Math.max(3*dpr,w/(bars*5)),barW=Math.max(2*dpr,(w-(bars-1)*gap)/bars);
   const progress=Number.isFinite(audio.duration)&&audio.duration>0?audio.currentTime/audio.duration:0;
   const playing=!audio.paused;
@@ -67,6 +66,5 @@ audio.addEventListener('ended',sync);
 audio.addEventListener('loadedmetadata',sync);
 shell.addEventListener('click',()=>requestAnimationFrame(draw));
 window.addEventListener('resize',draw);
-
 draw();
 })();
