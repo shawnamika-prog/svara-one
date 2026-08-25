@@ -2,6 +2,7 @@ import app from "./index.js";
 import { handleAuth } from "./auth.js";
 import { handlePayfast, runBillingCron } from "./payfast.js";
 import { getVoiceById, getVoiceByProviderId, syncVoiceRegistry, seedMissingVoiceSamples } from "./voice-registry.js";
+import { createGeneration, markGenerationReady, markGenerationFailed, cleanupExpiredGenerations, mimeTypeForFormat } from "./generations.js";
 
 const PORTRAIT_NAMES = {
   en: "thalia",
@@ -106,8 +107,7 @@ function generationCost(text, env) {
   return Math.max(1, Math.ceil(text.length / safeFactor));
 }
 
-async function reserveCredits(userId, cost, env) {
-  const referenceId = crypto.randomUUID();
+async function reserveCredits(userId, cost, env, referenceId = crypto.randomUUID()) {
   const result = await env.DB.prepare(`
     INSERT INTO credit_ledger
       (id, user_id, amount, balance_after, reason, reference_id, period_key)
@@ -261,6 +261,7 @@ export default {
       const userId = await authenticatedUserId(request, env);
       if (!userId) return new Response(JSON.stringify({ error: "Authentication required." }), { status: 401, headers: { "content-type": "application/json" } });
       if (!env.DB) return new Response(JSON.stringify({ error: "Account service is not configured." }), { status: 503, headers: { "content-type": "application/json" } });
+      if (!env.GENERATED_AUDIO) return new Response(JSON.stringify({ error: "Generation storage is not configured." }), { status: 503, headers: { "content-type": "application/json" } });
 
       const access = await voiceAccess(request, env);
       const providerVoiceId = await resolveProviderVoiceId(body, env);
@@ -270,21 +271,65 @@ export default {
       }
 
       const cost = generationCost(text, env);
-      const reservation = await reserveCredits(userId, cost, env);
+      const generationId = crypto.randomUUID();
+      const reservation = await reserveCredits(userId, cost, env, generationId);
       if (!reservation) return new Response(JSON.stringify({ error: "Not enough credits." }), { status: 402, headers: { "content-type": "application/json" } });
 
+      const format = String(body.format || "mp3").toLowerCase();
       try {
+        const generation = await createGeneration(env, {
+          id: generationId,
+          userId,
+          voiceId: body.voiceId || providerVoiceId,
+          providerVoiceId,
+          voiceName: body.voiceName || providerVoiceId,
+          script: text,
+          speed: Number(body.speed) || 1,
+          stability: Number.isFinite(Number(body.stability)) ? Number(body.stability) : 50,
+          style: body.style || "",
+          format,
+          creditsCharged: cost,
+          creditReferenceId: reservation.referenceId
+        });
+
         const response = await app.fetch(request, env, ctx);
         if (!response.ok) {
+          await markGenerationFailed(env, generation.id, "failed");
           await refundCredits(userId, cost, reservation.referenceId, env);
           return response;
         }
+
+        if (!response.body) throw new Error("Generated audio response had no body");
+        const storageResponse = response.clone();
+        const storedObject = await env.GENERATED_AUDIO.put(generation.r2Key, storageResponse.body, {
+          httpMetadata: {
+            contentType: mimeTypeForFormat(format),
+            cacheControl: "private, no-store"
+          },
+          customMetadata: {
+            generationId,
+            userId,
+            voiceId: String(body.voiceId || providerVoiceId),
+            providerVoiceId,
+            format
+          }
+        });
+
+        if (!storedObject) throw new Error("R2 did not confirm the generated audio upload");
+        await markGenerationReady(env, generation.id, storedObject);
+
         const headers = new Headers(response.headers);
         headers.set("X-SvaraONE-Credits-Remaining", String(reservation.balance));
+        headers.set("X-SvaraONE-Generation-ID", generation.id);
         return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
       } catch (error) {
+        try { await markGenerationFailed(env, generationId, "storage_failed"); } catch (markError) { console.error("generation_failure_mark_error", markError); }
         await refundCredits(userId, cost, reservation.referenceId, env);
-        throw error;
+        console.error("generation_persistence_error", error);
+        return new Response(JSON.stringify({ error: "Voice generation could not be saved. Your credits were refunded." }), {
+          status: 502,
+          headers: { "content-type": "application/json", "cache-control": "no-store" }
+        });
       }
     }
 
@@ -299,6 +344,14 @@ export default {
         await seedMissingVoiceSamples(env, 3);
       } catch (error) {
         console.error("voice_registry_sync_error", error);
+      }
+    })());
+    ctx.waitUntil((async()=>{
+      try {
+        const result = await cleanupExpiredGenerations(env, 100);
+        if (result.deleted) console.log("generation_cleanup", result);
+      } catch (error) {
+        console.error("generation_cleanup_cron_error", error);
       }
     })());
   }
