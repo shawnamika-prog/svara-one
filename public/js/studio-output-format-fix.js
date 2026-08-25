@@ -12,6 +12,41 @@
     return String(formatSelect?.value||'mp3').toLowerCase();
   }
 
+  function stampNow(){
+    const d=new Date(),pad=n=>String(n).padStart(2,'0');
+    return `${d.getUTCFullYear()}${pad(d.getUTCMonth()+1)}${pad(d.getUTCDate())}_${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}`;
+  }
+
+  function safeVoiceName(value){
+    const name=String(value||'voice').replace(/[^a-z0-9]+/gi,'-').replace(/^-+|-+$/g,'').toLowerCase();
+    return name||'voice';
+  }
+
+  function filenameFor(voiceName,format,stamp){
+    const extension=['mp3','wav','pcm'].includes(String(format||'').toLowerCase())?String(format).toLowerCase():'mp3';
+    return `svara1_${safeVoiceName(voiceName)}_${stamp}.${extension}`;
+  }
+
+  // Add one server-authoritative filename stamp to the paid generation request.
+  // The server uses the same stamp for the R2 object name; this keeps the
+  // browser download name and R2 object name exactly identical.
+  const nativeFetch=window.fetch.bind(window);
+  window.fetch=async(input,init={})=>{
+    const url=typeof input==='string'?input:(input?.url||'');
+    const headers=new Headers(init.headers||{});
+    if(url.endsWith('/api/voice/generate')&&(init.method||'GET').toUpperCase()==='POST'&&headers.get('X-SvaraONE-Free-Take')!=='true'&&typeof init.body==='string'){
+      try{
+        const body=JSON.parse(init.body);
+        const stamp=stampNow();
+        const voiceName=String(body.voiceName||'voice');
+        body.voiceName=`${voiceName}@@SVARA1:${stamp}`;
+        window.__svaraGenerationFilename=filenameFor(voiceName,body.format,stamp);
+        init={...init,body:JSON.stringify(body)};
+      }catch(_){ }
+    }
+    return nativeFetch(input,init);
+  };
+
   function syncOutput(){
     if(result.hidden)return;
     const format=getGeneratedFormat();
@@ -40,7 +75,13 @@
     }else{
       customPlayer.hidden=false;
     }
+
+    if(download&&window.__svaraGenerationFilename)download.download=window.__svaraGenerationFilename;
   }
+
+  window.addEventListener('svara:generation-ready',()=>{
+    if(download&&window.__svaraGenerationFilename)download.download=window.__svaraGenerationFilename;
+  });
 
   const observer=new MutationObserver(syncOutput);
   observer.observe(result,{attributes:true,attributeFilter:['hidden'],childList:true,subtree:true});
