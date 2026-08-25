@@ -3,7 +3,7 @@ const $=id=>document.getElementById(id);
 const result=$('result'),tools=$('audioTools'),processed=$('processedResult'),status=$('audioToolsStatus');
 if(!result||!tools||!processed)return;
 
-let processedUrl=null,processedAudio=null,processedBuffer=null,sourceBuffer=null,sourceFormat='mp3',rendering=false;
+let processedUrl=null,processedAudio=null,processedBuffer=null,sourceBuffer=null,sourceFormat='mp3',rendering=false,processedVisualFrame=0;
 
 function setStatus(text,error=false){if(!status)return;status.textContent=text||'';status.classList.toggle('error',error)}
 function setBusy(busy){rendering=busy;tools.querySelectorAll('.audio-tool').forEach(b=>b.disabled=busy)}
@@ -70,13 +70,31 @@ function encodeWav(buffer){
   return new Blob([buf],{type:'audio/wav'})
 }
 function drawProcessedWave(){
-  const canvas=$('processedCanvas');if(!canvas||!processedBuffer)return;const rect=canvas.getBoundingClientRect(),dpr=devicePixelRatio||1,w=Math.max(1,Math.floor(rect.width*dpr)),h=Math.max(1,Math.floor(rect.height*dpr));canvas.width=w;canvas.height=h;const ctx=canvas.getContext('2d');ctx.clearRect(0,0,w,h);const d=processedBuffer.getChannelData(0),bars=64,bw=w/bars;ctx.fillStyle='#24dec6';for(let i=0;i<bars;i++){const a=Math.floor(i/bars*d.length),b=Math.max(a+1,Math.floor((i+1)/bars*d.length));let peak=0;for(let j=a;j<b;j++)peak=Math.max(peak,Math.abs(d[j]));const bh=Math.max(4*dpr,peak*h*.88),x=i*bw+1,y=(h-bh)/2;ctx.globalAlpha=.55+.35*peak;ctx.fillRect(x,y,Math.max(1,bw-2),bh)}ctx.globalAlpha=1}
+  const canvas=$('processedCanvas'),audio=processedAudio;if(!canvas||!processedBuffer)return;
+  const rect=canvas.getBoundingClientRect(),dpr=window.devicePixelRatio||1,w=Math.max(1,Math.floor(rect.width*dpr)),h=Math.max(1,Math.floor(rect.height*dpr));
+  if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}
+  const ctx=canvas.getContext('2d');ctx.clearRect(0,0,w,h);
+  const bars=48,gap=Math.max(3*dpr,w/(bars*5)),barW=Math.max(2*dpr,(w-(bars-1)*gap)/bars),d=processedBuffer.getChannelData(0);
+  const progress=audio&&Number.isFinite(audio.duration)&&audio.duration>0?audio.currentTime/audio.duration:0;
+  const playing=!!audio&&!audio.paused;
+  for(let i=0;i<bars;i++){
+    const a=Math.floor(i/bars*d.length),b=Math.max(a+1,Math.floor((i+1)/bars*d.length));let peak=0;
+    for(let j=a;j<b;j++)peak=Math.max(peak,Math.abs(d[j]));
+    let amp=Math.max(.12,peak);
+    if(playing)amp*=.72+.45*Math.sin(performance.now()/170+i*.55)**2;
+    const bh=Math.max(5*dpr,amp*h*.82),x=i*(barW+gap),y=(h-bh)/2,active=i/bars<=progress;
+    ctx.fillStyle=active?'#24dec6':'#33475a';ctx.globalAlpha=active?.95:.75;ctx.beginPath();ctx.roundRect(x,y,barW,bh,barW/2);ctx.fill();
+  }
+  ctx.globalAlpha=1;
+  if(playing)processedVisualFrame=requestAnimationFrame(drawProcessedWave);else if(processedVisualFrame){cancelAnimationFrame(processedVisualFrame);processedVisualFrame=0}
+}
 function toggleProcessed(){if(!processedAudio?.src)return;if(processedAudio.paused)processedAudio.play().catch(()=>{});else processedAudio.pause()}
-function syncProcessed(){if(!processedAudio)return;const playing=!processedAudio.paused;const btn=$('processedPlay');btn.classList.toggle('playing',playing);btn.setAttribute('aria-label',playing?'Pause processed audio':'Play processed audio');$('processedTime').textContent=`${formatTime(processedAudio.currentTime)} / ${formatTime(processedAudio.duration)}`}
+function syncProcessed(){if(!processedAudio)return;const playing=!processedAudio.paused;const btn=$('processedPlay');btn.classList.toggle('playing',playing);btn.setAttribute('aria-label',playing?'Pause processed audio':'Play processed audio');$('processedTime').textContent=`${formatTime(processedAudio.currentTime)} / ${formatTime(processedAudio.duration)}`;drawProcessedWave()}
 
 tools.querySelectorAll('.audio-tool').forEach(b=>b.addEventListener('click',()=>renderEffect(b.dataset.tool)));
 $('processedPlay')?.addEventListener('click',toggleProcessed);
 $('processedAudio')?.addEventListener('play',syncProcessed);$('processedAudio')?.addEventListener('pause',syncProcessed);$('processedAudio')?.addEventListener('timeupdate',syncProcessed);$('processedAudio')?.addEventListener('ended',syncProcessed);
+$('processedWaveformShell')?.addEventListener('click',e=>{if(!processedAudio?.src||!Number.isFinite(processedAudio.duration))return;const rect=e.currentTarget.getBoundingClientRect();processedAudio.currentTime=Math.max(0,Math.min(processedAudio.duration,(e.clientX-rect.left)/rect.width));drawProcessedWave()});
 
 const observer=new MutationObserver(()=>{if(!result.hidden){tools.hidden=false;sourceBuffer=null;processed.hidden=true;setStatus('Choose an audio tool to create a processed version.')}});
 observer.observe(result,{attributes:true,attributeFilter:['hidden']});
