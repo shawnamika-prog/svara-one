@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="css/voice-card-polish.css">
 <link rel="stylesheet" href="css/logo.css">
 <link rel="stylesheet" href="css/studio-audio-tools.css">
+<link rel="stylesheet" href="css/generation-free-ui.css">
 </head>
 <body>
 <header class="studio-nav">
@@ -49,7 +50,8 @@
   </div>
   <input id="stability" type="hidden" value="50">
   <select id="style" hidden aria-hidden="true"><option>Storytelling</option></select>
-  <button id="generate" class="button full">✦ Generate voice</button>
+  <button id="generate" class="button full">Generate - Billed (1 credits)</button>
+  <div id="freeGenerationCount" class="free-generation-count" aria-live="polite">Free generations 0 / 0</div>
 </section>
 <section class="output panel" id="output">
   <div class="panel-head"><div><small>OUTPUT</small><h2>Audio</h2></div><span id="status" hidden aria-hidden="true">Ready</span></div>
@@ -64,11 +66,8 @@
       <div class="player-badge">Svara</div>
     </div>
     <audio id="player" preload="metadata"></audio>
-
     <div id="formatReady" class="pcm-ready" hidden><span id="formatBadge">MP3</span><div><strong id="formatTitle">MP3 audio ready</strong><small id="formatDescription">Audio output is ready to download and use in your workflow.</small></div></div>
-
     <div class="output-actions"><a id="download" class="button" download="svaraone-generation.mp3">Download MP3</a></div>
-
     <div id="audioTools" class="audio-tools" hidden>
       <div class="audio-tools-head"><small>AUDIO TOOLS</small><span>Post-generation processing</span></div>
       <div class="audio-tool-grid">
@@ -79,7 +78,6 @@
       </div>
       <div id="audioToolsStatus" class="audio-tools-status">Choose an audio tool to create a processed version.</div>
     </div>
-
     <div id="processedResult" class="processed-result" hidden>
       <div class="processed-player custom-player">
         <button id="processedPlay" class="play-toggle" type="button" aria-label="Play processed audio"><span></span></button>
@@ -108,5 +106,6 @@
 <script src="js/studio-audio-tools.js"></script>
 <script src="js/studio-audio-exclusive.js"></script>
 <script src="js/processed-wave-sync.js"></script>
+<script src="js/generate-free-take.js"></script>
 </body>
 </html>
