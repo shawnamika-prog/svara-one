@@ -81,8 +81,14 @@
     </div>
 
     <div id="processedResult" class="processed-result" hidden>
-      <div class="processed-head"><strong id="processedTitle">Processed audio</strong><span id="processedTime">0:00 / 0:00</span></div>
-      <div class="processed-player"><button id="processedPlay" class="processed-play" type="button" aria-label="Play processed audio"><span></span></button><div class="processed-wave"><canvas id="processedCanvas"></canvas></div><div class="player-badge processed-badge">Svara</div></div>
+      <div class="processed-player custom-player">
+        <button id="processedPlay" class="play-toggle" type="button" aria-label="Play processed audio"><span></span></button>
+        <div class="player-body">
+          <div class="player-meta"><strong id="processedTitle">Processed audio</strong><span id="processedTime">0:00 / 0:00</span></div>
+          <div id="processedWaveformShell" class="waveform-shell" role="slider" aria-label="Processed audio position" tabindex="0"><canvas id="processedCanvas"></canvas></div>
+        </div>
+        <div class="player-badge">Svara</div>
+      </div>
       <audio id="processedAudio" preload="metadata"></audio>
       <div class="processed-actions"><a id="processedDownload" class="button" download="svaraone-processed.wav">Download processed WAV</a></div>
     </div>
