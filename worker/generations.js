@@ -13,6 +13,29 @@ export function extensionForFormat(format) {
   return ['mp3', 'wav', 'pcm'].includes(value) ? value : 'mp3';
 }
 
+function safeVoiceName(value) {
+  const cleaned = String(value || 'voice')
+    .replace(/@@SVARA1:\d{8}_\d{6}$/, '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return cleaned || 'voice';
+}
+
+function filenameStamp(value) {
+  const supplied = String(value || '').trim();
+  if (/^\d{8}_\d{6}$/.test(supplied)) return supplied;
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  return `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}_${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}`;
+}
+
+export function generationFilename(voiceName, format, suppliedStamp = '') {
+  const extension = extensionForFormat(format);
+  return `svara1_${safeVoiceName(voiceName)}_${filenameStamp(suppliedStamp)}.${extension}`;
+}
+
 export function generationExpiryDate(from = new Date()) {
   const date = new Date(from);
   date.setUTCDate(date.getUTCDate() + RETENTION_DAYS);
@@ -39,7 +62,10 @@ export async function createGeneration(env, {
   if (!env.DB) throw new Error('D1 generation storage is not configured.');
 
   const extension = extensionForFormat(format);
-  const r2Key = `users/${userId}/generations/${id}/original.${extension}`;
+  const cleanVoiceName = String(voiceName || 'voice').replace(/@@SVARA1:\d{8}_\d{6}$/, '').trim() || 'voice';
+  const suppliedStamp = String(voiceName || '').match(/@@SVARA1:(\d{8}_\d{6})$/)?.[1] || '';
+  const filename = generationFilename(cleanVoiceName, extension, suppliedStamp);
+  const r2Key = `users/${userId}/generations/${filename}`;
   const expiresAt = generationExpiryDate();
 
   await env.DB.prepare(`
@@ -58,7 +84,7 @@ export async function createGeneration(env, {
     takeNumber,
     String(voiceId || ''),
     String(providerVoiceId || ''),
-    String(voiceName || ''),
+    cleanVoiceName,
     String(script || ''),
     String(script || '').length,
     Number.isFinite(Number(speed)) ? Number(speed) : 1,
@@ -73,7 +99,7 @@ export async function createGeneration(env, {
     expiresAt
   ).run();
 
-  return { id, r2Key, expiresAt };
+  return { id, r2Key, expiresAt, filename };
 }
 
 export async function markGenerationReady(env, id, r2Object) {
