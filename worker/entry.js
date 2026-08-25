@@ -212,6 +212,111 @@ function pricing(env) {
   };
 }
 
+async function handleFreeTake(request, env, ctx, body, userId) {
+  const generationId = String(body?.generationId || "").trim();
+  const script = String(body?.text ?? "");
+  if (!generationId) return json({ error: "Generation ID is required." }, 400);
+  if (!script) return json({ error: "Text is required." }, 400);
+  if (script.length > MAX_GENERATION_CHARS) return json({ error: `Maximum ${MAX_GENERATION_CHARS} characters per generation` }, 400);
+
+  const generation = await env.DB.prepare(`
+    SELECT id, user_id, voice_id, provider_voice_id, voice_name, script,
+           speed, stability, style, format, credits_charged, is_free_take,
+           take_number, status, r2_key
+    FROM generations
+    WHERE id = ? AND user_id = ?
+    LIMIT 1
+  `).bind(generationId, userId).first();
+
+  if (!generation) return json({ error: "Generation not found." }, 404);
+  if (String(generation.script || "") !== script) return json({ error: "Free take is no longer available because the script changed." }, 409);
+  if (Number(generation.is_free_take) === 1 || Number(generation.take_number) !== 1) return json({ error: "Free take has already been used." }, 409);
+  if (String(generation.status || "") !== "ready") return json({ error: "Generation is not ready for another take." }, 409);
+  if (!generation.r2_key) return json({ error: "Original audio storage is unavailable." }, 409);
+
+  const claim = await env.DB.prepare(`
+    UPDATE generations
+    SET status = 'generating'
+    WHERE id = ? AND user_id = ? AND status = 'ready'
+      AND take_number = 1 AND is_free_take = 0 AND script = ?
+  `).bind(generationId, userId, script).run();
+
+  if (!claim.meta?.changes) return json({ error: "Free take is no longer available." }, 409);
+
+  try {
+    const providerRequest = new Request(request.url, {
+      method: "POST",
+      headers: new Headers({ "content-type": "application/json" }),
+      body: JSON.stringify({
+        voiceId: String(generation.voice_id || ""),
+        providerVoiceId: String(generation.provider_voice_id || ""),
+        text: String(generation.script || ""),
+        format: String(generation.format || "mp3"),
+        speed: Number(generation.speed) || 1,
+        stability: Number.isFinite(Number(generation.stability)) ? Number(generation.stability) : 50,
+        style: String(generation.style || "")
+      })
+    });
+
+    const response = await app.fetch(providerRequest, env, ctx);
+    if (!response.ok) {
+      await env.DB.prepare("UPDATE generations SET status = 'ready' WHERE id = ? AND user_id = ? AND status = 'generating'").bind(generationId, userId).run();
+      return response;
+    }
+    if (!response.body) throw new Error("Free take response had no body");
+
+    const audioBytes = await response.arrayBuffer();
+    if (!audioBytes.byteLength) throw new Error("Free take response was empty");
+
+    const format = String(generation.format || "mp3").toLowerCase();
+    const storedObject = await env.GENERATED_AUDIO.put(generation.r2_key, audioBytes, {
+      httpMetadata: {
+        contentType: mimeTypeForFormat(format),
+        cacheControl: "private, no-store"
+      },
+      customMetadata: {
+        generationId,
+        userId,
+        voiceId: String(generation.voice_id || ""),
+        providerVoiceId: String(generation.provider_voice_id || ""),
+        format,
+        take: "2"
+      }
+    });
+
+    if (!storedObject) throw new Error("R2 did not confirm the free take upload");
+
+    await env.DB.prepare(`
+      UPDATE generations
+      SET status = 'ready',
+          take_number = 2,
+          is_free_take = 1,
+          r2_etag = ?,
+          size_bytes = ?,
+          completed_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+      WHERE id = ? AND user_id = ? AND status = 'generating'
+    `).bind(
+      storedObject.etag || null,
+      Number.isFinite(Number(audioBytes.byteLength)) ? Number(audioBytes.byteLength) : null,
+      generationId,
+      userId
+    ).run();
+
+    const headers = new Headers(response.headers);
+    headers.set("X-SvaraONE-Generation-ID", generationId);
+    headers.set("X-SvaraONE-Free-Take", "true");
+    return new Response(audioBytes, { status: response.status, statusText: response.statusText, headers });
+  } catch (error) {
+    try {
+      await env.DB.prepare("UPDATE generations SET status = 'ready' WHERE id = ? AND user_id = ? AND status = 'generating'").bind(generationId, userId).run();
+    } catch (restoreError) {
+      console.error("free_take_restore_error", restoreError);
+    }
+    console.error("free_take_error", error);
+    return json({ error: "Free take could not be saved." }, 502);
+  }
+}
+
 export default {
   async fetch(request, env, ctx) {
     const authResponse = await handleAuth(request, env);
@@ -254,14 +359,18 @@ export default {
 
     if (request.method === "POST" && url.pathname === "/api/voice/generate") {
       const body = await request.clone().json().catch(() => ({}));
-      const text = String(body.text || "").trim();
-      if (!text) return new Response(JSON.stringify({ error: "Text is required" }), { status: 400, headers: { "content-type": "application/json" } });
-      if (text.length > MAX_GENERATION_CHARS) return new Response(JSON.stringify({ error: `Maximum ${MAX_GENERATION_CHARS} characters per generation` }), { status: 400, headers: { "content-type": "application/json" } });
-
       const userId = await authenticatedUserId(request, env);
       if (!userId) return new Response(JSON.stringify({ error: "Authentication required." }), { status: 401, headers: { "content-type": "application/json" } });
       if (!env.DB) return new Response(JSON.stringify({ error: "Account service is not configured." }), { status: 503, headers: { "content-type": "application/json" } });
       if (!env.GENERATED_AUDIO) return new Response(JSON.stringify({ error: "Generation storage is not configured." }), { status: 503, headers: { "content-type": "application/json" } });
+
+      if (request.headers.get("X-SvaraONE-Free-Take") === "true") {
+        return handleFreeTake(request, env, ctx, body, userId);
+      }
+
+      const text = String(body.text || "").trim();
+      if (!text) return new Response(JSON.stringify({ error: "Text is required" }), { status: 400, headers: { "content-type": "application/json" } });
+      if (text.length > MAX_GENERATION_CHARS) return new Response(JSON.stringify({ error: `Maximum ${MAX_GENERATION_CHARS} characters per generation` }), { status: 400, headers: { "content-type": "application/json" } });
 
       const access = await voiceAccess(request, env);
       const providerVoiceId = await resolveProviderVoiceId(body, env);
@@ -301,9 +410,6 @@ export default {
 
         if (!response.body) throw new Error("Generated audio response had no body");
 
-        // Materialize the provider response once. This gives R2 a concrete
-        // payload instead of relying on a cloned ReadableStream and lets us
-        // return the exact bytes that were persisted.
         const audioBytes = await response.arrayBuffer();
         if (!audioBytes.byteLength) throw new Error("Generated audio response was empty");
 
