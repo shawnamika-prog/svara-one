@@ -4,10 +4,10 @@ const shell=document.getElementById('processedWaveformShell');
 const originalCanvas=document.getElementById('processedCanvas');
 if(!audio||!shell||!originalCanvas)return;
 
-// Take ownership of the canvas so the older renderer cannot overwrite it.
+// Take over the visible canvas so the older renderer cannot overwrite it.
 originalCanvas.id='processedCanvasLegacy';
 const canvas=document.createElement('canvas');
-canvas.id='processedCanvas';
+canvas.id='processedCanvasSync';
 canvas.setAttribute('aria-hidden','true');
 originalCanvas.replaceWith(canvas);
 
