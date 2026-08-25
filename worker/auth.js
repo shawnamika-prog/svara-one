@@ -1,3 +1,5 @@
+import { deleteUserGenerationAudio } from "./generations.js";
+
 const SESSION_COOKIE = "svara_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
 const PASSWORD_ITERATIONS = 100000;
@@ -250,6 +252,7 @@ async function deleteAccount(request, env) {
   if (!await verifyPassword(password, user.password_hash, user.password_salt)) return json({ error: "Incorrect password." }, 401, request);
 
   try {
+    await deleteUserGenerationAudio(env, user.id);
     await env.DB.batch([
       env.DB.prepare("DELETE FROM account_events WHERE user_id = ?").bind(user.id),
       env.DB.prepare("DELETE FROM users WHERE id = ?").bind(user.id)
