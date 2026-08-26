@@ -83,103 +83,24 @@
     current.textContent='0:00';duration.textContent='0:00';
     info.append(current,duration);
     wrap.append(top,info);
-
     let audioContext=null,source=null,analyser=null,animationFrame=null;
     const barEls=[...bars.querySelectorAll('span')];
-
-    const resetWave=()=>barEls.forEach((bar,index)=>{
-      bar.style.height=`${idleHeights[index%idleHeights.length]*100}%`;
-      bar.style.transform='scaleY(1)';
-    });
-
-    const animateWave=()=>{
-      if(!analyser||media.paused){animationFrame=null;return;}
-      const data=new Uint8Array(analyser.frequencyBinCount);
-      analyser.getByteFrequencyData(data);
-      const step=Math.max(1,Math.floor(data.length/barEls.length));
-      barEls.forEach((bar,index)=>{
-        let sum=0;
-        const start=index*step,end=Math.min(data.length,start+step);
-        for(let i=start;i<end;i++)sum+=data[i];
-        const level=(sum/Math.max(1,end-start))/255;
-        bar.style.height=`${18+Math.pow(level,.72)*82}%`;
-        bar.style.transform=`scaleY(${.82+level*.28})`;
-      });
-      animationFrame=requestAnimationFrame(animateWave);
-    };
-
-    const connectAnalyser=async()=>{
-      if(audioContext)return;
-      const Ctx=window.AudioContext||window.webkitAudioContext;
-      if(!Ctx)return;
-      try{
-        audioContext=new Ctx();
-        analyser=audioContext.createAnalyser();
-        analyser.fftSize=128;
-        analyser.smoothingTimeConstant=.78;
-        source=audioContext.createMediaElementSource(media);
-        source.connect(analyser);
-        analyser.connect(audioContext.destination);
-        await audioContext.resume();
-      }catch(err){
-        try{audioContext?.close();}catch{}
-        audioContext=null;source=null;analyser=null;
-      }
-    };
-
-    const update=()=>{
-      const d=Number.isFinite(media.duration)?media.duration:0;
-      const p=d?Math.min(1,Math.max(0,media.currentTime/d)):0;
-      current.textContent=formatTime(media.currentTime);
-      duration.textContent=formatTime(d);
-      wave.setAttribute('aria-valuemin','0');
-      wave.setAttribute('aria-valuemax',String(d||0));
-      wave.setAttribute('aria-valuenow',String(media.currentTime||0));
-      wave.style.setProperty('--svara-wave-progress',`${p*100}%`);
-    };
-
-    const toggle=async()=>{
-      if(media.paused){
-        await connectAnalyser();
-        if(audioContext?.state==='suspended')await audioContext.resume().catch(()=>{});
-        media.play().catch(()=>{});
-      }else media.pause();
-    };
-
+    const resetWave=()=>barEls.forEach((bar,index)=>{bar.style.height=`${idleHeights[index%idleHeights.length]*100}%`;bar.style.transform='scaleY(1)';});
+    const animateWave=()=>{if(!analyser||media.paused){animationFrame=null;return;}const data=new Uint8Array(analyser.frequencyBinCount);analyser.getByteFrequencyData(data);const step=Math.max(1,Math.floor(data.length/barEls.length));barEls.forEach((bar,index)=>{let sum=0;const start=index*step,end=Math.min(data.length,start+step);for(let i=start;i<end;i++)sum+=data[i];const level=(sum/Math.max(1,end-start))/255;bar.style.height=`${18+Math.pow(level,.72)*82}%`;bar.style.transform=`scaleY(${.82+level*.28})`;});animationFrame=requestAnimationFrame(animateWave);};
+    const connectAnalyser=async()=>{if(audioContext)return;const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;try{audioContext=new Ctx();analyser=audioContext.createAnalyser();analyser.fftSize=128;analyser.smoothingTimeConstant=.78;source=audioContext.createMediaElementSource(media);source.connect(analyser);analyser.connect(audioContext.destination);await audioContext.resume();}catch(err){try{audioContext?.close();}catch{}audioContext=null;source=null;analyser=null;}};
+    const update=()=>{const d=Number.isFinite(media.duration)?media.duration:0;const p=d?Math.min(1,Math.max(0,media.currentTime/d)):0;current.textContent=formatTime(media.currentTime);duration.textContent=formatTime(d);wave.setAttribute('aria-valuemin','0');wave.setAttribute('aria-valuemax',String(d||0));wave.setAttribute('aria-valuenow',String(media.currentTime||0));wave.style.setProperty('--svara-wave-progress',`${p*100}%`);};
+    const toggle=async()=>{if(media.paused){await connectAnalyser();if(audioContext?.state==='suspended')await audioContext.resume().catch(()=>{});media.play().catch(()=>{});}else media.pause();};
     play.addEventListener('click',toggle);
-    media.addEventListener('play',async()=>{
-      await connectAnalyser();
-      if(audioContext?.state==='suspended')audioContext.resume().catch(()=>{});
-      play.classList.add('is-playing');
-      play.setAttribute('aria-label','Pause');
-      play.querySelector('span').textContent='Ⅱ';
-      if(!animationFrame)animateWave();
-    });
-    media.addEventListener('pause',()=>{
-      play.classList.remove('is-playing');
-      play.setAttribute('aria-label','Play');
-      play.querySelector('span').textContent='▶';
-      if(animationFrame){cancelAnimationFrame(animationFrame);animationFrame=null;}
-      resetWave();
-    });
+    media.addEventListener('play',async()=>{await connectAnalyser();if(audioContext?.state==='suspended')audioContext.resume().catch(()=>{});play.classList.add('is-playing');play.setAttribute('aria-label','Pause');play.querySelector('span').textContent='Ⅱ';if(!animationFrame)animateWave();});
+    media.addEventListener('pause',()=>{play.classList.remove('is-playing');play.setAttribute('aria-label','Play');play.querySelector('span').textContent='▶';if(animationFrame){cancelAnimationFrame(animationFrame);animationFrame=null;}resetWave();});
     media.addEventListener('ended',()=>{media.currentTime=0;update();});
     media.addEventListener('timeupdate',update);
     media.addEventListener('loadedmetadata',update);
     const seek=e=>{const rect=wave.getBoundingClientRect();const ratio=Math.min(1,Math.max(0,(e.clientX-rect.left)/rect.width));if(Number.isFinite(media.duration))media.currentTime=media.duration*ratio;};
     wave.addEventListener('click',seek);
     wave.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();const step=5*(e.key==='ArrowRight'?1:-1);media.currentTime=Math.min(Math.max(0,media.currentTime+step),Number.isFinite(media.duration)?media.duration:media.currentTime);}});
-    previewCleanup=()=>{
-      if(animationFrame){cancelAnimationFrame(animationFrame);animationFrame=null;}
-      play.removeEventListener('click',toggle);
-      wave.removeEventListener('click',seek);
-      try{source?.disconnect();}catch{}
-      try{analyser?.disconnect();}catch{}
-      try{audioContext?.close();}catch{}
-      source=null;analyser=null;audioContext=null;
-    };
-    update();
-    resetWave();
-    return wrap;
+    previewCleanup=()=>{if(animationFrame){cancelAnimationFrame(animationFrame);animationFrame=null;}play.removeEventListener('click',toggle);wave.removeEventListener('click',seek);try{source?.disconnect();}catch{}try{analyser?.disconnect();}catch{}try{audioContext?.close();}catch{}source=null;analyser=null;audioContext=null;};
+    update();resetWave();return wrap;
   }
 
   function openPreview(mediaUrl,item={}){
@@ -193,85 +114,31 @@
     const type=String(item.mediaType||item.type||item.format||'').toLowerCase();
     const video=type==='video'||/\.(mp4|webm|mov|m4v)$/i.test(filename);
     const media=document.createElement(video?'video':'audio');
-    media.preload='metadata';
-    media.playsInline=true;
-    media.src=String(mediaUrl||'');
-    media.setAttribute('aria-label',`Preview of ${filename||'generation'}`);
-    activeMedia=media;
-
+    media.preload='metadata';media.playsInline=true;media.src=String(mediaUrl||'');media.setAttribute('aria-label',`Preview of ${filename||'generation'}`);activeMedia=media;
     const mediaWrap=document.createElement('div');
     mediaWrap.className=video?'svara-media-preview svara-video-preview':'svara-media-preview';
-    if(video){
-      media.className='svara-modal-video';
-      media.controls=true;
-      mediaWrap.appendChild(media);
-    }else{
-      media.className='svara-modal-audio';
-      mediaWrap.appendChild(buildWaveform(media));
-      media.style.display='none';
-    }
+    if(video){media.className='svara-modal-video';media.controls=true;mediaWrap.appendChild(media);}else{media.className='svara-modal-audio';mediaWrap.appendChild(buildWaveform(media));media.style.display='none';}
     body.appendChild(mediaWrap);
-
-    const meta=document.createElement('div');
-    meta.className='svara-modal-media-meta';
-    const name=document.createElement('strong');
-    name.textContent=filename||'Generation';
-    const details=document.createElement('span');
-    const parts=[item.voiceName,item.format].filter(Boolean);
-    if(item.sizeBytes)parts.push(formatBytes(item.sizeBytes)||String(item.sizeBytes));
-    details.textContent=parts.join(' · ');
-    meta.append(name,details);
-    body.appendChild(meta);
-
-    const actions=document.createElement('div');
-    actions.className='svara-modal-media-actions';
-    actions.innerHTML='<button type="button" class="svara-modal-media-action" data-preview-download aria-label="Download"><span aria-hidden="true">↓</span><span>Download</span></button><button type="button" class="svara-modal-media-action" data-preview-delete aria-label="Delete"><span aria-hidden="true">⌫</span><span>Delete</span></button>';
-    body.appendChild(actions);
-
-    root.hidden=false;
-    requestAnimationFrame(()=>root.classList.add('is-open'));
-    keyHandler=e=>{if(e.key==='Escape'){e.preventDefault();finish(null);}};
-    document.addEventListener('keydown',keyHandler,true);
+    const meta=document.createElement('div');meta.className='svara-modal-media-meta';
+    const name=document.createElement('strong');name.textContent=filename||'Generation';
+    const details=document.createElement('span');const parts=[item.voiceName,item.format].filter(Boolean);if(item.sizeBytes)parts.push(formatBytes(item.sizeBytes)||String(item.sizeBytes));details.textContent=parts.join(' · ');meta.append(name,details);body.appendChild(meta);
+    const actions=document.createElement('div');actions.className='svara-modal-media-actions';actions.innerHTML='<button type="button" class="svara-modal-media-action" data-preview-download aria-label="Download"><span class="svara-modal-media-action-icon" aria-hidden="true">↓</span><span>Download</span></button><button type="button" class="svara-modal-media-action" data-preview-delete aria-label="Delete"><span class="svara-modal-media-action-icon" aria-hidden="true">⌫</span><span>Delete</span></button>';body.appendChild(actions);
+    root.hidden=false;requestAnimationFrame(()=>root.classList.add('is-open'));
+    keyHandler=e=>{if(e.key==='Escape'){e.preventDefault();finish(null);}};document.addEventListener('keydown',keyHandler,true);
     if(video)setTimeout(()=>media.focus(),30);
     return new Promise(resolve=>{resolver=resolve;});
   }
 
-  function formatTime(seconds){
-    const value=Math.max(0,Number(seconds)||0);
-    const minutes=Math.floor(value/60);
-    const secs=Math.floor(value%60).toString().padStart(2,'0');
-    return `${minutes}:${secs}`;
-  }
+  function formatTime(seconds){const value=Math.max(0,Number(seconds)||0);const minutes=Math.floor(value/60);const secs=Math.floor(value%60).toString().padStart(2,'0');return `${minutes}:${secs}`;}
   function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-  function formatBytes(bytes){
-    if(typeof bytes==='string'&&/[a-z]/i.test(bytes))return bytes;
-    const value=Number(bytes)||0;
-    if(!value)return '';
-    if(value<1024)return `${value} B`;
-    if(value<1048576)return `${(value/1024).toFixed(1)} KB`;
-    return `${(value/1048576).toFixed(1)} MB`;
-  }
-
+  function formatBytes(bytes){if(typeof bytes==='string'&&/[a-z]/i.test(bytes))return bytes;const value=Number(bytes)||0;if(!value)return '';if(value<1024)return `${value} B`;if(value<1048576)return `${(value/1024).toFixed(1)} KB`;return `${(value/1048576).toFixed(1)} MB`;}
   window.SvaraModal={rename:openRename,preview:openPreview};
   document.addEventListener('click',event=>{
     const filename=event.target.closest('.my-library-name');
-    if(filename){
-      const row=filename.closest('.my-library-row');
-      previewItem={filename:filename.querySelector('strong')?.textContent?.trim()||'',row};
-      return;
-    }
-    const button=event.target.closest('.my-library-file-menu button');
-    if(!button)return;
-    const label=button.querySelector('span:last-child')?.textContent?.trim();
-    if(label!=='Preview'||!previewItem?.filename)return;
-    if(!window.SvaraModal?.preview)return;
-    const item={filename:previewItem.filename};
-    const voice=previewItem.row?.children?.[1]?.textContent?.trim();
-    const format=previewItem.row?.children?.[3]?.textContent?.trim();
-    const size=previewItem.row?.children?.[4]?.textContent?.trim();
-    if(voice)item.voiceName=voice;
-    if(format)item.format=format;
-    if(size)item.sizeBytes=size;
+    if(filename){const row=filename.closest('.my-library-row');previewItem={filename:filename.querySelector('strong')?.textContent?.trim()||'',row};return;}
+    const button=event.target.closest('.my-library-file-menu button');if(!button)return;
+    const label=button.querySelector('span:last-child')?.textContent?.trim();if(label!=='Preview'||!previewItem?.filename)return;if(!window.SvaraModal?.preview)return;
+    const item={filename:previewItem.filename};const voice=previewItem.row?.children?.[1]?.textContent?.trim();const format=previewItem.row?.children?.[3]?.textContent?.trim();const size=previewItem.row?.children?.[4]?.textContent?.trim();if(voice)item.voiceName=voice;if(format)item.format=format;if(size)item.sizeBytes=size;
     window.SvaraModal.preview(`/api/generations/media?filename=${encodeURIComponent(item.filename)}`,item);
   },true);
 })();
