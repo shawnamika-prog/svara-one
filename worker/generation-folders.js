@@ -72,23 +72,24 @@ app.fetch = async (request, env, ctx) => {
   if (request.method === "POST" && url.pathname === "/api/generations/move") {
     const userId = await authenticatedUserId(request, env);
     if (!userId) return json({ error: "Authentication required." }, 401);
-    if (!env.DB || !env.GENERATED_AUDIO) return json({ error: "Library storage is not configured." }, 503);
+    if (!env.DB) return json({ error: "Library storage is not configured." }, 503);
     try {
       const body = await request.json().catch(() => ({}));
       const filename = String(body?.filename || "").trim().replace(/[\\/]/g, "");
       const folderId = body?.folderId == null || body?.folderId === "" ? null : String(body.folderId).trim();
       if (!filename || filename === "." || filename === "..") return json({ error: "A valid filename is required." }, 400);
 
-      const objectRows = await env.GENERATED_AUDIO.list({ prefix: `users/${userId}/generations/`, limit: 500 });
-      const object = (objectRows.objects || []).find(candidate => String(candidate.key || "").split("/").pop() === filename);
-      if (!object?.key) return json({ error: "Generation not found." }, 404);
+      // Moving a generation between Library folders is a D1 metadata operation only.
+      // The R2 object remains at its existing user-scoped generations/<filename> key.
+      const generation = await env.DB.prepare("SELECT id,r2_key FROM generations WHERE user_id=? AND r2_key LIKE ? ORDER BY created_at DESC LIMIT 1").bind(userId, `%/${filename}`).first();
+      if (!generation?.id) return json({ error: "Generation not found." }, 404);
 
       if (folderId) {
         const folder = await env.DB.prepare("SELECT id,name FROM library_folders WHERE id=? AND user_id=? LIMIT 1").bind(folderId, userId).first();
         if (!folder) return json({ error: "Folder not found." }, 404);
       }
 
-      const result = await env.DB.prepare("UPDATE generations SET folder_id=? WHERE user_id=? AND r2_key=?").bind(folderId, userId, String(object.key)).run();
+      const result = await env.DB.prepare("UPDATE generations SET folder_id=? WHERE id=? AND user_id=?").bind(folderId, generation.id, userId).run();
       if (!result.meta?.changes) return json({ error: "Generation could not be moved." }, 404);
       return json({ success: true, filename, folderId, folderName: folderId ? (await env.DB.prepare("SELECT name FROM library_folders WHERE id=? AND user_id=?").bind(folderId, userId).first())?.name || null : null });
     } catch (error) {
