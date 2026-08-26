@@ -16,6 +16,14 @@
     return String(value ?? '').replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
   }
 
+  function staticFolderId(button) {
+    if (button.dataset.libraryFolderId) return button.dataset.libraryFolderId;
+    const label = String(button.textContent || '').replace(/[▣□]/g, '').trim();
+    if (label === 'Unfiled') return '__unfiled__';
+    if (label === 'All generations') return '__all__';
+    return null;
+  }
+
   function closeActionMenu() {
     document.querySelectorAll('.my-library-file-menu').forEach(menu => menu.remove());
   }
@@ -54,7 +62,8 @@
 
   function renderFolders() {
     foldersNav.querySelectorAll('.my-library-folder[data-library-folder-id]').forEach(button => button.remove());
-    const unfiled = foldersNav.querySelector('.my-library-folder:not([data-library-folder-id])');
+    const staticButtons = [...foldersNav.querySelectorAll('.my-library-folder')];
+    const unfiled = staticButtons.find(button => staticFolderId(button) === '__unfiled__');
     folders.forEach(folder => {
       const button = document.createElement('button');
       button.type = 'button';
@@ -64,16 +73,15 @@
       foldersNav.appendChild(button);
     });
     foldersNav.querySelectorAll('.my-library-folder').forEach(button => {
-      button.classList.toggle('active', (button.dataset.libraryFolderId || (button.textContent || '').trim()) === (selectedFolderId === '__all__' ? 'All generations' : selectedFolderId === '__unfiled__' ? 'Unfiled' : selectedFolderId));
+      button.classList.toggle('active', staticFolderId(button) === selectedFolderId || button.dataset.libraryFolderId === selectedFolderId);
     });
     if (unfiled) unfiled.classList.toggle('active', selectedFolderId === '__unfiled__');
-    foldersNav.querySelector('.my-library-folder:first-of-type')?.classList.toggle('active', selectedFolderId === '__all__');
   }
 
   function applyFolderFilter() {
     const rows = [...libraryView.querySelectorAll('.my-library-row')];
     if (!rows.length) return;
-    const folderByFilename = new Map(generations.map(item => [String(item.filename), item.folderId ?? null]));
+    const folderByFilename = new Map(generations.map(item => [String(item.filename), item.folderId || null]));
     let shown = 0;
     rows.forEach(row => {
       const filename = row.querySelector('.my-library-name strong')?.textContent?.trim() || '';
@@ -172,8 +180,11 @@
   foldersNav.addEventListener('click', async event => {
     const button = event.target.closest('.my-library-folder');
     if (!button) return;
-    if (button.dataset.libraryFolderId) selectedFolderId = button.dataset.libraryFolderId;
-    else selectedFolderId = button.textContent.trim().startsWith('Unfiled') ? '__unfiled__' : '__all__';
+    const clickedFolderId = staticFolderId(button) || button.dataset.libraryFolderId;
+    if (!clickedFolderId) return;
+    event.preventDefault();
+    event.stopPropagation();
+    selectedFolderId = clickedFolderId;
     renderFolders();
     await loadFolders();
   });
