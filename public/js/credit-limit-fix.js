@@ -55,3 +55,47 @@
     return originalGenerate.call(button,event);
   };
 })();
+
+// My Library — rename support. Kept isolated from the existing library renderer.
+(()=>{
+  let activeGeneration=null;
+
+  document.addEventListener('click',event=>{
+    const name=event.target.closest?.('.my-library-name');
+    if(!name)return;
+    const row=name.closest('.my-library-row');
+    if(!row)return;
+    const rows=[...document.querySelectorAll('.my-library-row')];
+    activeGeneration={index:rows.indexOf(row),filename:name.querySelector('strong')?.textContent?.trim()||''};
+  },true);
+
+  document.addEventListener('click',event=>{
+    const button=event.target.closest?.('.my-library-file-menu button');
+    if(!button||!button.textContent.trim().toLowerCase().includes('rename'))return;
+    const item=activeGeneration;
+    setTimeout(async()=>{
+      if(!item)return;
+      const current=item.filename;
+      const dot=current.lastIndexOf('.');
+      const extension=dot>0?current.slice(dot):'';
+      const base=dot>0?current.slice(0,dot):current;
+      const entered=window.prompt('Rename generation',base);
+      if(entered===null)return;
+      const trimmed=entered.trim();
+      if(!trimmed||trimmed===base)return;
+      const newFilename=trimmed.toLowerCase().endsWith(extension.toLowerCase())?trimmed:`${trimmed}${extension}`;
+      try{
+        const response=await fetch('/api/generations/rename',{
+          method:'POST',credentials:'same-origin',
+          headers:{'content-type':'application/json',accept:'application/json'},
+          body:JSON.stringify({index:item.index,filename:newFilename})
+        });
+        const data=await response.json().catch(()=>({}));
+        if(!response.ok)throw new Error(data.error||'Could not rename generation.');
+        window.location.reload();
+      }catch(error){
+        window.alert(error.message||'Could not rename generation.');
+      }
+    },0);
+  },true);
+})();
