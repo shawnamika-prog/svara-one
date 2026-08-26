@@ -1,6 +1,6 @@
 (() => {
   const libraryLink = document.querySelector('aside a[href="#library"]');
-  const voiceLink = document.querySelector('aside a[href="#create"]');
+  const voiceLink = document.querySelector('aside a[href="#voice"]');
   const voiceView = document.getElementById('voiceWorkspace');
   const libraryView = document.getElementById('myLibraryView');
   if (!libraryLink || !voiceLink || !voiceView || !libraryView) return;
@@ -23,7 +23,7 @@
 
   voiceLink.addEventListener('click', (event) => {
     event.preventDefault();
-    history.replaceState(null, '', '#create');
+    history.replaceState(null, '', '#voice');
     show('voice');
   });
 
