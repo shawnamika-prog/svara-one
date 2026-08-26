@@ -112,153 +112,77 @@
       return Number.isNaN(parsed) ? 0 : parsed;
     };
     switch (sortMode) {
-      case 'oldest':
-        return sorted.sort((a, b) => time(a.createdAt) - time(b.createdAt));
-      case 'name-asc':
-        return sorted.sort((a, b) => text(a.filename).localeCompare(text(b.filename)));
-      case 'name-desc':
-        return sorted.sort((a, b) => text(b.filename).localeCompare(text(a.filename)));
-      case 'voice-asc':
-        return sorted.sort((a, b) => text(a.voiceName).localeCompare(text(b.voiceName)) || time(b.createdAt) - time(a.createdAt));
-      case 'size-desc':
-        return sorted.sort((a, b) => (Number(b.sizeBytes) || 0) - (Number(a.sizeBytes) || 0));
-      case 'size-asc':
-        return sorted.sort((a, b) => (Number(a.sizeBytes) || 0) - (Number(b.sizeBytes) || 0));
+      case 'oldest': return sorted.sort((a, b) => time(a.createdAt) - time(b.createdAt));
+      case 'name-asc': return sorted.sort((a, b) => text(a.filename).localeCompare(text(b.filename)));
+      case 'name-desc': return sorted.sort((a, b) => text(b.filename).localeCompare(text(a.filename)));
+      case 'voice-asc': return sorted.sort((a, b) => text(a.voiceName).localeCompare(text(b.voiceName)) || time(b.createdAt) - time(a.createdAt));
+      case 'size-desc': return sorted.sort((a, b) => (Number(b.sizeBytes) || 0) - (Number(a.sizeBytes) || 0));
+      case 'size-asc': return sorted.sort((a, b) => (Number(a.sizeBytes) || 0) - (Number(b.sizeBytes) || 0));
       case 'newest':
-      default:
-        return sorted.sort((a, b) => time(b.createdAt) - time(a.createdAt));
+      default: return sorted.sort((a, b) => time(b.createdAt) - time(a.createdAt));
     }
   }
 
-  function filteredAndSortedGenerations() {
-    return sortGenerations(filteredGenerations());
-  }
+  function filteredAndSortedGenerations() { return sortGenerations(filteredGenerations()); }
 
   function setupSortMenu() {
     if (!sortButton || libraryView.querySelector('.my-library-sort-menu')) return;
-
     const wrapper = document.createElement('div');
     wrapper.className = 'my-library-sort-wrap';
     sortButton.parentNode.insertBefore(wrapper, sortButton);
     wrapper.appendChild(sortButton);
     sortButton.setAttribute('aria-haspopup', 'true');
     sortButton.setAttribute('aria-expanded', 'false');
-
     const menu = document.createElement('div');
     menu.className = 'my-library-sort-menu';
     menu.hidden = true;
-    menu.innerHTML = `
-      <button type="button" data-sort="newest">Newest first</button>
-      <button type="button" data-sort="oldest">Oldest first</button>
-      <button type="button" data-sort="name-asc">Name A–Z</button>
-      <button type="button" data-sort="name-desc">Name Z–A</button>
-      <button type="button" data-sort="voice-asc">Voice A–Z</button>
-      <button type="button" data-sort="size-desc">Largest first</button>
-      <button type="button" data-sort="size-asc">Smallest first</button>
-    `;
+    menu.innerHTML = `<button type="button" data-sort="newest">Newest first</button><button type="button" data-sort="oldest">Oldest first</button><button type="button" data-sort="name-asc">Name A–Z</button><button type="button" data-sort="name-desc">Name Z–A</button><button type="button" data-sort="voice-asc">Voice A–Z</button><button type="button" data-sort="size-desc">Largest first</button><button type="button" data-sort="size-asc">Smallest first</button>`;
     wrapper.appendChild(menu);
-
     if (!document.getElementById('my-library-sort-styles')) {
       const style = document.createElement('style');
       style.id = 'my-library-sort-styles';
-      style.textContent = `
-        .my-library-sort-wrap{position:relative;display:inline-flex}
-        .my-library-sort-menu{position:absolute;right:0;top:calc(100% + 7px);z-index:30;min-width:170px;padding:6px;background:#081522;border:1px solid #ffffff12;border-radius:10px;box-shadow:0 14px 30px #0008}
-        .my-library-sort-menu button{display:block;width:100%;padding:9px 11px;border:0;border-radius:7px;background:transparent;color:#9fb2c5;text-align:left;font:inherit;font-size:11px;cursor:pointer}
-        .my-library-sort-menu button:hover,.my-library-sort-menu button.active{background:#0a1d2b;color:#31e3c8}
-      `;
+      style.textContent = `.my-library-sort-wrap{position:relative;display:inline-flex}.my-library-sort-menu{position:absolute;right:0;top:calc(100% + 7px);z-index:30;min-width:170px;padding:6px;background:#081522;border:1px solid #ffffff12;border-radius:10px;box-shadow:0 14px 30px #0008}.my-library-sort-menu button{display:block;width:100%;padding:9px 11px;border:0;border-radius:7px;background:transparent;color:#9fb2c5;text-align:left;font:inherit;font-size:11px;cursor:pointer}.my-library-sort-menu button:hover,.my-library-sort-menu button.active{background:#0a1d2b;color:#31e3c8}`;
       document.head.appendChild(style);
     }
-
-    const closeMenu = () => {
-      menu.hidden = true;
-      sortButton.setAttribute('aria-expanded', 'false');
-    };
-
-    sortButton.addEventListener('click', event => {
-      event.stopPropagation();
-      menu.hidden = !menu.hidden;
-      sortButton.setAttribute('aria-expanded', menu.hidden ? 'false' : 'true');
-    });
-
-    menu.querySelectorAll('button[data-sort]').forEach(option => {
-      option.addEventListener('click', () => {
-        sortMode = option.dataset.sort || 'newest';
-        menu.querySelectorAll('button').forEach(button => button.classList.toggle('active', button === option));
-        render();
-        closeMenu();
-      });
-    });
-
-    document.addEventListener('click', event => {
-      if (!wrapper.contains(event.target)) closeMenu();
-    });
-
+    const closeMenu = () => { menu.hidden = true; sortButton.setAttribute('aria-expanded', 'false'); };
+    sortButton.addEventListener('click', event => { event.stopPropagation(); menu.hidden = !menu.hidden; sortButton.setAttribute('aria-expanded', menu.hidden ? 'false' : 'true'); });
+    menu.querySelectorAll('button[data-sort]').forEach(option => option.addEventListener('click', () => { sortMode = option.dataset.sort || 'newest'; menu.querySelectorAll('button').forEach(button => button.classList.toggle('active', button === option)); render(); closeMenu(); }));
+    document.addEventListener('click', event => { if (!wrapper.contains(event.target)) closeMenu(); });
     menu.querySelector('[data-sort="newest"]')?.classList.add('active');
   }
 
-  function closeFileMenu() {
-    if (openFileMenu) {
-      openFileMenu.remove();
-      openFileMenu = null;
-    }
-  }
+  function closeFileMenu() { if (openFileMenu) { openFileMenu.remove(); openFileMenu = null; } }
 
   function setupFileActionMenu() {
     if (!table || table.dataset.fileMenuReady) return;
     table.dataset.fileMenuReady = 'true';
-
     const style = document.createElement('style');
-    style.textContent = `
-      .my-library-file-menu{position:fixed;z-index:1000;min-width:160px;padding:6px;background:#081522;border:1px solid #ffffff16;border-radius:10px;box-shadow:0 16px 36px #0009}
-      .my-library-file-menu button{display:flex;align-items:center;gap:10px;width:100%;padding:10px 11px;border:0;border-radius:7px;background:transparent;color:#b4c3d1;text-align:left;font:inherit;font-size:12px;cursor:pointer}
-      .my-library-file-menu button:hover{background:#0a1d2b;color:#31e3c8}
-      .my-library-file-menu .file-menu-icon{width:16px;text-align:center;font-size:14px;line-height:1}
-      .my-library-file-menu .file-menu-delete:hover{color:#ff7d7d}
-    `;
+    style.textContent = `.my-library-file-menu{position:fixed;z-index:1000;min-width:160px;padding:6px;background:#081522;border:1px solid #ffffff16;border-radius:10px;box-shadow:0 16px 36px #0009}.my-library-file-menu button{display:flex;align-items:center;gap:10px;width:100%;padding:10px 11px;border:0;border-radius:7px;background:transparent;color:#b4c3d1;text-align:left;font:inherit;font-size:12px;cursor:pointer}.my-library-file-menu button:hover{background:#0a1d2b;color:#31e3c8}.my-library-file-menu .file-menu-icon{width:16px;text-align:center;font-size:14px;line-height:1}.my-library-file-menu .file-menu-delete:hover{color:#ff7d7d}`;
     document.head.appendChild(style);
-
     table.addEventListener('click', event => {
       const name = event.target.closest('.my-library-name');
       if (!name) return;
-      event.preventDefault();
-      event.stopPropagation();
+      event.preventDefault(); event.stopPropagation();
       const row = name.closest('.my-library-row');
       const index = Number(row?.dataset.generationIndex);
       const item = Number.isInteger(index) ? filteredAndSortedGenerations()[index] : null;
       if (!item) return;
-
       closeFileMenu();
       const menu = document.createElement('div');
       menu.className = 'my-library-file-menu';
       menu.setAttribute('role', 'menu');
-      menu.innerHTML = `
-        <button type="button" role="menuitem"><span class="file-menu-icon">✎</span><span>Rename</span></button>
-        <button type="button" role="menuitem"><span class="file-menu-icon">▶</span><span>Preview</span></button>
-        <button type="button" role="menuitem"><span class="file-menu-icon">↗</span><span>Move to</span></button>
-        <button type="button" role="menuitem" class="file-menu-delete"><span class="file-menu-icon">⌫</span><span>Delete</span></button>
-      `;
+      menu.innerHTML = `<button type="button" role="menuitem"><span class="file-menu-icon">✎</span><span>Rename</span></button><button type="button" role="menuitem"><span class="file-menu-icon">▶</span><span>Preview</span></button><button type="button" role="menuitem"><span class="file-menu-icon">↗</span><span>Move to</span></button><button type="button" role="menuitem"><span class="file-menu-icon">↓</span><span>Download</span></button><button type="button" role="menuitem" class="file-menu-delete"><span class="file-menu-icon">⌫</span><span>Delete</span></button>`;
       document.body.appendChild(menu);
       openFileMenu = menu;
-
       const rect = name.getBoundingClientRect();
       const menuRect = menu.getBoundingClientRect();
       const left = Math.min(rect.left, window.innerWidth - menuRect.width - 12);
       const top = Math.min(rect.bottom + 6, window.innerHeight - menuRect.height - 12);
       menu.style.left = `${Math.max(12, left)}px`;
       menu.style.top = `${Math.max(12, top)}px`;
-
-      menu.querySelectorAll('button').forEach(button => {
-        button.addEventListener('click', event => {
-          event.stopPropagation();
-          closeFileMenu();
-        });
-      });
+      menu.querySelectorAll('button').forEach(button => button.addEventListener('click', event => { event.stopPropagation(); closeFileMenu(); }));
     });
-
-    document.addEventListener('click', event => {
-      if (openFileMenu && !openFileMenu.contains(event.target)) closeFileMenu();
-    });
+    document.addEventListener('click', event => { if (openFileMenu && !openFileMenu.contains(event.target)) closeFileMenu(); });
     window.addEventListener('resize', closeFileMenu);
     window.addEventListener('scroll', closeFileMenu, true);
   }
@@ -267,10 +191,7 @@
     if (!table) return;
     closeFileMenu();
     table.querySelectorAll('.my-library-row').forEach(row => row.remove());
-    if (empty) {
-      empty.hidden = false;
-      empty.innerHTML = `<div><div class="my-library-empty-icon">${icon}</div><h3>${escapeHtml(title)}</h3><p>${escapeHtml(message)}</p></div>`;
-    }
+    if (empty) { empty.hidden = false; empty.innerHTML = `<div><div class="my-library-empty-icon">${icon}</div><h3>${escapeHtml(title)}</h3><p>${escapeHtml(message)}</p></div>`; }
   }
 
   function render() {
@@ -278,32 +199,17 @@
     closeFileMenu();
     const visible = filteredAndSortedGenerations();
     const activeFilter = Boolean((searchInput?.value || '').trim()) || (dateFilter?.value || 'All dates') !== 'All dates' || (formatFilter?.value || 'All formats') !== 'All formats';
-
     table.querySelectorAll('.my-library-row').forEach(row => row.remove());
-
     if (filesTitle) filesTitle.textContent = activeFilter ? 'Filtered generations' : 'All generations';
     if (filesCount) filesCount.textContent = `${visible.length} ${visible.length === 1 ? 'item' : 'items'}`;
-
-    if (!visible.length) {
-      empty.hidden = false;
-      empty.innerHTML = `<div><div class="my-library-empty-icon">◈</div><h3>${escapeHtml(generations.length ? 'No matching generations' : 'Your generations will appear here')}</h3><p>${escapeHtml(generations.length ? 'Try changing your search or filters.' : 'Generate a voice and your original audio will be added to My Library.')}</p></div>`;
-      return;
-    }
-
+    if (!visible.length) { empty.hidden = false; empty.innerHTML = `<div><div class="my-library-empty-icon">◈</div><h3>${escapeHtml(generations.length ? 'No matching generations' : 'Your generations will appear here')}</h3><p>${escapeHtml(generations.length ? 'Try changing your search or filters.' : 'Generate a voice and your original audio will be added to My Library.')}</p></div>`; return; }
     empty.hidden = true;
     const fragment = document.createDocumentFragment();
     visible.forEach((item, index) => {
       const row = document.createElement('div');
       row.className = `my-library-row status-${escapeHtml(item.status)}`;
       row.dataset.generationIndex = String(index);
-      row.innerHTML = `
-        <span class="my-library-name" title="${escapeHtml(item.filename)}"><strong>${escapeHtml(item.filename)}</strong>${item.status !== 'ready' ? `<small>${escapeHtml(item.status)}</small>` : ''}</span>
-        <span>${escapeHtml(item.voiceName)}</span>
-        <span>${escapeHtml(formatDate(item.createdAt))}</span>
-        <span>${escapeHtml(item.format)}</span>
-        <span>${escapeHtml(formatBytes(item.sizeBytes))}</span>
-        <span class="my-library-expiry" title="Automatically removed after 90 days">${escapeHtml(formatRemovalDate(item.expiresAt))}</span>
-      `;
+      row.innerHTML = `<span class="my-library-name" title="${escapeHtml(item.filename)}"><strong>${escapeHtml(item.filename)}</strong>${item.status !== 'ready' ? `<small>${escapeHtml(item.status)}</small>` : ''}</span><span>${escapeHtml(item.voiceName)}</span><span>${escapeHtml(formatDate(item.createdAt))}</span><span>${escapeHtml(item.format)}</span><span>${escapeHtml(formatBytes(item.sizeBytes))}</span><span class="my-library-expiry" title="Automatically removed after 90 days">${escapeHtml(formatRemovalDate(item.expiresAt))}</span>`;
       fragment.appendChild(row);
     });
     table.appendChild(fragment);
@@ -314,19 +220,10 @@
     loading = true;
     setTableMessage('Loading your generations…', 'Retrieving your saved SvaraONE creations.', '◇');
     if (filesCount) filesCount.textContent = 'Loading…';
-
     try {
-      const response = await fetch('/api/generations?limit=500', {
-        method: 'GET',
-        credentials: 'same-origin',
-        cache: 'no-store',
-        headers: { accept: 'application/json' }
-      });
+      const response = await fetch('/api/generations?limit=500', { method: 'GET', credentials: 'same-origin', cache: 'no-store', headers: { accept: 'application/json' } });
       const data = await response.json().catch(() => ({}));
-      if (response.status === 401) {
-        window.location.replace('/login.html?next=/studio');
-        return;
-      }
+      if (response.status === 401) { window.location.replace('/login.html?next=/studio'); return; }
       if (!response.ok) throw new Error(data.error || `Generation service unavailable (${response.status})`);
       generations = Array.isArray(data.generations) ? data.generations : [];
       loaded = true;
@@ -334,12 +231,22 @@
     } catch (error) {
       generations = [];
       loaded = false;
-      setTableMessage('Could not load your generations', error?.message || 'Please try again.', '!');
-      if (filesCount) filesCount.textContent = 'Unavailable';
-    } finally {
-      loading = false;
-    }
+      setTableMessage('Could not load your generations', error?.message || 'Please try again.', '⚠');
+    } finally { loading = false; }
   }
+
+  function showView(view) {
+    const showLibrary = view === 'library';
+    libraryView.hidden = !showLibrary;
+    voiceView.hidden = showLibrary;
+    libraryLink.classList.toggle('active', showLibrary);
+    voiceLink.classList.toggle('active', !showLibrary);
+    if (showLibrary) loadGenerations();
+  }
+
+  libraryLink.addEventListener('click', event => { event.preventDefault(); history.replaceState(null, '', '#library'); showView('library'); });
+  voiceLink.addEventListener('click', event => { event.preventDefault(); history.replaceState(null, '', '#voice'); showView('voice'); });
+  window.addEventListener('hashchange', () => showView(location.hash === '#library' ? 'library' : 'voice'));
 
   searchInput?.addEventListener('input', render);
   dateFilter?.addEventListener('change', render);
@@ -347,30 +254,5 @@
 
   setupSortMenu();
   setupFileActionMenu();
-
-  function show(view) {
-    const library = view === 'library';
-    voiceView.hidden = library;
-    libraryView.hidden = !library;
-    libraryLink.classList.toggle('active', library);
-    voiceLink.classList.toggle('active', !library);
-    libraryLink.setAttribute('aria-current', library ? 'page' : 'false');
-    voiceLink.setAttribute('aria-current', library ? 'false' : 'page');
-    if (library) loadGenerations(true);
-  }
-
-  libraryLink.addEventListener('click', (event) => {
-    event.preventDefault();
-    history.replaceState(null, '', '#library');
-    show('library');
-  });
-
-  voiceLink.addEventListener('click', (event) => {
-    event.preventDefault();
-    history.replaceState(null, '', '#voice');
-    show('voice');
-  });
-
-  window.addEventListener('popstate', () => show(location.hash === '#library' ? 'library' : 'voice'));
-  show(location.hash === '#library' ? 'library' : 'voice');
+  showView(location.hash === '#library' ? 'library' : 'voice');
 })();
