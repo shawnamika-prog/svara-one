@@ -223,6 +223,11 @@
     meta.append(name,details);
     body.appendChild(meta);
 
+    const actions=document.createElement('div');
+    actions.className='svara-modal-media-actions';
+    actions.innerHTML='<button type="button" class="svara-modal-media-action" data-preview-download aria-label="Download"><span aria-hidden="true">↓</span><span>Download</span></button><button type="button" class="svara-modal-media-action" data-preview-delete aria-label="Delete"><span aria-hidden="true">⌫</span><span>Delete</span></button>';
+    body.appendChild(actions);
+
     root.hidden=false;
     requestAnimationFrame(()=>root.classList.add('is-open'));
     keyHandler=e=>{if(e.key==='Escape'){e.preventDefault();finish(null);}};
