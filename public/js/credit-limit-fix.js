@@ -63,10 +63,7 @@
   document.addEventListener('click',event=>{
     const name=event.target.closest?.('.my-library-name');
     if(!name)return;
-    const row=name.closest('.my-library-row');
-    if(!row)return;
-    const rows=[...document.querySelectorAll('.my-library-row')];
-    activeGeneration={index:rows.indexOf(row),filename:name.querySelector('strong')?.textContent?.trim()||''};
+    activeGeneration={filename:name.querySelector('strong')?.textContent?.trim()||''};
   },true);
 
   document.addEventListener('click',event=>{
@@ -88,7 +85,7 @@
         const response=await fetch('/api/generations/rename',{
           method:'POST',credentials:'same-origin',
           headers:{'content-type':'application/json',accept:'application/json'},
-          body:JSON.stringify({index:item.index,filename:newFilename})
+          body:JSON.stringify({currentFilename:current,filename:newFilename})
         });
         const data=await response.json().catch(()=>({}));
         if(!response.ok)throw new Error(data.error||'Could not rename generation.');
