@@ -35,6 +35,7 @@
   let loaded = false;
   let loading = false;
   let sortMode = 'newest';
+  let openFileMenu = null;
 
   function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, char => ({
@@ -196,8 +197,75 @@
     menu.querySelector('[data-sort="newest"]')?.classList.add('active');
   }
 
+  function closeFileMenu() {
+    if (openFileMenu) {
+      openFileMenu.remove();
+      openFileMenu = null;
+    }
+  }
+
+  function setupFileActionMenu() {
+    if (!table || table.dataset.fileMenuReady) return;
+    table.dataset.fileMenuReady = 'true';
+
+    const style = document.createElement('style');
+    style.textContent = `
+      .my-library-file-menu{position:fixed;z-index:1000;min-width:160px;padding:6px;background:#081522;border:1px solid #ffffff16;border-radius:10px;box-shadow:0 16px 36px #0009}
+      .my-library-file-menu button{display:flex;align-items:center;gap:10px;width:100%;padding:10px 11px;border:0;border-radius:7px;background:transparent;color:#b4c3d1;text-align:left;font:inherit;font-size:12px;cursor:pointer}
+      .my-library-file-menu button:hover{background:#0a1d2b;color:#31e3c8}
+      .my-library-file-menu .file-menu-icon{width:16px;text-align:center;font-size:14px;line-height:1}
+      .my-library-file-menu .file-menu-delete:hover{color:#ff7d7d}
+    `;
+    document.head.appendChild(style);
+
+    table.addEventListener('click', event => {
+      const name = event.target.closest('.my-library-name');
+      if (!name) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const row = name.closest('.my-library-row');
+      const index = Number(row?.dataset.generationIndex);
+      const item = Number.isInteger(index) ? filteredAndSortedGenerations()[index] : null;
+      if (!item) return;
+
+      closeFileMenu();
+      const menu = document.createElement('div');
+      menu.className = 'my-library-file-menu';
+      menu.setAttribute('role', 'menu');
+      menu.innerHTML = `
+        <button type="button" role="menuitem"><span class="file-menu-icon">✎</span><span>Rename</span></button>
+        <button type="button" role="menuitem"><span class="file-menu-icon">▶</span><span>Preview</span></button>
+        <button type="button" role="menuitem"><span class="file-menu-icon">↗</span><span>Move to</span></button>
+        <button type="button" role="menuitem" class="file-menu-delete"><span class="file-menu-icon">⌫</span><span>Delete</span></button>
+      `;
+      document.body.appendChild(menu);
+      openFileMenu = menu;
+
+      const rect = name.getBoundingClientRect();
+      const menuRect = menu.getBoundingClientRect();
+      const left = Math.min(rect.left, window.innerWidth - menuRect.width - 12);
+      const top = Math.min(rect.bottom + 6, window.innerHeight - menuRect.height - 12);
+      menu.style.left = `${Math.max(12, left)}px`;
+      menu.style.top = `${Math.max(12, top)}px`;
+
+      menu.querySelectorAll('button').forEach(button => {
+        button.addEventListener('click', event => {
+          event.stopPropagation();
+          closeFileMenu();
+        });
+      });
+    });
+
+    document.addEventListener('click', event => {
+      if (openFileMenu && !openFileMenu.contains(event.target)) closeFileMenu();
+    });
+    window.addEventListener('resize', closeFileMenu);
+    window.addEventListener('scroll', closeFileMenu, true);
+  }
+
   function setTableMessage(title, message, icon = '◈') {
     if (!table) return;
+    closeFileMenu();
     table.querySelectorAll('.my-library-row').forEach(row => row.remove());
     if (empty) {
       empty.hidden = false;
@@ -207,6 +275,7 @@
 
   function render() {
     if (!table || !tableHead || !empty) return;
+    closeFileMenu();
     const visible = filteredAndSortedGenerations();
     const activeFilter = Boolean((searchInput?.value || '').trim()) || (dateFilter?.value || 'All dates') !== 'All dates' || (formatFilter?.value || 'All formats') !== 'All formats';
 
@@ -223,9 +292,10 @@
 
     empty.hidden = true;
     const fragment = document.createDocumentFragment();
-    visible.forEach(item => {
+    visible.forEach((item, index) => {
       const row = document.createElement('div');
       row.className = `my-library-row status-${escapeHtml(item.status)}`;
+      row.dataset.generationIndex = String(index);
       row.innerHTML = `
         <span class="my-library-name" title="${escapeHtml(item.filename)}"><strong>${escapeHtml(item.filename)}</strong>${item.status !== 'ready' ? `<small>${escapeHtml(item.status)}</small>` : ''}</span>
         <span>${escapeHtml(item.voiceName)}</span>
@@ -276,6 +346,7 @@
   formatFilter?.addEventListener('change', render);
 
   setupSortMenu();
+  setupFileActionMenu();
 
   function show(view) {
     const library = view === 'library';
