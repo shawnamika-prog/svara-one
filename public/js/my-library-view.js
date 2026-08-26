@@ -14,8 +14,8 @@
   const table = libraryView.querySelector('.my-library-table');
   const tableHead = table?.querySelector('.my-library-table-head');
   const empty = table?.querySelector('.my-library-empty');
+  const sortButton = libraryView.querySelector('.my-library-actions .my-library-action:last-child');
 
-  // Retention notice: make the automatic 90-day deletion policy visible in My Library.
   const toolbar = libraryView.querySelector('.my-library-toolbar');
   if (toolbar && !libraryView.querySelector('.my-library-retention')) {
     const retention = document.createElement('div');
@@ -24,7 +24,6 @@
     toolbar.insertAdjacentElement('afterend', retention);
   }
 
-  // Add the retention date column without changing the existing studio markup.
   if (tableHead && !tableHead.querySelector('.my-library-expiry-head')) {
     const expiryHead = document.createElement('span');
     expiryHead.className = 'my-library-expiry-head';
@@ -35,6 +34,7 @@
   let generations = [];
   let loaded = false;
   let loading = false;
+  let sortMode = 'newest';
 
   function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, char => ({
@@ -103,6 +103,99 @@
     });
   }
 
+  function sortGenerations(items) {
+    const sorted = [...items];
+    const text = value => String(value || '').toLowerCase();
+    const time = value => {
+      const parsed = Date.parse(value || '');
+      return Number.isNaN(parsed) ? 0 : parsed;
+    };
+    switch (sortMode) {
+      case 'oldest':
+        return sorted.sort((a, b) => time(a.createdAt) - time(b.createdAt));
+      case 'name-asc':
+        return sorted.sort((a, b) => text(a.filename).localeCompare(text(b.filename)));
+      case 'name-desc':
+        return sorted.sort((a, b) => text(b.filename).localeCompare(text(a.filename)));
+      case 'voice-asc':
+        return sorted.sort((a, b) => text(a.voiceName).localeCompare(text(b.voiceName)) || time(b.createdAt) - time(a.createdAt));
+      case 'size-desc':
+        return sorted.sort((a, b) => (Number(b.sizeBytes) || 0) - (Number(a.sizeBytes) || 0));
+      case 'size-asc':
+        return sorted.sort((a, b) => (Number(a.sizeBytes) || 0) - (Number(b.sizeBytes) || 0));
+      case 'newest':
+      default:
+        return sorted.sort((a, b) => time(b.createdAt) - time(a.createdAt));
+    }
+  }
+
+  function filteredAndSortedGenerations() {
+    return sortGenerations(filteredGenerations());
+  }
+
+  function setupSortMenu() {
+    if (!sortButton || libraryView.querySelector('.my-library-sort-menu')) return;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'my-library-sort-wrap';
+    sortButton.parentNode.insertBefore(wrapper, sortButton);
+    wrapper.appendChild(sortButton);
+    sortButton.setAttribute('aria-haspopup', 'true');
+    sortButton.setAttribute('aria-expanded', 'false');
+
+    const menu = document.createElement('div');
+    menu.className = 'my-library-sort-menu';
+    menu.hidden = true;
+    menu.innerHTML = `
+      <button type="button" data-sort="newest">Newest first</button>
+      <button type="button" data-sort="oldest">Oldest first</button>
+      <button type="button" data-sort="name-asc">Name A–Z</button>
+      <button type="button" data-sort="name-desc">Name Z–A</button>
+      <button type="button" data-sort="voice-asc">Voice A–Z</button>
+      <button type="button" data-sort="size-desc">Largest first</button>
+      <button type="button" data-sort="size-asc">Smallest first</button>
+    `;
+    wrapper.appendChild(menu);
+
+    if (!document.getElementById('my-library-sort-styles')) {
+      const style = document.createElement('style');
+      style.id = 'my-library-sort-styles';
+      style.textContent = `
+        .my-library-sort-wrap{position:relative;display:inline-flex}
+        .my-library-sort-menu{position:absolute;right:0;top:calc(100% + 7px);z-index:30;min-width:170px;padding:6px;background:#081522;border:1px solid #ffffff12;border-radius:10px;box-shadow:0 14px 30px #0008}
+        .my-library-sort-menu button{display:block;width:100%;padding:9px 11px;border:0;border-radius:7px;background:transparent;color:#9fb2c5;text-align:left;font:inherit;font-size:11px;cursor:pointer}
+        .my-library-sort-menu button:hover,.my-library-sort-menu button.active{background:#0a1d2b;color:#31e3c8}
+      `;
+      document.head.appendChild(style);
+    }
+
+    const closeMenu = () => {
+      menu.hidden = true;
+      sortButton.setAttribute('aria-expanded', 'false');
+    };
+
+    sortButton.addEventListener('click', event => {
+      event.stopPropagation();
+      menu.hidden = !menu.hidden;
+      sortButton.setAttribute('aria-expanded', menu.hidden ? 'false' : 'true');
+    });
+
+    menu.querySelectorAll('button[data-sort]').forEach(option => {
+      option.addEventListener('click', () => {
+        sortMode = option.dataset.sort || 'newest';
+        menu.querySelectorAll('button').forEach(button => button.classList.toggle('active', button === option));
+        render();
+        closeMenu();
+      });
+    });
+
+    document.addEventListener('click', event => {
+      if (!wrapper.contains(event.target)) closeMenu();
+    });
+
+    menu.querySelector('[data-sort="newest"]')?.classList.add('active');
+  }
+
   function setTableMessage(title, message, icon = '◈') {
     if (!table) return;
     table.querySelectorAll('.my-library-row').forEach(row => row.remove());
@@ -114,7 +207,7 @@
 
   function render() {
     if (!table || !tableHead || !empty) return;
-    const visible = filteredGenerations();
+    const visible = filteredAndSortedGenerations();
     const activeFilter = Boolean((searchInput?.value || '').trim()) || (dateFilter?.value || 'All dates') !== 'All dates' || (formatFilter?.value || 'All formats') !== 'All formats';
 
     table.querySelectorAll('.my-library-row').forEach(row => row.remove());
@@ -181,6 +274,8 @@
   searchInput?.addEventListener('input', render);
   dateFilter?.addEventListener('change', render);
   formatFilter?.addEventListener('change', render);
+
+  setupSortMenu();
 
   function show(view) {
     const library = view === 'library';
