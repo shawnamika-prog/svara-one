@@ -73,13 +73,14 @@
   function applyFolderFilter() {
     const rows = [...libraryView.querySelectorAll('.my-library-row')];
     if (!rows.length) return;
-    const folderByFilename = new Map(generations.map(item => [String(item.filename), item.folderId || null]));
+    const folderByFilename = new Map(generations.map(item => [String(item.filename), item.folderId ?? null]));
     let shown = 0;
     rows.forEach(row => {
       const filename = row.querySelector('.my-library-name strong')?.textContent?.trim() || '';
       const folderId = folderByFilename.get(filename);
       const matches = selectedFolderId === '__all__' || (selectedFolderId === '__unfiled__' ? folderId == null : folderId === selectedFolderId);
       row.hidden = !matches;
+      row.style.display = matches ? '' : 'none';
       if (matches) shown++;
     });
     const filesTitle = libraryView.querySelector('.my-library-files-head strong');
