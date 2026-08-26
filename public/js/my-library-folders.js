@@ -78,7 +78,7 @@
     rows.forEach(row => {
       const filename = row.querySelector('.my-library-name strong')?.textContent?.trim() || '';
       const folderId = folderByFilename.get(filename);
-      const matches = selectedFolderId === '__all__' || (selectedFolderId === '__unfiled__' ? !folderId : folderId === selectedFolderId);
+      const matches = selectedFolderId === '__all__' || (selectedFolderId === '__unfiled__' ? folderId == null : folderId === selectedFolderId);
       row.hidden = !matches;
       if (matches) shown++;
     });
@@ -145,7 +145,7 @@
   function openMoveDialog(filename) {
     injectStyles();
     const options = `<option value="__unfiled__">Unfiled</option>${folders.map(folder => `<option value="${escapeHtml(folder.id)}">${escapeHtml(folder.name)}</option>`).join('')}`;
-    showLibraryModal('Move generation', `<label for="myLibraryMoveFolder">Move “${escapeHtml(filename)}” to</label><select id="myLibraryMoveFolder"><option value="__unfiled__">Unfiled</option>${folders.map(folder => `<option value="${escapeHtml(folder.id)}">${escapeHtml(folder.name)}</option>`).join('')}</select><p class="my-library-folder-dialog-help">The audio stays in its user-scoped R2 generation path. Only its Library folder changes.</p>`, [
+    showLibraryModal('Move generation', `<label for="myLibraryMoveFolder">Move “${escapeHtml(filename)}” to</label><select id="myLibraryMoveFolder">${options}</select><p class="my-library-folder-dialog-help">The audio stays in its user-scoped R2 generation path. Only its Library folder changes.</p>`, [
       { label:'Cancel', run:(_root,close)=>close() },
       { label:'Move', primary:true, run:async(root,close,button)=>{
         button.disabled = true;
@@ -168,13 +168,13 @@
 
   newFolderButton.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); openNewFolder(); });
 
-  foldersNav.addEventListener('click', event => {
+  foldersNav.addEventListener('click', async event => {
     const button = event.target.closest('.my-library-folder');
     if (!button) return;
     if (button.dataset.libraryFolderId) selectedFolderId = button.dataset.libraryFolderId;
     else selectedFolderId = button.textContent.trim().startsWith('Unfiled') ? '__unfiled__' : '__all__';
     renderFolders();
-    applyFolderFilter();
+    await loadFolders();
   });
 
   document.addEventListener('click', event => {
