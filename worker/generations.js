@@ -1,4 +1,7 @@
+import app from "./index.js";
+
 const RETENTION_DAYS = 90;
+const SESSION_COOKIE = "svara_session";
 
 export function mimeTypeForFormat(format) {
   switch (String(format || '').toLowerCase()) {
@@ -170,3 +173,91 @@ export async function cleanupExpiredGenerations(env, limit = 100) {
 
   return { checked: (rows.results || []).length, deleted };
 }
+
+function sessionToken(request) {
+  const cookie = request.headers.get('Cookie') || '';
+  for (const part of cookie.split(';')) {
+    const index = part.indexOf('=');
+    if (index === -1) continue;
+    if (part.slice(0, index).trim() === SESSION_COOKIE) return decodeURIComponent(part.slice(index + 1).trim());
+  }
+  return '';
+}
+
+async function authenticatedUserId(request, env) {
+  if (!env.DB) return null;
+  const token = sessionToken(request);
+  if (!token) return null;
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
+  const tokenHash = btoa(String.fromCharCode(...new Uint8Array(digest)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  const row = await env.DB.prepare(`
+    SELECT u.id
+    FROM sessions s
+    JOIN users u ON u.id = s.user_id
+    WHERE s.token_hash = ?
+      AND s.revoked_at IS NULL
+      AND s.expires_at > strftime('%Y-%m-%dT%H:%M:%fZ','now')
+      AND u.status = 'active'
+    LIMIT 1
+  `).bind(tokenHash).first();
+  return row?.id || null;
+}
+
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }
+  });
+}
+
+const originalAppFetch = app.fetch.bind(app);
+app.fetch = async (request, env, ctx) => {
+  const url = new URL(request.url);
+  if (request.method === 'GET' && url.pathname === '/api/generations') {
+    const userId = await authenticatedUserId(request, env);
+    if (!userId) return json({ error: 'Authentication required.' }, 401);
+    if (!env.DB) return json({ error: 'Generation database is not configured.' }, 503);
+
+    try {
+      const requestedLimit = Number(url.searchParams.get('limit') || 250);
+      const limit = Math.max(1, Math.min(500, Number.isFinite(requestedLimit) ? requestedLimit : 250));
+      const rows = await env.DB.prepare(`
+        SELECT id, voice_name, format, size_bytes, character_count,
+               credits_charged, is_free_take, take_number, status,
+               created_at, completed_at, expires_at, r2_key
+        FROM generations
+        WHERE user_id = ?
+        ORDER BY created_at DESC
+        LIMIT ?
+      `).bind(userId, limit).all();
+
+      const generations = (rows.results || []).map(row => {
+        const key = String(row.r2_key || '');
+        const filename = key.split('/').pop() || generationFilename(row.voice_name, row.format);
+        return {
+          id: String(row.id),
+          filename,
+          voiceName: String(row.voice_name || 'Voice'),
+          format: extensionForFormat(row.format).toUpperCase(),
+          sizeBytes: Number(row.size_bytes) || 0,
+          characterCount: Number(row.character_count) || 0,
+          creditsCharged: Number(row.credits_charged) || 0,
+          isFreeTake: Number(row.is_free_take) === 1,
+          takeNumber: Number(row.take_number) || 1,
+          status: String(row.status || 'unknown'),
+          createdAt: row.created_at || null,
+          completedAt: row.completed_at || null,
+          expiresAt: row.expires_at || null
+        };
+      });
+
+      return json({ generations, count: generations.length, limit });
+    } catch (error) {
+      console.error('generation_list_error', error);
+      return json({ error: 'Could not load your generations.' }, 500);
+    }
+  }
+
+  return originalAppFetch(request, env, ctx);
+};
