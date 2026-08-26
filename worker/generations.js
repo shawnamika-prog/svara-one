@@ -102,14 +102,11 @@ async function listUserGenerationObjects(env,userId,requestedLimit){
 }
 
 function safeRenameFilename(value,originalFilename){
-  const original=String(originalFilename||'');
-  const dot=original.lastIndexOf('.');
-  const extension=dot>0?original.slice(dot).toLowerCase():'';
+  const original=String(originalFilename||''),dot=original.lastIndexOf('.'),extension=dot>0?original.slice(dot).toLowerCase():'';
   let valueName=String(value||'').trim().replace(/[\\/]/g,'');
   if(!valueName||valueName==='.'||valueName==='..')throw new Error('A valid filename is required.');
   if(extension&&!valueName.toLowerCase().endsWith(extension))valueName+=extension;
-  const suppliedDot=valueName.lastIndexOf('.');
-  const suppliedExtension=suppliedDot>0?valueName.slice(suppliedDot).toLowerCase():'';
+  const suppliedDot=valueName.lastIndexOf('.'),suppliedExtension=suppliedDot>0?valueName.slice(suppliedDot).toLowerCase():'';
   if(extension&&suppliedExtension!==extension)throw new Error(`The file must keep its ${extension.slice(1).toUpperCase()} format.`);
   if(valueName.length>180)throw new Error('Filename is too long.');
   return valueName;
@@ -142,18 +139,15 @@ app.fetch=async(request,env,ctx)=>{
     if(!userId)return json({error:'Authentication required.'},401);
     if(!env.DB||!env.GENERATED_AUDIO)return json({error:'Generation storage is not configured.'},503);
     try{
-      const body=await request.json();
-      const requestedIndex=Number(body?.index);
-      const requestedFilename=String(body?.filename||'').trim();
-      if(!Number.isInteger(requestedIndex)||requestedIndex<0) return json({error:'Invalid generation.'},400);
+      const body=await request.json(),currentFilename=String(body?.currentFilename||'').trim(),requestedFilename=String(body?.filename||'').trim();
+      if(!currentFilename)return json({error:'Current filename is required.'},400);
       const objects=await listUserGenerationObjects(env,userId,500);
-      const object=objects[requestedIndex];
+      const object=objects.find(candidate=>String(candidate.key||'').split('/').pop()===currentFilename);
       if(!object?.key)return json({error:'Generation not found.'},404);
       const oldKey=String(object.key),originalFilename=oldKey.split('/').pop()||'';
       const newFilename=safeRenameFilename(requestedFilename,originalFilename);
       if(newFilename===originalFilename)return json({filename:originalFilename});
-      const prefix=`users/${userId}/generations/`;
-      const newKey=`${prefix}${newFilename}`;
+      const newKey=`users/${userId}/generations/${newFilename}`;
       if(await env.GENERATED_AUDIO.head(newKey))return json({error:'A generation with that filename already exists.'},409);
       const source=await env.GENERATED_AUDIO.get(oldKey);
       if(!source||!source.body)return json({error:'Generation file could not be read.'},404);
