@@ -153,7 +153,9 @@
 
   function openMoveDialog(filename) {
     injectStyles();
-    const options = `<option value="__unfiled__">Unfiled</option>${folders.map(folder => `<option value="${escapeHtml(folder.id)}">${escapeHtml(folder.name)}</option>`).join('')}`;
+    const generation = generations.find(item => String(item.filename) === String(filename));
+    const currentFolderId = generation?.folderId || '__unfiled__';
+    const options = `<option value="__unfiled__"${currentFolderId === '__unfiled__' ? ' disabled selected' : ''}>Unfiled</option>${folders.map(folder => `<option value="${escapeHtml(folder.id)}"${String(folder.id) === String(currentFolderId) ? ' disabled selected' : ''}>${escapeHtml(folder.name)}</option>`).join('')}`;
     showLibraryModal('Move generation', `<label for="myLibraryMoveFolder">Move “${escapeHtml(filename)}” to</label><select id="myLibraryMoveFolder">${options}</select>`, [
       { label:'Cancel', run:(_root,close)=>close() },
       { label:'Move', primary:true, run:async(root,close,button)=>{
