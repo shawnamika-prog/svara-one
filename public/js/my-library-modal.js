@@ -70,13 +70,11 @@
     wave.setAttribute('role','slider');
     wave.setAttribute('aria-label','Audio progress');
     wave.tabIndex=0;
-    const fill=document.createElement('div');
-    fill.className='svara-waveform-fill';
     const bars=document.createElement('div');
     bars.className='svara-waveform-bars';
-    const heights=[34,48,62,42,76,55,39,68,84,52,44,73,60,88,47,66,38,58,79,50,70,45,86,57,41,67,82,53,72,46,61,78,49,69,37,56,75,43,64,83,51,71,45,59,80,48,66,54];
-    heights.forEach((h,i)=>{const bar=document.createElement('span');bar.style.height=`${h}%`;bar.dataset.index=i;bars.appendChild(bar);});
-    wave.append(fill,bars);
+    const idleHeights=[.22,.55,.88,.58,.42,.72,.9,.48,.76,.9,.5,.68,.34];
+    idleHeights.forEach((h,i)=>{const bar=document.createElement('span');bar.style.height=`${h*100}%`;bar.dataset.index=i;bars.appendChild(bar);});
+    wave.append(bars);
     top.append(play,wave);
     const info=document.createElement('div');
     info.className='svara-audio-time';
@@ -86,26 +84,101 @@
     info.append(current,duration);
     wrap.append(top,info);
 
+    let audioContext=null,source=null,analyser=null,animationFrame=null;
+    const barEls=[...bars.querySelectorAll('span')];
+
+    const resetWave=()=>barEls.forEach((bar,index)=>{
+      bar.style.height=`${idleHeights[index%idleHeights.length]*100}%`;
+      bar.style.transform='scaleY(1)';
+    });
+
+    const animateWave=()=>{
+      if(!analyser||media.paused){animationFrame=null;return;}
+      const data=new Uint8Array(analyser.frequencyBinCount);
+      analyser.getByteFrequencyData(data);
+      const step=Math.max(1,Math.floor(data.length/barEls.length));
+      barEls.forEach((bar,index)=>{
+        let sum=0;
+        const start=index*step,end=Math.min(data.length,start+step);
+        for(let i=start;i<end;i++)sum+=data[i];
+        const level=(sum/Math.max(1,end-start))/255;
+        bar.style.height=`${18+Math.pow(level,.72)*82}%`;
+        bar.style.transform=`scaleY(${.82+level*.28})`;
+      });
+      animationFrame=requestAnimationFrame(animateWave);
+    };
+
+    const connectAnalyser=async()=>{
+      if(audioContext)return;
+      const Ctx=window.AudioContext||window.webkitAudioContext;
+      if(!Ctx)return;
+      try{
+        audioContext=new Ctx();
+        analyser=audioContext.createAnalyser();
+        analyser.fftSize=128;
+        analyser.smoothingTimeConstant=.78;
+        source=audioContext.createMediaElementSource(media);
+        source.connect(analyser);
+        analyser.connect(audioContext.destination);
+        await audioContext.resume();
+      }catch(err){
+        try{audioContext?.close();}catch{}
+        audioContext=null;source=null;analyser=null;
+      }
+    };
+
     const update=()=>{
       const d=Number.isFinite(media.duration)?media.duration:0;
       const p=d?Math.min(1,Math.max(0,media.currentTime/d)):0;
-      fill.style.width=`${p*100}%`;
-      bars.querySelectorAll('span').forEach((bar,i)=>bar.classList.toggle('is-played',i<Math.ceil(p*heights.length)));
       current.textContent=formatTime(media.currentTime);
       duration.textContent=formatTime(d);
+      wave.setAttribute('aria-valuemin','0');
+      wave.setAttribute('aria-valuemax',String(d||0));
+      wave.setAttribute('aria-valuenow',String(media.currentTime||0));
+      wave.style.setProperty('--svara-wave-progress',`${p*100}%`);
     };
-    const toggle=()=>{if(media.paused)media.play().catch(()=>{});else media.pause();};
+
+    const toggle=async()=>{
+      if(media.paused){
+        await connectAnalyser();
+        if(audioContext?.state==='suspended')await audioContext.resume().catch(()=>{});
+        media.play().catch(()=>{});
+      }else media.pause();
+    };
+
     play.addEventListener('click',toggle);
-    media.addEventListener('play',()=>{play.classList.add('is-playing');play.setAttribute('aria-label','Pause');play.querySelector('span').textContent='Ⅱ';});
-    media.addEventListener('pause',()=>{play.classList.remove('is-playing');play.setAttribute('aria-label','Play');play.querySelector('span').textContent='▶';});
+    media.addEventListener('play',async()=>{
+      await connectAnalyser();
+      if(audioContext?.state==='suspended')audioContext.resume().catch(()=>{});
+      play.classList.add('is-playing');
+      play.setAttribute('aria-label','Pause');
+      play.querySelector('span').textContent='Ⅱ';
+      if(!animationFrame)animateWave();
+    });
+    media.addEventListener('pause',()=>{
+      play.classList.remove('is-playing');
+      play.setAttribute('aria-label','Play');
+      play.querySelector('span').textContent='▶';
+      if(animationFrame){cancelAnimationFrame(animationFrame);animationFrame=null;}
+      resetWave();
+    });
     media.addEventListener('ended',()=>{media.currentTime=0;update();});
     media.addEventListener('timeupdate',update);
     media.addEventListener('loadedmetadata',update);
     const seek=e=>{const rect=wave.getBoundingClientRect();const ratio=Math.min(1,Math.max(0,(e.clientX-rect.left)/rect.width));if(Number.isFinite(media.duration))media.currentTime=media.duration*ratio;};
     wave.addEventListener('click',seek);
     wave.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();const step=5*(e.key==='ArrowRight'?1:-1);media.currentTime=Math.min(Math.max(0,media.currentTime+step),Number.isFinite(media.duration)?media.duration:media.currentTime);}});
-    previewCleanup=()=>{play.removeEventListener('click',toggle);wave.removeEventListener('click',seek);};
+    previewCleanup=()=>{
+      if(animationFrame){cancelAnimationFrame(animationFrame);animationFrame=null;}
+      play.removeEventListener('click',toggle);
+      wave.removeEventListener('click',seek);
+      try{source?.disconnect();}catch{}
+      try{analyser?.disconnect();}catch{}
+      try{audioContext?.close();}catch{}
+      source=null;analyser=null;audioContext=null;
+    };
     update();
+    resetWave();
     return wrap;
   }
 
