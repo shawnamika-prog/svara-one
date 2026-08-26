@@ -24,6 +24,14 @@
     toolbar.insertAdjacentElement('afterend', retention);
   }
 
+  // Add the retention date column without changing the existing studio markup.
+  if (tableHead && !tableHead.querySelector('.my-library-expiry-head')) {
+    const expiryHead = document.createElement('span');
+    expiryHead.className = 'my-library-expiry-head';
+    expiryHead.textContent = 'Auto removes';
+    tableHead.appendChild(expiryHead);
+  }
+
   let generations = [];
   let loaded = false;
   let loading = false;
@@ -48,6 +56,15 @@
     if (Number.isNaN(date.getTime())) return '—';
     return new Intl.DateTimeFormat(undefined, {
       year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    }).format(date);
+  }
+
+  function formatRemovalDate(value) {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '—';
+    return new Intl.DateTimeFormat(undefined, {
+      year: 'numeric', month: 'short', day: 'numeric'
     }).format(date);
   }
 
@@ -122,6 +139,7 @@
         <span>${escapeHtml(formatDate(item.createdAt))}</span>
         <span>${escapeHtml(item.format)}</span>
         <span>${escapeHtml(formatBytes(item.sizeBytes))}</span>
+        <span class="my-library-expiry" title="Automatically removed after 90 days">${escapeHtml(formatRemovalDate(item.expiresAt))}</span>
       `;
       fragment.appendChild(row);
     });
