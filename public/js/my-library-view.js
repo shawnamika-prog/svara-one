@@ -15,6 +15,15 @@
   const tableHead = table?.querySelector('.my-library-table-head');
   const empty = table?.querySelector('.my-library-empty');
 
+  // Retention notice: make the automatic 90-day deletion policy visible in My Library.
+  const toolbar = libraryView.querySelector('.my-library-toolbar');
+  if (toolbar && !libraryView.querySelector('.my-library-retention')) {
+    const retention = document.createElement('div');
+    retention.className = 'my-library-retention';
+    retention.innerHTML = '<span class="my-library-retention-icon" aria-hidden="true">◷</span><span><strong>90-day storage</strong> · Your generated files are automatically deleted after 90 days.</span>';
+    toolbar.insertAdjacentElement('afterend', retention);
+  }
+
   let generations = [];
   let loaded = false;
   let loading = false;
