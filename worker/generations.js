@@ -35,8 +35,7 @@ function filenameStamp(value) {
 }
 
 export function generationFilename(voiceName, format, suppliedStamp = '') {
-  const extension = extensionForFormat(format);
-  return `svara1_${safeVoiceName(voiceName)}_${filenameStamp(suppliedStamp)}.${extension}`;
+  return `svara1_${safeVoiceName(voiceName)}_${filenameStamp(suppliedStamp)}.${extensionForFormat(format)}`;
 }
 
 export function generationExpiryDate(from = new Date()) {
@@ -46,24 +45,11 @@ export function generationExpiryDate(from = new Date()) {
 }
 
 export async function createGeneration(env, {
-  id,
-  userId,
-  voiceId,
-  providerVoiceId,
-  voiceName,
-  script,
-  speed,
-  stability,
-  style,
-  format,
-  creditsCharged,
-  creditReferenceId,
-  parentGenerationId = null,
-  takeNumber = 1,
-  isFreeTake = false
+  id, userId, voiceId, providerVoiceId, voiceName, script, speed, stability, style,
+  format, creditsCharged, creditReferenceId, parentGenerationId = null,
+  takeNumber = 1, isFreeTake = false
 }) {
   if (!env.DB) throw new Error('D1 generation storage is not configured.');
-
   const extension = extensionForFormat(format);
   const cleanVoiceName = String(voiceName || 'voice').replace(/@@SVARA1:\d{8}_\d{6}$/, '').trim() || 'voice';
   const suppliedStamp = String(voiceName || '').match(/@@SVARA1:(\d{8}_\d{6})$/)?.[1] || '';
@@ -74,32 +60,17 @@ export async function createGeneration(env, {
   await env.DB.prepare(`
     INSERT INTO generations (
       id, user_id, parent_generation_id, take_number,
-      voice_id, provider_voice_id, voice_name,
-      script, character_count, speed, stability, style,
-      format, mime_type,
-      credits_charged, credit_reference_id, is_free_take,
-      status, r2_key, expires_at
+      voice_id, provider_voice_id, voice_name, script, character_count,
+      speed, stability, style, format, mime_type, credits_charged,
+      credit_reference_id, is_free_take, status, r2_key, expires_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'generating', ?, ?)
   `).bind(
-    id,
-    userId,
-    parentGenerationId,
-    takeNumber,
-    String(voiceId || ''),
-    String(providerVoiceId || ''),
-    cleanVoiceName,
-    String(script || ''),
-    String(script || '').length,
-    Number.isFinite(Number(speed)) ? Number(speed) : 1,
-    Number.isFinite(Number(stability)) ? Number(stability) : 50,
-    String(style || ''),
-    extension,
-    mimeTypeForFormat(extension),
-    Math.max(0, Number(creditsCharged) || 0),
-    creditReferenceId || null,
-    isFreeTake ? 1 : 0,
-    r2Key,
-    expiresAt
+    id, userId, parentGenerationId, takeNumber, String(voiceId || ''),
+    String(providerVoiceId || ''), cleanVoiceName, String(script || ''),
+    String(script || '').length, Number.isFinite(Number(speed)) ? Number(speed) : 1,
+    Number.isFinite(Number(stability)) ? Number(stability) : 50, String(style || ''),
+    extension, mimeTypeForFormat(extension), Math.max(0, Number(creditsCharged) || 0),
+    creditReferenceId || null, isFreeTake ? 1 : 0, r2Key, expiresAt
   ).run();
 
   return { id, r2Key, expiresAt, filename };
@@ -107,26 +78,14 @@ export async function createGeneration(env, {
 
 export async function markGenerationReady(env, id, r2Object) {
   await env.DB.prepare(`
-    UPDATE generations
-    SET status = 'ready',
-        r2_etag = ?,
-        size_bytes = ?,
-        completed_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
-    WHERE id = ?
-  `).bind(
-    r2Object?.etag || null,
-    Number.isFinite(Number(r2Object?.size)) ? Number(r2Object.size) : null,
-    id
-  ).run();
+    UPDATE generations SET status = 'ready', r2_etag = ?, size_bytes = ?,
+      completed_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?
+  `).bind(r2Object?.etag || null, Number.isFinite(Number(r2Object?.size)) ? Number(r2Object.size) : null, id).run();
 }
 
 export async function markGenerationFailed(env, id, status = 'failed') {
   const safeStatus = status === 'storage_failed' ? 'storage_failed' : 'failed';
-  await env.DB.prepare(`
-    UPDATE generations
-    SET status = ?, completed_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
-    WHERE id = ?
-  `).bind(safeStatus, id).run();
+  await env.DB.prepare(`UPDATE generations SET status = ?, completed_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?`).bind(safeStatus, id).run();
 }
 
 export async function deleteGenerationAudio(env, r2Key) {
@@ -136,29 +95,18 @@ export async function deleteGenerationAudio(env, r2Key) {
 
 export async function deleteUserGenerationAudio(env, userId) {
   if (!env.DB || !env.GENERATED_AUDIO) return;
-
-  const rows = await env.DB.prepare(
-    "SELECT r2_key FROM generations WHERE user_id = ? AND r2_key IS NOT NULL"
-  ).bind(userId).all();
-
-  const keys = (rows.results || [])
-    .map(row => String(row.r2_key || ''))
-    .filter(Boolean);
-
+  const rows = await env.DB.prepare("SELECT r2_key FROM generations WHERE user_id = ? AND r2_key IS NOT NULL").bind(userId).all();
+  const keys = (rows.results || []).map(row => String(row.r2_key || '')).filter(Boolean);
   if (keys.length) await env.GENERATED_AUDIO.delete(keys);
 }
 
 export async function cleanupExpiredGenerations(env, limit = 100) {
   if (!env.DB || !env.GENERATED_AUDIO) return { checked: 0, deleted: 0 };
-
   const rows = await env.DB.prepare(`
-    SELECT id, r2_key
-    FROM generations
+    SELECT id, r2_key FROM generations
     WHERE expires_at <= strftime('%Y-%m-%dT%H:%M:%fZ','now')
-    ORDER BY expires_at ASC
-    LIMIT ?
+    ORDER BY expires_at ASC LIMIT ?
   `).bind(Math.max(1, Math.min(1000, Number(limit) || 100))).all();
-
   let deleted = 0;
   for (const row of rows.results || []) {
     const key = String(row.r2_key || '');
@@ -170,7 +118,6 @@ export async function cleanupExpiredGenerations(env, limit = 100) {
       console.error('generation_cleanup_error', row.id, error);
     }
   }
-
   return { checked: (rows.results || []).length, deleted };
 }
 
@@ -192,14 +139,10 @@ async function authenticatedUserId(request, env) {
   const tokenHash = btoa(String.fromCharCode(...new Uint8Array(digest)))
     .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
   const row = await env.DB.prepare(`
-    SELECT u.id
-    FROM sessions s
-    JOIN users u ON u.id = s.user_id
-    WHERE s.token_hash = ?
-      AND s.revoked_at IS NULL
+    SELECT u.id FROM sessions s JOIN users u ON u.id = s.user_id
+    WHERE s.token_hash = ? AND s.revoked_at IS NULL
       AND s.expires_at > strftime('%Y-%m-%dT%H:%M:%fZ','now')
-      AND u.status = 'active'
-    LIMIT 1
+      AND u.status = 'active' LIMIT 1
   `).bind(tokenHash).first();
   return row?.id || null;
 }
@@ -211,44 +154,74 @@ function json(data, status = 200) {
   });
 }
 
+async function listUserGenerationObjects(env, userId, requestedLimit) {
+  if (!env.GENERATED_AUDIO) throw new Error('Generated audio R2 storage is not configured.');
+  const prefix = `users/${userId}/generations/`;
+  const limit = Math.max(1, Math.min(500, requestedLimit));
+  const objects = [];
+  let cursor;
+
+  while (objects.length < limit) {
+    const page = await env.GENERATED_AUDIO.list({
+      prefix,
+      limit: Math.min(1000, limit - objects.length),
+      ...(cursor ? { cursor } : {})
+    });
+    objects.push(...(page.objects || []));
+    if (!page.truncated || !page.cursor) break;
+    cursor = page.cursor;
+  }
+
+  return objects.slice(0, limit);
+}
+
 const originalAppFetch = app.fetch.bind(app);
 app.fetch = async (request, env, ctx) => {
   const url = new URL(request.url);
+
   if (request.method === 'GET' && url.pathname === '/api/generations') {
     const userId = await authenticatedUserId(request, env);
     if (!userId) return json({ error: 'Authentication required.' }, 401);
-    if (!env.DB) return json({ error: 'Generation database is not configured.' }, 503);
+    if (!env.DB || !env.GENERATED_AUDIO) return json({ error: 'Generation storage is not configured.' }, 503);
 
     try {
       const requestedLimit = Number(url.searchParams.get('limit') || 250);
       const limit = Math.max(1, Math.min(500, Number.isFinite(requestedLimit) ? requestedLimit : 250));
+
+      // R2 is the source of truth for what actually exists in My Library.
+      const objects = await listUserGenerationObjects(env, userId, limit);
+
+      // D1 supplies the generation metadata for those real R2 objects.
       const rows = await env.DB.prepare(`
         SELECT id, voice_name, format, size_bytes, character_count,
                credits_charged, is_free_take, take_number, status,
                created_at, completed_at, expires_at, r2_key
         FROM generations
         WHERE user_id = ?
-        ORDER BY created_at DESC
-        LIMIT ?
-      `).bind(userId, limit).all();
+      `).bind(userId).all();
+      const metadataByKey = new Map((rows.results || []).map(row => [String(row.r2_key || ''), row]));
 
-      const generations = (rows.results || []).map(row => {
-        const key = String(row.r2_key || '');
-        const filename = key.split('/').pop() || generationFilename(row.voice_name, row.format);
+      const generations = objects.map(object => {
+        const key = String(object.key || '');
+        const row = metadataByKey.get(key);
+        const filename = key.split('/').pop() || 'generation';
+        const extension = filename.split('.').pop()?.toLowerCase() || String(row?.format || 'mp3').toLowerCase();
+        const format = extensionForFormat(extension).toUpperCase();
+
         return {
-          id: String(row.id),
+          id: String(row?.id || object.etag || key),
           filename,
-          voiceName: String(row.voice_name || 'Voice'),
-          format: extensionForFormat(row.format).toUpperCase(),
-          sizeBytes: Number(row.size_bytes) || 0,
-          characterCount: Number(row.character_count) || 0,
-          creditsCharged: Number(row.credits_charged) || 0,
-          isFreeTake: Number(row.is_free_take) === 1,
-          takeNumber: Number(row.take_number) || 1,
-          status: String(row.status || 'unknown'),
-          createdAt: row.created_at || null,
-          completedAt: row.completed_at || null,
-          expiresAt: row.expires_at || null
+          voiceName: String(row?.voice_name || 'Voice'),
+          format,
+          sizeBytes: Number(object.size) || Number(row?.size_bytes) || 0,
+          characterCount: Number(row?.character_count) || 0,
+          creditsCharged: Number(row?.credits_charged) || 0,
+          isFreeTake: Number(row?.is_free_take) === 1,
+          takeNumber: Number(row?.take_number) || 1,
+          status: 'ready',
+          createdAt: row?.created_at || object.uploaded || null,
+          completedAt: row?.completed_at || object.uploaded || null,
+          expiresAt: row?.expires_at || null
         };
       });
 
