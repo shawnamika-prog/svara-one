@@ -72,7 +72,7 @@
     wave.tabIndex=0;
     const bars=document.createElement('div');
     bars.className='svara-waveform-bars';
-    const idleHeights=[.22,.55,.88,.58,.42,.72,.9,.48,.76,.9,.5,.68,.34];
+    const idleHeights=[.22,.55,.88,.58,.42,.72,.9,.48,.76,.9,.5,.68,.34,.62,.82,.46,.7,.92,.54,.78,.38,.66,.86,.5,.74,.94,.44,.69,.83,.57,.77,.35,.63,.9,.48,.71,.87,.53,.75,.41,.68,.88,.51,.73,.93,.46,.64,.8];
     idleHeights.forEach((h,i)=>{const bar=document.createElement('span');bar.style.height=`${h*100}%`;bar.dataset.index=i;bars.appendChild(bar);});
     wave.append(bars);
     top.append(play,wave);
