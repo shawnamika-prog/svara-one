@@ -56,7 +56,7 @@
   };
 })();
 
-// My Library — rename support. Kept isolated from the existing library renderer.
+// My Library — rename support using the reusable SvaraONE modal.
 (()=>{
   let activeGeneration=null;
 
@@ -76,9 +76,9 @@
       const dot=current.lastIndexOf('.');
       const extension=dot>0?current.slice(dot):'';
       const base=dot>0?current.slice(0,dot):current;
-      const entered=window.prompt('Rename generation',base);
-      if(entered===null)return;
-      const trimmed=entered.trim();
+      const entered=await window.SvaraModal?.rename(base);
+      if(entered===null||entered===undefined)return;
+      const trimmed=String(entered).trim();
       if(!trimmed||trimmed===base)return;
       const newFilename=trimmed.toLowerCase().endsWith(extension.toLowerCase())?trimmed:`${trimmed}${extension}`;
       try{
