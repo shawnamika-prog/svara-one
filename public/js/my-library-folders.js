@@ -155,12 +155,20 @@
     injectStyles();
     const generation = generations.find(item => String(item.filename) === String(filename));
     const currentFolderId = generation?.folderId || '__unfiled__';
-    const options = `<option value="__unfiled__"${currentFolderId === '__unfiled__' ? ' disabled selected' : ''}>Unfiled</option>${folders.map(folder => `<option value="${escapeHtml(folder.id)}"${String(folder.id) === String(currentFolderId) ? ' disabled selected' : ''}>${escapeHtml(folder.name)}</option>`).join('')}`;
+    const availableFolders = folders.filter(folder => String(folder.id) !== String(currentFolderId));
+    const availableDestinations = [
+      ...(currentFolderId !== '__unfiled__' ? ['<option value="__unfiled__">Unfiled</option>'] : []),
+      ...availableFolders.map(folder => `<option value="${escapeHtml(folder.id)}">${escapeHtml(folder.name)}</option>`)
+    ];
+    const options = availableDestinations.length
+      ? availableDestinations.join('')
+      : '<option value="" disabled selected>No other folders available</option>';
     showLibraryModal('Move generation', `<label for="myLibraryMoveFolder">Move “${escapeHtml(filename)}” to</label><select id="myLibraryMoveFolder">${options}</select>`, [
       { label:'Cancel', run:(_root,close)=>close() },
       { label:'Move', primary:true, run:async(root,close,button)=>{
         button.disabled = true;
-        const selected = root.querySelector('#myLibraryMoveFolder')?.value || '__unfiled__';
+        const selected = root.querySelector('#myLibraryMoveFolder')?.value || '';
+        if (!selected) { button.disabled = false; return; }
         try {
           const response = await fetch('/api/generations/move', { method:'POST', credentials:'same-origin', headers:{'content-type':'application/json',accept:'application/json'}, body:JSON.stringify({filename,folderId:selected === '__unfiled__' ? null : selected}) });
           const data = await response.json().catch(() => ({}));
