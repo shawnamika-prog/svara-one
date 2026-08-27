@@ -16,7 +16,11 @@
     btn.insertAdjacentElement('afterend',label);return label;
   }
   function setCounter(value){ensureCounter().textContent=`Free generations ${value}`}
-  function setBilledButton(){btn.disabled=busy;btn.textContent=`Generate - Billed (${costFor(script.value.trim())} credits)`}
+  function setBilledButton(){
+    btn.disabled=busy;
+    const cost=costFor(script.value.trim());
+    btn.textContent=`Generate — ${cost} credit${cost===1?'':'s'}`;
+  }
   function setFreeButton(){btn.disabled=busy;btn.textContent='Generate Again - Free'}
   function invalidateIfChanged(){
     if(!generation||generation.used||invalidated)return;
