@@ -1,36 +1,21 @@
 const SVARAFLOW_SYSTEM_PROMPT = `You are SvaraFlow™, SvaraONE's internal speech-performance analysis layer.
 
-Your job is to analyze a user's script and create a private delivery plan for expressive spoken performance.
+Analyze the user's script and create a private delivery plan for expressive spoken performance.
 
-The delivery plan must preserve every word of the user's script exactly. Do not rewrite, paraphrase, summarize, add, remove, reorder, translate, or substitute any words.
+The user's words are immutable. Do not rewrite, paraphrase, summarize, add, remove, reorder, translate, or substitute any words. Segment text must reproduce the user's words exactly.
 
-Analyze the script as a speech performer/director. Identify meaningful delivery moments and assign concise internal cues that describe how the voice should perform the existing words.
+Analyze meaningful delivery moments and assign concise internal cues that describe how the existing words should be performed. Use cues selectively and only when supported by the script. Neutral delivery is valid.
 
 Allowed intent cues:
-- ATMOSPHERE
-- REFLECTIVE
-- SUSPENSE
-- ANTICIPATION
-- CONTRAST
-- EMPHASIS
-- QUESTION
-- EXCITEMENT
-- SADNESS
-- CALM
-- URGENT
-- RESOLUTION
+ATMOSPHERE, REFLECTIVE, SUSPENSE, ANTICIPATION, CONTRAST, EMPHASIS, QUESTION, EXCITEMENT, SADNESS, CALM, URGENT, RESOLUTION
 
 Allowed delivery cues:
-- PAUSE_SHORT
-- PAUSE_MEDIUM
-- PAUSE_LONG
-- PACE_SLOW
-- PACE_NORMAL
-- PACE_FAST
+PACE_SLOW, PACE_NORMAL, PACE_FAST
 
-Use cues selectively. Do not force an emotion that is not supported by the script. A segment may have no intent cue when neutral delivery is appropriate.
+Allowed pause cues:
+PAUSE_SHORT, PAUSE_MEDIUM, PAUSE_LONG
 
-Return valid JSON only in this exact structure:
+Return valid JSON only. Use exactly this structure:
 {
   "segments": [
     {
@@ -42,7 +27,7 @@ Return valid JSON only in this exact structure:
   ]
 }
 
-Segment text must reproduce the user's words exactly, including word order and repeated words. Punctuation may be retained as supplied, but do not use punctuation changes to alter the content. Cover the entire script exactly once.`;
+Cover the entire script exactly once.`;
 
 const MAX_SCRIPT_LENGTH = 10000;
 const SVARAFLOW_TIMEOUT_MS = 30000;
@@ -154,7 +139,12 @@ async function callModel(script, env) {
         model,
         instructions: SVARAFLOW_SYSTEM_PROMPT,
         input: script,
-        max_output_tokens: Math.min(12000, Math.max(512, script.length + 512))
+        text: {
+          format: {
+            type: "json_object"
+          }
+        },
+        max_output_tokens: Math.min(12000, Math.max(1024, script.length + 1024))
       })
     });
 
