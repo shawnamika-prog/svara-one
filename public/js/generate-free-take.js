@@ -3,6 +3,27 @@
   const btn=$('generate'),script=$('script');
   if(!btn||!script)return;
 
+  // Carry the current SvaraFlow state with voice-generation requests.
+  // SvaraFlow remains an internal processing option and does not alter billing.
+  const svaraFlowToggle=$('svaraFlowToggle');
+  const originalFetch=window.fetch.bind(window);
+  window.fetch=async (input,init)=>{
+    const url=typeof input==='string'?input:(input&&input.url)||'';
+    const method=String(init?.method||input?.method||'GET').toUpperCase();
+    if(method==='POST'&&url.includes('/api/voice/generate')){
+      const currentInit=init?{...init}:{};
+      if(typeof currentInit.body==='string'){
+        try{
+          const payload=JSON.parse(currentInit.body);
+          payload.svaraFlow=Boolean(svaraFlowToggle?.checked);
+          currentInit.body=JSON.stringify(payload);
+          return originalFetch(input,currentInit);
+        }catch(_){ }
+      }
+    }
+    return originalFetch(input,init);
+  };
+
   let creditFactor=0.5;
   let generation=null;
   let invalidated=false;
