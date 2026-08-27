@@ -1,22 +1,57 @@
-const SVARAFLOW_SYSTEM_PROMPT = `You are SvaraFlow™, SvaraONE's internal speech-delivery preparation layer.
+const SVARAFLOW_SYSTEM_PROMPT = `You are SvaraFlow™, SvaraONE's internal speech-performance analysis layer.
 
-Your only job is to prepare a user's script for expressive spoken delivery before it is sent to a text-to-speech engine.
+Your job is to analyze a user's script and create a private delivery plan for expressive spoken performance.
 
-Rules:
-- Preserve the user's words, meaning, names, facts, and intended language.
-- Do not add new information.
-- Do not remove meaningful content.
-- Do not rewrite the script into a different message.
-- Improve spoken flow primarily through punctuation and sentence structure.
-- Add or adjust periods, commas, question marks, exclamation marks, dashes, and paragraph breaks only when they improve natural delivery.
-- Break up excessively long sentences when the existing words support a natural spoken boundary.
-- Use punctuation deliberately to create natural pauses, rhythm, emphasis, and conversational delivery.
-- Preserve intentional wording, capitalization where meaningful, numbers, URLs, and special terms.
-- Do not explain your changes.
-- Return only the speech-ready script as plain text.`;
+The delivery plan must preserve every word of the user's script exactly. Do not rewrite, paraphrase, summarize, add, remove, reorder, translate, or substitute any words.
+
+Analyze the script as a speech performer/director. Identify meaningful delivery moments and assign concise internal cues that describe how the voice should perform the existing words.
+
+Allowed intent cues:
+- ATMOSPHERE
+- REFLECTIVE
+- SUSPENSE
+- ANTICIPATION
+- CONTRAST
+- EMPHASIS
+- QUESTION
+- EXCITEMENT
+- SADNESS
+- CALM
+- URGENT
+- RESOLUTION
+
+Allowed delivery cues:
+- PAUSE_SHORT
+- PAUSE_MEDIUM
+- PAUSE_LONG
+- PACE_SLOW
+- PACE_NORMAL
+- PACE_FAST
+
+Use cues selectively. Do not force an emotion that is not supported by the script. A segment may have no intent cue when neutral delivery is appropriate.
+
+Return valid JSON only in this exact structure:
+{
+  "segments": [
+    {
+      "text": "exact existing words from the script",
+      "intent": "ONE_ALLOWED_INTENT_OR_NULL",
+      "delivery": "ONE_ALLOWED_DELIVERY_OR_NULL",
+      "pause_after": "ONE_ALLOWED_PAUSE_OR_NULL"
+    }
+  ]
+}
+
+Segment text must reproduce the user's words exactly, including word order and repeated words. Punctuation may be retained as supplied, but do not use punctuation changes to alter the content. Cover the entire script exactly once.`;
 
 const MAX_SCRIPT_LENGTH = 10000;
 const SVARAFLOW_TIMEOUT_MS = 30000;
+const ALLOWED_INTENTS = new Set([
+  "ATMOSPHERE", "REFLECTIVE", "SUSPENSE", "ANTICIPATION", "CONTRAST",
+  "EMPHASIS", "QUESTION", "EXCITEMENT", "SADNESS", "CALM", "URGENT", "RESOLUTION"
+]);
+const ALLOWED_DELIVERY = new Set(["PACE_SLOW", "PACE_NORMAL", "PACE_FAST"]);
+const ALLOWED_PAUSES = new Set(["PAUSE_SHORT", "PAUSE_MEDIUM", "PAUSE_LONG"]);
 
 function normalizeInput(script) {
   return String(script ?? "").replace(/\r\n/g, "\n").trim();
@@ -29,19 +64,36 @@ function normalizeForContentComparison(text) {
     .replace(/[\p{P}\p{S}\s]+/gu, "");
 }
 
-function validateOutput(original, processed) {
-  const value = String(processed ?? "").trim();
-  if (!value) throw new Error("SvaraFlow returned an empty script");
-  if (value.length > MAX_SCRIPT_LENGTH) throw new Error("SvaraFlow returned an oversized script");
-
-  const originalCore = normalizeForContentComparison(original);
-  const processedCore = normalizeForContentComparison(value);
-
-  if (!originalCore || originalCore !== processedCore) {
-    throw new Error("SvaraFlow changed the script content");
+function validatePlan(original, plan) {
+  if (!plan || !Array.isArray(plan.segments) || !plan.segments.length) {
+    throw new Error("SvaraFlow returned an invalid delivery plan");
   }
 
-  return value;
+  const segments = plan.segments.map((segment, index) => {
+    if (!segment || typeof segment !== "object") throw new Error(`SvaraFlow segment ${index + 1} is invalid`);
+    const text = String(segment.text ?? "");
+    if (!text.trim()) throw new Error(`SvaraFlow segment ${index + 1} is empty`);
+
+    const intent = segment.intent == null ? null : String(segment.intent);
+    const delivery = segment.delivery == null ? null : String(segment.delivery);
+    const pauseAfter = segment.pause_after == null ? null : String(segment.pause_after);
+
+    if (intent !== null && !ALLOWED_INTENTS.has(intent)) throw new Error(`SvaraFlow segment ${index + 1} has an invalid intent`);
+    if (delivery !== null && !ALLOWED_DELIVERY.has(delivery)) throw new Error(`SvaraFlow segment ${index + 1} has an invalid delivery cue`);
+    if (pauseAfter !== null && !ALLOWED_PAUSES.has(pauseAfter)) throw new Error(`SvaraFlow segment ${index + 1} has an invalid pause cue`);
+
+    return { text, intent, delivery, pause_after: pauseAfter };
+  });
+
+  const combined = segments.map(segment => segment.text).join(" ");
+  const originalCore = normalizeForContentComparison(original);
+  const combinedCore = normalizeForContentComparison(combined);
+
+  if (!originalCore || originalCore !== combinedCore) {
+    throw new Error("SvaraFlow changed, omitted, duplicated, or reordered script content");
+  }
+
+  return { segments };
 }
 
 function svaraFlowDebugEnabled(env) {
@@ -49,16 +101,26 @@ function svaraFlowDebugEnabled(env) {
   return value === "true" || value === "1" || value === "yes";
 }
 
-function logSvaraFlowDebug(original, processed, env) {
+function logSvaraFlowAnalysis(original, plan, env) {
   if (!svaraFlowDebugEnabled(env)) return;
-
-  console.log("svaraflow_debug", {
-    changed: original !== processed,
+  console.log("svaraflow_analysis", {
     originalLength: original.length,
-    processedLength: processed.length,
-    originalScript: original,
-    processedScript: processed
+    segmentCount: plan.segments.length,
+    plan
   });
+}
+
+function extractJson(text) {
+  const value = String(text ?? "").trim();
+  if (!value) throw new Error("SvaraFlow returned no usable analysis");
+  try {
+    return JSON.parse(value);
+  } catch {
+    const start = value.indexOf("{");
+    const end = value.lastIndexOf("}");
+    if (start === -1 || end <= start) throw new Error("SvaraFlow returned invalid JSON");
+    return JSON.parse(value.slice(start, end + 1));
+  }
 }
 
 async function callModel(script, env) {
@@ -116,11 +178,9 @@ async function callModel(script, env) {
         .map(item => typeof item.text === "string" ? item.text : "")
         .join("");
 
-    if (!text.trim()) throw new Error("SvaraFlow returned no usable text");
-
-    const processed = validateOutput(script, text);
-    logSvaraFlowDebug(script, processed, env);
-    return processed;
+    const plan = validatePlan(script, extractJson(text));
+    logSvaraFlowAnalysis(script, plan, env);
+    return plan;
   } catch (error) {
     if (error?.name === "AbortError") {
       if (svaraFlowDebugEnabled(env)) {
