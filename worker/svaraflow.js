@@ -84,7 +84,22 @@ async function callModel(script, env) {
         .join("");
 
     if (!text.trim()) throw new Error("SvaraFlow returned no usable text");
-    return validateOutput(script, text);
+
+    const processed = validateOutput(script, text);
+
+    // Temporary development diagnostic. Enable with SVARAFLOW_DEBUG=true.
+    // This is intentionally server-side only and must be disabled before launch.
+    if (String(env.SVARAFLOW_DEBUG || "").trim().toLowerCase() === "true") {
+      console.log("svaraflow_debug", JSON.stringify({
+        original: script,
+        processed,
+        changed: script !== processed,
+        originalLength: script.length,
+        processedLength: processed.length
+      }));
+    }
+
+    return processed;
   } catch (error) {
     if (error?.name === "AbortError") {
       throw new Error(`SvaraFlow timed out after ${SVARAFLOW_TIMEOUT_MS}ms`);
