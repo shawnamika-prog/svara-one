@@ -108,6 +108,109 @@ function extractJson(text) {
   }
 }
 
+function clonePunctuation(text) {
+  return String(text ?? "").replace(/\s+/g, " ").trim();
+}
+
+function countOccurrences(text, token) {
+  return String(text).split(token).length - 1;
+}
+
+function applyShortPause(text) {
+  const value = clonePunctuation(text);
+  if (!value) return value;
+  if (/[.!?…]$/.test(value)) return value;
+  if (/[,;:]$/.test(value)) return value;
+  return value + ",";
+}
+
+function applyMediumPause(text, intent) {
+  const value = clonePunctuation(text);
+  if (!value) return value;
+  if (/[.!?…]$/.test(value)) return value;
+  if (intent === "CONTRAST" && /\b(and|but|yet|however)\b/i.test(value)) {
+    return value.replace(/\s+(and|but|yet|however)\b/i, " — $1");
+  }
+  return value + "...";
+}
+
+function applyLongPause(text) {
+  const value = clonePunctuation(text);
+  if (!value) return value;
+  if (/[.!?…]$/.test(value)) return value;
+  return value + "...";
+}
+
+function translateSegment(segment, index) {
+  let text = clonePunctuation(segment.text);
+  const intent = segment.intent;
+  const delivery = segment.delivery;
+  const pause = segment.pause_after;
+
+  if (delivery === "PACE_FAST") {
+    text = text.replace(/\.\.\./g, ".");
+  }
+
+  if (pause === "PAUSE_SHORT") {
+    text = applyShortPause(text);
+  } else if (pause === "PAUSE_MEDIUM") {
+    text = applyMediumPause(text, intent);
+  } else if (pause === "PAUSE_LONG") {
+    text = applyLongPause(text);
+  }
+
+  return { text, index };
+}
+
+function validatePreparedScript(original, prepared) {
+  const originalCore = normalizeForContentComparison(original);
+  const preparedCore = normalizeForContentComparison(prepared);
+  if (!originalCore || originalCore !== preparedCore) {
+    throw new Error("SvaraFlow 3E changed, omitted, duplicated, or reordered script content");
+  }
+}
+
+export function translateSvaraFlowPlan(originalScript, plan, env = {}) {
+  const original = normalizeInput(originalScript);
+  const validatedPlan = validatePlan(original, plan);
+
+  const translatedSegments = validatedPlan.segments.map((segment, index) => translateSegment(segment, index));
+  let preparedScript = translatedSegments.map(segment => segment.text).join(" ");
+
+  // Keep the v1 translator conservative: avoid runaway ellipsis insertion.
+  const ellipsisCount = countOccurrences(preparedScript, "...");
+  if (ellipsisCount > Math.max(3, Math.ceil(validatedPlan.segments.length / 2))) {
+    preparedScript = preparedScript.replace(/\.\.\./g, ".");
+  }
+
+  validatePreparedScript(original, preparedScript);
+
+  const metadata = {
+    originalLength: original.length,
+    preparedLength: preparedScript.length,
+    transformationCount: translatedSegments.reduce((count, segment, index) => {
+      return count + (segment.text !== clonePunctuation(validatedPlan.segments[index].text) ? 1 : 0);
+    }, 0),
+    segmentCount: translatedSegments.length,
+    svaraflowVersion: "3E-A-v1"
+  };
+
+  if (svaraFlowDebugEnabled(env)) {
+    console.log("svaraflow_3e_debug", {
+      originalScript: original,
+      preparedScript,
+      metadata,
+      segments: translatedSegments.map((segment, index) => ({
+        index: index + 1,
+        source: validatedPlan.segments[index],
+        output: segment.text
+      }))
+    });
+  }
+
+  return { preparedScript, metadata };
+}
+
 async function callModel(script, env) {
   const apiKey = String(env.OPENAI_API_KEY || "").trim();
   if (!apiKey) throw new Error("SvaraFlow provider is not configured");
