@@ -140,29 +140,65 @@ function countOccurrences(text, token) {
   return String(text).split(token).length - 1;
 }
 
-function applyShortPause(text) {
+function sentenceEndsWithTerminal(text) {
+  return /[.!?…]$/.test(text);
+}
+
+function addEllipsisBeforeFinalClause(text) {
+  const value = clonePunctuation(text);
+  if (!value || value.includes("...")) return value;
+
+  const commaIndex = value.indexOf(",");
+  if (commaIndex > 8 && commaIndex < value.length - 12) {
+    return `${value.slice(0, commaIndex)}...${value.slice(commaIndex + 1)}`.replace(/\.\.\.\s+/g, "... ");
+  }
+
+  return value.replace(/[.!?]$/, "...");
+}
+
+function applyShortPause(text, intent) {
   const value = clonePunctuation(text);
   if (!value) return value;
-  if (/[.!?…]$/.test(value)) return value;
-  if (/[,;:]$/.test(value)) return value;
+
+  if (intent === "SUSPENSE" || intent === "ANTICIPATION" || intent === "REFLECTIVE") {
+    if (value.includes("...")) return value;
+    if (/,/.test(value)) return addEllipsisBeforeFinalClause(value);
+    if (sentenceEndsWithTerminal(value)) return value.replace(/[.!?]$/, "...");
+  }
+
+  if (sentenceEndsWithTerminal(value) || /[,;:]$/.test(value)) return value;
   return value + ",";
 }
 
 function applyMediumPause(text, intent) {
   const value = clonePunctuation(text);
   if (!value) return value;
-  if (/[.!?…]$/.test(value)) return value;
-  if (intent === "CONTRAST" && /\b(and|but|yet|however)\b/i.test(value)) {
-    return value.replace(/\s+(and|but|yet|however)\b/i, " — $1");
+
+  if (intent === "CONTRAST") {
+    const contrastMatch = value.match(/\s+(and|but|yet|however)\b/i);
+    if (contrastMatch && !value.includes(" — ")) {
+      return value.replace(contrastMatch[0], ` — ${contrastMatch[1]}`);
+    }
   }
+
+  if (intent === "ATMOSPHERE" || intent === "REFLECTIVE" || intent === "ANTICIPATION") {
+    if (/,/.test(value) && !value.includes("...")) return addEllipsisBeforeFinalClause(value);
+  }
+
+  if (sentenceEndsWithTerminal(value)) return value.replace(/[.!?]$/, "...");
   return value + "...";
 }
 
-function applyLongPause(text) {
+function applyLongPause(text, intent) {
   const value = clonePunctuation(text);
   if (!value) return value;
-  if (/[.!?…]$/.test(value)) return value;
-  return value + "...";
+  if (value.includes("...")) return value;
+
+  if (intent === "RESOLUTION" || intent === "SUSPENSE" || intent === "REFLECTIVE") {
+    return value.replace(/[.!?]$/, "...");
+  }
+
+  return value.replace(/[.!?]$/, "...");
 }
 
 function translateSegment(segment, index) {
@@ -176,11 +212,11 @@ function translateSegment(segment, index) {
   }
 
   if (pause === "PAUSE_SHORT") {
-    text = applyShortPause(text);
+    text = applyShortPause(text, intent);
   } else if (pause === "PAUSE_MEDIUM") {
     text = applyMediumPause(text, intent);
   } else if (pause === "PAUSE_LONG") {
-    text = applyLongPause(text);
+    text = applyLongPause(text, intent);
   }
 
   return { text, index };
@@ -201,9 +237,15 @@ export function translateSvaraFlowPlan(originalScript, plan, env = {}) {
   const translatedSegments = validatedPlan.segments.map((segment, index) => translateSegment(segment, index));
   let preparedScript = translatedSegments.map(segment => segment.text).join(" ");
 
+  // Keep the translator expressive but controlled: avoid excessive ellipses.
   const ellipsisCount = countOccurrences(preparedScript, "...");
-  if (ellipsisCount > Math.max(3, Math.ceil(validatedPlan.segments.length / 2))) {
-    preparedScript = preparedScript.replace(/\.\.\./g, ".");
+  const maxEllipses = Math.max(2, Math.ceil(validatedPlan.segments.length / 2));
+  if (ellipsisCount > maxEllipses) {
+    let seen = 0;
+    preparedScript = preparedScript.replace(/\.\.\./g, () => {
+      seen += 1;
+      return seen <= maxEllipses ? "..." : ".";
+    });
   }
 
   validatePreparedScript(original, preparedScript);
@@ -215,7 +257,7 @@ export function translateSvaraFlowPlan(originalScript, plan, env = {}) {
       return count + (segment.text !== clonePunctuation(validatedPlan.segments[index].text) ? 1 : 0);
     }, 0),
     segmentCount: translatedSegments.length,
-    svaraflowVersion: "3E-A-v1"
+    svaraflowVersion: "3E-B-v1"
   };
 
   if (svaraFlowDebugEnabled(env)) {
