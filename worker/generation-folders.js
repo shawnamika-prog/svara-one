@@ -34,6 +34,11 @@ function cleanFolderName(value) {
   return name;
 }
 
+async function folderForUser(env, folderId, userId) {
+  if (!folderId) return null;
+  return env.DB.prepare("SELECT id,name FROM library_folders WHERE id=? AND user_id=? LIMIT 1").bind(String(folderId), userId).first();
+}
+
 const originalAppFetch = app.fetch.bind(app);
 app.fetch = async (request, env, ctx) => {
   const url = new URL(request.url);
@@ -66,6 +71,64 @@ app.fetch = async (request, env, ctx) => {
         console.error("library_folder_create_error", error);
         return json({ error: error?.message || "Could not create folder." }, 400);
       }
+    }
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/generations/folders/rename") {
+    const userId = await authenticatedUserId(request, env);
+    if (!userId) return json({ error: "Authentication required." }, 401);
+    if (!env.DB) return json({ error: "Library storage is not configured." }, 503);
+    try {
+      const body = await request.json().catch(() => ({}));
+      const folderId = String(body?.folderId || "").trim();
+      const name = cleanFolderName(body?.name);
+      if (!folderId) return json({ error: "Folder ID is required." }, 400);
+      const folder = await folderForUser(env, folderId, userId);
+      if (!folder) return json({ error: "Folder not found." }, 404);
+      const result = await env.DB.prepare("UPDATE library_folders SET name=? WHERE id=? AND user_id=?").bind(name, folderId, userId).run();
+      if (!result.meta?.changes) return json({ error: "Folder could not be renamed." }, 500);
+      return json({ success: true, folder: { id: folderId, name } });
+    } catch (error) {
+      if (String(error?.message || "").toLowerCase().includes("unique")) return json({ error: "A folder with that name already exists." }, 409);
+      console.error("library_folder_rename_error", error);
+      return json({ error: error?.message || "Could not rename folder." }, 400);
+    }
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/generations/folders/delete") {
+    const userId = await authenticatedUserId(request, env);
+    if (!userId) return json({ error: "Authentication required." }, 401);
+    if (!env.DB || !env.GENERATED_AUDIO) return json({ error: "Library storage is not configured." }, 503);
+    try {
+      const body = await request.json().catch(() => ({}));
+      const folderId = String(body?.folderId || "").trim();
+      if (!folderId) return json({ error: "Folder ID is required." }, 400);
+      const folder = await folderForUser(env, folderId, userId);
+      if (!folder) return json({ error: "Folder not found." }, 404);
+
+      const rows = await env.DB.prepare("SELECT id,r2_key FROM generations WHERE user_id=? AND folder_id=?").bind(userId, folderId).all();
+      const generationRows = rows.results || [];
+      const keys = generationRows.map(row => String(row.r2_key || "")).filter(Boolean);
+
+      if (keys.length) {
+        for (let i = 0; i < keys.length; i += 1000) {
+          await env.GENERATED_AUDIO.delete(keys.slice(i, i + 1000));
+        }
+      }
+
+      if (generationRows.length) {
+        for (let i = 0; i < generationRows.length; i += 100) {
+          const chunk = generationRows.slice(i, i + 100);
+          const placeholders = chunk.map(() => "?").join(",");
+          await env.DB.prepare(`DELETE FROM generations WHERE user_id=? AND folder_id=? AND id IN (${placeholders})`).bind(userId, folderId, ...chunk.map(row => String(row.id))).run();
+        }
+      }
+
+      await env.DB.prepare("DELETE FROM library_folders WHERE id=? AND user_id=?").bind(folderId, userId).run();
+      return json({ success: true, folderId, folderName: String(folder.name || ""), deletedCount: generationRows.length });
+    } catch (error) {
+      console.error("library_folder_delete_error", error);
+      return json({ error: error?.message || "Could not delete folder." }, 500);
     }
   }
 
