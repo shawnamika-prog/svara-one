@@ -44,6 +44,23 @@ function validateOutput(original, processed) {
   return value;
 }
 
+function svaraFlowDebugEnabled(env) {
+  const value = String(env.SVARAFLOW_DEBUG ?? "").trim().toLowerCase();
+  return value === "true" || value === "1" || value === "yes";
+}
+
+function logSvaraFlowDebug(original, processed, env) {
+  if (!svaraFlowDebugEnabled(env)) return;
+
+  console.log("svaraflow_debug", {
+    changed: original !== processed,
+    originalLength: original.length,
+    processedLength: processed.length,
+    originalScript: original,
+    processedScript: processed
+  });
+}
+
 async function callModel(script, env) {
   const apiKey = String(env.OPENAI_API_KEY || "").trim();
   if (!apiKey) throw new Error("SvaraFlow provider is not configured");
@@ -86,19 +103,7 @@ async function callModel(script, env) {
     if (!text.trim()) throw new Error("SvaraFlow returned no usable text");
 
     const processed = validateOutput(script, text);
-
-    // Temporary development diagnostic. Enable with SVARAFLOW_DEBUG=true.
-    // This is intentionally server-side only and must be disabled before launch.
-    if (String(env.SVARAFLOW_DEBUG || "").trim().toLowerCase() === "true") {
-      console.log("svaraflow_debug", JSON.stringify({
-        original: script,
-        processed,
-        changed: script !== processed,
-        originalLength: script.length,
-        processedLength: processed.length
-      }));
-    }
-
+    logSvaraFlowDebug(script, processed, env);
     return processed;
   } catch (error) {
     if (error?.name === "AbortError") {
@@ -115,6 +120,13 @@ export async function processSvaraFlow(script, env) {
   if (!originalScript) throw new Error("SvaraFlow requires script text");
   if (originalScript.length > MAX_SCRIPT_LENGTH) {
     throw new Error(`SvaraFlow maximum is ${MAX_SCRIPT_LENGTH} characters`);
+  }
+
+  if (svaraFlowDebugEnabled(env)) {
+    console.log("svaraflow_debug_start", {
+      scriptLength: originalScript.length,
+      model: String(env.SVARAFLOW_MODEL || "gpt-5-mini")
+    });
   }
 
   return callModel(originalScript, env);
