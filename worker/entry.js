@@ -3,7 +3,7 @@ import { handleAuth } from "./auth.js";
 import { handlePayfast, runBillingCron } from "./payfast.js";
 import { getVoiceById, getVoiceByProviderId, syncVoiceRegistry, seedMissingVoiceSamples } from "./voice-registry.js";
 import { createGeneration, markGenerationReady, markGenerationFailed, cleanupExpiredGenerations, mimeTypeForFormat } from "./generations.js";
-import { processSvaraFlow } from "./svaraflow.js";
+import { processSvaraFlow, translateSvaraFlowPlan } from "./svaraflow.js";
 
 const PORTRAIT_NAMES = {
   en: "thalia",
@@ -380,7 +380,21 @@ export default {
         return new Response(JSON.stringify({ error: "That voice is not available on your current plan." }), { status: 403, headers: { "content-type": "application/json" } });
       }
 
-      const cost = generationCost(text, env);
+      let generationText = text;
+      let svaraFlowMetadata = null;
+      if (body.svaraFlow === true) {
+        try {
+          const deliveryPlan = await processSvaraFlow(text, env);
+          const translated = translateSvaraFlowPlan(text, deliveryPlan, env);
+          generationText = translated.preparedScript;
+          svaraFlowMetadata = translated.metadata;
+        } catch (svaraFlowError) {
+          console.error("svaraflow_error", svaraFlowError);
+          generationText = text;
+        }
+      }
+
+      const cost = generationCost(generationText, env);
       const generationId = crypto.randomUUID();
       const reservation = await reserveCredits(userId, cost, env, generationId);
       if (!reservation) return new Response(JSON.stringify({ error: "Not enough credits." }), { status: 402, headers: { "content-type": "application/json" } });
@@ -401,16 +415,6 @@ export default {
           creditsCharged: cost,
           creditReferenceId: reservation.referenceId
         });
-
-        let generationText = text;
-        if (body.svaraFlow === true) {
-          try {
-            generationText = await processSvaraFlow(text, env);
-          } catch (svaraFlowError) {
-            console.error("svaraflow_error", svaraFlowError);
-            generationText = text;
-          }
-        }
 
         const providerRequest = generationText === text
           ? request
