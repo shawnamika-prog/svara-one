@@ -138,7 +138,7 @@ async function callModel(script, env) {
       body: JSON.stringify({
         model,
         instructions: SVARAFLOW_SYSTEM_PROMPT,
-        input: script,
+        input: `Return the SvaraFlow delivery plan as JSON.\n\n${script}`,
         text: {
           format: {
             type: "json_object"
