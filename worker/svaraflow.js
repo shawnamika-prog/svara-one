@@ -16,9 +16,17 @@ Rules:
 - Return only the speech-ready script as plain text.`;
 
 const MAX_SCRIPT_LENGTH = 10000;
+const SVARAFLOW_TIMEOUT_MS = 15000;
 
 function normalizeInput(script) {
   return String(script ?? "").replace(/\r\n/g, "\n").trim();
+}
+
+function normalizeForContentComparison(text) {
+  return String(text ?? "")
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/[\p{P}\p{S}\s]+/gu, "");
 }
 
 function validateOutput(original, processed) {
@@ -26,16 +34,10 @@ function validateOutput(original, processed) {
   if (!value) throw new Error("SvaraFlow returned an empty script");
   if (value.length > MAX_SCRIPT_LENGTH) throw new Error("SvaraFlow returned an oversized script");
 
-  // Step 3A is intentionally conservative: the processor may alter punctuation
-  // and spacing, but it must not materially change the amount of text.
-  const stripPunctuation = text => text
-    .toLowerCase()
-    .replace(/[\p{P}\p{S}\s]+/gu, "")
-    .trim();
+  const originalCore = normalizeForContentComparison(original);
+  const processedCore = normalizeForContentComparison(value);
 
-  const originalCore = stripPunctuation(original);
-  const processedCore = stripPunctuation(value);
-  if (originalCore !== processedCore) {
+  if (!originalCore || originalCore !== processedCore) {
     throw new Error("SvaraFlow changed the script content");
   }
 
@@ -47,35 +49,50 @@ async function callModel(script, env) {
   if (!apiKey) throw new Error("SvaraFlow provider is not configured");
 
   const model = String(env.SVARAFLOW_MODEL || "gpt-5-mini").trim();
-  const response = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model,
-      instructions: SVARAFLOW_SYSTEM_PROMPT,
-      input: script,
-      temperature: 0.2,
-      max_output_tokens: Math.min(12000, Math.max(512, script.length + 512))
-    })
-  });
+  if (!model) throw new Error("SvaraFlow model is not configured");
 
-  if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    throw new Error(`SvaraFlow provider error ${response.status}: ${detail.slice(0, 300)}`);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), SVARAFLOW_TIMEOUT_MS);
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${apiKey}`
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model,
+        instructions: SVARAFLOW_SYSTEM_PROMPT,
+        input: script,
+        max_output_tokens: Math.min(12000, Math.max(512, script.length + 512))
+      })
+    });
+
+    if (!response.ok) {
+      const detail = await response.text().catch(() => "");
+      throw new Error(`SvaraFlow provider error ${response.status}: ${detail.slice(0, 300)}`);
+    }
+
+    const data = await response.json();
+    const text = typeof data.output_text === "string"
+      ? data.output_text
+      : (Array.isArray(data.output) ? data.output : [])
+        .flatMap(item => Array.isArray(item.content) ? item.content : [])
+        .map(item => typeof item.text === "string" ? item.text : "")
+        .join("");
+
+    if (!text.trim()) throw new Error("SvaraFlow returned no usable text");
+    return validateOutput(script, text);
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error(`SvaraFlow timed out after ${SVARAFLOW_TIMEOUT_MS}ms`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
   }
-
-  const data = await response.json();
-  const text = typeof data.output_text === "string"
-    ? data.output_text
-    : (data.output || [])
-      .flatMap(item => item.content || [])
-      .map(item => item.text || "")
-      .join("");
-
-  return validateOutput(script, text);
 }
 
 export async function processSvaraFlow(script, env) {
