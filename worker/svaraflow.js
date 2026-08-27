@@ -16,7 +16,7 @@ Rules:
 - Return only the speech-ready script as plain text.`;
 
 const MAX_SCRIPT_LENGTH = 10000;
-const SVARAFLOW_TIMEOUT_MS = 15000;
+const SVARAFLOW_TIMEOUT_MS = 30000;
 
 function normalizeInput(script) {
   return String(script ?? "").replace(/\r\n/g, "\n").trim();
@@ -68,8 +68,17 @@ async function callModel(script, env) {
   const model = String(env.SVARAFLOW_MODEL || "gpt-5-mini").trim();
   if (!model) throw new Error("SvaraFlow model is not configured");
 
+  const startedAt = Date.now();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), SVARAFLOW_TIMEOUT_MS);
+
+  if (svaraFlowDebugEnabled(env)) {
+    console.log("svaraflow_openai_request_start", {
+      model,
+      scriptLength: script.length,
+      timeoutMs: SVARAFLOW_TIMEOUT_MS
+    });
+  }
 
   try {
     const response = await fetch("https://api.openai.com/v1/responses", {
@@ -86,6 +95,13 @@ async function callModel(script, env) {
         max_output_tokens: Math.min(12000, Math.max(512, script.length + 512))
       })
     });
+
+    if (svaraFlowDebugEnabled(env)) {
+      console.log("svaraflow_openai_response", {
+        status: response.status,
+        elapsedMs: Date.now() - startedAt
+      });
+    }
 
     if (!response.ok) {
       const detail = await response.text().catch(() => "");
@@ -107,6 +123,12 @@ async function callModel(script, env) {
     return processed;
   } catch (error) {
     if (error?.name === "AbortError") {
+      if (svaraFlowDebugEnabled(env)) {
+        console.error("svaraflow_openai_timeout", {
+          elapsedMs: Date.now() - startedAt,
+          timeoutMs: SVARAFLOW_TIMEOUT_MS
+        });
+      }
       throw new Error(`SvaraFlow timed out after ${SVARAFLOW_TIMEOUT_MS}ms`);
     }
     throw error;
