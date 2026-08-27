@@ -46,6 +46,16 @@
   <div class="panel-head"><div><small>SCRIPT</small><h2>Create your voice</h2></div></div>
   <textarea id="script" maxlength="2000" placeholder="Type or paste your script here…">Welcome to SvaraONE — a global AI voice creation platform. Create professional voice content with voices that sound natural, human and real.</textarea>
   <div id="scriptCounter" class="script-counter" aria-live="polite">2,000 characters remaining</div>
+  <div class="svaraflow-control" style="margin-top:12px;">
+    <label class="svaraflow-toggle" style="display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;">
+      <span style="font-size:12px;font-weight:600;">SvaraFlow™</span>
+      <input id="svaraFlowToggle" type="checkbox" aria-label="Enable SvaraFlow" style="position:absolute;opacity:0;pointer-events:none;">
+      <span class="svaraflow-switch" aria-hidden="true" style="position:relative;width:38px;height:20px;border-radius:999px;background:#23313d;border:1px solid #ffffff16;transition:.2s;">
+        <span style="position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#8b9aa8;transition:.2s;"></span>
+      </span>
+    </label>
+    <div id="svaraFlowMessage" hidden style="margin-top:7px;font-size:10px;line-height:1.45;color:#31e3c8;">SvaraFlow™ enabled — optimized for expressive voice delivery.</div>
+  </div>
   <div id="languageWarning" class="language-warning" hidden></div>
   <div id="creditWarning" class="language-warning" hidden></div>
   <div class="controls">
@@ -125,6 +135,9 @@
 </section>
 </main>
 </div>
+<script>
+(()=>{const t=document.getElementById('svaraFlowToggle'),m=document.getElementById('svaraFlowMessage'),s=t?.nextElementSibling;if(!t||!m||!s)return;const sync=()=>{m.hidden=!t.checked;s.style.background=t.checked?'#123d39':'#23313d';s.style.borderColor=t.checked?'#31e3c855':'#ffffff16';const knob=s.firstElementChild;if(knob){knob.style.left=t.checked?'20px':'2px';knob.style.background=t.checked?'#31e3c8':'#8b9aa8';}};t.addEventListener('change',sync);sync();})();
+</script>
 <script src="js/voices.js"></script>
 <script src="js/studio-v2.js"></script>
 <script src="js/my-library-modal.js"></script>
