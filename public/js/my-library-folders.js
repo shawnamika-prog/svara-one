@@ -11,6 +11,7 @@
   let selectedFolderId = '__unfiled__';
   let activeFilename = '';
   let observerTimer = null;
+  let folderMenu = null;
 
   function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
@@ -28,6 +29,10 @@
     document.querySelectorAll('.my-library-file-menu').forEach(menu => menu.remove());
   }
 
+  function closeFolderMenu() {
+    if (folderMenu) { folderMenu.remove(); folderMenu = null; }
+  }
+
   function showLibraryModal(title, body, actions) {
     document.querySelector('.my-library-folder-modal')?.remove();
     const root = document.createElement('div');
@@ -41,7 +46,7 @@
     actions.forEach(action => {
       const button = document.createElement('button');
       button.type = 'button';
-      button.className = `my-library-folder-dialog-button${action.primary ? ' primary' : ''}`;
+      button.className = `my-library-folder-dialog-button${action.primary ? ' primary' : ''}${action.danger ? ' danger' : ''}`;
       button.textContent = action.label;
       button.addEventListener('click', async () => {
         if (action.run) await action.run(root, close, button);
@@ -56,21 +61,32 @@
     if (document.getElementById('my-library-folder-action-styles')) return;
     const style = document.createElement('style');
     style.id = 'my-library-folder-action-styles';
-    style.textContent = `.my-library-folder-modal{position:fixed;inset:0;z-index:1100;display:flex;align-items:center;justify-content:center;padding:24px}.my-library-folder-modal-backdrop{position:absolute;inset:0;background:#0009;backdrop-filter:blur(4px)}.my-library-folder-dialog{position:relative;width:min(430px,calc(100vw - 32px));padding:20px;background:#081522;border:1px solid #ffffff16;border-radius:14px;box-shadow:0 24px 70px #000b;color:#b9c8d6}.my-library-folder-dialog-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.my-library-folder-dialog-head small{display:block;color:#31e3c8;font-size:9px;letter-spacing:.14em}.my-library-folder-dialog-head h3{margin:5px 0 0;color:#e7eef5;font-size:17px}.my-library-folder-close{width:30px;height:30px;border:1px solid #ffffff10;border-radius:8px;background:#0b1b29;color:#91a5b7;font-size:20px;line-height:1;cursor:pointer}.my-library-folder-dialog-body{margin:18px 0}.my-library-folder-dialog-body label{display:block;margin-bottom:7px;color:#9fb2c5;font-size:11px}.my-library-folder-dialog-body input,.my-library-folder-dialog-body select{box-sizing:border-box;width:100%;padding:11px 12px;border:1px solid #ffffff14;border-radius:9px;background:#07121d;color:#dbe6ef;outline:none;font:inherit;font-size:12px}.my-library-folder-dialog-body input:focus,.my-library-folder-dialog-body select:focus{border-color:#31e3c866}.my-library-folder-dialog-help{margin:9px 0 0;color:#71879a;font-size:11px;line-height:1.5}.my-library-folder-dialog-error{margin-top:9px;color:#ff8d8d;font-size:11px}.my-library-folder-dialog-actions{display:flex;justify-content:flex-end;gap:9px}.my-library-folder-dialog-button{padding:9px 14px;border:1px solid #ffffff12;border-radius:8px;background:#0b1b29;color:#9fb2c5;font:inherit;font-size:11px;cursor:pointer}.my-library-folder-dialog-button.primary{background:#0d2930;border-color:#31e3c855;color:#31e3c8}.my-library-folder-dialog-button:disabled{opacity:.55;cursor:default}.my-library-folder-created{animation:myLibraryFolderFlash .8s ease}@keyframes myLibraryFolderFlash{0%{background:#0d3b36}100%{background:transparent}}`;
+    style.textContent = `.my-library-folder-modal{position:fixed;inset:0;z-index:1100;display:flex;align-items:center;justify-content:center;padding:24px}.my-library-folder-modal-backdrop{position:absolute;inset:0;background:#0009;backdrop-filter:blur(4px)}.my-library-folder-dialog{position:relative;width:min(430px,calc(100vw - 32px));padding:20px;background:#081522;border:1px solid #ffffff16;border-radius:14px;box-shadow:0 24px 70px #000b;color:#b9c8d6}.my-library-folder-dialog-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.my-library-folder-dialog-head small{display:block;color:#31e3c8;font-size:9px;letter-spacing:.14em}.my-library-folder-dialog-head h3{margin:5px 0 0;color:#e7eef5;font-size:17px}.my-library-folder-close{width:30px;height:30px;border:1px solid #ffffff10;border-radius:8px;background:#0b1b29;color:#91a5b7;font-size:20px;line-height:1;cursor:pointer}.my-library-folder-dialog-body{margin:18px 0}.my-library-folder-dialog-body label{display:block;margin-bottom:7px;color:#9fb2c5;font-size:11px}.my-library-folder-dialog-body input,.my-library-folder-dialog-body select{box-sizing:border-box;width:100%;padding:11px 12px;border:1px solid #ffffff14;border-radius:9px;background:#07121d;color:#dbe6ef;outline:none;font:inherit;font-size:12px}.my-library-folder-dialog-body input:focus,.my-library-folder-dialog-body select:focus{border-color:#31e3c866}.my-library-folder-dialog-help{margin:9px 0 0;color:#71879a;font-size:11px;line-height:1.5}.my-library-folder-dialog-error{margin-top:9px;color:#ff8d8d;font-size:11px}.my-library-folder-dialog-actions{display:flex;justify-content:flex-end;gap:9px}.my-library-folder-dialog-button{padding:9px 14px;border:1px solid #ffffff12;border-radius:8px;background:#0b1b29;color:#9fb2c5;font:inherit;font-size:11px;cursor:pointer}.my-library-folder-dialog-button.primary{background:#0d2930;border-color:#31e3c855;color:#31e3c8}.my-library-folder-dialog-button.danger{background:#291418;border-color:#ff7d7d44;color:#ff9a9a}.my-library-folder-dialog-button:disabled{opacity:.55;cursor:default}.my-library-folder-created{animation:myLibraryFolderFlash .8s ease}@keyframes myLibraryFolderFlash{0%{background:#0d3b36}100%{background:transparent}}.my-library-folder-row{display:flex;align-items:center;gap:3px;width:100%}.my-library-folder-row>.my-library-folder{flex:1;min-width:0}.my-library-folder-more{flex:0 0 28px;width:28px;height:28px;border:0;border-radius:7px;background:transparent;color:#71869a;font-size:17px;line-height:1;cursor:pointer;opacity:.65}.my-library-folder-more:hover,.my-library-folder-more:focus-visible{background:#0a1d2b;color:#31e3c8;opacity:1;outline:none}.my-library-folder-menu{position:fixed;z-index:1050;min-width:140px;padding:6px;background:#081522;border:1px solid #ffffff16;border-radius:10px;box-shadow:0 16px 36px #0009}.my-library-folder-menu button{display:block;width:100%;padding:9px 11px;border:0;border-radius:7px;background:transparent;color:#9fb2c5;text-align:left;font:inherit;font-size:11px;cursor:pointer}.my-library-folder-menu button:hover{background:#0a1d2b;color:#31e3c8}.my-library-folder-menu button.danger:hover{color:#ff8b8b}`;
     document.head.appendChild(style);
   }
 
   function renderFolders() {
-    foldersNav.querySelectorAll('.my-library-folder[data-library-folder-id]').forEach(button => button.remove());
+    foldersNav.querySelectorAll('.my-library-folder-row[data-library-folder-id]').forEach(row => row.remove());
     const staticButtons = [...foldersNav.querySelectorAll('.my-library-folder')];
     const unfiled = staticButtons.find(button => staticFolderId(button) === '__unfiled__');
     folders.forEach(folder => {
+      const row = document.createElement('div');
+      row.className = 'my-library-folder-row';
+      row.dataset.libraryFolderId = folder.id;
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'my-library-folder';
       button.dataset.libraryFolderId = folder.id;
-      button.innerHTML = `<span class="my-library-folder-icon">□</span>${escapeHtml(folder.name)}<span style="margin-left:auto;opacity:.55;font-size:10px">${Number(folder.itemCount)||0}</span>`;
-      foldersNav.appendChild(button);
+      button.innerHTML = `<span class="my-library-folder-icon">□</span><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(folder.name)}</span><span style="margin-left:auto;opacity:.55;font-size:10px">${Number(folder.itemCount)||0}</span>`;
+      const more = document.createElement('button');
+      more.type = 'button';
+      more.className = 'my-library-folder-more';
+      more.dataset.folderAction = 'true';
+      more.dataset.libraryFolderId = folder.id;
+      more.setAttribute('aria-label', `Manage ${folder.name}`);
+      more.textContent = '⋯';
+      row.append(button, more);
+      foldersNav.appendChild(row);
     });
     foldersNav.querySelectorAll('.my-library-folder').forEach(button => {
       button.classList.toggle('active', staticFolderId(button) === selectedFolderId || button.dataset.libraryFolderId === selectedFolderId);
@@ -151,55 +167,100 @@
     ]);
   }
 
-  function openMoveDialog(filename) {
+  function openRenameFolder(folder) {
     injectStyles();
-    const generation = generations.find(item => String(item.filename) === String(filename));
-    const currentFolderId = generation?.folderId || '__unfiled__';
-    const availableFolders = folders.filter(folder => String(folder.id) !== String(currentFolderId));
-    const availableDestinations = [
-      ...(currentFolderId !== '__unfiled__' ? ['<option value="__unfiled__">Unfiled</option>'] : []),
-      ...availableFolders.map(folder => `<option value="${escapeHtml(folder.id)}">${escapeHtml(folder.name)}</option>`)
-    ];
-    const options = availableDestinations.length
-      ? availableDestinations.join('')
-      : '<option value="" disabled selected>No other folders available</option>';
-    showLibraryModal('Move generation', `<label for="myLibraryMoveFolder">Move “${escapeHtml(filename)}” to</label><select id="myLibraryMoveFolder">${options}</select>`, [
+    const root = showLibraryModal('Rename folder', '<label for="myLibraryRenameFolder">Folder name</label><input id="myLibraryRenameFolder" type="text" maxlength="80" autocomplete="off" spellcheck="false"><p class="my-library-folder-dialog-help">Rename the folder without changing any files inside it.</p>', [
       { label:'Cancel', run:(_root,close)=>close() },
-      { label:'Move', primary:true, run:async(root,close,button)=>{
+      { label:'Save changes', primary:true, run:async(root,close,button)=>{
+        const input = root.querySelector('#myLibraryRenameFolder');
+        const name = input?.value?.trim() || '';
+        if (!name) { input?.focus(); return; }
         button.disabled = true;
-        const selected = root.querySelector('#myLibraryMoveFolder')?.value || '';
-        if (!selected) { button.disabled = false; return; }
         try {
-          const response = await fetch('/api/generations/move', { method:'POST', credentials:'same-origin', headers:{'content-type':'application/json',accept:'application/json'}, body:JSON.stringify({filename,folderId:selected === '__unfiled__' ? null : selected}) });
+          const response = await fetch('/api/generations/folders/rename', { method:'POST', credentials:'same-origin', headers:{'content-type':'application/json',accept:'application/json'}, body:JSON.stringify({folderId:folder.id,name}) });
           const data = await response.json().catch(() => ({}));
-          if (!response.ok) throw new Error(data.error || `Could not move generation (${response.status})`);
+          if (!response.ok) throw new Error(data.error || `Could not rename folder (${response.status})`);
           close();
-          window.location.reload();
+          await loadFolders();
         } catch (error) {
           button.disabled = false;
           const old = root.querySelector('.my-library-folder-dialog-error');
           if (old) old.remove();
-          root.querySelector('.my-library-folder-dialog-body')?.insertAdjacentHTML('beforeend', `<div class="my-library-folder-dialog-error">${escapeHtml(error?.message || 'Could not move generation.')}</div>`);
+          root.querySelector('.my-library-folder-dialog-body')?.insertAdjacentHTML('beforeend', `<div class="my-library-folder-dialog-error">${escapeHtml(error?.message || 'Could not rename folder.')}</div>`);
+        }
+      }}
+    ]);
+    const input = root.querySelector('#myLibraryRenameFolder');
+    if (input) input.value = folder.name;
+  }
+
+  function openDeleteFolder(folder) {
+    injectStyles();
+    const count = Number(folder.itemCount) || 0;
+    const fileText = count === 1 ? '1 file' : `${count} files`;
+    showLibraryModal(`Delete “${folder.name}”?`, `<p class="my-library-folder-dialog-help" style="margin-top:0">This will permanently delete the folder and ${fileText} inside it. The files will also be permanently removed from your SvaraONE storage.</p><p class="my-library-folder-dialog-help">This action cannot be undone.</p>`, [
+      { label:'Cancel', run:(_root,close)=>close() },
+      { label:'Delete folder', danger:true, run:async(root,close,button)=>{
+        button.disabled = true;
+        button.textContent = 'Deleting…';
+        try {
+          const response = await fetch('/api/generations/folders/delete', { method:'POST', credentials:'same-origin', headers:{'content-type':'application/json',accept:'application/json'}, body:JSON.stringify({folderId:folder.id}) });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.error || `Could not delete folder (${response.status})`);
+          selectedFolderId = '__unfiled__';
+          close();
+          await loadFolders();
+        } catch (error) {
+          button.disabled = false;
+          button.textContent = 'Delete folder';
+          const old = root.querySelector('.my-library-folder-dialog-error');
+          if (old) old.remove();
+          root.querySelector('.my-library-folder-dialog-body')?.insertAdjacentHTML('beforeend', `<div class="my-library-folder-dialog-error">${escapeHtml(error?.message || 'Could not delete folder.')}</div>`);
         }
       }}
     ]);
   }
 
+  function openFolderMenu(folder, trigger) {
+    closeFolderMenu();
+    const menu = document.createElement('div');
+    menu.className = 'my-library-folder-menu';
+    menu.innerHTML = '<button type="button" data-folder-action="rename">Rename</button><button type="button" class="danger" data-folder-action="delete">Delete folder</button>';
+    document.body.appendChild(menu);
+    folderMenu = menu;
+    const rect = trigger.getBoundingClientRect();
+    const menuRect = menu.getBoundingClientRect();
+    menu.style.left = `${Math.max(12, Math.min(rect.right - menuRect.width, window.innerWidth - menuRect.width - 12))}px`;
+    menu.style.top = `${Math.max(12, Math.min(rect.bottom + 5, window.innerHeight - menuRect.height - 12))}px`;
+    menu.querySelector('[data-folder-action="rename"]').addEventListener('click', event => { event.stopPropagation(); closeFolderMenu(); openRenameFolder(folder); });
+    menu.querySelector('[data-folder-action="delete"]').addEventListener('click', event => { event.stopPropagation(); closeFolderMenu(); openDeleteFolder(folder); });
+  }
+
   newFolderButton.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); openNewFolder(); });
 
   foldersNav.addEventListener('click', async event => {
+    const more = event.target.closest('.my-library-folder-more');
+    if (more) {
+      event.preventDefault();
+      event.stopPropagation();
+      const folder = folders.find(item => String(item.id) === String(more.dataset.libraryFolderId));
+      if (folder) openFolderMenu(folder, more);
+      return;
+    }
     const button = event.target.closest('.my-library-folder');
     if (!button) return;
     const clickedFolderId = staticFolderId(button) || button.dataset.libraryFolderId;
     if (!clickedFolderId) return;
     event.preventDefault();
     event.stopPropagation();
+    closeFolderMenu();
     selectedFolderId = clickedFolderId;
     renderFolders();
     await loadFolders();
   });
 
   document.addEventListener('click', event => {
+    if (folderMenu && !folderMenu.contains(event.target) && !event.target.closest('.my-library-folder-more')) closeFolderMenu();
     const name = event.target.closest('.my-library-name');
     if (name) activeFilename = name.querySelector('strong')?.textContent?.trim() || '';
     const button = event.target.closest('.my-library-file-menu button');
@@ -211,6 +272,9 @@
     closeActionMenu();
     openMoveDialog(activeFilename);
   }, true);
+
+  window.addEventListener('resize', closeFolderMenu);
+  window.addEventListener('scroll', closeFolderMenu, true);
 
   const table = libraryView.querySelector('.my-library-table');
   if (table) {
