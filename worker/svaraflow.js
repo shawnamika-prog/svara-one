@@ -15,19 +15,43 @@ PACE_SLOW, PACE_NORMAL, PACE_FAST
 Allowed pause cues:
 PAUSE_SHORT, PAUSE_MEDIUM, PAUSE_LONG
 
-Return valid JSON only. Use exactly this structure:
-{
-  "segments": [
-    {
-      "text": "exact existing words from the script",
-      "intent": "ONE_ALLOWED_INTENT_OR_NULL",
-      "delivery": "ONE_ALLOWED_DELIVERY_OR_NULL",
-      "pause_after": "ONE_ALLOWED_PAUSE_OR_NULL"
-    }
-  ]
-}
+Return the delivery plan as JSON matching the required response schema.
 
 Cover the entire script exactly once.`;
+
+const SVARAFLOW_RESPONSE_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["segments"],
+  properties: {
+    segments: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["text", "intent", "delivery", "pause_after"],
+        properties: {
+          text: { type: "string" },
+          intent: {
+            type: ["string", "null"],
+            enum: [
+              "ATMOSPHERE", "REFLECTIVE", "SUSPENSE", "ANTICIPATION", "CONTRAST",
+              "EMPHASIS", "QUESTION", "EXCITEMENT", "SADNESS", "CALM", "URGENT", "RESOLUTION", null
+            ]
+          },
+          delivery: {
+            type: ["string", "null"],
+            enum: ["PACE_SLOW", "PACE_NORMAL", "PACE_FAST", null]
+          },
+          pause_after: {
+            type: ["string", "null"],
+            enum: ["PAUSE_SHORT", "PAUSE_MEDIUM", "PAUSE_LONG", null]
+          }
+        }
+      }
+    }
+  }
+};
 
 const MAX_SCRIPT_LENGTH = 10000;
 const SVARAFLOW_TIMEOUT_MS = 30000;
@@ -177,7 +201,6 @@ export function translateSvaraFlowPlan(originalScript, plan, env = {}) {
   const translatedSegments = validatedPlan.segments.map((segment, index) => translateSegment(segment, index));
   let preparedScript = translatedSegments.map(segment => segment.text).join(" ");
 
-  // Keep the v1 translator conservative: avoid runaway ellipsis insertion.
   const ellipsisCount = countOccurrences(preparedScript, "...");
   if (ellipsisCount > Math.max(3, Math.ceil(validatedPlan.segments.length / 2))) {
     preparedScript = preparedScript.replace(/\.\.\./g, ".");
@@ -244,10 +267,13 @@ async function callModel(script, env) {
         input: `Return the SvaraFlow delivery plan as JSON.\n\n${script}`,
         text: {
           format: {
-            type: "json_object"
+            type: "json_schema",
+            name: "svaraflow_delivery_plan",
+            strict: true,
+            schema: SVARAFLOW_RESPONSE_SCHEMA
           }
         },
-        max_output_tokens: Math.min(12000, Math.max(1024, script.length + 1024))
+        max_output_tokens: Math.min(12000, Math.max(2048, script.length + 1024))
       })
     });
 
