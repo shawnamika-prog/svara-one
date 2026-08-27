@@ -8,7 +8,7 @@
 
   let folders = [];
   let generations = [];
-  let selectedFolderId = '__all__';
+  let selectedFolderId = '__unfiled__';
   let activeFilename = '';
   let observerTimer = null;
 
@@ -138,7 +138,7 @@
           const data = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(data.error || `Could not create folder (${response.status})`);
           close();
-          selectedFolderId = data.folder?.id || '__all__';
+          selectedFolderId = data.folder?.id || '__unfiled__';
           await loadFolders();
           setTimeout(() => foldersNav.querySelector(`[data-library-folder-id="${CSS.escape(selectedFolderId)}"]`)?.classList.add('my-library-folder-created'), 20);
         } catch (error) {
