@@ -3,6 +3,7 @@ import { handleAuth } from "./auth.js";
 import { handlePayfast, runBillingCron } from "./payfast.js";
 import { getVoiceById, getVoiceByProviderId, syncVoiceRegistry, seedMissingVoiceSamples } from "./voice-registry.js";
 import { createGeneration, markGenerationReady, markGenerationFailed, cleanupExpiredGenerations, mimeTypeForFormat } from "./generations.js";
+import { processSvaraFlow } from "./svaraflow.js";
 
 const PORTRAIT_NAMES = {
   en: "thalia",
@@ -401,7 +402,24 @@ export default {
           creditReferenceId: reservation.referenceId
         });
 
-        const response = await app.fetch(request, env, ctx);
+        let generationText = text;
+        if (body.svaraFlow === true) {
+          try {
+            generationText = await processSvaraFlow(text, env);
+          } catch (svaraFlowError) {
+            console.error("svaraflow_error", svaraFlowError);
+            generationText = text;
+          }
+        }
+
+        const providerRequest = generationText === text
+          ? request
+          : new Request(request.url, {
+              method: request.method,
+              headers: new Headers(request.headers),
+              body: JSON.stringify({ ...body, text: generationText })
+            });
+        const response = await app.fetch(providerRequest, env, ctx);
         if (!response.ok) {
           await markGenerationFailed(env, generation.id, "failed");
           await refundCredits(userId, cost, reservation.referenceId, env);
