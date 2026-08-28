@@ -384,7 +384,9 @@ export default {
       let svaraFlowMetadata = null;
       if (body.svaraFlow === true) {
         try {
-          const deliveryPlan = await processSvaraFlow(text, env);
+          const category = String(body.svaraFlowCategory || "").trim();
+          const style = String(body.svaraFlowStyle || "").trim();
+          const deliveryPlan = await processSvaraFlow(text, env, { category, style });
           const translated = translateSvaraFlowPlan(text, deliveryPlan, env);
           generationText = translated.preparedScript;
           svaraFlowMetadata = translated.metadata;
