@@ -6,3 +6,6 @@
 @media(min-width:901px){
   aside{position:sticky;top:72px;height:calc(100vh - 72px);align-self:start;overflow:hidden}
 }
+
+/* SvaraFlow category/style controls are no longer part of the Studio workflow. */
+.svaraflow-control{display:none!important}
