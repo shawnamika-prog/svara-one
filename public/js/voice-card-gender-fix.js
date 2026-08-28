@@ -8,16 +8,22 @@
       const meta=card.querySelector('.voice-card-meta');
       if(!meta)return;
 
-      // studio-v2 currently renders: gender · region · language · style.
-      // Use the metadata already rendered into the card so this remains correct after every render.
+      // Detailed metadata is rendered by voices.js. Never overwrite it.
+      // This guard is the critical fix: the legacy gender normalizer must not
+      // destroy accent, language, gender, age, characteristics or use cases.
+      if(meta.querySelector('.voice-meta-identity, .voice-meta-character, .voice-meta-usecase')){
+        return;
+      }
+
       const raw=meta.textContent.split('·').map(v=>v.trim()).filter(Boolean);
       if(!raw.length)return;
 
+      // Only normalize the legacy/simple card metadata.
       const genderIndex=raw.findIndex(v=>genderValues.has(v.toLowerCase()));
-      const gender=genderIndex>=0?displayValue(raw[genderIndex]):'';
-      const withoutGender=genderIndex>=0?raw.filter((_,i)=>i!==genderIndex):raw;
+      if(genderIndex<0)return;
 
-      // Remove any duplicate gender/style value from the remaining metadata.
+      const gender=displayValue(raw[genderIndex]);
+      const withoutGender=raw.filter((_,i)=>i!==genderIndex);
       const clean=withoutGender.filter(v=>!genderValues.has(v.toLowerCase()));
       const region=clean[0]?displayValue(clean[0]):'';
       const language=clean[1]?displayValue(clean[1]):'';
