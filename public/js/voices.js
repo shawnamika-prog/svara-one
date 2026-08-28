@@ -47,7 +47,7 @@ window.SVARA_VOICES = [
   }
 })();
 
-/* Voice-card metadata presentation: expose useful provider metadata without recommendation scoring. */
+/* Voice-card metadata presentation: show only customer-useful selection metadata. */
 (() => {
   const escapeHtml = value => String(value ?? '').replace(/[&<>'\"]/g, char => ({
     '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '\"':'&quot;'
@@ -76,27 +76,22 @@ window.SVARA_VOICES = [
           if (!voice) return;
           const meta = voice.metadata || {};
           const intelligence = voice.voiceIntelligence?.providerMetadata || {};
-          const characteristics = (Array.isArray(meta.characteristics) ? meta.characteristics : Array.isArray(intelligence.characteristics) ? intelligence.characteristics : voice.characteristics || [])
-            .map(String).map(x => x.trim()).filter(Boolean).filter(x => !isGender(x));
           const useCases = (Array.isArray(meta.use_cases) ? meta.use_cases : Array.isArray(meta.useCases) ? meta.useCases : Array.isArray(intelligence.useCases) ? intelligence.useCases : [])
             .map(String).map(x => x.trim()).filter(Boolean);
-          const age = String(meta.age || voice.age || intelligence.age || '').trim();
           const accent = String(meta.accent || voice.accent || '').trim();
           const language = String(meta.language || voice.languageName || intelligence.language || '').trim();
           const gender = String(voice.gender || intelligence.gender || '').trim();
 
-          const identity = [accent, language, gender, age].filter(Boolean).join(' · ');
-          const character = characteristics.slice(0, 4).join(' · ');
-          const useCase = useCases.slice(0, 4).map(titleCase).join(' · ');
+          const identity = [accent, language, gender].filter(Boolean).join(' · ');
+          const useCase = useCases.slice(0, 3).map(titleCase).join(' · ');
           const target = card.querySelector('.voice-card-meta');
           if (!target) return;
 
           target.innerHTML = `
             <div class="voice-meta-identity">${escapeHtml(identity)}</div>
-            ${character ? `<div class="voice-meta-character">${escapeHtml(character)}</div>` : ''}
             ${useCase ? `<div class="voice-meta-usecase"><span>USE CASES</span> ${escapeHtml(useCase)}</div>` : ''}
           `;
-          target.title = [identity, character, useCase].filter(Boolean).join(' · ');
+          target.title = [identity, useCase].filter(Boolean).join(' · ');
           card.dataset.metaRendered = '1';
         });
       };
