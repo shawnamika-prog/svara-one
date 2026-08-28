@@ -1,6 +1,7 @@
 import { getSvaraFlowStyleProfile } from "./svaraflow.js";
 import { buildSvaraVoiceProfile } from "./voice-intelligence.js";
 
+// Provisional scoring only. These weights are intentionally calibration-ready and must be validated by 3F-B testing.
 const USE_CASE_WEIGHTS = {
   storytelling: 40,
   audiobook: 35,
@@ -60,7 +61,7 @@ const STYLE_CHARACTERISTIC_PREFERENCES = {
   "Media/Trailer": { positive: ["expressiveness", "energy", "confidence", "engagement"], negative: [] },
   "Performance/Dramatic": { positive: ["expressiveness", "engagement", "vocal_depth", "vocal_texture"], negative: [] },
   "Performance/Inspirational": { positive: ["confidence", "expressiveness", "warmth", "energy", "engagement"], negative: [] },
-  "Performance/Calm": { positive: ["calmness", "smoothness", "warmth", "naturalness", "breathiness"], negative: ["energy"] },
+  "Performance/Calm": { positive: ["smoothness", "warmth", "naturalness", "breathiness"], negative: ["energy"] },
   "Performance/Energetic": { positive: ["energy", "expressiveness", "confidence", "engagement"], negative: [] },
   "Performance/Mystery": { positive: ["smoothness", "vocal_depth", "vocal_texture", "breathiness", "naturalness"], negative: ["energy"] }
 };
@@ -97,19 +98,19 @@ function useCaseScore(useCases, preferredUseCases) {
 function characteristicScore(attributes, preferences) {
   const positive = preferences?.positive || [];
   const negative = preferences?.negative || [];
-  if (!positive.length && !negative.length) return 15;
-
   let positiveTotal = 0;
   let positiveHits = 0;
+
   for (const field of positive) {
     const value = characteristicValue(attributes[field]);
     if (value == null) continue;
     positiveTotal += value;
     positiveHits++;
   }
-  const positiveScore = positiveHits ? (positiveTotal / positiveHits) * 25 : 0;
 
+  const positiveScore = positiveHits ? (positiveTotal / positiveHits) * 25 : 0;
   let negativePenalty = 0;
+
   for (const field of negative) {
     const value = characteristicValue(attributes[field]);
     if (value == null) continue;
@@ -129,19 +130,19 @@ function styleProfileScore(profile, attributes) {
   const hasHigh = expectedEnergy.includes("HIGH");
   let score = 10;
 
-  if (energy === 0 && hasLow) score += 5;
-  else if (energy === 0.5 && hasMedium) score += 5;
-  else if (energy === 1 && hasHigh) score += 5;
-  else if ((energy === 0 && hasMedium) || (energy === 0.5 && (hasLow || hasHigh)) || (energy === 1 && hasMedium)) score += 2;
+  if (energy === 0 && hasLow) score += 10;
+  else if (energy === 0.5 && hasMedium) score += 10;
+  else if (energy === 1 && hasHigh) score += 10;
+  else if ((energy === 0 && hasMedium) || (energy === 0.5 && (hasLow || hasHigh)) || (energy === 1 && hasMedium)) score += 5;
 
-  return Math.min(15, score);
+  return Math.min(20, score);
 }
 
-function paceScore(profile, calibration) {
-  const preferred = Array.isArray(profile?.pace) ? profile.pace : [];
-  if (!preferred.length) return 5;
-  if (calibration?.styleSpeed && typeof calibration.styleSpeed === "object") return 5;
-  return 5;
+function performanceScore(profile, calibration) {
+  // No empirical speed/style calibration exists yet. Keep this neutral until 3F-B supplies evidence.
+  if (!Array.isArray(profile?.pace) || !profile.pace.length) return 10;
+  if (calibration?.styleSpeed && typeof calibration.styleSpeed === "object") return 10;
+  return 10;
 }
 
 export function scoreVoiceForStyle(voice, category, style) {
@@ -157,13 +158,14 @@ export function scoreVoiceForStyle(voice, category, style) {
   const useCase = useCaseScore(useCases, preferredUseCases);
   const characteristics = characteristicScore(attributes, preferences);
   const styleFit = styleProfileScore(profile, attributes);
-  const performance = paceScore(profile, intelligence.calibration);
+  const performance = performanceScore(profile, intelligence.calibration);
   const score = Math.round(Math.min(100, useCase + characteristics + styleFit + performance));
 
   return {
     score,
     category,
     style,
+    provisional: true,
     reasons: {
       useCase,
       characteristics,
