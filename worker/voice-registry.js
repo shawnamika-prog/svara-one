@@ -54,6 +54,12 @@ function styleFromMetadata(metadata) {
   return characteristics[0] || (Array.isArray(metadata?.tags) && metadata.tags[0]) || "Natural";
 }
 
+function providerUseCasesFromMetadata(metadata) {
+  const candidates = [metadata?.use_cases, metadata?.useCases, metadata?.use_case, metadata?.useCase];
+  const value = candidates.find(candidate => Array.isArray(candidate));
+  return value ? value.map(String).filter(Boolean) : [];
+}
+
 function slug(value) {
   return String(value || "voice").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "voice";
 }
@@ -194,7 +200,24 @@ export async function syncVoiceRegistry(env) {
   }
 
   for (let i = 0; i < writes.length; i += 80) await env.DB.batch(writes.slice(i, i + 80));
-  return { provider: "deepgram", family: "aura-2", total: catalogue.length, added, updated, active: activeProviderIds.size };
+
+  const syncedRows = await env.DB.prepare("SELECT svara_id, provider_voice_id FROM voice_registry WHERE provider='deepgram'").all();
+  const svaraIdByProvider = new Map((syncedRows.results || []).map(row => [String(row.provider_voice_id), String(row.svara_id)]));
+  const metadataWrites = [];
+
+  for (const model of catalogue) {
+    const providerVoiceId = String(model.canonical_name || "");
+    const svaraId = svaraIdByProvider.get(providerVoiceId);
+    if (!svaraId) continue;
+    const metadata = model.metadata || {};
+    const characteristics = Array.isArray(metadata.characteristics) ? metadata.characteristics : [];
+    const useCases = providerUseCasesFromMetadata(metadata);
+    const rawMetadataJson = JSON.stringify(metadata);
+    metadataWrites.push(env.DB.prepare(`INSERT INTO voice_intelligence_metadata (svara_id, provider, provider_voice_id, provider_model, characteristics_json, use_cases_json, raw_metadata_json, updated_at) VALUES (?, 'deepgram', ?, 'aura-2', ?, ?, ?, datetime('now')) ON CONFLICT(svara_id) DO UPDATE SET provider=excluded.provider, provider_voice_id=excluded.provider_voice_id, provider_model=excluded.provider_model, characteristics_json=excluded.characteristics_json, use_cases_json=excluded.use_cases_json, raw_metadata_json=excluded.raw_metadata_json, updated_at=datetime('now')`).bind(svaraId, providerVoiceId, JSON.stringify(characteristics), JSON.stringify(useCases), rawMetadataJson));
+  }
+
+  for (let i = 0; i < metadataWrites.length; i += 80) await env.DB.batch(metadataWrites.slice(i, i + 80));
+  return { provider: "deepgram", family: "aura-2", total: catalogue.length, added, updated, active: activeProviderIds.size, intelligenceMetadataSynced: metadataWrites.length };
 }
 
 async function generateAudio(env, providerVoiceId, text) {
