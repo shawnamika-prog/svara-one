@@ -54,6 +54,12 @@ function styleFromMetadata(metadata) {
   return characteristics[0] || (Array.isArray(metadata?.tags) && metadata.tags[0]) || "Natural";
 }
 
+function providerCharacteristicsFromMetadata(metadata) {
+  const candidates = [metadata?.characteristics, metadata?.tags, metadata?.characteristic, metadata?.tag];
+  const value = candidates.find(candidate => Array.isArray(candidate));
+  return value ? value.map(String).filter(Boolean) : [];
+}
+
 function providerUseCasesFromMetadata(metadata) {
   const candidates = [metadata?.use_cases, metadata?.useCases, metadata?.use_case, metadata?.useCase];
   const value = candidates.find(candidate => Array.isArray(candidate));
@@ -170,7 +176,7 @@ export async function syncVoiceRegistry(env) {
     const metadata = model.metadata || {};
     const language = languageFromVoiceId(providerVoiceId);
     const gender = genderFromMetadata(metadata);
-    const characteristics = Array.isArray(metadata.characteristics) ? metadata.characteristics : [];
+    const characteristics = providerCharacteristicsFromMetadata(metadata);
     const age = String(metadata.age || "");
     const accent = String(metadata.accent || metadata.language || "");
     const style = styleFromMetadata(metadata);
@@ -178,7 +184,7 @@ export async function syncVoiceRegistry(env) {
     const previous = existing.get(providerVoiceId);
 
     if (previous) {
-      if (String(previous.metadata_json || "{}") !== metadataJson || Number(previous.active) !== 1 || String(previous.accent || "") !== accent || String(previous.gender || "") !== gender || String(previous.age || "") !== age || String(previous.style || "") !== style) {
+      if (String(previous.metadata_json || "{}") !== metadataJson || Number(previous.active) !== 1 || String(previous.accent || "") !== accent || String(previous.gender || "") !== gender || String(previous.age || "") !== age || String(previous.style || "") !== style || String(previous.characteristics_json || "[]") !== JSON.stringify(characteristics)) {
         writes.push(env.DB.prepare(`UPDATE voice_registry SET language=?, accent=?, gender=?, age=?, style=?, characteristics_json=?, metadata_json=?, active=1, updated_at=datetime('now') WHERE provider_voice_id=?`).bind(language, accent, gender, age, style, JSON.stringify(characteristics), metadataJson, providerVoiceId));
         updated++;
       }
@@ -210,7 +216,7 @@ export async function syncVoiceRegistry(env) {
     const svaraId = svaraIdByProvider.get(providerVoiceId);
     if (!svaraId) continue;
     const metadata = model.metadata || {};
-    const characteristics = Array.isArray(metadata.characteristics) ? metadata.characteristics : [];
+    const characteristics = providerCharacteristicsFromMetadata(metadata);
     const useCases = providerUseCasesFromMetadata(metadata);
     const rawMetadataJson = JSON.stringify(metadata);
     metadataWrites.push(env.DB.prepare(`INSERT INTO voice_intelligence_metadata (svara_id, provider, provider_voice_id, provider_model, characteristics_json, use_cases_json, raw_metadata_json, updated_at) VALUES (?, 'deepgram', ?, 'aura-2', ?, ?, ?, datetime('now')) ON CONFLICT(svara_id) DO UPDATE SET provider=excluded.provider, provider_voice_id=excluded.provider_voice_id, provider_model=excluded.provider_model, characteristics_json=excluded.characteristics_json, use_cases_json=excluded.use_cases_json, raw_metadata_json=excluded.raw_metadata_json, updated_at=datetime('now')`).bind(svaraId, providerVoiceId, JSON.stringify(characteristics), JSON.stringify(useCases), rawMetadataJson));
