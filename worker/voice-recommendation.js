@@ -167,9 +167,34 @@ function resolveRegistryIdentity(voice, registryMap) {
   };
 }
 
+function buildRecommendationVoice(voice) {
+  const existing = voice?.voiceIntelligence;
+  if (existing?.providerMetadata?.characteristics?.length || existing?.providerMetadata?.useCases?.length) {
+    return existing;
+  }
+
+  const metadata = voice?.metadata && typeof voice.metadata === "object" ? voice.metadata : {};
+  const characteristics = Array.isArray(metadata.characteristics)
+    ? metadata.characteristics
+    : (Array.isArray(metadata.tags) ? metadata.tags : []);
+  const useCases = Array.isArray(metadata.use_cases)
+    ? metadata.use_cases
+    : (Array.isArray(metadata.useCases) ? metadata.useCases : []);
+
+  return buildSvaraVoiceProfile({
+    ...voice,
+    metadata: {
+      ...metadata,
+      characteristics,
+      tags: characteristics,
+      use_cases: useCases
+    }
+  });
+}
+
 export function scoreVoiceForStyle(voice, category, style) {
   const profile = getSvaraFlowStyleProfile(category, style);
-  const intelligence = voice?.voiceIntelligence || buildSvaraVoiceProfile(voice);
+  const intelligence = buildRecommendationVoice(voice);
   const providerMetadata = intelligence.providerMetadata || {};
   const useCases = Array.isArray(providerMetadata.useCases) ? providerMetadata.useCases : [];
   const attributes = intelligence.svaraAttributes || {};
@@ -196,7 +221,12 @@ export function scoreVoiceForStyle(voice, category, style) {
     },
     matchedUseCases: useCases.filter(value => preferredUseCases.includes(normalizeUseCase(value))),
     characteristics: providerMetadata.characteristics || [],
-    providerVoiceId: intelligence.providerVoiceId || voice?.providerVoiceId || ""
+    providerVoiceId: intelligence.providerVoiceId || voice?.providerVoiceId || "",
+    debug: {
+      normalizedAttributes: attributes,
+      sourceCharacteristics: providerMetadata.characteristics || [],
+      sourceUseCases: useCases
+    }
   };
 }
 
