@@ -1,3 +1,5 @@
+import { buildSvaraVoiceProfile } from "./voice-intelligence.js";
+
 const LANGUAGE_NAMES = {
   en: "English",
   es: "Spanish",
@@ -96,7 +98,7 @@ function rowToVoice(row) {
   let metadata = {};
   try { characteristics = JSON.parse(row.characteristics_json || "[]"); } catch (_) {}
   try { metadata = JSON.parse(row.metadata_json || "{}"); } catch (_) {}
-  return {
+  const voice = {
     id: row.svara_id,
     name: row.display_name,
     region: row.accent || row.language,
@@ -112,6 +114,10 @@ function rowToVoice(row) {
     languageName: LANGUAGE_NAMES[row.language] || row.language.toUpperCase(),
     characteristics,
     metadata
+  };
+  return {
+    ...voice,
+    voiceIntelligence: buildSvaraVoiceProfile(voice)
   };
 }
 
