@@ -1,2 +1,0 @@
--- Reserved migration marker for the voice intelligence follow-up.
--- No schema change is made here; 0009 is the provider metadata foundation.
