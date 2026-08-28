@@ -55,49 +55,62 @@ window.SVARA_VOICES = [
   const isGender = value => /^(male|female|masculine|feminine)$/i.test(String(value || '').trim());
   const titleCase = value => String(value || '').replace(/\b\w/g, c => c.toUpperCase());
 
-  function decorateCards() {
-    const catalogue = Array.isArray(window.SVARA_VOICES) ? window.SVARA_VOICES : [];
-    if (!catalogue.length) return;
-    const byId = new Map(catalogue.map(voice => [String(voice.id), voice]));
+  async function loadCardMetadata() {
+    try {
+      const response = await fetch('/api/voices', { headers: { accept: 'application/json' }, cache: 'no-store' });
+      if (!response.ok) return;
+      const data = await response.json();
+      const catalogue = Array.isArray(data.voices) ? data.voices : [];
+      const byId = new Map();
+      catalogue.forEach(voice => {
+        if (voice.id) byId.set(String(voice.id), voice);
+        if (voice.svara_id) byId.set(String(voice.svara_id), voice);
+        if (voice.voice_id) byId.set(String(voice.voice_id), voice);
+        if (voice.providerVoiceId) byId.set(String(voice.providerVoiceId), voice);
+      });
 
-    document.querySelectorAll('#voiceList .voice[data-id]').forEach(card => {
-      const voice = byId.get(String(card.dataset.id));
-      if (!voice) return;
-      const meta = voice.metadata || {};
-      const characteristics = (Array.isArray(meta.characteristics) ? meta.characteristics : voice.characteristics || [])
-        .map(String).map(x => x.trim()).filter(Boolean).filter(x => !isGender(x));
-      const useCases = (Array.isArray(meta.use_cases) ? meta.use_cases : Array.isArray(meta.useCases) ? meta.useCases : [])
-        .map(String).map(x => x.trim()).filter(Boolean);
-      const age = String(meta.age || voice.age || '').trim();
-      const accent = String(meta.accent || '').trim();
-      const language = String(meta.language || voice.languageName || '').trim();
-      const gender = String(voice.gender || '').trim();
+      const decorateCards = () => {
+        document.querySelectorAll('#voiceList .voice[data-id]').forEach(card => {
+          if (card.dataset.metaRendered === '1') return;
+          const voice = byId.get(String(card.dataset.id));
+          if (!voice) return;
+          const meta = voice.metadata || {};
+          const intelligence = voice.voiceIntelligence?.providerMetadata || {};
+          const characteristics = (Array.isArray(meta.characteristics) ? meta.characteristics : Array.isArray(intelligence.characteristics) ? intelligence.characteristics : voice.characteristics || [])
+            .map(String).map(x => x.trim()).filter(Boolean).filter(x => !isGender(x));
+          const useCases = (Array.isArray(meta.use_cases) ? meta.use_cases : Array.isArray(meta.useCases) ? meta.useCases : Array.isArray(intelligence.useCases) ? intelligence.useCases : [])
+            .map(String).map(x => x.trim()).filter(Boolean);
+          const age = String(meta.age || voice.age || intelligence.age || '').trim();
+          const accent = String(meta.accent || voice.accent || '').trim();
+          const language = String(meta.language || voice.languageName || intelligence.language || '').trim();
+          const gender = String(voice.gender || intelligence.gender || '').trim();
 
-      const identity = [accent || String(voice.region || '').split(' · ')[0], language || voice.languageName, gender, age]
-        .filter(Boolean).join(' · ');
-      const character = characteristics.slice(0, 4).join(' · ');
-      const useCase = useCases.slice(0, 4).map(titleCase).join(' · ');
+          const identity = [accent, language, gender, age].filter(Boolean).join(' · ');
+          const character = characteristics.slice(0, 4).join(' · ');
+          const useCase = useCases.slice(0, 4).map(titleCase).join(' · ');
+          const target = card.querySelector('.voice-card-meta');
+          if (!target) return;
 
-      const target = card.querySelector('.voice-card-meta');
-      if (!target) return;
-      target.innerHTML = `
-        <div class="voice-meta-identity">${escapeHtml(identity)}</div>
-        ${character ? `<div class="voice-meta-character">${escapeHtml(character)}</div>` : ''}
-        ${useCase ? `<div class="voice-meta-usecase"><span>USE CASES</span> ${escapeHtml(useCase)}</div>` : ''}
-      `;
-      target.title = [identity, character, useCase].filter(Boolean).join(' · ');
-    });
+          target.innerHTML = `
+            <div class="voice-meta-identity">${escapeHtml(identity)}</div>
+            ${character ? `<div class="voice-meta-character">${escapeHtml(character)}</div>` : ''}
+            ${useCase ? `<div class="voice-meta-usecase"><span>USE CASES</span> ${escapeHtml(useCase)}</div>` : ''}
+          `;
+          target.title = [identity, character, useCase].filter(Boolean).join(' · ');
+          card.dataset.metaRendered = '1';
+        });
+      };
+
+      const list = document.getElementById('voiceList');
+      if (!list) return;
+      const observer = new MutationObserver(decorateCards);
+      observer.observe(list, { childList: true, subtree: true });
+      decorateCards();
+    } catch (error) {
+      console.warn('Voice card metadata unavailable.', error);
+    }
   }
 
-  const start = () => {
-    const list = document.getElementById('voiceList');
-    if (!list) return;
-    const observer = new MutationObserver(decorateCards);
-    observer.observe(list, { childList: true, subtree: true });
-    decorateCards();
-  };
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
-  else start();
-  window.addEventListener('svara:voices-updated', decorateCards);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', loadCardMetadata, { once: true });
+  else loadCardMetadata();
 })();
