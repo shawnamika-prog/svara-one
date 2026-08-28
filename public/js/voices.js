@@ -52,8 +52,17 @@ window.SVARA_VOICES = [
   const escapeHtml = value => String(value ?? '').replace(/[&<>'\"]/g, char => ({
     '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '\"':'&quot;'
   }[char]));
-  const isGender = value => /^(male|female|masculine|feminine)$/i.test(String(value || '').trim());
   const titleCase = value => String(value || '').replace(/\b\w/g, c => c.toUpperCase());
+  const useCaseLabels = {
+    'ivr': 'Phone Systems',
+    'customer service': 'Customer Service',
+    'commercial': 'Advertising',
+    'advertising': 'Advertising',
+    'interview': 'Interviews',
+    'audiobook': 'Audiobooks',
+    'casual chat': 'Casual Conversation'
+  };
+  const displayUseCase = value => useCaseLabels[String(value || '').trim().toLowerCase()] || titleCase(value);
 
   async function loadCardMetadata() {
     try {
@@ -77,16 +86,14 @@ window.SVARA_VOICES = [
           const meta = voice.metadata || {};
           const intelligence = voice.voiceIntelligence?.providerMetadata || {};
           const useCases = (Array.isArray(meta.use_cases) ? meta.use_cases : Array.isArray(meta.useCases) ? meta.useCases : Array.isArray(intelligence.useCases) ? intelligence.useCases : [])
-            .map(String).map(x => x.trim()).filter(Boolean);
+            .map(displayUseCase).filter(Boolean);
           const accent = String(meta.accent || voice.accent || '').trim();
           const language = String(meta.language || voice.languageName || intelligence.language || '').trim();
           const gender = String(voice.gender || intelligence.gender || '').trim();
-
           const identity = [accent, language, gender].filter(Boolean).join(' · ');
-          const useCase = useCases.slice(0, 3).map(titleCase).join(' · ');
+          const useCase = [...new Set(useCases)].slice(0, 3).join(' · ');
           const target = card.querySelector('.voice-card-meta');
           if (!target) return;
-
           target.innerHTML = `
             <div class="voice-meta-identity">${escapeHtml(identity)}</div>
             ${useCase ? `<div class="voice-meta-usecase"><span>USE CASES</span> ${escapeHtml(useCase)}</div>` : ''}
