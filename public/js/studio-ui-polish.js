@@ -31,41 +31,121 @@
   let categorySelect=null,styleSelect=null;
 
   if(host&&toggle){
+    const style=document.createElement('style');
+    style.textContent=`
+      .svaraflow-control{
+        margin:12px 20px 0!important;
+        padding:12px 14px 13px;
+        border:1px solid #ffffff0d;
+        border-radius:13px;
+        background:#081523;
+        overflow:hidden;
+        transition:padding .18s ease,border-color .18s ease,background .18s ease;
+      }
+      .svaraflow-control.is-enabled{
+        border-color:#1ddfc433;
+        background:linear-gradient(180deg,#091a28,#081522);
+      }
+      .svaraflow-toggle{margin:0!important;}
+      #svaraFlowProfileControls{
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:10px;
+        margin-top:10px;
+        width:100%;
+      }
+      #svaraFlowProfileControls label{
+        display:flex;
+        flex-direction:column;
+        gap:6px;
+        min-width:0;
+      }
+      #svaraFlowProfileControls label>span{
+        font-size:10px;
+        font-weight:600;
+        color:#8b9aa8;
+        text-transform:uppercase;
+        letter-spacing:.04em;
+      }
+      #svaraFlowProfileControls select{
+        width:100%;
+        min-width:0;
+        background:#0a1726;
+        color:#fff;
+        border:1px solid #ffffff10;
+        border-radius:8px;
+        padding:9px 10px;
+        outline:none;
+        font:inherit;
+        font-size:13px;
+      }
+      #svaraFlowProfileControls select:focus{
+        border-color:#1ddfc488;
+        box-shadow:0 0 0 3px #1ddfc412;
+      }
+      #svaraFlowProfileControls[hidden]{display:none!important}
+      @media(max-width:560px){
+        #svaraFlowProfileControls{grid-template-columns:1fr;}
+      }
+    `;
+    document.head.appendChild(style);
+
+    host.classList.add('svaraflow-panel');
+
     const wrap=document.createElement('div');
     wrap.id='svaraFlowProfileControls';
-    wrap.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;width:100%;';
     const makeField=(label,id)=>{
       const box=document.createElement('label');
-      box.style.cssText='display:flex;flex-direction:column;gap:4px;min-width:0;';
       const title=document.createElement('span');
       title.textContent=label;
-      title.style.cssText='font-size:10px;font-weight:600;color:#8b9aa8;text-transform:uppercase;letter-spacing:.04em;';
       const select=document.createElement('select');
       select.id=id;
-      select.style.cssText='width:100%;min-width:0;padding:7px 8px;border-radius:7px;background:#101922;color:#dce7ef;border:1px solid #ffffff16;font:inherit;font-size:11px;';
       box.append(title,select);
       wrap.appendChild(box);
       return select;
     };
+
     categorySelect=makeField('Category','svaraFlowCategory');
     styleSelect=makeField('Style','svaraFlowStyle');
     Object.keys(profiles).forEach(category=>{
-      const option=document.createElement('option');option.value=category;option.textContent=category;categorySelect.appendChild(option);
+      const option=document.createElement('option');
+      option.value=category;
+      option.textContent=category;
+      categorySelect.appendChild(option);
     });
     categorySelect.value='Creative';
+
     const syncStyles=()=>{
       styleSelect.innerHTML='';
-      (profiles[categorySelect.value]||[]).forEach(style=>{
-        const option=document.createElement('option');option.value=style;option.textContent=style;styleSelect.appendChild(option);
+      (profiles[categorySelect.value]||[]).forEach(styleName=>{
+        const option=document.createElement('option');
+        option.value=styleName;
+        option.textContent=styleName;
+        styleSelect.appendChild(option);
       });
       if(legacyStyle)legacyStyle.value=styleSelect.value||'Storytelling';
     };
+
     categorySelect.addEventListener('change',syncStyles);
-    styleSelect.addEventListener('change',()=>{if(legacyStyle)legacyStyle.value=styleSelect.value;});
+    styleSelect.addEventListener('change',()=>{
+      if(legacyStyle)legacyStyle.value=styleSelect.value;
+    });
     syncStyles();
+
     const message=document.getElementById('svaraFlowMessage');
-    if(message&&message.parentNode===host)host.insertBefore(wrap,message);
-    else host.appendChild(wrap);
+    if(message&&message.parentNode===host){
+      host.insertBefore(message,host.lastElementChild);
+    }
+    host.appendChild(wrap);
+
+    const syncPanel=()=>{
+      const enabled=toggle.checked===true;
+      host.classList.toggle('is-enabled',enabled);
+      wrap.hidden=!enabled;
+      if(message)message.hidden=!enabled;
+    };
+    toggle.addEventListener('change',syncPanel);
+    syncPanel();
   }
 
   const nativeFetch=window.fetch.bind(window);
