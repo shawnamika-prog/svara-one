@@ -105,11 +105,15 @@ async function chooseDisplayName(env, metadata, usedNames) {
   return fallback;
 }
 
-function rowToVoice(row) {
+function rowToVoice(row, intelligence = null) {
   let characteristics = [];
   let metadata = {};
+  let useCases = [];
   try { characteristics = JSON.parse(row.characteristics_json || "[]"); } catch (_) {}
   try { metadata = JSON.parse(row.metadata_json || "{}"); } catch (_) {}
+  try { useCases = JSON.parse(intelligence?.use_cases_json || "[]"); } catch (_) {}
+  if (!useCases.length) useCases = providerUseCasesFromMetadata(metadata);
+
   const voice = {
     id: row.svara_id,
     name: row.display_name,
@@ -125,25 +129,66 @@ function rowToVoice(row) {
     sampleStatus: row.sample_status,
     languageName: LANGUAGE_NAMES[row.language] || row.language.toUpperCase(),
     characteristics,
-    metadata
+    useCases,
+    metadata,
+    voiceIntelligence: buildSvaraVoiceProfile({
+      id: row.svara_id,
+      name: row.display_name,
+      region: row.accent || row.language,
+      category: row.language,
+      style: row.style || "Natural",
+      gender: row.gender || "",
+      age: row.age || "",
+      provider: row.provider,
+      providerVoiceId: row.provider_voice_id,
+      sampleUrl: `/api/voice-samples/${encodeURIComponent(row.svara_id)}`,
+      sampleKey: row.sample_key,
+      sampleStatus: row.sample_status,
+      languageName: LANGUAGE_NAMES[row.language] || row.language.toUpperCase(),
+      characteristics,
+      metadata
+    })
   };
-  return {
-    ...voice,
-    voiceIntelligence: buildSvaraVoiceProfile(voice)
-  };
+
+  return voice;
 }
 
 export async function listVoiceRegistry(env) {
   if (!env.DB) throw new Error("DB binding is not configured");
   const result = await env.DB.prepare(`
-    SELECT * FROM voice_registry
-    WHERE active = 1
-    ORDER BY CASE language
+    SELECT vr.*, vim.characteristics_json AS intelligence_characteristics_json,
+           vim.use_cases_json, vim.raw_metadata_json AS intelligence_raw_metadata_json,
+           vim.provider_model AS intelligence_provider_model
+    FROM voice_registry vr
+    LEFT JOIN voice_intelligence_metadata vim ON vim.svara_id = vr.svara_id
+    WHERE vr.active = 1
+    ORDER BY CASE vr.language
       WHEN 'en' THEN 1 WHEN 'es' THEN 2 WHEN 'de' THEN 3 WHEN 'fr' THEN 4
       WHEN 'nl' THEN 5 WHEN 'it' THEN 6 WHEN 'ja' THEN 7 ELSE 99 END,
-      display_name COLLATE NOCASE
+      vr.display_name COLLATE NOCASE
   `).all();
-  return (result.results || []).map(rowToVoice);
+  return (result.results || []).map(row => {
+    const intelligence = {
+      use_cases_json: row.use_cases_json,
+      characteristics_json: row.intelligence_characteristics_json
+    };
+    const voice = rowToVoice(row, intelligence);
+    if (row.intelligence_characteristics_json) {
+      try {
+        const intelligenceCharacteristics = JSON.parse(row.intelligence_characteristics_json);
+        if (Array.isArray(intelligenceCharacteristics) && intelligenceCharacteristics.length) {
+          voice.characteristics = intelligenceCharacteristics;
+        }
+      } catch (_) {}
+    }
+    if (row.intelligence_raw_metadata_json) {
+      try {
+        const raw = JSON.parse(row.intelligence_raw_metadata_json);
+        if (raw && typeof raw === "object") voice.metadata = { ...voice.metadata, ...raw };
+      } catch (_) {}
+    }
+    return voice;
+  });
 }
 
 export async function getVoiceById(env, svaraId) {
