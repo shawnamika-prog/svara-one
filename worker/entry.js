@@ -4,7 +4,6 @@ import { handlePayfast, runBillingCron } from "./payfast.js";
 import { getVoiceById, getVoiceByProviderId, syncVoiceRegistry, seedMissingVoiceSamples } from "./voice-registry.js";
 import { createGeneration, markGenerationReady, markGenerationFailed, cleanupExpiredGenerations, mimeTypeForFormat } from "./generations.js";
 import { processSvaraFlow, translateSvaraFlowPlan } from "./svaraflow.js";
-import { rankVoicesForStyle } from "./voice-recommendation.js";
 
 const PORTRAIT_NAMES = {
   en: "thalia",
@@ -81,103 +80,6 @@ async function voiceAccess(request, env) {
     fullCatalogue: false,
     voiceIds: (rows.results || []).map(row => String(row.voice_id || "")).filter(Boolean)
   };
-}
-
-function parseJsonArray(value) {
-  if (Array.isArray(value)) return value.map(String).filter(Boolean);
-  try {
-    const parsed = JSON.parse(value || "[]");
-    return Array.isArray(parsed) ? parsed.map(String).filter(Boolean) : [];
-  } catch (_) {
-    return [];
-  }
-}
-
-function parseJsonObject(value) {
-  try {
-    const parsed = JSON.parse(value || "{}");
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
-  } catch (_) {
-    return {};
-  }
-}
-
-async function handleVoiceRecommendation(request, env) {
-  if (!env.DB) return json({ error: "DB binding is not configured." }, 503);
-
-  const body = await request.clone().json().catch(() => ({}));
-  const category = String(body.category || "").trim();
-  const style = String(body.style || "").trim();
-  const limit = Math.max(1, Math.min(10, Number(body.limit) || 5));
-
-  if (!category || !style) {
-    return json({ error: "category and style are required." }, 400);
-  }
-
-  try {
-    const metadataResult = await env.DB.prepare(`
-      SELECT svara_id, provider, provider_voice_id, provider_model,
-             characteristics_json, use_cases_json, raw_metadata_json
-      FROM voice_intelligence_metadata
-      WHERE provider_voice_id IS NOT NULL
-      ORDER BY provider_voice_id
-    `).all();
-
-    const registryResult = await env.DB.prepare(`
-      SELECT svara_id, provider, provider_voice_id, display_name
-      FROM voice_registry
-      WHERE active = 1
-    `).all();
-
-    const voices = (metadataResult.results || []).map(row => {
-      const characteristics = parseJsonArray(row.characteristics_json);
-      const useCases = parseJsonArray(row.use_cases_json);
-      const raw = parseJsonObject(row.raw_metadata_json);
-      return {
-        provider: String(row.provider || "deepgram"),
-        providerVoiceId: String(row.provider_voice_id || ""),
-        name: String(raw.name || raw.display_name || ""),
-        category: String(raw.language || raw.category || ""),
-        region: String(raw.accent || raw.region || ""),
-        gender: String(raw.gender || ""),
-        age: String(raw.age || ""),
-        metadata: {
-          tags: characteristics,
-          use_cases: useCases
-        }
-      };
-    }).filter(voice => voice.providerVoiceId);
-
-    const registryVoices = (registryResult.results || []).map(row => ({
-      svaraId: String(row.svara_id || ""),
-      provider: String(row.provider || ""),
-      providerVoiceId: String(row.provider_voice_id || ""),
-      displayName: String(row.display_name || "")
-    }));
-
-    const ranked = rankVoicesForStyle(voices, category, style, limit, registryVoices);
-    return json({
-      ok: true,
-      provisional: true,
-      category,
-      style,
-      recommendationCount: ranked.length,
-      recommendations: ranked.map(item => ({
-        displayName: item.displayName || item.voice?.name || item.voice?.providerVoiceId || "",
-        svaraId: item.svaraId || null,
-        provider: item.voice?.provider || item.match?.provider || null,
-        providerVoiceId: item.match?.providerVoiceId || item.voice?.providerVoiceId || "",
-        score: item.match?.score ?? 0,
-        matchedUseCases: item.match?.matchedUseCases || [],
-        characteristics: item.match?.characteristics || [],
-        reasons: item.match?.reasons || {},
-        provisional: true
-      }))
-    });
-  } catch (error) {
-    console.error("voice_recommendation_error", error);
-    return json({ error: String(error?.message || "Voice recommendation failed").slice(0, 300) }, 502);
-  }
 }
 
 async function resolveProviderVoiceId(body, env) {
@@ -454,10 +356,6 @@ export default {
       const code = url.pathname.split("/").pop();
       const portrait = await storedPortrait(env, code);
       if (portrait) return portrait;
-    }
-
-    if (request.method === "POST" && url.pathname === "/api/voice/recommend") {
-      return handleVoiceRecommendation(request, env);
     }
 
     if (request.method === "POST" && url.pathname === "/api/voice/generate") {
