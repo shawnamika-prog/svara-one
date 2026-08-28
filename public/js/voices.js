@@ -35,9 +35,7 @@ window.SVARA_VOICES = [
         style,
         gender,
         provider: 'deepgram',
-        providerVoiceId: id,
-        characteristics,
-        metadata: meta
+        providerVoiceId: id
       };
     }).filter(v => v.providerVoiceId && (access.fullCatalogue === true || allowed.has(v.providerVoiceId)));
 
@@ -45,74 +43,4 @@ window.SVARA_VOICES = [
   } catch (error) {
     console.warn('Svara voice catalogue unavailable; keeping the safe fallback.', error);
   }
-})();
-
-/* Voice-card metadata presentation: show only customer-useful selection metadata. */
-(() => {
-  const escapeHtml = value => String(value ?? '').replace(/[&<>'\"]/g, char => ({
-    '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '\"':'&quot;'
-  }[char]));
-  const titleCase = value => String(value || '').replace(/\b\w/g, c => c.toUpperCase());
-  const useCaseLabels = {
-    'ivr': 'Phone Systems',
-    'customer service': 'Customer Service',
-    'commercial': 'Advertising',
-    'advertising': 'Advertising',
-    'interview': 'Interviews',
-    'audiobook': 'Audiobooks',
-    'casual chat': 'Casual Conversation'
-  };
-  const displayUseCase = value => useCaseLabels[String(value || '').trim().toLowerCase()] || titleCase(value);
-
-  async function loadCardMetadata() {
-    try {
-      const response = await fetch('/api/voices', { headers: { accept: 'application/json' }, cache: 'no-store' });
-      if (!response.ok) return;
-      const data = await response.json();
-      const catalogue = Array.isArray(data.voices) ? data.voices : [];
-      const byId = new Map();
-      catalogue.forEach(voice => {
-        if (voice.id) byId.set(String(voice.id), voice);
-        if (voice.svara_id) byId.set(String(voice.svara_id), voice);
-        if (voice.voice_id) byId.set(String(voice.voice_id), voice);
-        if (voice.providerVoiceId) byId.set(String(voice.providerVoiceId), voice);
-      });
-
-      const decorateCards = () => {
-        document.querySelectorAll('#voiceList .voice[data-id]').forEach(card => {
-          if (card.dataset.metaRendered === '1') return;
-          const voice = byId.get(String(card.dataset.id));
-          if (!voice) return;
-          const meta = voice.metadata || {};
-          const intelligence = voice.voiceIntelligence?.providerMetadata || {};
-          const useCases = (Array.isArray(meta.use_cases) ? meta.use_cases : Array.isArray(meta.useCases) ? meta.useCases : Array.isArray(intelligence.useCases) ? intelligence.useCases : [])
-            .map(displayUseCase).filter(Boolean);
-          const accent = String(meta.accent || voice.accent || '').trim();
-          const language = String(meta.language || voice.languageName || intelligence.language || '').trim();
-          const gender = String(voice.gender || intelligence.gender || '').trim();
-          const identity = [accent, language, gender].filter(Boolean).join(' · ');
-          const useCase = [...new Set(useCases)].slice(0, 3).join(' · ');
-          const target = card.querySelector('.voice-card-meta');
-          if (!target) return;
-          target.innerHTML = `
-            <div class="voice-meta-identity">${escapeHtml(identity)}</div>
-            ${useCase ? `<div class="voice-meta-usecase"><span>USE CASES</span> ${escapeHtml(useCase)}</div>` : ''}
-          `;
-          target.title = [identity, useCase].filter(Boolean).join(' · ');
-          card.dataset.metaRendered = '1';
-        });
-      };
-
-      const list = document.getElementById('voiceList');
-      if (!list) return;
-      const observer = new MutationObserver(decorateCards);
-      observer.observe(list, { childList: true, subtree: true });
-      decorateCards();
-    } catch (error) {
-      console.warn('Voice card metadata unavailable.', error);
-    }
-  }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', loadCardMetadata, { once: true });
-  else loadCardMetadata();
 })();

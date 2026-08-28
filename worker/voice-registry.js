@@ -1,5 +1,3 @@
-import { buildSvaraVoiceProfile } from "./voice-intelligence.js";
-
 const LANGUAGE_NAMES = {
   en: "English",
   es: "Spanish",
@@ -54,18 +52,6 @@ function styleFromMetadata(metadata) {
   return characteristics[0] || (Array.isArray(metadata?.tags) && metadata.tags[0]) || "Natural";
 }
 
-function providerCharacteristicsFromMetadata(metadata) {
-  const candidates = [metadata?.characteristics, metadata?.tags, metadata?.characteristic, metadata?.tag];
-  const value = candidates.find(candidate => Array.isArray(candidate));
-  return value ? value.map(String).filter(Boolean) : [];
-}
-
-function providerUseCasesFromMetadata(metadata) {
-  const candidates = [metadata?.use_cases, metadata?.useCases, metadata?.use_case, metadata?.useCase];
-  const value = candidates.find(candidate => Array.isArray(candidate));
-  return value ? value.map(String).filter(Boolean) : [];
-}
-
 function slug(value) {
   return String(value || "voice").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "voice";
 }
@@ -105,16 +91,12 @@ async function chooseDisplayName(env, metadata, usedNames) {
   return fallback;
 }
 
-function rowToVoice(row, intelligence = null) {
+function rowToVoice(row) {
   let characteristics = [];
   let metadata = {};
-  let useCases = [];
   try { characteristics = JSON.parse(row.characteristics_json || "[]"); } catch (_) {}
   try { metadata = JSON.parse(row.metadata_json || "{}"); } catch (_) {}
-  try { useCases = JSON.parse(intelligence?.use_cases_json || "[]"); } catch (_) {}
-  if (!useCases.length) useCases = providerUseCasesFromMetadata(metadata);
-
-  const voice = {
+  return {
     id: row.svara_id,
     name: row.display_name,
     region: row.accent || row.language,
@@ -129,66 +111,21 @@ function rowToVoice(row, intelligence = null) {
     sampleStatus: row.sample_status,
     languageName: LANGUAGE_NAMES[row.language] || row.language.toUpperCase(),
     characteristics,
-    useCases,
-    metadata,
-    voiceIntelligence: buildSvaraVoiceProfile({
-      id: row.svara_id,
-      name: row.display_name,
-      region: row.accent || row.language,
-      category: row.language,
-      style: row.style || "Natural",
-      gender: row.gender || "",
-      age: row.age || "",
-      provider: row.provider,
-      providerVoiceId: row.provider_voice_id,
-      sampleUrl: `/api/voice-samples/${encodeURIComponent(row.svara_id)}`,
-      sampleKey: row.sample_key,
-      sampleStatus: row.sample_status,
-      languageName: LANGUAGE_NAMES[row.language] || row.language.toUpperCase(),
-      characteristics,
-      metadata
-    })
+    metadata
   };
-
-  return voice;
 }
 
 export async function listVoiceRegistry(env) {
   if (!env.DB) throw new Error("DB binding is not configured");
   const result = await env.DB.prepare(`
-    SELECT vr.*, vim.characteristics_json AS intelligence_characteristics_json,
-           vim.use_cases_json, vim.raw_metadata_json AS intelligence_raw_metadata_json,
-           vim.provider_model AS intelligence_provider_model
-    FROM voice_registry vr
-    LEFT JOIN voice_intelligence_metadata vim ON vim.svara_id = vr.svara_id
-    WHERE vr.active = 1
-    ORDER BY CASE vr.language
+    SELECT * FROM voice_registry
+    WHERE active = 1
+    ORDER BY CASE language
       WHEN 'en' THEN 1 WHEN 'es' THEN 2 WHEN 'de' THEN 3 WHEN 'fr' THEN 4
       WHEN 'nl' THEN 5 WHEN 'it' THEN 6 WHEN 'ja' THEN 7 ELSE 99 END,
-      vr.display_name COLLATE NOCASE
+      display_name COLLATE NOCASE
   `).all();
-  return (result.results || []).map(row => {
-    const intelligence = {
-      use_cases_json: row.use_cases_json,
-      characteristics_json: row.intelligence_characteristics_json
-    };
-    const voice = rowToVoice(row, intelligence);
-    if (row.intelligence_characteristics_json) {
-      try {
-        const intelligenceCharacteristics = JSON.parse(row.intelligence_characteristics_json);
-        if (Array.isArray(intelligenceCharacteristics) && intelligenceCharacteristics.length) {
-          voice.characteristics = intelligenceCharacteristics;
-        }
-      } catch (_) {}
-    }
-    if (row.intelligence_raw_metadata_json) {
-      try {
-        const raw = JSON.parse(row.intelligence_raw_metadata_json);
-        if (raw && typeof raw === "object") voice.metadata = { ...voice.metadata, ...raw };
-      } catch (_) {}
-    }
-    return voice;
-  });
+  return (result.results || []).map(rowToVoice);
 }
 
 export async function getVoiceById(env, svaraId) {
@@ -221,7 +158,7 @@ export async function syncVoiceRegistry(env) {
     const metadata = model.metadata || {};
     const language = languageFromVoiceId(providerVoiceId);
     const gender = genderFromMetadata(metadata);
-    const characteristics = providerCharacteristicsFromMetadata(metadata);
+    const characteristics = Array.isArray(metadata.characteristics) ? metadata.characteristics : [];
     const age = String(metadata.age || "");
     const accent = String(metadata.accent || metadata.language || "");
     const style = styleFromMetadata(metadata);
@@ -229,7 +166,7 @@ export async function syncVoiceRegistry(env) {
     const previous = existing.get(providerVoiceId);
 
     if (previous) {
-      if (String(previous.metadata_json || "{}") !== metadataJson || Number(previous.active) !== 1 || String(previous.accent || "") !== accent || String(previous.gender || "") !== gender || String(previous.age || "") !== age || String(previous.style || "") !== style || String(previous.characteristics_json || "[]") !== JSON.stringify(characteristics)) {
+      if (String(previous.metadata_json || "{}") !== metadataJson || Number(previous.active) !== 1 || String(previous.accent || "") !== accent || String(previous.gender || "") !== gender || String(previous.age || "") !== age || String(previous.style || "") !== style) {
         writes.push(env.DB.prepare(`UPDATE voice_registry SET language=?, accent=?, gender=?, age=?, style=?, characteristics_json=?, metadata_json=?, active=1, updated_at=datetime('now') WHERE provider_voice_id=?`).bind(language, accent, gender, age, style, JSON.stringify(characteristics), metadataJson, providerVoiceId));
         updated++;
       }
@@ -251,24 +188,7 @@ export async function syncVoiceRegistry(env) {
   }
 
   for (let i = 0; i < writes.length; i += 80) await env.DB.batch(writes.slice(i, i + 80));
-
-  const syncedRows = await env.DB.prepare("SELECT svara_id, provider_voice_id FROM voice_registry WHERE provider='deepgram'").all();
-  const svaraIdByProvider = new Map((syncedRows.results || []).map(row => [String(row.provider_voice_id), String(row.svara_id)]));
-  const metadataWrites = [];
-
-  for (const model of catalogue) {
-    const providerVoiceId = String(model.canonical_name || "");
-    const svaraId = svaraIdByProvider.get(providerVoiceId);
-    if (!svaraId) continue;
-    const metadata = model.metadata || {};
-    const characteristics = providerCharacteristicsFromMetadata(metadata);
-    const useCases = providerUseCasesFromMetadata(metadata);
-    const rawMetadataJson = JSON.stringify(metadata);
-    metadataWrites.push(env.DB.prepare(`INSERT INTO voice_intelligence_metadata (svara_id, provider, provider_voice_id, provider_model, characteristics_json, use_cases_json, raw_metadata_json, updated_at) VALUES (?, 'deepgram', ?, 'aura-2', ?, ?, ?, datetime('now')) ON CONFLICT(svara_id) DO UPDATE SET provider=excluded.provider, provider_voice_id=excluded.provider_voice_id, provider_model=excluded.provider_model, characteristics_json=excluded.characteristics_json, use_cases_json=excluded.use_cases_json, raw_metadata_json=excluded.raw_metadata_json, updated_at=datetime('now')`).bind(svaraId, providerVoiceId, JSON.stringify(characteristics), JSON.stringify(useCases), rawMetadataJson));
-  }
-
-  for (let i = 0; i < metadataWrites.length; i += 80) await env.DB.batch(metadataWrites.slice(i, i + 80));
-  return { provider: "deepgram", family: "aura-2", total: catalogue.length, added, updated, active: activeProviderIds.size, intelligenceMetadataSynced: metadataWrites.length };
+  return { provider: "deepgram", family: "aura-2", total: catalogue.length, added, updated, active: activeProviderIds.size };
 }
 
 async function generateAudio(env, providerVoiceId, text) {
