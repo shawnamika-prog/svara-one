@@ -26,16 +26,20 @@ window.SVARA_VOICES = [
       const accent = String(meta.accent || meta.region || 'Global');
       const characteristics = Array.isArray(meta.characteristics) ? meta.characteristics : [];
       const gender = String(meta.gender || characteristics.find(x => /male|female|masculine|feminine/i.test(String(x))) || 'Voice');
-      const style = characteristics.filter(x => !/male|female|masculine|feminine/i.test(String(x))).slice(0,2).join(' · ') || 'Natural';
+      const useCases = Array.isArray(meta.use_cases) ? meta.use_cases : Array.isArray(meta.useCases) ? meta.useCases : [];
       return {
         id: `deepgram-${id || index}`,
-        name: id.replace(/^aura-2-/, '').replace(/-en$/, '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-        region: `${accent} · ${language}`,
-        category: /south africa|south african/i.test(`${accent} ${language}`) ? 'south-africa' : 'global',
-        style,
+        name: String(meta.display_name || meta.displayName || id.replace(/^aura-2-/, '').replace(/-en$/, '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())),
+        region: accent,
+        category: /south africa|south african/i.test(`${accent} ${language}`) ? 'south-africa' : (id.match(/-([a-z]{2})$/i)?.[1] || 'global'),
+        style: 'Natural',
         gender,
+        age: String(meta.age || ''),
+        languageName: language,
         provider: 'deepgram',
-        providerVoiceId: id
+        providerVoiceId: id,
+        characteristics,
+        metadata: {...meta, use_cases: useCases}
       };
     }).filter(v => v.providerVoiceId && (access.fullCatalogue === true || allowed.has(v.providerVoiceId)));
 
