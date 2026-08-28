@@ -145,6 +145,28 @@ function performanceScore(profile, calibration) {
   return 10;
 }
 
+function registryIdentityMap(voices = []) {
+  const map = new Map();
+  for (const voice of voices) {
+    const providerVoiceId = clean(voice?.providerVoiceId || voice?.provider_voice_id);
+    if (!providerVoiceId) continue;
+    map.set(providerVoiceId, voice);
+  }
+  return map;
+}
+
+function resolveRegistryIdentity(voice, registryMap) {
+  const providerVoiceId = clean(voice?.providerVoiceId || voice?.provider_voice_id);
+  const registryVoice = registryMap.get(providerVoiceId);
+  if (!registryVoice) return {};
+
+  return {
+    svaraId: registryVoice.svaraId || registryVoice.svara_id || "",
+    displayName: registryVoice.displayName || registryVoice.display_name || registryVoice.name || "",
+    provider: registryVoice.provider || voice.provider || ""
+  };
+}
+
 export function scoreVoiceForStyle(voice, category, style) {
   const profile = getSvaraFlowStyleProfile(category, style);
   const intelligence = voice?.voiceIntelligence || buildSvaraVoiceProfile(voice);
@@ -178,9 +200,19 @@ export function scoreVoiceForStyle(voice, category, style) {
   };
 }
 
-export function rankVoicesForStyle(voices = [], category, style, limit = 5) {
+export function rankVoicesForStyle(voices = [], category, style, limit = 5, registryVoices = []) {
+  const registryMap = registryIdentityMap(registryVoices);
+
   return voices
-    .map(voice => ({ voice, match: scoreVoiceForStyle(voice, category, style) }))
-    .sort((a, b) => b.match.score - a.match.score || String(a.voice?.name || "").localeCompare(String(b.voice?.name || "")))
+    .map(voice => {
+      const match = scoreVoiceForStyle(voice, category, style);
+      const identity = resolveRegistryIdentity(voice, registryMap);
+      return {
+        voice,
+        match,
+        ...identity
+      };
+    })
+    .sort((a, b) => b.match.score - a.match.score || String(a.displayName || a.voice?.name || "").localeCompare(String(b.displayName || b.voice?.name || "")))
     .slice(0, Math.max(1, Math.min(10, Number(limit) || 5)));
 }
