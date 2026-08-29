@@ -13,7 +13,6 @@
     "crons": ["5 * * * *"]
   },
   "vars": {
-    "SVARAONE_CREDIT_FACTOR": "0.5",
     "SVARAONE_FULL_VOICE_CATALOGUE": "true",
     "SVARAONE_FREE_CREDITS": "5000",
     "SVARAONE_FREE_VOICES": "90",
