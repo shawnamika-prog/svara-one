@@ -144,6 +144,69 @@ function sentenceEndsWithTerminal(text) {
   return /[.!?…]$/.test(text);
 }
 
+function deepgramMaxInputChars(env) {
+  const value = Number(env?.DEEPGRAM_MAX_INPUT_CHARS);
+  return Number.isFinite(value) && value > 0 ? Math.floor(value) : 2000;
+}
+
+function buildSegmentedScript(segments, separatorMode = "mixed") {
+  return segments.map((segment, index) => {
+    if (index === 0) return segment.text;
+    const previous = segments[index - 1];
+    let separator = "\n";
+    if (separatorMode === "blank") separator = "\n\n";
+    if (separatorMode === "mixed" && previous.pause_after === "PAUSE_LONG") separator = "\n\n";
+    return `${separator}${segment.text}`;
+  }).join("");
+}
+
+function fitPreparedScript(original, validatedPlan, translatedSegments, env) {
+  const maxChars = deepgramMaxInputChars(env);
+  if (original.length > maxChars) {
+    throw new Error(`SvaraFlow cannot fit this script in the configured Deepgram limit of ${maxChars} characters. The original script is already ${original.length} characters.`);
+  }
+
+  const sourceSegments = validatedPlan.segments;
+  const working = translatedSegments.map((segment, index) => ({
+    ...segment,
+    sourceText: clonePunctuation(sourceSegments[index].text),
+    pauseAfter: sourceSegments[index].pause_after
+  }));
+
+  let preparedScript = buildSegmentedScript(working, "mixed");
+  if (preparedScript.length <= maxChars) return preparedScript;
+
+  // First remove optional SvaraFlow punctuation transformations. User punctuation and words remain intact.
+  const priorities = ["PAUSE_SHORT", "PAUSE_MEDIUM", "PAUSE_LONG"];
+  for (const priority of priorities) {
+    for (const segment of working) {
+      if (preparedScript.length <= maxChars) break;
+      if (segment.pauseAfter !== priority) continue;
+      if (segment.text === segment.sourceText) continue;
+      segment.text = segment.sourceText;
+      preparedScript = buildSegmentedScript(working, "mixed");
+    }
+    if (preparedScript.length <= maxChars) return preparedScript;
+  }
+
+  // If punctuation alone is not enough, keep line breaks but reduce blank-line boundaries to single line breaks.
+  preparedScript = buildSegmentedScript(working, "single");
+  if (preparedScript.length <= maxChars) return preparedScript;
+
+  // Last non-destructive formatting reduction: use spaces only at short-pause boundaries.
+  const compact = working.map(segment => ({ ...segment }));
+  preparedScript = compact.map((segment, index) => {
+    if (index === 0) return segment.text;
+    return `${working[index - 1].pauseAfter === "PAUSE_LONG" || working[index - 1].pauseAfter === "PAUSE_MEDIUM" ? "\n" : " "}${segment.text}`;
+  }).join("");
+
+  if (preparedScript.length > maxChars) {
+    throw new Error(`SvaraFlow could not fit the prepared script within the configured Deepgram limit of ${maxChars} characters without changing user content.`);
+  }
+
+  return preparedScript;
+}
+
 function addEllipsisBeforeFinalClause(text) {
   const value = clonePunctuation(text);
   if (!value || value.includes("...")) return value;
@@ -234,8 +297,12 @@ export function translateSvaraFlowPlan(originalScript, plan, env = {}) {
   const original = normalizeInput(originalScript);
   const validatedPlan = validatePlan(original, plan);
 
-  const translatedSegments = validatedPlan.segments.map((segment, index) => translateSegment(segment, index));
-  let preparedScript = translatedSegments.map(segment => segment.text).join("\n\n");
+  const translatedSegments = validatedPlan.segments.map((segment, index) => ({
+    ...translateSegment(segment, index),
+    pause_after: segment.pause_after
+  }));
+
+  let preparedScript = fitPreparedScript(original, validatedPlan, translatedSegments, env);
 
   // Keep the translator expressive but controlled: avoid excessive ellipses.
   const ellipsisCount = countOccurrences(preparedScript, "...");
@@ -253,11 +320,12 @@ export function translateSvaraFlowPlan(originalScript, plan, env = {}) {
   const metadata = {
     originalLength: original.length,
     preparedLength: preparedScript.length,
+    maxInputChars: deepgramMaxInputChars(env),
     transformationCount: translatedSegments.reduce((count, segment, index) => {
       return count + (segment.text !== clonePunctuation(validatedPlan.segments[index].text) ? 1 : 0);
     }, 0),
     segmentCount: translatedSegments.length,
-    svaraflowVersion: "3E-B-v1"
+    svaraflowVersion: "3E-C-v1"
   };
 
   if (svaraFlowDebugEnabled(env)) {
