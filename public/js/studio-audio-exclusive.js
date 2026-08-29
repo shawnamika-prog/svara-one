@@ -57,7 +57,21 @@ if(original&&processed){
   });
 }
 
-document.querySelectorAll('aside a[href="/"],aside a[href="#library"],aside a[href="/account.html"]').forEach(link=>{
-  link.addEventListener('click',stopAllAudio,{capture:true});
+// Stop all Studio audio whenever the user leaves the Voice view, including
+// SPA navigation to My Library and full-page navigation to Home or Settings.
+document.addEventListener('click',event=>{
+  const link=event.target.closest('aside a, .studio-nav a');
+  if(!link)return;
+  const href=link.getAttribute('href')||'';
+  if(href==='#voice')return;
+  stopAllAudio();
+},true);
+
+window.addEventListener('hashchange',()=>{
+  if(location.hash!=='#voice')stopAllAudio();
 });
+
+window.addEventListener('pagehide',stopAllAudio);
+window.addEventListener('beforeunload',stopAllAudio);
+window.addEventListener('pageshow',stopAllAudio);
 })();
