@@ -30,6 +30,12 @@ function stopAllAudio(){
   });
 }
 
+function resetReturnedStudio(){
+  stopAllAudio();
+  const player=document.getElementById('player');
+  if(player)player.dispatchEvent(new Event('pause'));
+}
+
 window.SVARA_STOP_ALL_AUDIO=stopAllAudio;
 
 if(NativeAudio){
@@ -73,5 +79,5 @@ window.addEventListener('hashchange',()=>{
 
 window.addEventListener('pagehide',stopAllAudio);
 window.addEventListener('beforeunload',stopAllAudio);
-window.addEventListener('pageshow',stopAllAudio);
+window.addEventListener('pageshow',resetReturnedStudio);
 })();
