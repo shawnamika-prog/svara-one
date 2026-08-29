@@ -4,7 +4,7 @@
   if(!btn||!script)return;
 
   // Carry the current SvaraFlow state with voice-generation requests.
-  // SvaraFlow remains an internal processing option and does not alter billing.
+  // SvaraFlow remains an internal processing option and does not alter the billing unit.
   const svaraFlowToggle=$('svaraFlowToggle');
   const originalFetch=window.fetch.bind(window);
   window.fetch=async (input,init)=>{
@@ -29,7 +29,10 @@
   let invalidated=false;
   let busy=false;
 
-  function costFor(text){return Math.max(1,Math.ceil(String(text||'').length/creditFactor))}
+  function costFor(text){
+    const normalizedCharacters=Math.max(100,Math.ceil(String(text||'').length/100)*100);
+    return Math.max(1,Math.ceil(normalizedCharacters*creditFactor));
+  }
   function ensureCounter(){
     let label=$('freeGenerationCount');
     if(label)return label;
@@ -37,11 +40,7 @@
     btn.insertAdjacentElement('afterend',label);return label;
   }
   function setCounter(value){ensureCounter().textContent=`Free generations ${value}`}
-  function setBilledButton(){
-    btn.disabled=busy;
-    const cost=costFor(script.value.trim());
-    btn.textContent=`Generate — ${cost} credit${cost===1?'':'s'}`;
-  }
+  function setBilledButton(){btn.disabled=busy;btn.textContent='Generate'}
   function setFreeButton(){btn.disabled=busy;btn.textContent='Generate Again - Free'}
   function invalidateIfChanged(){
     if(!generation||generation.used||invalidated)return;
