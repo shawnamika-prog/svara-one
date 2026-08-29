@@ -22,10 +22,7 @@
     activeFilename = '';
 
     if (label === 'Rename') {
-      if (!window.SvaraModal?.rename) {
-        window.alert('Rename is currently unavailable.');
-        return;
-      }
+      if (!window.SvaraModal?.rename) return;
 
       window.SvaraModal.rename(filename).then(async newFilename => {
         const requestedFilename = String(newFilename || '').trim();
@@ -42,11 +39,9 @@
           if (!response.ok) throw new Error(data.error || `Rename failed (${response.status})`);
           window.location.reload();
         } catch (error) {
-          window.alert(error?.message || 'Could not rename the generation.');
+          console.error(error);
         }
-      }).catch(error => {
-        window.alert(error?.message || 'Could not rename the generation.');
-      });
+      }).catch(error => console.error(error));
       return;
     }
 
@@ -60,21 +55,9 @@
       return;
     }
 
-    if (!window.confirm(`Delete “${filename}”? This cannot be undone.`)) return;
-
-    fetch('/api/generations/delete', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'content-type': 'application/json', accept: 'application/json' },
-      body: JSON.stringify({ filename })
-    })
-      .then(async response => {
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || `Delete failed (${response.status})`);
-        window.location.reload();
-      })
-      .catch(error => {
-        window.alert(error?.message || 'Could not delete the generation.');
-      });
+    if (label === 'Delete') {
+      if (!window.SvaraModal?.delete) return;
+      window.SvaraModal.delete(filename);
+    }
   }, true);
 })();
