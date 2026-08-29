@@ -16,7 +16,7 @@ const LANGUAGE_WORDS={
 
 function credits(){return Number(localStorage.getItem(CREDIT_KEY)??START_CREDITS)}
 function setCredits(n){const value=Math.max(0,n);localStorage.setItem(CREDIT_KEY,String(value));if($('creditBalance'))$('creditBalance').textContent=`${value.toLocaleString()} credits`;if($('topCredits'))$('topCredits').textContent=value.toLocaleString()}
-function generationCost(n){return Math.max(1,Math.ceil(n/creditFactor))}
+function generationCost(n){const normalizedCharacters=Math.max(100,Math.ceil(n/100)*100);return Math.max(1,Math.ceil(normalizedCharacters*creditFactor))}
 function escapeHtml(s){return String(s).replace(/[&<>'\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]))}
 function displayName(v){return String(v.name||v.voice_id||'Voice').replace(/-/g,' ').replace(/\b\w/g,m=>m.toUpperCase())}
 function normalizeVoice(v){
