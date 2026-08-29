@@ -237,6 +237,7 @@
 
   window.SvaraLibrary = window.SvaraLibrary || {};
   window.SvaraLibrary.refresh = () => loadGenerations(true);
+  window.SvaraLibrary.invalidate = () => { loaded = false; };
 
   function showView(view) {
     const showLibrary = view === 'library';
