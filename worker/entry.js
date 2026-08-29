@@ -182,6 +182,20 @@ async function storedBrandLogo(env) {
   });
 }
 
+async function storedHeroBackground(env) {
+  if (!env.VOICE_SAMPLES) return null;
+  const object = await env.VOICE_SAMPLES.get("branding/hero-bg.png");
+  if (!object) return null;
+
+  return new Response(object.body, {
+    headers: {
+      "content-type": "image/png",
+      "cache-control": "public, max-age=31536000, immutable",
+      "etag": object.httpEtag || ""
+    }
+  });
+}
+
 function pricing(env) {
   const number = (name, fallback) => {
     const value = Number(env[name]);
@@ -332,6 +346,12 @@ export default {
     if (request.method === "GET" && url.pathname === "/api/branding/svaraone-logo.png") {
       const logo = await storedBrandLogo(env);
       if (logo) return logo;
+      return new Response("Not found", { status: 404 });
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/branding/hero-bg.png") {
+      const heroBackground = await storedHeroBackground(env);
+      if (heroBackground) return heroBackground;
       return new Response("Not found", { status: 404 });
     }
 
