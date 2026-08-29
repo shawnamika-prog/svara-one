@@ -30,10 +30,22 @@ function stopAllAudio(){
   });
 }
 
+function redrawReturnedStudio(){
+  const player=document.getElementById('player');
+  const processedPlayer=document.getElementById('processedAudio');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    if(player)player.dispatchEvent(new Event('loadedmetadata'));
+    if(processedPlayer)processedPlayer.dispatchEvent(new Event('loadedmetadata'));
+  }));
+}
+
 function resetReturnedStudio(){
   stopAllAudio();
   const player=document.getElementById('player');
   if(player)player.dispatchEvent(new Event('pause'));
+  const processedPlayer=document.getElementById('processedAudio');
+  if(processedPlayer)processedPlayer.dispatchEvent(new Event('pause'));
+  redrawReturnedStudio();
 }
 
 window.SVARA_STOP_ALL_AUDIO=stopAllAudio;
