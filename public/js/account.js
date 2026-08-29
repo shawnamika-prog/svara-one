@@ -1,11 +1,11 @@
 const PLAN_ORDER = ["free", "starter", "creator", "pro", "studio"];
 const PLAN_NAMES = { free: "Free", starter: "Starter", creator: "Creator", pro: "Pro", studio: "Studio" };
 const PLAN_FEATURES = {
-  free: ["MP3 / WAV / PCM (Linear 16)", "Try the full workflow"],
-  starter: ["MP3 / WAV / PCM (Linear 16)", "Commercial use"],
-  creator: ["MP3 / WAV / PCM (Linear 16)", "Commercial use", "Premium voice collection"],
-  pro: ["MP3 / WAV / PCM (Linear 16)", "Commercial use", "Priority generation"],
-  studio: ["MP3 / WAV / PCM (Linear 16)", "Commercial use", "Built for high-volume creation"]
+  free: ["SvaraFlow™", "Audio Tools", "MP3 / WAV / PCM (Linear 16)", "Try the full workflow"],
+  starter: ["SvaraFlow™", "Audio Tools", "MP3 / WAV / PCM (Linear 16)", "Commercial use"],
+  creator: ["SvaraFlow™", "Audio Tools", "MP3 / WAV / PCM (Linear 16)", "Commercial use", "Premium voice collection"],
+  pro: ["SvaraFlow™", "Audio Tools", "MP3 / WAV / PCM (Linear 16)", "Commercial use", "Priority generation"],
+  studio: ["SvaraFlow™", "Audio Tools", "MP3 / WAV / PCM (Linear 16)", "Commercial use", "Built for high-volume creation"]
 };
 const FREE_PLAN = { price: 0, period: "once-off", voices: 3 };
 
@@ -48,13 +48,27 @@ function showStatus(message, type = "pending") {
 }
 
 function voiceCountForPlan(plan, pricing, catalogueCount, fullCatalogue) {
-  if (fullCatalogue === true && Number.isFinite(catalogueCount)) return catalogueCount;
+  if (Number.isFinite(catalogueCount)) return catalogueCount;
   if (plan === "free") return Number(pricing?.free?.voices ?? FREE_PLAN.voices);
   return Number(pricing?.plans?.[plan]?.voices);
 }
 
 function voiceLabel(count) {
   return Number.isFinite(count) && count > 0 ? `${count.toLocaleString("en-US")} voices` : "Voice access";
+}
+
+function compactCredits(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  if (Math.abs(n) >= 1000000) {
+    const v = n / 1000000;
+    return `${Number.isInteger(v) ? v : v.toFixed(1).replace(/\.0$/, "")}M`;
+  }
+  if (Math.abs(n) >= 1000) {
+    const v = n / 1000;
+    return `${Number.isInteger(v) ? v : v.toFixed(1).replace(/\.0$/, "")}K`;
+  }
+  return n.toLocaleString("en-US");
 }
 
 function showAccount(user, pricing, catalogueCount, fullCatalogue) {
@@ -65,10 +79,11 @@ function showAccount(user, pricing, catalogueCount, fullCatalogue) {
   const plan = currentPlanKey(user);
   const voices = voiceCountForPlan(plan, pricing, catalogueCount, fullCatalogue);
   if (badge) badge.textContent = PLAN_NAMES[plan] || "Free";
+  const credits = Number(user.credits || 0);
   meta.innerHTML = `
     <div class="row"><span class="label">Email</span><strong>${escapeHtml(user.email)}</strong></div>
     <div class="row"><span class="label">Plan</span><strong>${escapeHtml(PLAN_NAMES[plan] || "Free")}</strong></div>
-    <div class="row"><span class="label">Credits</span><strong>${Number(user.credits || 0).toLocaleString()}</strong></div>
+    <div class="row"><span class="label">Credits</span><strong>${escapeHtml(compactCredits(credits) ?? "0")}</strong></div>
     <div class="row"><span class="label">Voices</span><strong>${escapeHtml(voiceLabel(voices))}</strong></div>
     ${subscription?.period_end ? `<div class="row"><span class="label">Plan period ends</span><strong>${new Date(subscription.period_end).toLocaleDateString()}</strong></div>` : ""}`;
 }
@@ -101,7 +116,7 @@ function renderPlans(user, pricing, catalogueCount, fullCatalogue) {
     const popular = plan === "creator" ? `<div class="tag">MOST POPULAR</div>` : "";
     const voiceCount = voiceCountForPlan(plan, pricing, catalogueCount, fullCatalogue);
     const features = [voiceLabel(voiceCount), ...(PLAN_FEATURES[plan] || [])];
-    const creditText = `${Number(config.credits).toLocaleString()} ${renderBrand()} Credits / ${isFree ? "once-off" : "month"}`;
+    const creditText = `${compactCredits(config.credits) ?? "0"} ${renderBrand()} Credits / ${isFree ? "once-off" : "month"}`;
     const annualPrice = Number(config.price || 0);
     const monthly = monthlyPrice(annualPrice);
     const priceText = isFree ? "$0" : `$${money(monthly)}`;
