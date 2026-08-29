@@ -16,17 +16,18 @@
   style.textContent = `
     .hero-card{position:relative;overflow:hidden;isolation:isolate}
     .hero-card > *:not(.hero-cosmos){position:relative;z-index:2}
-    .hero-cosmos{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:.62;transition:opacity .8s ease}
+    .hero-cosmos{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:.72;transition:opacity 1.2s ease}
     .hero-cosmos canvas{display:block;width:100%;height:100%}
-    .hero-card.is-hero-playing .hero-cosmos{opacity:.9}
-    .hero-script{min-height:118px;margin:25px 0;color:#dbe8f5;display:flex;align-items:center}
-    .hero-script-line{font-size:20px;line-height:1.55;transition:opacity .45s ease,transform .45s ease,color .45s ease;text-shadow:0 1px 16px #0008}
-    .hero-script-line.is-active{color:#f2fbff;transform:translateY(0);opacity:1}
-    .hero-script-line.is-idle{opacity:.9}
+    .hero-card.is-hero-playing .hero-cosmos{opacity:1}
+    .hero-script{min-height:118px;margin:25px 0;display:flex;align-items:center;position:relative}
+    .hero-script:after{content:'';position:absolute;left:-12px;right:35%;top:50%;height:120px;transform:translateY(-50%);background:radial-gradient(ellipse at center,rgba(5,18,32,.78),rgba(5,18,32,0) 72%);z-index:-1;pointer-events:none}
+    .hero-script-line{font-size:20px;line-height:1.55;color:#cbd9e8;transition:opacity .55s ease,transform .55s ease,color .55s ease;text-shadow:0 2px 22px rgba(0,0,0,.8);max-width:94%}
+    .hero-script-line.is-active{color:#f1f8ff;transform:translateY(0);opacity:1}
+    .hero-script-line.is-idle{opacity:.72;transform:translateY(4px)}
     .hero-script-line .brand-svara,.hero-script-line .brand-one{font-weight:inherit}
     .hero-card .card-top,.hero-card .voice-row,.hero-card .player{position:relative;z-index:3}
-    @media(max-width:650px){.hero-script{min-height:150px}.hero-script-line{font-size:18px}}
-    @media(prefers-reduced-motion:reduce){.hero-cosmos{opacity:.35}.hero-script-line{transition:none}}
+    @media(max-width:650px){.hero-script{min-height:150px}.hero-script-line{font-size:18px;max-width:100%}.hero-script:after{right:0}}
+    @media(prefers-reduced-motion:reduce){.hero-cosmos{opacity:.42}.hero-script-line{transition:none}.hero-script:after{opacity:.7}}
   `;
   document.head.appendChild(style);
 
@@ -50,22 +51,20 @@
       canvas.width = Math.round(width * dpr);
       canvas.height = Math.round(height * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const count = Math.max(48, Math.min(95, Math.round(width * height / 6200)));
-      while (stars.length < count) stars.push(makeStar(true));
+      const count = Math.max(34, Math.min(62, Math.round(width * height / 9800)));
+      while (stars.length < count) stars.push(makeStar());
       while (stars.length > count) stars.pop();
     }
 
-    function makeStar(initial = false) {
+    function makeStar() {
       return {
         x: Math.random() * width,
         y: Math.random() * height,
-        r: Math.random() * 1.15 + .2,
-        alpha: Math.random() * .55 + .18,
+        r: Math.random() * .72 + .18,
+        alpha: Math.random() * .34 + .08,
         phase: Math.random() * Math.PI * 2,
-        speed: Math.random() * .22 + .04,
-        drift: (Math.random() - .5) * .055,
-        twinkle: Math.random() * .7 + .25,
-        initial
+        twinkle: Math.random() * .5 + .15,
+        drift: (Math.random() - .5) * .018
       };
     }
 
@@ -74,58 +73,85 @@
       last = now;
       ctx.clearRect(0, 0, width, height);
 
-      const glow = playing ? 1 : .65;
-      const cx = width * .77;
-      const cy = height * .53;
-      const radius = Math.min(width, height) * .16;
+      const intensity = playing ? 1 : .72;
+      const cx = width * .79;
+      const cy = height * .51;
+      const radius = Math.min(width, height) * .13;
+      const sourceX = cx - radius * .72;
 
-      const bg = ctx.createRadialGradient(cx, cy, radius * .3, cx, cy, radius * 3.1);
-      bg.addColorStop(0, `rgba(70,190,255,${.035 * glow})`);
-      bg.addColorStop(.48, `rgba(25,220,190,${.022 * glow})`);
-      bg.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = bg;
-      ctx.fillRect(0, 0, width, height);
-
+      // Very dark atmospheric space: the stars should be discovered, not announced.
       for (const star of stars) {
         if (!reduced && playing) {
           star.x += star.drift * dt;
-          star.y += star.speed * .018 * dt;
-          if (star.y > height + 3) star.y = -3;
-          if (star.x < -3) star.x = width + 3;
-          if (star.x > width + 3) star.x = -3;
+          if (star.x < -2) star.x = width + 2;
+          if (star.x > width + 2) star.x = -2;
         }
-        const twinkle = .72 + Math.sin(now * .001 * star.twinkle + star.phase) * .28;
+        const twinkle = .76 + Math.sin(now * .001 * star.twinkle + star.phase) * .24;
         ctx.beginPath();
         ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(210,238,255,${Math.max(.08, star.alpha * twinkle * glow)})`;
+        ctx.fillStyle = `rgba(211,234,255,${Math.max(.025, star.alpha * twinkle * intensity)})`;
         ctx.fill();
       }
 
-      // Subtle eclipse: distant glow, dark disc, and a thin halo.
-      const halo = ctx.createRadialGradient(cx, cy, radius * .86, cx, cy, radius * 1.65);
-      halo.addColorStop(0, `rgba(255,225,180,${.12 * glow})`);
-      halo.addColorStop(.35, `rgba(255,190,120,${.07 * glow})`);
-      halo.addColorStop(1, 'rgba(255,190,120,0)');
-      ctx.fillStyle = halo;
+      // A distant celestial light sits behind a dark object, echoing the SvaraONE mark.
+      const atmosphere = ctx.createRadialGradient(sourceX, cy, radius * .15, sourceX, cy, radius * 3.8);
+      atmosphere.addColorStop(0, `rgba(255,221,166,${.095 * intensity})`);
+      atmosphere.addColorStop(.18, `rgba(81,202,236,${.045 * intensity})`);
+      atmosphere.addColorStop(.55, `rgba(28,137,190,${.018 * intensity})`);
+      atmosphere.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = atmosphere;
+      ctx.fillRect(0, 0, width, height);
+
+      // Soft light source.
+      const sun = ctx.createRadialGradient(sourceX, cy, 0, sourceX, cy, radius * 1.3);
+      sun.addColorStop(0, `rgba(255,239,204,${.20 * intensity})`);
+      sun.addColorStop(.38, `rgba(255,202,139,${.10 * intensity})`);
+      sun.addColorStop(1, 'rgba(255,190,120,0)');
+      ctx.fillStyle = sun;
       ctx.beginPath();
-      ctx.arc(cx, cy, radius * 1.7, 0, Math.PI * 2);
+      ctx.arc(sourceX, cy, radius * 1.35, 0, Math.PI * 2);
       ctx.fill();
 
+      // Dark silhouette. It is intentionally understated so it reads as an eclipse, not a circle.
       ctx.beginPath();
       ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(2,9,18,.96)';
+      ctx.fillStyle = 'rgba(2,9,18,.985)';
       ctx.fill();
-      ctx.lineWidth = 1.2;
-      ctx.strokeStyle = `rgba(255,224,184,${.18 * glow})`;
+
+      // Thin atmospheric rim around the silhouette.
+      ctx.lineWidth = .9;
+      ctx.strokeStyle = `rgba(225,238,246,${.055 * intensity})`;
       ctx.stroke();
+
+      // A restrained crescent/halo appears where the hidden light escapes.
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const rim = ctx.createRadialGradient(sourceX, cy, radius * .82, sourceX, cy, radius * 1.24);
+      rim.addColorStop(0, 'rgba(255,231,195,0)');
+      rim.addColorStop(.72, `rgba(255,221,170,${.10 * intensity})`);
+      rim.addColorStop(.9, `rgba(109,214,236,${.035 * intensity})`);
+      rim.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = rim;
+      ctx.beginPath();
+      ctx.arc(sourceX, cy, radius * 1.24, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
 
       if (!reduced || playing) raf = requestAnimationFrame(draw);
     }
 
-    const start = () => { playing = true; if (!raf) { last = performance.now(); raf = requestAnimationFrame(draw); } };
-    const stop = () => { playing = false; if (!raf && !reduced) raf = requestAnimationFrame(draw); };
+    const start = () => {
+      playing = true;
+      if (!raf) { last = performance.now(); raf = requestAnimationFrame(draw); }
+    };
+    const stop = () => {
+      playing = false;
+      if (!raf && !reduced) raf = requestAnimationFrame(draw);
+    };
+
     resize();
-    if (reduced) draw(performance.now()); else raf = requestAnimationFrame(draw);
+    if (reduced) draw(performance.now());
+    else raf = requestAnimationFrame(draw);
     window.addEventListener('resize', resize, { passive: true });
     return { start, stop };
   }
@@ -179,7 +205,6 @@
         else break;
       }
       render(idx);
-      if (audio.ended) reset();
     }
 
     document.addEventListener('play', (event) => {
