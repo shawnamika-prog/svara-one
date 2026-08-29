@@ -6,7 +6,9 @@
   }
 
   function planVoiceCount(pricing,plan,catalogueCount,fullCatalogue){
-    if(fullCatalogue===true && Number.isFinite(catalogueCount)) return catalogueCount;
+    // All plans have access to the full current Deepgram catalogue. Keep the
+    // count dynamic so catalogue changes are reflected without code changes.
+    if(Number.isFinite(catalogueCount)) return catalogueCount;
     if(plan==='free') return Number(pricing?.free?.voices);
     return Number(pricing?.plans?.[plan]?.voices);
   }
@@ -17,11 +19,26 @@
     if(target)target.textContent=`${count.toLocaleString('en-US')} voices`;
   }
 
+  function compactCredits(value){
+    const n=Number(value);
+    if(!Number.isFinite(n))return null;
+    if(Math.abs(n)>=1000000){
+      const v=n/1000000;
+      return `${Number.isInteger(v)?v:v.toFixed(1).replace(/\.0$/,'')}M`;
+    }
+    if(Math.abs(n)>=1000){
+      const v=n/1000;
+      return `${Number.isInteger(v)?v:v.toFixed(1).replace(/\.0$/,'')}K`;
+    }
+    return n.toLocaleString('en-US');
+  }
+
   function setFreeCredits(pricing){
     const credits=Number(pricing?.free?.credits);
-    if(!Number.isFinite(credits))return;
+    const formatted=compactCredits(credits);
+    if(formatted===null)return;
     document.querySelectorAll('#freeCredits,[data-free-credits]').forEach(target=>{
-      target.textContent=credits.toLocaleString('en-US');
+      target.textContent=formatted;
     });
   }
 
@@ -44,8 +61,6 @@
     });
   }
 
-  // The public homepage must always label paid plans by their monthly equivalent.
-  // Keep this separate from the price value so no stale/legacy markup can show "/ year".
   function setMonthlyBillingLabels(){
     document.querySelectorAll('.prices article').forEach(article=>{
       const name=article.querySelector('h3')?.textContent.trim().toLowerCase();
@@ -56,12 +71,30 @@
     });
   }
 
-  function reinforcePlanPrices(pricing){
+  function setPlanCreditLabels(pricing){
+    const plans=pricing?.plans||{};
+    const articles=[...document.querySelectorAll('.prices article')];
+    articles.forEach(article=>{
+      const name=article.querySelector('h3')?.textContent.trim().toLowerCase();
+      const value=name==='free'?pricing?.free?.credits:plans?.[name]?.credits;
+      const formatted=compactCredits(value);
+      const target=article.querySelector('b');
+      if(target&&formatted!==null){
+        target.innerHTML=`${formatted} <span class="brand-svara">Svara</span><span class="brand-one">ONE</span> Credits / ${name==='free'?'once-off':'month'}`;
+      }
+    });
+  }
+
+  function reinforcePricing(pricing){
+    setFreeCredits(pricing);
     setPlanPrices(pricing);
     setMonthlyBillingLabels();
+    setPlanCreditLabels(pricing);
     const timer=setInterval(()=>{
+      setFreeCredits(pricing);
       setPlanPrices(pricing);
       setMonthlyBillingLabels();
+      setPlanCreditLabels(pricing);
     },250);
     setTimeout(()=>clearInterval(timer),5000);
   }
@@ -83,8 +116,7 @@
         api('/api/voice-access'),
         api('/api/voices')
       ]);
-      setFreeCredits(pricing);
-      reinforcePlanPrices(pricing);
+      reinforcePricing(pricing);
       if(!prices)return;
       const count=catalogueCount(voices);
       const fullCatalogue=access?.fullCatalogue===true;
