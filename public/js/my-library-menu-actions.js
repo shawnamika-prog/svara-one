@@ -12,7 +12,7 @@
     if (!button || !activeFilename) return;
 
     const label = button.querySelector('span:last-child')?.textContent?.trim();
-    if (label !== 'Download' && label !== 'Delete') return;
+    if (!['Rename', 'Download', 'Delete'].includes(label)) return;
 
     event.preventDefault();
     event.stopImmediatePropagation();
@@ -20,6 +20,35 @@
 
     const filename = activeFilename;
     activeFilename = '';
+
+    if (label === 'Rename') {
+      if (!window.SvaraModal?.rename) {
+        window.alert('Rename is currently unavailable.');
+        return;
+      }
+
+      window.SvaraModal.rename(filename).then(async newFilename => {
+        const requestedFilename = String(newFilename || '').trim();
+        if (!requestedFilename || requestedFilename === filename) return;
+
+        try {
+          const response = await fetch('/api/generations/rename', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'content-type': 'application/json', accept: 'application/json' },
+            body: JSON.stringify({ currentFilename: filename, filename: requestedFilename })
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.error || `Rename failed (${response.status})`);
+          window.location.reload();
+        } catch (error) {
+          window.alert(error?.message || 'Could not rename the generation.');
+        }
+      }).catch(error => {
+        window.alert(error?.message || 'Could not rename the generation.');
+      });
+      return;
+    }
 
     if (label === 'Download') {
       const link = document.createElement('a');
