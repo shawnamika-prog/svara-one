@@ -19,6 +19,8 @@ function stopOthers(current){
   });
 }
 
+window.SVARA_STOP_ALL_AUDIO=()=>stopOthers(null);
+
 if(NativeAudio){
   window.Audio=function(...args){
     const media=new NativeAudio(...args);
