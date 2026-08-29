@@ -6,11 +6,18 @@
   }
 
   function redrawWaveformAfterVoiceRestore() {
-    const audio = document.getElementById('player');
-    if (!audio) return;
+    const audioElements = [
+      document.getElementById('player'),
+      document.getElementById('processedAudio')
+    ].filter(Boolean);
+
+    if (!audioElements.length) return;
+
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
-        audio.dispatchEvent(new Event('loadedmetadata'));
+        audioElements.forEach(audio => {
+          audio.dispatchEvent(new Event('loadedmetadata'));
+        });
       });
     });
   }
