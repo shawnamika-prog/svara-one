@@ -7,7 +7,28 @@ let processedUrl=null,processedAudio=null,processedBuffer=null,sourceBuffer=null
 
 function setStatus(text,error=false){if(!status)return;status.textContent=text||'';status.classList.toggle('error',error)}
 function setBusy(busy){rendering=busy;tools.querySelectorAll('.audio-tool').forEach(b=>b.disabled=busy)}
-function formatFromTitle(){const title=$('playerTitle')?.textContent||'';const m=title.match(/·\s*(MP3|WAV|PCM)$/i);return (m?.[1]||'MP3').toLowerCase()}
+function formatFromTitle(){const title=$('playerTitle')?.textContent||'';const m=title.match(/·\s*(MP3|WAV|PCM)$/i);return (m?.[1]||'').toLowerCase()}
+function getSourceFormat(){
+  const titleFormat=formatFromTitle();
+  if(titleFormat)return titleFormat;
+  const text=(result.textContent||'').toLowerCase();
+  if(/\blinear16\b|\bpcm\b/.test(text))return 'pcm';
+  return 'mp3';
+}
+function syncToolVisibility(){
+  if(result.hidden){tools.hidden=true;return}
+  const format=getSourceFormat();
+  tools.hidden=format==='pcm';
+  if(format==='pcm'){
+    processed.hidden=true;
+    if(processedAudio){processedAudio.pause();processedAudio.removeAttribute('src');processedAudio.load()}
+    if(processedUrl){URL.revokeObjectURL(processedUrl);processedUrl=null}
+    processedAudio=null;processedBuffer=null;sourceBuffer=null;
+    setStatus('Audio Tools are not available for PCM output.');
+  }else{
+    setStatus('Choose an audio tool to create a processed version.');
+  }
+}
 function pcmToBuffer(arrayBuffer,sampleRate=24000){
   const samples=new Int16Array(arrayBuffer.slice(0,arrayBuffer.byteLength-arrayBuffer.byteLength%2));
   const ctx=new AudioContext();
@@ -16,11 +37,13 @@ function pcmToBuffer(arrayBuffer,sampleRate=24000){
   ctx.close();return buffer;
 }
 async function loadSource(){
-  sourceFormat=formatFromTitle();
+  sourceFormat=getSourceFormat();
+  if(sourceFormat==='pcm')throw new Error('Audio Tools are not available for PCM output.');
   const player=$('player');
   if(!player?.src)throw new Error('Generate audio first.');
-  const bytes=await (await fetch(player.src)).arrayBuffer();
-  if(sourceFormat==='pcm')return pcmToBuffer(bytes,24000);
+  const response=await fetch(player.src);
+  if(!response.ok)throw new Error('Unable to load generated audio.');
+  const bytes=await response.arrayBuffer();
   const ctx=new AudioContext();
   try{return await ctx.decodeAudioData(bytes)}finally{ctx.close()}
 }
@@ -45,7 +68,7 @@ function makeGraph(ctx,source,type,buffer){
   last.connect(gain);gain.connect(ctx.destination);return gain;
 }
 async function renderEffect(type){
-  if(rendering)return;
+  if(rendering||getSourceFormat()==='pcm')return;
   setBusy(true);setStatus('Rendering processed audio…');
   try{
     if(!sourceBuffer)sourceBuffer=await loadSource();
@@ -98,6 +121,7 @@ function resetAudioTools(){
   if(processedUrl){URL.revokeObjectURL(processedUrl);processedUrl=null}
   processedAudio=null;processedBuffer=null;sourceBuffer=null;sourceFormat='mp3';
   processed.hidden=true;
+  tools.hidden=true;
   setStatus('Choose an audio tool to create a processed version.');
 }
 
@@ -107,7 +131,8 @@ $('processedAudio')?.addEventListener('play',syncProcessed);$('processedAudio')?
 $('processedWaveformShell')?.addEventListener('click',e=>{if(!processedAudio?.src||!Number.isFinite(processedAudio.duration))return;const rect=e.currentTarget.getBoundingClientRect();processedAudio.currentTime=Math.max(0,Math.min(processedAudio.duration,(e.clientX-rect.left)/rect.width));drawProcessedWave()});
 window.addEventListener('svara:reset-output',resetAudioTools);
 
-const observer=new MutationObserver(()=>{if(!result.hidden){tools.hidden=false;sourceBuffer=null;processed.hidden=true;setStatus('Choose an audio tool to create a processed version.')}});
+const observer=new MutationObserver(()=>syncToolVisibility());
 observer.observe(result,{attributes:true,attributeFilter:['hidden']});
 window.addEventListener('resize',drawProcessedWave);
+syncToolVisibility();
 })();
