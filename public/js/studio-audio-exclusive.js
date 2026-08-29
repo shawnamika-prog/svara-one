@@ -19,7 +19,18 @@ function stopOthers(current){
   });
 }
 
-window.SVARA_STOP_ALL_AUDIO=()=>stopOthers(null);
+function stopAllAudio(){
+  document.querySelectorAll('audio,video').forEach(media=>{
+    media.pause();
+    try{media.currentTime=0}catch{}
+  });
+  tracked.forEach(media=>{
+    media.pause();
+    try{media.currentTime=0}catch{}
+  });
+}
+
+window.SVARA_STOP_ALL_AUDIO=stopAllAudio;
 
 if(NativeAudio){
   window.Audio=function(...args){
@@ -45,4 +56,8 @@ if(original&&processed){
     if(!original.paused){original.pause();try{original.currentTime=0}catch{}}
   });
 }
+
+document.querySelectorAll('aside a[href="/"],aside a[href="#library"],aside a[href="/account.html"]').forEach(link=>{
+  link.addEventListener('click',stopAllAudio,{capture:true});
+});
 })();
