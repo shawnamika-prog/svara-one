@@ -235,7 +235,7 @@ export function translateSvaraFlowPlan(originalScript, plan, env = {}) {
   const validatedPlan = validatePlan(original, plan);
 
   const translatedSegments = validatedPlan.segments.map((segment, index) => translateSegment(segment, index));
-  let preparedScript = translatedSegments.map(segment => segment.text).join(" ");
+  let preparedScript = translatedSegments.map(segment => segment.text).join("\n\n");
 
   // Keep the translator expressive but controlled: avoid excessive ellipses.
   const ellipsisCount = countOccurrences(preparedScript, "...");
