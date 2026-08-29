@@ -31,4 +31,15 @@
   window.addEventListener('hashchange', () => {
     if (location.hash === '#voice') redrawWaveformAfterVoiceRestore();
   });
+
+  document.addEventListener('keydown', event => {
+    if (event.key !== 'Enter' || event.isComposing) return;
+    const input = event.target.closest('#myLibraryFolderName');
+    if (!input) return;
+    const modal = input.closest('.my-library-folder-modal');
+    const createButton = modal?.querySelector('.my-library-folder-dialog-button.primary');
+    if (!createButton || createButton.disabled) return;
+    event.preventDefault();
+    createButton.click();
+  });
 })();
