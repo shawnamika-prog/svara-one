@@ -38,8 +38,8 @@
   let openFileMenu = null;
 
   function escapeHtml(value) {
-    return String(value ?? '').replace(/[&<>"']/g, char => ({
-      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    return String(value ?? '').replace(/[&<>\"']/g, char => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', "'": '&#39;'
     }[char]));
   }
 
@@ -234,6 +234,9 @@
       setTableMessage('Could not load your generations', error?.message || 'Please try again.', '⚠');
     } finally { loading = false; }
   }
+
+  window.SvaraLibrary = window.SvaraLibrary || {};
+  window.SvaraLibrary.refresh = () => loadGenerations(true);
 
   function showView(view) {
     const showLibrary = view === 'library';
