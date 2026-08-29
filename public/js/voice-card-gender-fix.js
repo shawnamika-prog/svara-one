@@ -43,7 +43,7 @@
 
       const target=card.querySelector('.voice-card-meta');
       if(!target)return;
-      target.innerHTML=`<div class="voice-meta-identity">${escape(identity)}</div>${useCases.length?`<div class="voice-meta-usecase"><span>USE CASES</span> ${escape(useCases.join(' · '))}</div>`:''}`;
+      target.innerHTML=`<div class="voice-meta-identity">${escape(identity)}</div>${useCases.length?`<div class="voice-meta-usecase"><span>Best For:</span> ${escape(useCases.join(' · '))}</div>`:''}`;
       target.removeAttribute('title');
     });
   };
