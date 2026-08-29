@@ -45,7 +45,8 @@
 
     const text=script.value.trim();
     const balance=Number(localStorage.getItem(creditKey)||0);
-    const cost=Math.max(1,Math.ceil(text.length/creditFactor));
+    const normalizedCharacters=Math.max(100,Math.ceil(text.length/100)*100);
+    const cost=Math.max(1,Math.ceil(normalizedCharacters*creditFactor));
 
     if(text&&cost>balance){
       showWarning();
