@@ -8,7 +8,11 @@
     audiobook:'Audiobooks',
     'casual chat':'Casual Conversation'
   };
-  const label=value=>LABELS[String(value||'').trim().toLowerCase()]||String(value||'').trim();
+  const label=value=>{
+    const text=String(value||'').trim().toLowerCase();
+    if(LABELS[text]) return LABELS[text];
+    return text.replace(/\b\w/g,c=>c.toUpperCase());
+  };
   const escape=value=>String(value??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
   const clean=value=>String(value??'').trim();
   const displayGender=value=>{
