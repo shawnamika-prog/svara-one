@@ -32,6 +32,8 @@
     if(activeId===id && audio){
       if(!audio.paused){
         audio.pause();
+        audio.currentTime=0;
+        activeId=null;
         setCard(card,'idle');
         return false;
       }
@@ -82,8 +84,16 @@
 
   list.addEventListener('click',event=>{
     const preview=event.target.closest('[data-preview-id]');
+    const card=event.target.closest('.voice');
+    if(card && !preview && event.isTrusted && activeId===card.dataset.id && audio && !audio.paused){
+      event.preventDefault();
+      audio.pause();
+      audio.currentTime=0;
+      activeId=null;
+      setCard(card,'idle');
+      return;
+    }
     if(!preview || !list.contains(preview))return;
-    const card=preview.closest('.voice');
     const id=preview.dataset.previewId;
     event.preventDefault();
     event.stopPropagation();
