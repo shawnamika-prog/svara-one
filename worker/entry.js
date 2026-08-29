@@ -104,7 +104,7 @@ function json(data, status = 200) {
 
 function generationCost(text, env) {
   const factor = Number(env.SVARAONE_CREDIT_FACTOR);
-  const safeFactor = Number.isFinite(factor) && factor > 0 ? factor : 0.5;
+  const safeFactor = Number.isFinite(factor) && factor > 0 ? factor : 1;
   const normalizedCharacters = Math.max(100, Math.ceil(text.length / 100) * 100);
   return Math.max(1, Math.ceil(normalizedCharacters * safeFactor));
 }
@@ -197,7 +197,7 @@ function pricing(env) {
   return {
     currency: "USD",
     billing: "annual",
-    creditFactor: number("SVARAONE_CREDIT_FACTOR", 0.5),
+    creditFactor: number("SVARAONE_CREDIT_FACTOR", 1),
     fullVoiceCatalogue: boolean("SVARAONE_FULL_VOICE_CATALOGUE", false),
     free: {
       price: 0,
