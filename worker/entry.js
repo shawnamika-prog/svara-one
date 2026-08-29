@@ -105,7 +105,8 @@ function json(data, status = 200) {
 function generationCost(text, env) {
   const factor = Number(env.SVARAONE_CREDIT_FACTOR);
   const safeFactor = Number.isFinite(factor) && factor > 0 ? factor : 0.5;
-  return Math.max(1, Math.ceil(text.length / safeFactor));
+  const normalizedCharacters = Math.max(100, Math.ceil(text.length / 100) * 100);
+  return Math.max(1, Math.ceil(normalizedCharacters * safeFactor));
 }
 
 async function reserveCredits(userId, cost, env, referenceId = crypto.randomUUID()) {
