@@ -37,7 +37,7 @@
           });
           const data = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(data.error || `Rename failed (${response.status})`);
-          window.location.reload();
+          window.SvaraLibrary?.refresh?.();
         } catch (error) {
           console.error(error);
         }
