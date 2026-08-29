@@ -61,6 +61,10 @@
       audio=new Audio();
       audio.preload='auto';
       audio.src=objectUrl;
+      audio.addEventListener('play',()=>setCard(card,'playing'));
+      audio.addEventListener('pause',()=>{
+        if(activeId===id)setCard(card,'idle');
+      });
       audio.addEventListener('ended',()=>{activeId=null;setCard(card,'idle');});
       audio.addEventListener('error',()=>{activeId=null;setCard(card,'idle');});
       await audio.play();
