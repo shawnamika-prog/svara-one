@@ -13,8 +13,6 @@
         <nav aria-label="Footer">
           <a href="/">Home</a>
           <a href="/studio">Studio</a>
-          <a href="/account.html">Account</a>
-          <a href="/billing.html">Billing</a>
           <span class="svara-footer-separator" aria-hidden="true">·</span>
           <span class="svara-footer-muted">Company · Support · Legal</span>
         </nav>
