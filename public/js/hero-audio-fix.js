@@ -19,6 +19,9 @@
     let animationFrame = null;
     let dragging = false;
 
+    const setPlayIcon = () => { button.textContent = '▶'; };
+    const setPauseIcon = () => { button.textContent = '❚❚'; };
+
     const resetWave = () => bars.forEach((el, i) => {
       el.style.height = `${idleHeights[i % idleHeights.length] * 100}%`;
       el.style.transform = 'scaleY(1)';
@@ -70,6 +73,14 @@
       return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
     };
 
+    const syncUI = () => {
+      if (!audio || !Number.isFinite(audio.duration) || audio.duration <= 0) return;
+      const ratio = Math.min(1, Math.max(0, audio.currentTime / audio.duration));
+      fill.style.width = `${ratio * 100}%`;
+      bar.setAttribute('aria-valuenow', String(Math.round(ratio * 100)));
+      if (durationEl) durationEl.textContent = format(Math.max(0, audio.duration - audio.currentTime));
+    };
+
     const setPosition = clientX => {
       if (!audio || !Number.isFinite(audio.duration) || audio.duration <= 0) return;
       const rect = bar.getBoundingClientRect();
@@ -111,17 +122,9 @@
       if (event.key === 'End') { audio.currentTime = audio.duration; syncUI(); event.preventDefault(); }
     });
 
-    const syncUI = () => {
-      if (!audio || !Number.isFinite(audio.duration) || audio.duration <= 0) return;
-      const ratio = Math.min(1, Math.max(0, audio.currentTime / audio.duration));
-      fill.style.width = `${ratio * 100}%`;
-      bar.setAttribute('aria-valuenow', String(Math.round(ratio * 100)));
-      if (durationEl) durationEl.textContent = format(Math.max(0, audio.duration - audio.currentTime));
-    };
-
     const reset = () => {
       button.disabled = false;
-      button.textContent = '▶';
+      setPlayIcon();
       fill.style.width = '0%';
       if (durationEl) durationEl.textContent = audio ? format(audio.duration) : '—:——';
       stopAnimation();
@@ -140,12 +143,12 @@
           audio.addEventListener('timeupdate', syncUI);
           audio.addEventListener('playing', async () => {
             button.disabled = false;
-            button.textContent = 'Ⅱ';
+            setPauseIcon();
             await connectAnalyser();
             if (!animationFrame) animateWave();
           });
           audio.addEventListener('pause', () => {
-            button.textContent = '▶';
+            setPlayIcon();
             stopAnimation();
             syncUI();
           });
