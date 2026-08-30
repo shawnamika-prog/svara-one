@@ -47,4 +47,9 @@
   bulkScript.src = 'js/my-library-bulk-actions.js';
   bulkScript.defer = true;
   document.head.appendChild(bulkScript);
+
+  const foldersSyncScript = document.createElement('script');
+  foldersSyncScript.src = 'js/my-library-folders-sync.js';
+  foldersSyncScript.defer = true;
+  document.head.appendChild(foldersSyncScript);
 })();
