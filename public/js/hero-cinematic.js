@@ -22,7 +22,7 @@
       background-color:#030a14;
       background-image:linear-gradient(90deg,rgba(3,10,20,.58) 0%,rgba(3,10,20,.24) 48%,rgba(3,10,20,.05) 100%),url('${HERO_BG}');
       background-size:110% auto;
-      background-position:25% 30%;
+      background-position:0% 0%;
       background-repeat:no-repeat;
     }
     .hero-card > *{position:relative;z-index:3}
@@ -34,11 +34,11 @@
     .hero-script-line{font-size:25px;line-height:1.34;letter-spacing:-.015em;color:#e5f0fb;transition:opacity .35s ease,transform .45s ease;opacity:0;transform:translateY(7px);text-shadow:0 2px 24px rgba(0,0,0,.65)}
     .hero-script-line.is-active{opacity:1;transform:translateY(0)}
     .hero-script-line .brand-one{font-weight:inherit}
-    .hero-card .wave{position:relative;z-index:4;opacity:.9;width:94%;margin-left:auto;margin-right:auto;display:flex;gap:5px;align-items:center;justify-content:space-between}
+    .hero-card .wave{position:relative;z-index:4;opacity:.9;width:72%;margin-left:auto;margin-right:auto;height:60px;display:flex;gap:5px;align-items:center;justify-content:space-between}
     .hero-card .wave i{transition:height .12s ease;flex:1 1 0;min-width:2px;max-width:5px}
     @media(max-width:700px){
       .hero-script{min-height:88px;max-width:100%}.hero-script-line{font-size:21px}
-      .hero-card .wave{width:96%;gap:3px}
+      .hero-card .wave{width:78%;height:54px;gap:3px}
       .hero-card .wave i{max-width:4px}
     }
     @media(prefers-reduced-motion:reduce){.hero-script-line{transition:none}}
