@@ -75,7 +75,7 @@
       const rect = bar.getBoundingClientRect();
       const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
       audio.currentTime = ratio * audio.duration;
-      fill.style.width = `${ratio * 100}%`;
+      syncUI();
     };
 
     bar.style.cursor = 'pointer';
@@ -105,16 +105,18 @@
     bar.addEventListener('keydown', event => {
       if (!audio || !Number.isFinite(audio.duration)) return;
       const amount = audio.duration * .05;
-      if (event.key === 'ArrowLeft') { audio.currentTime = Math.max(0, audio.currentTime - amount); event.preventDefault(); }
-      if (event.key === 'ArrowRight') { audio.currentTime = Math.min(audio.duration, audio.currentTime + amount); event.preventDefault(); }
+      if (event.key === 'ArrowLeft') { audio.currentTime = Math.max(0, audio.currentTime - amount); syncUI(); event.preventDefault(); }
+      if (event.key === 'ArrowRight') { audio.currentTime = Math.min(audio.duration, audio.currentTime + amount); syncUI(); event.preventDefault(); }
+      if (event.key === 'Home') { audio.currentTime = 0; syncUI(); event.preventDefault(); }
+      if (event.key === 'End') { audio.currentTime = audio.duration; syncUI(); event.preventDefault(); }
     });
 
     const syncUI = () => {
       if (!audio || !Number.isFinite(audio.duration) || audio.duration <= 0) return;
-      const ratio = audio.currentTime / audio.duration;
+      const ratio = Math.min(1, Math.max(0, audio.currentTime / audio.duration));
       fill.style.width = `${ratio * 100}%`;
       bar.setAttribute('aria-valuenow', String(Math.round(ratio * 100)));
-      if (durationEl) durationEl.textContent = format(audio.duration);
+      if (durationEl) durationEl.textContent = format(Math.max(0, audio.duration - audio.currentTime));
     };
 
     const reset = () => {
@@ -145,10 +147,11 @@
           audio.addEventListener('pause', () => {
             button.textContent = '▶';
             stopAnimation();
+            syncUI();
           });
           audio.addEventListener('ended', () => {
-            reset();
             audio.currentTime = 0;
+            reset();
             syncUI();
           });
           audio.addEventListener('error', () => {
