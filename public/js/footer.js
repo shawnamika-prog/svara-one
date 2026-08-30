@@ -13,6 +13,8 @@
         <nav aria-label="Footer">
           <a href="/">Home</a>
           <a href="/studio">Studio</a>
+          <a href="/account.html">Account</a>
+          <a href="/billing.html">Billing</a>
           <span class="svara-footer-separator" aria-hidden="true">·</span>
           <span class="svara-footer-muted">Company · Support · Legal</span>
         </nav>
@@ -22,7 +24,7 @@
       <div class="svara-footer-main">
         <div class="svara-footer-brand">
           <strong>Svara<span>ONE</span></strong>
-          <p>Engineered Intelligence. Human Orchestration.</p>
+          <p>Engineered Intelligence.<br>Human Orchestration.</p>
         </div>
         <div class="svara-footer-links">
           <div><h3>PRODUCT</h3><a href="/studio">Voice Studio</a><span>SvaraFlow™</span><a href="/#workflow">How it works</a><a href="/#pricing">Pricing</a></div>
