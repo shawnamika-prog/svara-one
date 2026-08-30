@@ -42,4 +42,9 @@
     event.preventDefault();
     createButton.click();
   });
+
+  const bulkScript = document.createElement('script');
+  bulkScript.src = 'js/my-library-bulk-actions.js';
+  bulkScript.defer = true;
+  document.head.appendChild(bulkScript);
 })();
