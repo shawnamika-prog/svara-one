@@ -29,19 +29,6 @@
       }
     });
 
-    const header = table.querySelector('.my-library-table-head .my-library-select');
-    if (header) {
-      header.addEventListener('change', () => {
-        const rows = getVisibleRows();
-        const shouldSelect = header.checked;
-        rows.forEach(row => {
-          const input = row.querySelector('.my-library-select[data-row-select]');
-          if (input && input.checked !== shouldSelect) input.click();
-        });
-        syncSelectAll();
-      }, true);
-    }
-
     function activeFolderId() {
       const active = libraryView.querySelector('.my-library-folder.active');
       if (!active) return '__all__';
