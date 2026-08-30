@@ -24,7 +24,6 @@
       <div class="svara-footer-main">
         <div class="svara-footer-brand">
           <strong>Svara<span>ONE</span></strong>
-          <p>Global AI voice creation.</p>
         </div>
         <div class="svara-footer-links">
           <div><h3>PRODUCT</h3><a href="/studio">Voice Studio</a><a href="/studio#voices">Voice Library</a><a href="/#workflow">How it works</a><a href="/#pricing">Pricing</a></div>
@@ -35,7 +34,6 @@
       </div>
       <div class="svara-footer-bottom">
         <span>© <span data-footer-year></span> SVARA ONE (Pty) Ltd. All rights reserved.</span>
-        <span>Global AI voice creation.</span>
       </div>`;
   }
 
