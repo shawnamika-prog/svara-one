@@ -52,4 +52,9 @@
   foldersSyncScript.src = 'js/my-library-folders-sync.js';
   foldersSyncScript.defer = true;
   document.head.appendChild(foldersSyncScript);
+
+  const bulkFolderFixScript = document.createElement('script');
+  bulkFolderFixScript.src = 'js/my-library-bulk-folder-fix.js';
+  bulkFolderFixScript.defer = true;
+  document.head.appendChild(bulkFolderFixScript);
 })();
