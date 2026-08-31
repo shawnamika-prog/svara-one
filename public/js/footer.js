@@ -13,8 +13,6 @@
         <nav aria-label="Footer">
           <a href="/">Home</a>
           <a href="/studio">Studio</a>
-          <a href="/account.html">Account</a>
-          <a href="/billing.html">Billing</a>
           <span class="svara-footer-separator" aria-hidden="true">·</span>
           <span class="svara-footer-muted">Company · Support · Legal</span>
         </nav>
@@ -29,7 +27,7 @@
         <div class="svara-footer-links">
           <div><h3>PRODUCT</h3><a href="/studio">Voice Studio</a><span>SvaraFlow™</span><a href="/#workflow">How it works</a><a href="/#pricing">Pricing</a></div>
           <div><h3>ACCOUNT</h3><a href="/login.html">Sign in</a><a href="/signup.html">Get started</a></div>
-          <div><h3>COMPANY</h3><span>About SvaraONE</span><span>Vision</span><span>Mission</span><span>Philosophy</span></div>
+          <div><h3>COMPANY</h3><a href="/company.html#about">About SvaraONE</a><a href="/company.html#vision">Vision</a><a href="/company.html#mission">Mission</a><span>Philosophy</span></div>
           <div><h3>SUPPORT &amp; LEGAL</h3><span>Help Centre</span><span>Contact Support</span><span>Terms of Use</span><span>Privacy Policy</span></div>
         </div>
       </div>
