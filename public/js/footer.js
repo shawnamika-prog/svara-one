@@ -2,6 +2,7 @@
   const path = window.location.pathname.replace(/\/$/, '') || '/';
   const isStudio = path.endsWith('/studio') || path.endsWith('/studio.html');
   const isAccount = path.endsWith('/account.html');
+  const isCompany = path.endsWith('/company.html');
 
   const footer = document.createElement('footer');
   footer.className = isStudio || isAccount ? 'svara-footer svara-footer-app' : 'svara-footer';
@@ -14,7 +15,8 @@
           <a href="/">Home</a>
           <a href="/studio">Studio</a>
           <span class="svara-footer-separator" aria-hidden="true">·</span>
-          <span class="svara-footer-muted">Company · Support · Legal</span>
+          <a href="/company.html">Company</a>
+          <span class="svara-footer-muted">· Support · Legal</span>
         </nav>
       </div>`;
   } else {
@@ -27,7 +29,7 @@
         <div class="svara-footer-links">
           <div><h3>PRODUCT</h3><a href="/studio">Voice Studio</a><span>SvaraFlow™</span><a href="/#workflow">How it works</a><a href="/#pricing">Pricing</a></div>
           <div><h3>ACCOUNT</h3><a href="/login.html">Sign in</a><a href="/signup.html">Get started</a></div>
-          <div><h3>COMPANY</h3><a href="/company.html#about">About SvaraONE</a><a href="/company.html#vision">Vision</a><a href="/company.html#mission">Mission</a><span>Philosophy</span></div>
+          <div><h3>COMPANY</h3><a href="/company.html#about">About SvaraONE</a><a href="/company.html#vision">Vision</a><a href="/company.html#mission">Mission</a></div>
           <div><h3>SUPPORT &amp; LEGAL</h3><span>Help Centre</span><span>Contact Support</span><span>Terms of Use</span><span>Privacy Policy</span></div>
         </div>
       </div>
