@@ -355,6 +355,29 @@ export default {
       return new Response("Not found", { status: 404 });
     }
 
+    if (request.method === "GET" && url.pathname.startsWith("/api/branding/studio-") && url.pathname.endsWith("-card.png")) {
+      const filename = url.pathname.split("/").pop() || "";
+      const allowed = new Set([
+        "studio-voice-card.png",
+        "studio-sound-card.png",
+        "studio-video-card.png",
+        "studio-compose-card.png"
+      ]);
+      if (allowed.has(filename) && env.VOICE_SAMPLES) {
+        const object = await env.VOICE_SAMPLES.get(`branding/${filename}`);
+        if (object) {
+          return new Response(object.body, {
+            headers: {
+              "content-type": "image/png",
+              "cache-control": "public, max-age=31536000, immutable",
+              "etag": object.httpEtag || ""
+            }
+          });
+        }
+      }
+      return new Response("Not found", { status: 404 });
+    }
+
     if (request.method === "GET" && url.pathname === "/api/pricing") {
       return new Response(JSON.stringify(pricing(env)), {
         headers: {
