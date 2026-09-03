@@ -52,7 +52,6 @@
     <a href="#compose" class="studio-compose-card" aria-label="Compose with SvaraFlow">
       <img src="${assets.compose}" alt="" loading="lazy" decoding="async">
       <div class="studio-compose-copy"><p class="studio-compose-kicker">HAVE AN IDEA?</p><h2>Compose with <span>SvaraFlow</span></h2><p>Describe what you want to create and SvaraFlow understands your intent, orchestrates the right creative capabilities, and brings voice, sound and video together.</p><span class="studio-compose-cta">Start creating with SvaraFlow <span aria-hidden="true">→</span></span></div>
-      <div class="studio-compose-visual" aria-hidden="true"><div class="studio-compose-orbit"></div></div>
     </a>
     <div class="studio-landing-footer"><strong>One intelligent engine.</strong> Three creative domains. One SvaraONE Studio.</div>`;
   workspace.prepend(landing);
