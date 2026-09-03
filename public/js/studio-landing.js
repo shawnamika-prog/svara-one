@@ -7,7 +7,8 @@
   const videoLink=document.querySelector('aside a[href="#video"]');
   const composeLink=document.querySelector('aside a[href="#compose"]');
   const libraryLink=document.querySelector('aside a[href="#library"]');
-  if(!workspace||!voiceView||!libraryView||!voiceLink||!libraryLink)return;
+  const homeLink=document.querySelector('aside .home-link');
+  if(!workspace||!voiceView||!libraryView||!voiceLink||!libraryLink||!homeLink)return;
 
   const assets={
     voice:'/api/branding/studio-voice-card.png',
@@ -63,13 +64,13 @@
   workspace.appendChild(placeholder);
 
   function setActive(active){
-    [voiceLink,soundLink,videoLink,composeLink,libraryLink].filter(Boolean).forEach(link=>link.classList.remove('active'));
-    const link=({voice:voiceLink,sound:soundLink,video:videoLink,compose:composeLink,library:libraryLink})[active];
+    [homeLink,voiceLink,soundLink,videoLink,composeLink,libraryLink].filter(Boolean).forEach(link=>link.classList.remove('active'));
+    const link=({studio:homeLink,voice:voiceLink,sound:soundLink,video:videoLink,compose:composeLink,library:libraryLink})[active];
     if(link)link.classList.add('active');
   }
 
   function show(view,updateHash=true){
-    if(updateHash)history.replaceState(null,'',`#${view}`);
+    if(updateHash)history.replaceState(null,'',view==='studio'?'#studio':`#${view}`);
     landing.hidden=view!=='studio';
     voiceView.hidden=view!=='voice';
     libraryView.hidden=view!=='library';
@@ -84,7 +85,7 @@
     window.scrollTo({top:0,behavior:'smooth'});
   }
 
-  document.querySelector('aside .home-link')?.addEventListener('click',()=>setActive('studio'));
+  homeLink.addEventListener('click',e=>{e.preventDefault();show('studio');});
   voiceLink.addEventListener('click',e=>{e.preventDefault();show('voice');});
   soundLink?.addEventListener('click',e=>{e.preventDefault();show('sound');});
   videoLink?.addEventListener('click',e=>{e.preventDefault();show('video');});
