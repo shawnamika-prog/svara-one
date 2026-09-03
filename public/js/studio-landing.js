@@ -8,6 +8,7 @@
   const composeLink=document.querySelector('aside a[href="#compose"]');
   const libraryLink=document.querySelector('aside a[href="#library"]');
   const homeLink=document.querySelector('aside .home-link');
+  const svaraFlowToggle=document.getElementById('svaraFlowToggle');
   if(!workspace||!voiceView||!libraryView||!voiceLink||!libraryLink||!homeLink)return;
 
   const assets={
@@ -92,6 +93,11 @@
   composeLink?.addEventListener('click',e=>{e.preventDefault();show('compose');});
   libraryLink.addEventListener('click',e=>{e.preventDefault();show('library');});
   landing.addEventListener('click',e=>{const card=e.target.closest('a[data-domain]');if(card){e.preventDefault();show(card.dataset.domain);return;}if(e.target.closest('.studio-compose-card')){e.preventDefault();show('compose');}});
+
+  if(svaraFlowToggle){
+    svaraFlowToggle.checked=true;
+    svaraFlowToggle.dispatchEvent(new Event('change'));
+  }
 
   const initial=location.hash.replace(/^#/,'');
   show(['voice','sound','video','compose','library'].includes(initial)?initial:'studio',false);
