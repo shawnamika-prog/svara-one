@@ -1,0 +1,7 @@
+.side-divider{height:1px;margin:8px 6px 10px;background:linear-gradient(90deg,transparent,#ffffff10 18%,#ffffff10 82%,transparent);flex:0 0 auto}
+aside>a:not(.home-link){display:flex;align-items:center;gap:0;min-height:42px}
+aside>a:not(.home-link) svg{flex:0 0 16px}
+aside>a:not(.home-link) span{min-width:0}
+aside .side-divider + a{margin-top:0}
+aside .side-section{margin:0 6px}
+aside .side-section a{min-height:42px}
