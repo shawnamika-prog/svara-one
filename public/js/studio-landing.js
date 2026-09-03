@@ -53,7 +53,7 @@
       <img src="${assets.compose}" alt="" loading="lazy" decoding="async">
       <div class="studio-compose-copy"><p class="studio-compose-kicker">HAVE AN IDEA?</p><h2>Compose with <span>SvaraFlow</span></h2><p>Describe what you want to create and SvaraFlow understands your intent, orchestrates the right creative capabilities, and brings voice, sound and video together.</p><span class="studio-compose-cta">Start creating with SvaraFlow <span aria-hidden="true">→</span></span></div>
     </a>
-    <div class="studio-landing-footer"><strong>One intelligent engine.</strong> Three creative domains. One SvaraONE Studio.</div>`;
+    <div class="studio-landing-footer"><strong>ONE</strong> Intelligent orchestration. <strong>THREE</strong> creative domains. <strong>ONE</strong> Studio.</div>`;
   workspace.prepend(landing);
 
   const placeholder=document.createElement('section');
