@@ -56,9 +56,6 @@ export async function handleSoundGenerate(request, env, userId) {
     return json({ error: error.message }, 400);
   }
 
-  const provider = String(body.provider || env.SVARAONE_SOUND_PROVIDER || "").trim().toLowerCase();
-  if (!provider) return json({ error: "Sound provider is not configured." }, 503);
-
   let durationSeconds;
   let sampleRate;
   let channels;
@@ -70,9 +67,16 @@ export async function handleSoundGenerate(request, env, userId) {
     return json({ error: error.message }, 400);
   }
 
+  if (durationSeconds === null || durationSeconds <= 0) {
+    return json({ error: "A positive durationSeconds value is required for Sound generation." }, 400);
+  }
+
+  const provider = String(body.provider || env.SVARAONE_SOUND_PROVIDER || "").trim().toLowerCase();
+  if (!provider) return json({ error: "Sound provider is not configured." }, 503);
+
   const cost = soundCreditCost(env, durationSeconds);
   if (cost === null) {
-    return json({ error: "Sound duration and credit pricing must be configured." }, 400);
+    return json({ error: "Sound credit pricing is not configured." }, 503);
   }
 
   const generationId = crypto.randomUUID();
