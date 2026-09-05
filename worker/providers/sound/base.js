@@ -3,7 +3,19 @@ export class SoundProvider {
     this.env = env;
   }
 
-  async generate() {
-    throw new Error("Sound provider not implemented");
+  async generate(_request) {
+    throw new Error("Sound provider generate() not implemented");
+  }
+
+  getCapabilities() {
+    throw new Error("Sound provider getCapabilities() not implemented");
+  }
+
+  normalizeResult(_result) {
+    throw new Error("Sound provider normalizeResult() not implemented");
+  }
+
+  getStatus() {
+    throw new Error("Sound provider getStatus() not implemented");
   }
 }
