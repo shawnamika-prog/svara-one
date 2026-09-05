@@ -7,8 +7,12 @@ export class SoundProvider {
     throw new Error("Sound provider generate() not implemented");
   }
 
-  getCapabilities() {
-    throw new Error("Sound provider getCapabilities() not implemented");
+  async discoverCapabilities() {
+    throw new Error("Sound provider discoverCapabilities() not implemented");
+  }
+
+  getVersion() {
+    return null;
   }
 
   normalizeResult(_result) {
