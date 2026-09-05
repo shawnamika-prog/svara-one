@@ -4,6 +4,7 @@ import { handlePayfast, runBillingCron } from "./payfast.js";
 import { getVoiceById, getVoiceByProviderId, syncVoiceRegistry, seedMissingVoiceSamples } from "./voice-registry.js";
 import { createGeneration, markGenerationReady, markGenerationFailed, cleanupExpiredGenerations, mimeTypeForFormat } from "./generations.js";
 import { processSvaraFlow, translateSvaraFlowPlan } from "./svaraflow.js";
+import { handleSoundGenerate } from "./sound-api.js";
 
 const PORTRAIT_NAMES = {
   en: "thalia",
@@ -400,6 +401,12 @@ export default {
       const code = url.pathname.split("/").pop();
       const portrait = await storedPortrait(env, code);
       if (portrait) return portrait;
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/sound/generate") {
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return json({ error: "Authentication required." }, 401);
+      return handleSoundGenerate(request, env, userId);
     }
 
     if (request.method === "POST" && url.pathname === "/api/voice/generate") {
