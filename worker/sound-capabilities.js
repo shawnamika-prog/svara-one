@@ -1,6 +1,8 @@
 import { getSoundProvider } from "./providers/sound/index.js";
 import { createSoundCapabilities } from "./providers/sound/capabilities.js";
 
+const CAPABILITY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -43,7 +45,7 @@ export async function getCachedSoundCapabilities(env, provider = configuredProvi
   `).bind(provider).first();
 
   const capabilities = parseCapabilities(row);
-  if (!row || !capabilities) return null;
+  if (!row || !capabilities || row.status !== "active") return null;
 
   return { ...row, capabilities };
 }
@@ -53,7 +55,7 @@ export async function discoverSoundProviderCapabilities(env, provider = configur
   if (!env.DB) throw new Error("Database is not configured.");
 
   const soundProvider = getSoundProvider(env, provider);
-  const rawCapabilities = soundProvider.getCapabilities();
+  const rawCapabilities = await soundProvider.getCapabilities();
   const capabilities = createSoundCapabilities(rawCapabilities || {});
   const discoveryHash = await hashCapabilities(capabilities);
   const id = crypto.randomUUID();
@@ -95,19 +97,30 @@ export async function discoverSoundProviderCapabilities(env, provider = configur
   return getCachedSoundCapabilities(env, provider);
 }
 
-export async function ensureSoundProviderCapabilities(env) {
+export async function ensureSoundProviderCapabilities(env, { force = false } = {}) {
   const provider = configuredProvider(env);
   if (!provider) return { status: "skipped", reason: "provider_not_configured" };
 
   const cached = await getCachedSoundCapabilities(env, provider);
-  if (cached) return { status: "cached", provider, capabilities: cached };
+  if (!force && cached?.last_verified_at) {
+    const age = Date.now() - Date.parse(cached.last_verified_at);
+    if (Number.isFinite(age) && age >= 0 && age < CAPABILITY_CACHE_TTL_MS) {
+      return { status: "cached", provider, capabilities: cached };
+    }
+  }
 
   try {
     const discovered = await discoverSoundProviderCapabilities(env, provider);
     return { status: "discovered", provider, capabilities: discovered };
   } catch (error) {
     console.error("sound_capability_discovery_error", error);
-    return { status: "failed", provider, error: error.message };
+    return {
+      status: "failed",
+      provider,
+      error: String(error?.message || "Sound capability discovery failed").slice(0, 500),
+      usedCachedCapabilities: Boolean(cached),
+      capabilities: cached
+    };
   }
 }
 
