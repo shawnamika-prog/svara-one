@@ -1,5 +1,6 @@
 import { createSoundGeneration, markSoundGenerationFailed } from "./sound-generations.js";
 import { getSoundProvider } from "./providers/sound/index.js";
+import { reserveSoundCredits, refundSoundCredits, soundCreditCost } from "./sound-credits.js";
 
 const MAX_PROMPT_CHARS = 2000;
 const SOUND_TYPES = new Set(["music", "soundtrack", "sfx", "ambience", "jingle", "loop"]);
@@ -69,7 +70,15 @@ export async function handleSoundGenerate(request, env, userId) {
     return json({ error: error.message }, 400);
   }
 
+  const cost = soundCreditCost(env, durationSeconds);
+  if (cost === null) {
+    return json({ error: "Sound duration and credit pricing must be configured." }, 400);
+  }
+
   const generationId = crypto.randomUUID();
+  const reservation = await reserveSoundCredits(userId, cost, env, generationId);
+  if (!reservation) return json({ error: "Not enough credits." }, 402);
+
   const inputs = Array.isArray(body.inputs) ? body.inputs : [
     { inputType: "text", textContent: prompt, role: "prompt" }
   ];
@@ -88,15 +97,21 @@ export async function handleSoundGenerate(request, env, userId) {
       sampleRate,
       channels,
       format,
-      creditsCharged: 0,
+      creditsCharged: reservation.cost,
+      creditReferenceId: reservation.referenceId,
       inputs,
       parameters: body.parameters && typeof body.parameters === "object"
         ? body.parameters
         : null
     });
   } catch (error) {
+    try {
+      await refundSoundCredits(userId, reservation.cost, reservation.referenceId, env);
+    } catch (refundError) {
+      console.error("sound_generation_create_refund_error", refundError);
+    }
     console.error("sound_generation_create_error", error);
-    return json({ error: "Sound generation could not be created." }, 500);
+    return json({ error: "Sound generation could not be created. Your credits were refunded." }, 500);
   }
 
   try {
@@ -120,6 +135,8 @@ export async function handleSoundGenerate(request, env, userId) {
       id: generation.id,
       status: generation.status,
       provider,
+      creditsCharged: reservation.cost,
+      creditsRemaining: reservation.balance,
       result: result ?? null
     }, 202);
   } catch (error) {
@@ -129,10 +146,17 @@ export async function handleSoundGenerate(request, env, userId) {
       console.error("sound_generation_failure_mark_error", markError);
     }
 
+    try {
+      await refundSoundCredits(userId, reservation.cost, reservation.referenceId, env);
+    } catch (refundError) {
+      console.error("sound_generation_refund_error", refundError);
+    }
+
     console.error("sound_generation_error", error);
     return json({
       error: String(error?.message || "Sound generation failed").slice(0, 300),
-      generationId
+      generationId,
+      creditsRefunded: reservation.cost
     }, 502);
   }
 }
