@@ -55,7 +55,11 @@ export async function discoverSoundProviderCapabilities(env, provider = configur
   if (!env.DB) throw new Error("Database is not configured.");
 
   const soundProvider = getSoundProvider(env, provider);
-  const rawCapabilities = await soundProvider.getCapabilities();
+  if (typeof soundProvider.discoverCapabilities !== "function") {
+    throw new Error(`Sound provider ${provider} does not implement capability discovery`);
+  }
+
+  const rawCapabilities = await soundProvider.discoverCapabilities();
   const capabilities = createSoundCapabilities(rawCapabilities || {});
   const discoveryHash = await hashCapabilities(capabilities);
   const id = crypto.randomUUID();
