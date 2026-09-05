@@ -1,6 +1,7 @@
 import { createSoundGeneration, markSoundGenerationFailed } from "./sound-generations.js";
 import { getSoundProvider } from "./providers/sound/index.js";
 import { reserveSoundCredits, refundSoundCredits, soundCreditCost } from "./sound-credits.js";
+import { getCachedSoundCapabilities } from "./sound-capabilities.js";
 
 const MAX_PROMPT_CHARS = 2000;
 const SOUND_TYPES = new Set(["music", "soundtrack", "sfx", "ambience", "jingle", "loop"]);
@@ -38,10 +39,27 @@ function normalizeOptionalNumber(value, field, { integer = false } = {}) {
 
 export async function handleSoundGenerate(request, env, userId) {
   if (!env.DB) return json({ error: "Sound generation storage is not configured." }, 503);
-  if (!env.GENERATED_AUDIO) return json({ error: "Sound generation storage is not configured." }, 503);
 
   const body = await request.clone().json().catch(() => null);
   if (!body || typeof body !== "object") return json({ error: "Invalid JSON request body." }, 400);
+
+  if (body.capabilitiesOnly === true) {
+    const provider = String(body.provider || env.SVARAONE_SOUND_PROVIDER || "").trim().toLowerCase();
+    if (!provider) return json({ error: "Sound provider is not configured." }, 503);
+
+    const cached = await getCachedSoundCapabilities(env, provider);
+    if (!cached) return json({ error: "Sound provider capabilities are not available." }, 503);
+
+    return json({
+      provider: cached.provider,
+      providerVersion: cached.provider_version,
+      status: cached.status,
+      lastVerifiedAt: cached.last_verified_at,
+      capabilities: cached.capabilities
+    });
+  }
+
+  if (!env.GENERATED_AUDIO) return json({ error: "Sound generation storage is not configured." }, 503);
 
   const prompt = String(body.prompt ?? "").trim();
   if (!prompt) return json({ error: "Prompt is required." }, 400);
