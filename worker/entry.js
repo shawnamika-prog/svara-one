@@ -5,6 +5,7 @@ import { getVoiceById, getVoiceByProviderId, syncVoiceRegistry, seedMissingVoice
 import { createGeneration, markGenerationReady, markGenerationFailed, cleanupExpiredGenerations, mimeTypeForFormat } from "./generations.js";
 import { processSvaraFlow, translateSvaraFlowPlan } from "./svaraflow.js";
 import { handleSoundGenerate } from "./sound-api.js";
+import { ensureSoundProviderCapabilities } from "./sound-capabilities.js";
 
 const PORTRAIT_NAMES = {
   en: "thalia",
@@ -403,6 +404,13 @@ export default {
       if (portrait) return portrait;
     }
 
+    if (request.method === "GET" && url.pathname === "/api/sound/capabilities") {
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return json({ error: "Authentication required." }, 401);
+      const { handleSoundCapabilities } = await import("./sound-capabilities.js");
+      return handleSoundCapabilities(request, env);
+    }
+
     if (request.method === "POST" && url.pathname === "/api/sound/generate") {
       const userId = await authenticatedUserId(request, env);
       if (!userId) return json({ error: "Authentication required." }, 401);
@@ -537,6 +545,14 @@ export default {
         if (result.deleted) console.log("generation_cleanup", result);
       } catch (error) {
         console.error("generation_cleanup_cron_error", error);
+      }
+    })());
+    ctx.waitUntil((async()=>{
+      try {
+        const result = await ensureSoundProviderCapabilities(env);
+        if (result.status !== "cached") console.log("sound_capability_maintenance", result);
+      } catch (error) {
+        console.error("sound_capability_cron_error", error);
       }
     })());
   }
