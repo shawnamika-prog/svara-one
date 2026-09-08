@@ -7,6 +7,13 @@
   const footer = document.createElement('footer');
   footer.className = isStudio || isAccount ? 'svara-footer svara-footer-app' : 'svara-footer';
 
+  if (isStudio) {
+    const stateScript = document.createElement('script');
+    stateScript.src = 'js/sound-studio-state.js';
+    stateScript.defer = false;
+    document.head.appendChild(stateScript);
+  }
+
   if (isStudio || isAccount) {
     footer.innerHTML = `
       <div class="svara-footer-inner">
