@@ -1,6 +1,9 @@
 import { SoundProvider } from "./base.js";
+import { MubertProvider } from "./mubert.js";
 
-const SOUND_PROVIDERS = Object.freeze({});
+const SOUND_PROVIDERS = Object.freeze({
+  mubert: MubertProvider
+});
 
 export function getSoundProvider(env, provider) {
   const name = String(provider || "").trim().toLowerCase();
