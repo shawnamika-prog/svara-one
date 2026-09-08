@@ -49,6 +49,17 @@ export async function refundSoundCredits(userId, cost, referenceId, env) {
   if (!Number.isInteger(credits) || credits <= 0) throw new Error("Sound credit refund must be a positive integer");
   if (!String(referenceId || "").trim()) throw new Error("Sound credit reference ID is required");
 
+  const existing = await env.DB.prepare(`
+    SELECT id
+    FROM credit_ledger
+    WHERE user_id = ?
+      AND reference_id = ?
+      AND reason = 'generation_refund'
+    LIMIT 1
+  `).bind(userId, referenceId).first();
+
+  if (existing) return { refunded: false, alreadyRefunded: true };
+
   await env.DB.prepare(`
     INSERT INTO credit_ledger
       (id, user_id, amount, balance_after, reason, reference_id, period_key)
@@ -60,4 +71,6 @@ export async function refundSoundCredits(userId, cost, referenceId, env) {
   `).bind(
     crypto.randomUUID(), userId, credits, credits, referenceId, userId
   ).run();
+
+  return { refunded: true, alreadyRefunded: false };
 }
