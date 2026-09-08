@@ -1,4 +1,4 @@
-import { createSoundGeneration, getSoundGeneration, markSoundGenerationFailed, setSoundGenerationProviderResult } from "./sound-generations.js";
+import { createSoundGeneration, getSoundGeneration, markSoundGenerationFailed, markSoundGenerationReady, setSoundGenerationProviderResult } from "./sound-generations.js";
 import { getSoundProvider } from "./providers/sound/index.js";
 import { reserveSoundCredits, refundSoundCredits, soundCreditCost } from "./sound-credits.js";
 import { getCachedSoundCapabilities } from "./sound-capabilities.js";
@@ -37,6 +37,103 @@ function normalizeOptionalNumber(value, field, { integer = false } = {}) {
   return number;
 }
 
+function extensionForFormat(format) {
+  const value = String(format || "mp3").trim().toLowerCase();
+  return ["mp3", "wav", "pcm"].includes(value) ? value : "mp3";
+}
+
+function mimeTypeForSoundResult(result, fallbackFormat) {
+  const supplied = String(result?.mimeType || "").trim();
+  if (supplied) return supplied;
+  switch (extensionForFormat(result?.format || fallbackFormat)) {
+    case "wav": return "audio/wav";
+    case "pcm": return "audio/l16;rate=24000";
+    default: return "audio/mpeg";
+  }
+}
+
+function soundR2Key(generation) {
+  const format = extensionForFormat(generation.format);
+  return `users/${generation.user_id}/sound/${generation.id}.${format}`;
+}
+
+async function storeSoundResult(env, generation, result) {
+  if (!env.GENERATED_AUDIO) throw new Error("Sound generation storage is not configured.");
+  if (!result?.url) throw new Error("Sound provider returned no audio URL.");
+  if (result.status !== "ready") throw new Error("Sound provider result is not ready for storage.");
+
+  const r2Key = String(generation.r2_key || soundR2Key(generation));
+  const existing = await env.GENERATED_AUDIO.head(r2Key);
+  if (existing) {
+    await markSoundGenerationReady(env, generation.id, {
+      r2Key,
+      r2Etag: existing.etag || null,
+      sizeBytes: existing.size,
+      durationSeconds: result.durationSeconds,
+      sampleRate: result.sampleRate,
+      channels: result.channels
+    });
+    return {
+      r2Key,
+      r2Etag: existing.etag || null,
+      sizeBytes: Number(existing.size) || 0
+    };
+  }
+
+  const providerResponse = await fetch(String(result.url), {
+    method: "GET",
+    headers: { "accept": mimeTypeForSoundResult(result, generation.format) }
+  });
+
+  if (!providerResponse.ok) {
+    throw new Error(`Sound provider asset fetch returned HTTP ${providerResponse.status}`);
+  }
+  if (!providerResponse.body) throw new Error("Sound provider asset response had no body.");
+
+  const contentType = mimeTypeForSoundResult(result, generation.format);
+  const stored = await env.GENERATED_AUDIO.put(r2Key, providerResponse.body, {
+    httpMetadata: {
+      contentType,
+      cacheControl: "private, no-store"
+    },
+    customMetadata: {
+      generationId: String(generation.id),
+      userId: String(generation.user_id),
+      provider: String(generation.provider),
+      providerGenerationId: String(generation.provider_generation_id || result.providerGenerationId || ""),
+      type: String(generation.type),
+      format: extensionForFormat(result.format || generation.format),
+      source: "sound-provider"
+    }
+  });
+
+  if (!stored) throw new Error("R2 did not confirm the Sound asset upload.");
+
+  try {
+    await markSoundGenerationReady(env, generation.id, {
+      r2Key,
+      r2Etag: stored.etag || null,
+      sizeBytes: stored.size,
+      durationSeconds: result.durationSeconds,
+      sampleRate: result.sampleRate,
+      channels: result.channels
+    });
+  } catch (error) {
+    try {
+      await env.GENERATED_AUDIO.delete(r2Key);
+    } catch (cleanupError) {
+      console.error("sound_r2_metadata_cleanup_error", cleanupError);
+    }
+    throw error;
+  }
+
+  return {
+    r2Key,
+    r2Etag: stored.etag || null,
+    sizeBytes: Number(stored.size) || 0
+  };
+}
+
 async function handleSoundResult(env, userId, body) {
   const generationId = String(body?.generationId || "").trim();
   if (!generationId) return json({ error: "Generation ID is required." }, 400);
@@ -52,7 +149,8 @@ async function handleSoundResult(env, userId, body) {
       status: generation.status,
       provider: generation.provider,
       result: null,
-      stored: true
+      stored: true,
+      r2Key: generation.r2_key || null
     }, 200);
   }
 
@@ -98,6 +196,46 @@ async function handleSoundResult(env, userId, body) {
         result,
         creditsRefunded: refund.refunded
       }, 502);
+    }
+
+    if (result?.status === "ready") {
+      try {
+        const stored = await storeSoundResult(env, generation, result);
+        return json({
+          id: generation.id,
+          status: "ready",
+          provider: generation.provider,
+          result: {
+            ...result,
+            url: null,
+            stored: true,
+            r2Key: stored.r2Key,
+            r2Etag: stored.r2Etag,
+            sizeBytes: stored.sizeBytes
+          },
+          stored: true
+        }, 200);
+      } catch (storageError) {
+        console.error("sound_r2_storage_error", storageError);
+        try {
+          await markSoundGenerationFailed(env, generation.id, "storage_failed");
+        } catch (markError) {
+          console.error("sound_storage_failure_mark_error", markError);
+        }
+        const refund = await refundSoundCredits(
+          generation.user_id,
+          generation.credits_charged,
+          generation.credit_reference_id,
+          env
+        );
+        return json({
+          id: generation.id,
+          status: "storage_failed",
+          provider: generation.provider,
+          result: null,
+          creditsRefunded: refund.refunded
+        }, 502);
+      }
     }
 
     return json({
