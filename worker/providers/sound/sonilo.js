@@ -7,37 +7,49 @@ const SERVICE_CAPABILITIES = Object.freeze({
     types: ["music", "soundtrack", "jingle", "loop"],
     inputTypes: ["text"],
     operations: ["generate"],
-    outputFormats: ["mp3", "wav"]
+    outputFormats: ["mp3", "wav"],
+    minDurationSeconds: 5,
+    maxDurationSeconds: 360
   },
   video_to_music: {
     types: ["music", "soundtrack"],
     inputTypes: ["video"],
     operations: ["generate"],
-    outputFormats: ["mp3", "wav"]
+    outputFormats: ["mp3", "wav"],
+    minDurationSeconds: 5,
+    maxDurationSeconds: 360
   },
   text_to_sfx: {
     types: ["sfx", "ambience"],
     inputTypes: ["text"],
     operations: ["generate"],
-    outputFormats: ["mp3", "wav"]
+    outputFormats: ["mp3", "wav"],
+    minDurationSeconds: 1,
+    maxDurationSeconds: 180
   },
   video_to_sfx: {
     types: ["sfx", "ambience"],
     inputTypes: ["video"],
     operations: ["generate"],
-    outputFormats: ["mp3", "wav"]
+    outputFormats: ["mp3", "wav"],
+    minDurationSeconds: 1,
+    maxDurationSeconds: 180
   },
   video_to_sound: {
     types: ["soundtrack"],
     inputTypes: ["video"],
     operations: ["generate"],
-    outputFormats: ["mp3", "wav"]
+    outputFormats: ["mp3", "wav"],
+    minDurationSeconds: 5,
+    maxDurationSeconds: 360
   },
   audio_ducking: {
     types: ["soundtrack"],
     inputTypes: ["audio", "voice"],
     operations: ["duck"],
-    outputFormats: ["mp3", "wav"]
+    outputFormats: ["mp3", "wav"],
+    minDurationSeconds: 5,
+    maxDurationSeconds: null
   }
 });
 
@@ -101,6 +113,21 @@ function serviceCapabilities(serviceNames) {
   };
 }
 
+function serviceConstraints(serviceNames) {
+  return Object.fromEntries(
+    serviceNames
+      .filter(name => SERVICE_CAPABILITIES[name])
+      .map(name => {
+        const capability = SERVICE_CAPABILITIES[name];
+        return [name, {
+          minDurationSeconds: capability.minDurationSeconds,
+          maxDurationSeconds: capability.maxDurationSeconds,
+          outputFormats: capability.outputFormats
+        }];
+      })
+  );
+}
+
 function formatForRequest(format) {
   const normalized = String(format || "mp3").trim().toLowerCase();
   if (normalized === "pcm") throw new Error("Sonilo does not expose PCM as an output format");
@@ -158,10 +185,11 @@ export class SoniloProvider extends SoundProvider {
       supportsTransform: false,
       supportsRemix: false,
       supportsStems: false,
-      minDurationSeconds: services.some(service => service.includes("sfx")) ? 3 : 5,
-      maxDurationSeconds: 360,
+      minDurationSeconds: null,
+      maxDurationSeconds: null,
       parameters: {
         services,
+        serviceConstraints: serviceConstraints(services),
         rpmLimit: Number.isFinite(Number(payload?.rpm_limit)) ? Number(payload.rpm_limit) : null,
         concurrencyLimit: Number.isFinite(Number(payload?.concurrency_limit)) ? Number(payload.concurrency_limit) : null,
         discountFactor: Number.isFinite(Number(payload?.discount_factor)) ? Number(payload.discount_factor) : null,
