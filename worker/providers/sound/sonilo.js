@@ -1,4 +1,5 @@
 import { SoundProvider, soundResultMimeType } from "./base.js";
+import { soundParametersForPrompt } from "../../sound-parameters.js";
 
 const DEFAULT_SONILO_API_BASE = "https://api.sonilo.com/v1";
 
@@ -178,6 +179,16 @@ function normalizeTaskStatus(value) {
   }
 }
 
+function buildSoniloPrompt(prompt, parameters) {
+  const direction = soundParametersForPrompt(parameters);
+  if (!direction) return prompt;
+  const combined = `${prompt}\nCreative direction: ${direction}`;
+  if (combined.length > 2000) {
+    throw new Error("Sound prompt and creative parameters exceed Sonilo's 2000 character limit");
+  }
+  return combined;
+}
+
 export class SoniloProvider extends SoundProvider {
   getVersion() {
     return "v1";
@@ -235,8 +246,9 @@ export class SoniloProvider extends SoundProvider {
 
     const format = formatForRequest(request?.format);
     const service = serviceForRequest(request);
+    const soniloPrompt = buildSoniloPrompt(prompt, request?.parameters || null);
     const form = new FormData();
-    form.set("prompt", prompt);
+    form.set("prompt", soniloPrompt);
     form.set("duration", String(duration));
 
     if (service === "text_to_music") {
