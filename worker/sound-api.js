@@ -1,4 +1,4 @@
-import { createSoundGeneration, markSoundGenerationFailed, setSoundGenerationProviderResult } from "./sound-generations.js";
+import { createSoundGeneration, getSoundGeneration, markSoundGenerationFailed, setSoundGenerationProviderResult } from "./sound-generations.js";
 import { getSoundProvider } from "./providers/sound/index.js";
 import { reserveSoundCredits, refundSoundCredits, soundCreditCost } from "./sound-credits.js";
 import { getCachedSoundCapabilities } from "./sound-capabilities.js";
@@ -37,11 +37,94 @@ function normalizeOptionalNumber(value, field, { integer = false } = {}) {
   return number;
 }
 
+async function handleSoundResult(env, userId, body) {
+  const generationId = String(body?.generationId || "").trim();
+  if (!generationId) return json({ error: "Generation ID is required." }, 400);
+
+  const generation = await getSoundGeneration(env, generationId);
+  if (!generation || String(generation.user_id) !== String(userId)) {
+    return json({ error: "Sound generation not found." }, 404);
+  }
+
+  if (String(generation.status) === "ready") {
+    return json({
+      id: generation.id,
+      status: generation.status,
+      provider: generation.provider,
+      result: null,
+      stored: true
+    }, 200);
+  }
+
+  if (String(generation.status) === "failed" || String(generation.status) === "storage_failed") {
+    return json({
+      id: generation.id,
+      status: generation.status,
+      provider: generation.provider,
+      result: null
+    }, 200);
+  }
+
+  if (!generation.provider_generation_id) {
+    return json({
+      id: generation.id,
+      status: "processing",
+      provider: generation.provider,
+      result: null
+    }, 202);
+  }
+
+  try {
+    const soundProvider = getSoundProvider(env, generation.provider);
+    const result = await soundProvider.getResult(generation.provider_generation_id);
+
+    if (result?.providerGenerationId && result.providerGenerationId !== generation.provider_generation_id) {
+      await setSoundGenerationProviderResult(env, generation.id, result.providerGenerationId);
+    }
+
+    if (result?.status === "failed") {
+      await markSoundGenerationFailed(env, generation.id, "failed");
+      const refund = await refundSoundCredits(
+        generation.user_id,
+        generation.credits_charged,
+        generation.credit_reference_id,
+        env
+      );
+
+      return json({
+        id: generation.id,
+        status: "failed",
+        provider: generation.provider,
+        result,
+        creditsRefunded: refund.refunded
+      }, 502);
+    }
+
+    return json({
+      id: generation.id,
+      status: result?.status || "processing",
+      provider: generation.provider,
+      result: result || null
+    }, result?.status === "ready" ? 200 : 202);
+  } catch (error) {
+    console.error("sound_generation_result_error", error);
+    return json({
+      error: String(error?.message || "Sound result retrieval failed").slice(0, 300),
+      generationId: generation.id,
+      provider: generation.provider
+    }, 502);
+  }
+}
+
 export async function handleSoundGenerate(request, env, userId) {
   if (!env.DB) return json({ error: "Sound generation storage is not configured." }, 503);
 
   const body = await request.clone().json().catch(() => null);
   if (!body || typeof body !== "object") return json({ error: "Invalid JSON request body." }, 400);
+
+  if (body.resultOnly === true) {
+    return handleSoundResult(env, userId, body);
+  }
 
   if (body.capabilitiesOnly === true) {
     const provider = String(body.provider || env.SVARAONE_SOUND_PROVIDER || "").trim().toLowerCase();
