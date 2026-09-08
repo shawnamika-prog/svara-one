@@ -1,4 +1,4 @@
-import { SoundProvider } from "./base.js";
+import { SoundProvider, soundResultMimeType } from "./base.js";
 
 const DEFAULT_SONILO_API_BASE = "https://api.sonilo.com/v1";
 
@@ -158,6 +158,26 @@ function serviceForRequest(request) {
   throw new Error(`Sonilo does not support source type "${sourceType}" with Sound type "${type}"`);
 }
 
+function formatFromMimeType(value) {
+  const mime = String(value || "").trim().toLowerCase();
+  if (mime.includes("mpeg")) return "mp3";
+  if (mime.includes("wav")) return "wav";
+  return null;
+}
+
+function normalizeTaskStatus(value) {
+  switch (String(value || "").trim().toLowerCase()) {
+    case "succeeded":
+    case "completed":
+      return "ready";
+    case "failed":
+    case "canceled":
+      return "failed";
+    default:
+      return "processing";
+  }
+}
+
 export class SoniloProvider extends SoundProvider {
   getVersion() {
     return "v1";
@@ -236,17 +256,27 @@ export class SoniloProvider extends SoundProvider {
     return this.normalizeResult({ ...payload, service });
   }
 
+  async getResult(providerGenerationId) {
+    const taskId = String(providerGenerationId || "").trim();
+    if (!taskId) throw new Error("Sonilo task ID is required");
+    const payload = await soniloFetch(this.env, `/tasks/${encodeURIComponent(taskId)}`);
+    return this.normalizeResult(payload);
+  }
+
   normalizeResult(result) {
     const task = result || {};
-    const service = String(task.service || task.type || "").trim().toLowerCase();
+    const service = normalizeServiceName(task.service || task.type || "");
     const audio = Array.isArray(task.audio) ? task.audio[0] : task.audio;
+    const format = formatFromMimeType(audio?.content_type || task.content_type);
+    const status = normalizeTaskStatus(task.status);
 
     return {
       provider: "sonilo",
       providerGenerationId: task.task_id || task.id || null,
-      status: task.status === "succeeded" ? "ready" : task.status === "failed" ? "failed" : "processing",
+      status,
       url: audio?.url || task.output_url || null,
-      format: audio?.content_type?.includes("mpeg") ? "mp3" : audio?.content_type?.includes("wav") ? "wav" : null,
+      format,
+      mimeType: audio?.content_type || task.content_type || soundResultMimeType(format),
       durationSeconds: Number.isFinite(Number(task.duration_seconds)) ? Number(task.duration_seconds) : null,
       metadata: {
         service,
@@ -254,7 +284,11 @@ export class SoniloProvider extends SoundProvider {
         contentType: audio?.content_type || task.content_type || null,
         fileSize: Number.isFinite(Number(audio?.file_size || task.output_bytes))
           ? Number(audio?.file_size || task.output_bytes)
-          : null
+          : null,
+        sampleRate: Number.isFinite(Number(audio?.sample_rate)) ? Number(audio.sample_rate) : null,
+        channels: Number.isFinite(Number(audio?.channels)) ? Number(audio.channels) : null,
+        error: task.error || null,
+        refunded: task.refunded === true
       }
     };
   }
