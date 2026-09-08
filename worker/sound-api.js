@@ -1,4 +1,4 @@
-import { createSoundGeneration, markSoundGenerationFailed } from "./sound-generations.js";
+import { createSoundGeneration, markSoundGenerationFailed, setSoundGenerationProviderResult } from "./sound-generations.js";
 import { getSoundProvider } from "./providers/sound/index.js";
 import { reserveSoundCredits, refundSoundCredits, soundCreditCost } from "./sound-credits.js";
 import { getCachedSoundCapabilities } from "./sound-capabilities.js";
@@ -152,6 +152,10 @@ export async function handleSoundGenerate(request, env, userId) {
       parameters: body.parameters ?? null,
       inputs
     });
+
+    if (result?.providerGenerationId) {
+      await setSoundGenerationProviderResult(env, generationId, result.providerGenerationId);
+    }
 
     return json({
       id: generation.id,
