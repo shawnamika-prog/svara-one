@@ -1,4 +1,4 @@
-import { SoundProvider } from "./base.js";
+import { SoundProvider, soundResultMimeType } from "./base.js";
 
 const MUBERT_API_BASE = "https://music-api.mubert.com/api/v3";
 
@@ -53,6 +53,14 @@ function normalizeModeTypes(modes) {
   if (modes.includes("jingle")) result.push("jingle");
   if (modes.includes("loop")) result.push("loop");
   return [...new Set(result)];
+}
+
+function formatFromValue(value) {
+  const format = String(value || "").trim().toLowerCase();
+  if (["mp3", "wav", "pcm"].includes(format)) return format;
+  if (format.includes("mpeg")) return "mp3";
+  if (format.includes("wav")) return "wav";
+  return null;
 }
 
 export class MubertProvider extends SoundProvider {
@@ -184,13 +192,15 @@ export class MubertProvider extends SoundProvider {
   normalizeResult(result) {
     const track = result?.data || result || {};
     const generation = Array.isArray(track.generations) ? track.generations[0] : null;
+    const format = formatFromValue(generation?.format || track.format);
 
     return {
       provider: "mubert",
       providerGenerationId: track.id || generation?.session_id || null,
-      status: generation?.status || "processing",
+      status: generation?.url ? "ready" : (generation?.status || "processing"),
       url: generation?.url || null,
-      format: generation?.format || null,
+      format,
+      mimeType: soundResultMimeType(format),
       durationSeconds: Number.isFinite(Number(track.duration)) ? Number(track.duration) : null,
       metadata: {
         sessionId: track.session_id || null,
