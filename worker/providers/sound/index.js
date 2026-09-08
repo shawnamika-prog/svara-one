@@ -1,8 +1,10 @@
 import { SoundProvider } from "./base.js";
 import { MubertProvider } from "./mubert.js";
+import { SoniloProvider } from "./sonilo.js";
 
 const SOUND_PROVIDERS = Object.freeze({
-  mubert: MubertProvider
+  mubert: MubertProvider,
+  sonilo: SoniloProvider
 });
 
 export function getSoundProvider(env, provider) {
