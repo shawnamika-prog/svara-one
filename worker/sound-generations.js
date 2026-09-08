@@ -1,3 +1,5 @@
+import { normalizeSoundParameters } from "./sound-parameters.js";
+
 const SOUND_FORMATS = new Set(["mp3", "wav", "pcm"]);
 const SOUND_STATUSES = new Set(["processing", "ready", "failed", "storage_failed"]);
 
@@ -78,11 +80,11 @@ export async function createSoundGeneration(env, {
   const duration = normalizeOptionalNumber(durationSeconds, "durationSeconds");
   const rate = sampleRate === null || sampleRate === undefined || sampleRate === "" ? null : Number(sampleRate);
   const channelCount = channels === null || channels === undefined || channels === "" ? null : Number(channels);
+  const normalizedParameters = normalizeSoundParameters(parameters, { durationSeconds: duration });
 
   if (rate !== null && (!Number.isInteger(rate) || rate <= 0)) throw new Error("sampleRate must be a positive integer");
   if (channelCount !== null && (!Number.isInteger(channelCount) || channelCount <= 0)) throw new Error("channels must be a positive integer");
   if (!Array.isArray(inputs)) throw new Error("Sound generation inputs must be an array");
-  if (parameters !== null && typeof parameters !== "object") throw new Error("Sound generation parameters must be an object");
 
   const statements = [
     env.DB.prepare(`
@@ -133,7 +135,7 @@ export async function createSoundGeneration(env, {
     ));
   }
 
-  if (parameters) {
+  if (normalizedParameters) {
     statements.push(env.DB.prepare(`
       INSERT INTO sound_generation_parameters (
         id, sound_generation_id, mood, style, energy, texture,
@@ -143,23 +145,21 @@ export async function createSoundGeneration(env, {
     `).bind(
       String(parameters.id || crypto.randomUUID()),
       generationId,
-      parameters.mood ?? null,
-      parameters.style ?? null,
-      parameters.energy ?? null,
-      parameters.texture ?? null,
-      parameters.tempoBpm ?? parameters.tempo_bpm ?? null,
-      parameters.intensity ?? null,
-      parameters.complexity ?? null,
-      parameters.instrumental === undefined ? 1 : (parameters.instrumental ? 1 : 0),
-      parameters.excludeVocals === undefined && parameters.exclude_vocals === undefined
-        ? 1
-        : ((parameters.excludeVocals ?? parameters.exclude_vocals) ? 1 : 0),
-      parameters.language ?? null,
-      parameters.negativePrompt ?? parameters.negative_prompt ?? null,
-      parameters.durationSeconds ?? parameters.duration_seconds ?? null,
-      parameters.customParameters === undefined
-        ? (parameters.custom_parameters === undefined ? null : JSON.stringify(parameters.custom_parameters))
-        : JSON.stringify(parameters.customParameters)
+      normalizedParameters.mood,
+      normalizedParameters.style,
+      normalizedParameters.energy,
+      normalizedParameters.texture,
+      normalizedParameters.tempoBpm,
+      normalizedParameters.intensity,
+      normalizedParameters.complexity,
+      normalizedParameters.instrumental ? 1 : 0,
+      normalizedParameters.excludeVocals ? 1 : 0,
+      normalizedParameters.language,
+      normalizedParameters.negativePrompt,
+      normalizedParameters.durationSeconds,
+      normalizedParameters.customParameters === null
+        ? null
+        : JSON.stringify(normalizedParameters.customParameters)
     ));
   }
 
@@ -171,7 +171,8 @@ export async function createSoundGeneration(env, {
     mimeType: outputMimeType,
     creditsCharged: credits,
     r2Key: null,
-    expiresAt
+    expiresAt,
+    parameters: normalizedParameters
   };
 }
 
