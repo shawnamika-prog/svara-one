@@ -175,6 +175,23 @@ export async function createSoundGeneration(env, {
   };
 }
 
+export async function setSoundGenerationProviderResult(env, id, providerGenerationId) {
+  requireDb(env);
+  const generationId = String(id || "").trim();
+  const providerId = String(providerGenerationId || "").trim();
+  if (!generationId) throw new Error("Sound generation ID is required");
+  if (!providerId) throw new Error("Provider generation ID is required");
+
+  const result = await env.DB.prepare(`
+    UPDATE sound_generations
+    SET provider_generation_id = ?
+    WHERE id = ?
+  `).bind(providerId, generationId).run();
+
+  if (!result.meta?.changes) throw new Error("Sound generation not found");
+  return { id: generationId, providerGenerationId: providerId };
+}
+
 export async function markSoundGenerationReady(env, id, {
   r2Key = null,
   r2Etag = null,
