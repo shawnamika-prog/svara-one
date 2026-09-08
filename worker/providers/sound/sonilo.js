@@ -63,9 +63,13 @@ function apiBase(env) {
   return String(env.SONILO_API_BASE_URL || DEFAULT_SONILO_API_BASE).trim().replace(/\/$/, "");
 }
 
+function normalizeServiceName(value) {
+  return String(value || "").trim().toLowerCase().replace(/-/g, "_");
+}
+
 function normalizeList(value) {
   return Array.isArray(value)
-    ? value.map(item => String(item || "").trim().toLowerCase()).filter(Boolean)
+    ? value.map(normalizeServiceName).filter(Boolean)
     : [];
 }
 
