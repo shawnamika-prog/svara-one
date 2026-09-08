@@ -54,7 +54,10 @@ function mimeTypeForSoundResult(result, fallbackFormat) {
 
 function soundR2Key(generation) {
   const format = extensionForFormat(generation.format);
-  return `users/${generation.user_id}/sound/${generation.id}.${format}`;
+  const createdAt = new Date(generation.created_at || Date.now());
+  const pad = value => String(value).padStart(2, "0");
+  const stamp = `${createdAt.getUTCFullYear()}${pad(createdAt.getUTCMonth() + 1)}${pad(createdAt.getUTCDate())}_${pad(createdAt.getUTCHours())}${pad(createdAt.getUTCMinutes())}${pad(createdAt.getUTCSeconds())}`;
+  return `users/${generation.user_id}/sound/svaraone_sound_${stamp}.${format}`;
 }
 
 async function storeSoundResult(env, generation, result) {
