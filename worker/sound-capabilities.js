@@ -135,10 +135,24 @@ export async function handleSoundCapabilities(request, env) {
   if (!provider) return json({ error: "Sound provider is not configured." }, 503);
 
   const url = new URL(request.url);
-  if (url.searchParams.get("discover") === "true") {
+  const discover = url.searchParams.get("discover") === "true";
+
+  if (discover) {
     const result = await ensureSoundProviderCapabilities(env, { force: true });
-    if (result.status === "failed") return json(result, 502);
-    return json(result);
+    if (result.status === "failed") {
+      return json({
+        error: result.error,
+        provider: result.provider,
+        status: result.status,
+        usedCachedCapabilities: result.usedCachedCapabilities
+      }, 503);
+    }
+
+    return json({
+      provider: result.provider,
+      status: result.status,
+      capabilities: result.capabilities?.capabilities || null
+    });
   }
 
   const cached = await getCachedSoundCapabilities(env, provider);
