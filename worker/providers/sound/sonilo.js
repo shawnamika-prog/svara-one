@@ -78,7 +78,7 @@ function mergeUnique(values) {
 }
 
 async function soniloFetch(env, path, { method = "GET", body = null } = {}) {
-  const apiKey = requireCredential(env.SONILO_API_KEY, "API key");
+  const apiKey = requireCredential(env.SOUND_API_KEY, "API key");
   const headers = new Headers({
     Authorization: `Bearer ${apiKey}`,
     Accept: "application/json"
@@ -165,7 +165,7 @@ export class SoniloProvider extends SoundProvider {
 
   getStatus() {
     return {
-      configured: Boolean(String(this.env.SONILO_API_KEY || "").trim()),
+      configured: Boolean(String(this.env.SOUND_API_KEY || "").trim()),
       provider: "sonilo",
       version: this.getVersion()
     };
