@@ -12,6 +12,11 @@
     stateScript.src = 'js/sound-studio-state.js';
     stateScript.defer = false;
     document.head.appendChild(stateScript);
+
+    const playerScript = document.createElement('script');
+    playerScript.src = 'js/sound-output-player.js';
+    playerScript.defer = false;
+    document.head.appendChild(playerScript);
   }
 
   if (isStudio || isAccount) {
