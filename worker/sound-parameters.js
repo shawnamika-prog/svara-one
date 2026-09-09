@@ -20,6 +20,15 @@ function normalizeNumber(value, field, { min = 0, max = null, integer = false } 
   return number;
 }
 
+function normalizeCreativeLevel(value, field) {
+  if (value === null || value === undefined || value === "") return null;
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 0 || number > 100) {
+    throw new Error(`Sound parameter ${field} must be a number between 0 and 1 or a percentage between 0 and 100`);
+  }
+  return number > 1 ? number / 100 : number;
+}
+
 function normalizeBoolean(value, field, fallback) {
   if (value === null || value === undefined || value === "") return fallback;
   if (typeof value === "boolean") return value;
@@ -44,8 +53,8 @@ export function normalizeSoundParameters(parameters, { durationSeconds = null } 
     energy: normalizeText(parameters.energy, "energy"),
     texture: normalizeText(parameters.texture, "texture"),
     tempoBpm: normalizeNumber(parameters.tempoBpm ?? parameters.tempo_bpm, "tempoBpm", { min: 1, max: 400 }),
-    intensity: normalizeNumber(parameters.intensity, "intensity", { min: 0, max: 1 }),
-    complexity: normalizeNumber(parameters.complexity, "complexity", { min: 0, max: 1 }),
+    intensity: normalizeCreativeLevel(parameters.intensity, "intensity"),
+    complexity: normalizeCreativeLevel(parameters.complexity, "complexity"),
     instrumental: normalizeBoolean(parameters.instrumental, "instrumental", true),
     excludeVocals: normalizeBoolean(
       parameters.excludeVocals ?? parameters.exclude_vocals,
