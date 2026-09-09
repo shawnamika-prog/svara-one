@@ -23,11 +23,6 @@
     playerScript.defer = false;
     document.head.appendChild(playerScript);
 
-    const playbackFixScript = document.createElement('script');
-    playbackFixScript.src = 'js/sound-playback-fixes.js';
-    playbackFixScript.defer = false;
-    document.head.appendChild(playbackFixScript);
-
     document.addEventListener('click', event => {
       const link = event.target.closest('aside a[href]');
       if (!link) return;
