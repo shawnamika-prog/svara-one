@@ -1,0 +1,6 @@
+.sound-prompt textarea{scrollbar-width:thin;scrollbar-color:#8d5ce6 #0b1220}
+.sound-prompt textarea::-webkit-scrollbar{width:10px}
+.sound-prompt textarea::-webkit-scrollbar-track{background:#080e1a;border-left:1px solid #ffffff08;border-radius:0 14px 14px 0}
+.sound-prompt textarea::-webkit-scrollbar-thumb{border:2px solid #080e1a;border-radius:999px;background:linear-gradient(180deg,#c06cff 0%,#8b5cf6 48%,#4e7cff 100%);box-shadow:0 0 12px #9b5cff35}
+.sound-prompt textarea::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#d78cff 0%,#a56cff 48%,#6590ff 100%);box-shadow:0 0 16px #9b5cff55}
+.sound-prompt textarea::-webkit-scrollbar-corner{background:#080e1a}
