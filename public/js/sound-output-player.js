@@ -13,6 +13,7 @@
   const empty=()=>output()?.querySelector('.sound-empty');
   const result=()=>output()?.querySelector('.sound-result');
   const playButton=()=>output()?.querySelector('.sound-play');
+  const generateButton=()=>root()?.querySelector('#soundGenerate');
   const wave=()=>output()?.querySelector('.sound-wave');
   const timeNodes=()=>output()?.querySelectorAll('.sound-time strong')||[];
 
@@ -21,6 +22,13 @@
     const mins=Math.floor(seconds/60);
     const secs=Math.floor(seconds%60).toString().padStart(2,'0');
     return `${mins}:${secs}`;
+  };
+
+  const setGenerateButton=(busy,message='Generating…')=>{
+    const button=generateButton();
+    if(!button)return;
+    button.disabled=busy;
+    button.textContent=busy?message:'Generate Sound';
   };
 
   const setButton=playing=>{
@@ -33,6 +41,7 @@
   const setPlayerError=message=>{
     const target=output()?.querySelector('.sound-generation-note');
     if(target){target.textContent=message;target.dataset.playerError='1';}
+    console.error('svara_sound_ui_error',message);
   };
 
   const ensureAudio=()=>{
@@ -65,6 +74,7 @@
     const out=stateApi();
     if(!out)return;
     const generationId=data.id||data.generationId||currentGenerationId;
+    if(!generationId)return;
     applyingOutput=true;
     out.setOutput({
       status:'ready',
@@ -101,6 +111,15 @@
 
   const stopPolling=()=>{if(pollTimer){clearTimeout(pollTimer);pollTimer=null}};
 
+  const failGeneration=(id,message)=>{
+    stopPolling();
+    pollStartedAt=0;
+    setGenerateButton(false);
+    stateApi()?.setUI({generationId:id||null,generationStatus:'error',isGenerating:false,error:message});
+    stateApi()?.setOutput({status:'error',assetId:id||null});
+    setPlayerError(message);
+  };
+
   const pollGeneration=async id=>{
     if(!id)return;
     currentGenerationId=id;
@@ -113,28 +132,96 @@
         stopPolling();
         pollStartedAt=0;
         showOutput(data);
+        setGenerateButton(false);
         stateApi()?.setUI({generationId:id,generationStatus:'ready',isGenerating:false,error:null});
         return;
       }
       if(data.status==='failed'||data.status==='storage_failed'){
-        stopPolling();
-        pollStartedAt=0;
-        stateApi()?.setUI({generationId:id,generationStatus:'failed',isGenerating:false,error:'Sound generation failed.'});
-        stateApi()?.setOutput({status:'error',assetId:id});
+        failGeneration(id,'Sound generation failed.');
         return;
       }
       if(Date.now()-pollStartedAt>120000){
-        stopPolling();pollStartedAt=0;
-        stateApi()?.setUI({generationId:id,generationStatus:'timeout',isGenerating:false,error:'Sound generation timed out.'});
-        stateApi()?.setOutput({status:'error',assetId:id});
+        failGeneration(id,'Sound generation timed out.');
         return;
       }
       stateApi()?.setUI({generationId:id,generationStatus:'processing',isGenerating:true,error:null});
       pollTimer=setTimeout(()=>pollGeneration(id),1500);
     }catch(error){
-      stopPolling();pollStartedAt=0;
-      stateApi()?.setUI({generationId:id,generationStatus:'error',isGenerating:false,error:String(error?.message||'Sound result retrieval failed').slice(0,300)});
-      stateApi()?.setOutput({status:'error',assetId:id});
+      failGeneration(id,String(error?.message||'Sound result retrieval failed').slice(0,300));
+    }
+  };
+
+  const generateSound=async event=>{
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    const out=stateApi();
+    const state=out?.getState?.();
+    if(!out||!state){setPlayerError('Sound Studio state is not available.');return}
+    if(state.ui?.isGenerating)return;
+
+    const prompt=String(state.input?.prompt||'').trim();
+    if(!prompt){
+      out.setUI({generationStatus:'error',isGenerating:false,error:'Prompt is required.'});
+      setPlayerError('Enter a Sound prompt before generating.');
+      return;
+    }
+
+    const type=String(state.generation?.type||'music').toLowerCase();
+    if(type==='transition'){
+      out.setUI({generationStatus:'error',isGenerating:false,error:'Transition generation is not available yet.'});
+      setPlayerError('Transition generation is not available yet. Choose Music, SFX, Ambience, Loop or Jingle.');
+      return;
+    }
+
+    const payload={
+      prompt,
+      type,
+      format:state.generation?.format||'mp3',
+      durationSeconds:Number(state.generation?.durationSeconds)||90,
+      sampleRate:state.generation?.sampleRate??null,
+      channels:state.generation?.channels??null,
+      provider:state.generation?.provider||null,
+      sourceType:state.input?.sourceType||null,
+      sourceAssetId:state.input?.sourceAssetId||null,
+      parameters:state.creative||null,
+      inputs:[{inputType:'text',textContent:prompt,role:'prompt'}]
+    };
+
+    stopPolling();
+    pollStartedAt=0;
+    setGenerateButton(true,'Generating…');
+    out.setUI({isGenerating:true,generationStatus:'processing',error:null,generationId:null});
+    out.setOutput({status:'loading',assetId:null,r2Key:null,format:null,mimeType:null,duration:null,size:null});
+
+    try{
+      console.log('svara_sound_generate_request',payload);
+      const response=await window.fetch('/api/sound/generate',{
+        method:'POST',
+        headers:{'content-type':'application/json'},
+        credentials:'same-origin',
+        body:JSON.stringify(payload)
+      });
+      const data=await response.json().catch(()=>null);
+      console.log('svara_sound_generate_response',{status:response.status,data});
+
+      if(!response.ok){
+        const message=String(data?.error||'Sound generation request failed.').slice(0,300);
+        failGeneration(data?.generationId||null,message);
+        return;
+      }
+
+      if(!data?.id){
+        failGeneration(null,'Sound generation did not return a generation ID.');
+        return;
+      }
+
+      setProcessing({id:data.id,status:data.status||'processing'});
+      currentGenerationId=data.id;
+      pollStartedAt=Date.now();
+      if(data.status==='ready')showOutput(data);
+      else pollGeneration(data.id);
+    }catch(error){
+      failGeneration(null,String(error?.message||'Sound generation request failed').slice(0,300));
     }
   };
 
@@ -152,9 +239,11 @@
             const copy=response.clone();
             const body=await copy.json().catch(()=>null);
             if(body?.id&&body?.status&&body.status!=='ready'&&body.resultOnly!==true){
-              setProcessing({id:body.id,status:body.status});
-              pollStartedAt=Date.now();
-              pollGeneration(body.id);
+              if(!stateApi()?.getState?.()?.ui?.isGenerating){
+                setProcessing({id:body.id,status:body.status});
+                pollStartedAt=Date.now();
+                pollGeneration(body.id);
+              }
             }
           }
         }
@@ -169,12 +258,18 @@
     if(!r||r.dataset.outputPlayerBound)return;
     r.dataset.outputPlayerBound='1';
     ensureAudio();
+
+    const generate=generateButton();
+    if(generate)generate.addEventListener('click',generateSound,true);
+
     const button=playButton();
     if(button){
-      button.addEventListener('click',async()=>{
+      button.addEventListener('click',async event=>{
+        event.preventDefault();
+        event.stopImmediatePropagation();
         const audioEl=ensureAudio();
         if(!audioEl||!audioEl.src){setPlayerError('No Sound asset is available yet.');return}
-        try{if(audioEl.paused)await audioEl.play();else audioEl.pause()}catch(error){setPlayerError('Sound playback could not start.')}});
+        try{if(audioEl.paused)await audioEl.play();else audioEl.pause()}catch(error){setPlayerError('Sound playback could not start.')}} ,true);
     }
   };
 
@@ -190,7 +285,7 @@
     });
   };
 
-  window.SvaraSoundOutputPlayer={pollGeneration,showOutput};
+  window.SvaraSoundOutputPlayer={pollGeneration,showOutput,generateSound};
   watchGenerationFetch();
   bind();
   window.addEventListener('svara:sound-state-change',event=>syncFromState(event.detail));
