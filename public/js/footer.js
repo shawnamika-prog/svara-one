@@ -13,6 +13,11 @@
     stateScript.defer = false;
     document.head.appendChild(stateScript);
 
+    const playerStyle = document.createElement('link');
+    playerStyle.rel = 'stylesheet';
+    playerStyle.href = 'css/sound-output-player.css';
+    document.head.appendChild(playerStyle);
+
     const playerScript = document.createElement('script');
     playerScript.src = 'js/sound-output-player.js';
     playerScript.defer = false;
