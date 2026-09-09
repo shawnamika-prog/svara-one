@@ -18,15 +18,15 @@
     playerStyle.href = 'css/sound-output-player.css';
     document.head.appendChild(playerStyle);
 
-    const scrollbarStyle = document.createElement('link');
-    scrollbarStyle.rel = 'stylesheet';
-    scrollbarStyle.href = 'css/sound-brand-scrollbar.css';
-    document.head.appendChild(scrollbarStyle);
-
     const playerScript = document.createElement('script');
     playerScript.src = 'js/sound-output-player.js';
     playerScript.defer = false;
     document.head.appendChild(playerScript);
+
+    const playbackFixScript = document.createElement('script');
+    playbackFixScript.src = 'js/sound-playback-fixes.js';
+    playbackFixScript.defer = false;
+    document.head.appendChild(playbackFixScript);
 
     document.addEventListener('click', event => {
       const link = event.target.closest('aside a[href]');
@@ -65,7 +65,7 @@
         </div>
       </div>
       <div class="svara-footer-bottom">
-        <span>© <span data-footer-year></span> SVARA ONE (Pty) Ltd. All rights reserved.</span>
+        <span>© <span data-footer-year></span> Svara ONE (Pty) Ltd. All rights reserved.</span>
       </div>`;
   }
 
