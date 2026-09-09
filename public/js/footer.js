@@ -18,6 +18,11 @@
     playerStyle.href = 'css/sound-output-player.css';
     document.head.appendChild(playerStyle);
 
+    const scrollbarStyle = document.createElement('link');
+    scrollbarStyle.rel = 'stylesheet';
+    scrollbarStyle.href = 'css/sound-brand-scrollbar.css';
+    document.head.appendChild(scrollbarStyle);
+
     const playerScript = document.createElement('script');
     playerScript.src = 'js/sound-output-player.js';
     playerScript.defer = false;
