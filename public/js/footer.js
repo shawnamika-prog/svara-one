@@ -22,6 +22,15 @@
     playerScript.src = 'js/sound-output-player.js';
     playerScript.defer = false;
     document.head.appendChild(playerScript);
+
+    document.addEventListener('click', event => {
+      const link = event.target.closest('aside a[href]');
+      if (!link) return;
+      const href = link.getAttribute('href') || '';
+      if (href === '#sound') return;
+      const audio = document.querySelector('audio[aria-hidden="true"][preload="metadata"]');
+      if (audio && !audio.paused) audio.pause();
+    }, true);
   }
 
   if (isStudio || isAccount) {
