@@ -6,6 +6,7 @@
   let currentGenerationId=null;
   let pollTimer=null;
   let pollStartedAt=0;
+  let applyingOutput=false;
 
   const root=()=>document.getElementById('soundWorkspace');
   const output=()=>root()?.querySelector('.sound-output');
@@ -27,6 +28,11 @@
     if(!button)return;
     button.innerHTML=playing?'<span style="width:8px;height:12px;border:0;border-left:3px solid #fff;border-right:3px solid #fff;margin:0"></span>':'<span></span>';
     button.setAttribute('aria-label',playing?'Pause Sound':'Play Sound');
+  };
+
+  const setPlayerError=message=>{
+    const target=output()?.querySelector('.sound-generation-note');
+    if(target){target.textContent=message;target.dataset.playerError='1';}
   };
 
   const ensureAudio=()=>{
@@ -55,36 +61,33 @@
     return audio;
   };
 
-  const setPlayerError=message=>{
-    const target=output()?.querySelector('.sound-generation-note');
-    if(target){target.textContent=message;target.dataset.playerError='1';}
-  };
-
   const showOutput=data=>{
     const out=stateApi();
     if(!out)return;
+    const generationId=data.id||data.generationId||currentGenerationId;
+    applyingOutput=true;
     out.setOutput({
       status:'ready',
-      assetId:data.id||data.generationId||currentGenerationId,
+      assetId:generationId,
       r2Key:data.r2Key||data.result?.r2Key||null,
       format:data.format||data.result?.format||'mp3',
       mimeType:data.mimeType||data.result?.mimeType||'audio/mpeg',
       duration:data.durationSeconds||data.result?.durationSeconds||null,
       size:data.sizeBytes||data.result?.sizeBytes||null
     });
+    applyingOutput=false;
     const emptyView=empty();
     const resultView=result();
     if(emptyView)emptyView.style.display='none';
     if(resultView)resultView.classList.add('show');
     const audioEl=ensureAudio();
     if(audioEl){
-      const generationId=data.id||data.generationId||currentGenerationId;
       const src=`/api/sound/assets/${encodeURIComponent(generationId)}`;
       if(audioEl.src!==new URL(src,window.location.href).href){audioEl.pause();audioEl.src=src;audioEl.load()}
     }
     const nodes=timeNodes();
     if(nodes[0])nodes[0].textContent='0:00';
-    if(nodes[1]&&data.durationSeconds)nodes[1].textContent=formatTime(data.durationSeconds);
+    if(nodes[1]&&(data.durationSeconds||data.result?.durationSeconds))nodes[1].textContent=formatTime(data.durationSeconds||data.result?.durationSeconds);
     setButton(false);
   };
 
@@ -176,7 +179,7 @@
   };
 
   const syncFromState=state=>{
-    if(!state?.output?.assetId||state.output.status!=='ready')return;
+    if(applyingOutput||!state?.output?.assetId||state.output.status!=='ready')return;
     showOutput({
       id:state.output.assetId,
       r2Key:state.output.r2Key,
