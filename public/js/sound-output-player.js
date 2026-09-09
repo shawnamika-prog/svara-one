@@ -11,6 +11,13 @@
   let waveformData=null;
   let waveformGenerationId=null;
   let waveformLoading=false;
+  let audioContext=null;
+  let analyser=null;
+  let mediaSource=null;
+  let analyserData=null;
+  let visualFrame=0;
+  let seekWasPlaying=false;
+  let seeking=false;
 
   const root=()=>document.getElementById('soundWorkspace');
   const output=()=>root()?.querySelector('.sound-output');
@@ -61,16 +68,39 @@
       seek.type='range';
       seek.className='sound-seek';
       seek.min='0';
-      seek.max='1';
-      seek.step='0.01';
+      seek.max='100';
+      seek.step='0.1';
       seek.value='0';
       seek.setAttribute('aria-label','Seek through sound');
       card.insertBefore(seek,row);
+      seek.addEventListener('pointerdown',()=>{
+        seeking=true;
+        seekWasPlaying=Boolean(audio&&!audio.paused&&!audio.ended);
+      });
       seek.addEventListener('input',()=>{
         if(!audio||!Number.isFinite(audio.duration)||audio.duration<=0)return;
         audio.currentTime=(Number(seek.value)/100)*audio.duration;
         updateTransport();
+        drawWaveform();
       });
+      seek.addEventListener('change',()=>{
+        if(!audio)return;
+        if(seeking&&seekWasPlaying&&!audio.ended){
+          audio.play().catch(()=>{});
+        }
+        seeking=false;
+      });
+      seek.addEventListener('pointerup',()=>{
+        if(!audio)return;
+        if(seeking&&seekWasPlaying&&!audio.ended){
+          audio.play().catch(()=>{});
+        }
+        seeking=false;
+      });
+    }else{
+      seek.min='0';
+      seek.max='100';
+      seek.step='0.1';
     }
 
     let volumeWrap=row.querySelector('.sound-volume');
@@ -99,9 +129,19 @@
     controls.seek.style.setProperty('--seek-progress',`${percent}%`);
   };
 
-  const drawWaveform=()=>{
+  const canvasSize=()=>{
     const container=wave();
-    if(!container)return;
+    if(!container)return null;
+    const rect=container.getBoundingClientRect();
+    const width=Math.max(320,Math.floor(rect.width||700));
+    const height=Math.max(80,Math.floor(rect.height||115));
+    const dpr=window.devicePixelRatio||1;
+    return {width,height,dpr};
+  };
+
+  const prepareCanvas=()=>{
+    const container=wave();
+    if(!container)return null;
     let canvas=container.querySelector('canvas');
     if(!canvas){
       container.innerHTML='';
@@ -110,18 +150,25 @@
       canvas.setAttribute('aria-label','Sound waveform');
       container.appendChild(canvas);
     }
-    const rect=container.getBoundingClientRect();
-    const width=Math.max(320,Math.floor(rect.width||700));
-    const height=Math.max(80,Math.floor(rect.height||115));
-    const dpr=window.devicePixelRatio||1;
-    canvas.width=width*dpr;
-    canvas.height=height*dpr;
-    canvas.style.width='100%';
-    canvas.style.height='100%';
+    const size=canvasSize();
+    if(!size)return null;
+    if(canvas.width!==size.width*size.dpr||canvas.height!==size.height*size.dpr){
+      canvas.width=size.width*size.dpr;
+      canvas.height=size.height*size.dpr;
+      canvas.style.width='100%';
+      canvas.style.height='100%';
+    }
+    return {canvas,...size};
+  };
+
+  const drawWaveform=()=>{
+    const prepared=prepareCanvas();
+    if(!prepared)return;
+    const {canvas,width,height,dpr}=prepared;
     const ctx=canvas.getContext('2d');
     ctx.setTransform(dpr,0,0,dpr,0,0);
     ctx.clearRect(0,0,width,height);
-    const bars=waveformData||Array.from({length:100},(_,i)=>0.15+(((i*37)%83)/100)*0.7);
+    const bars=waveformData||Array.from({length:110},(_,i)=>0.14+(((i*37)%83)/100)*0.7);
     const gap=3;
     const barWidth=Math.max(2,(width-gap*(bars.length-1))/bars.length);
     const progress=audio&&Number.isFinite(audio.duration)&&audio.duration>0?audio.currentTime/audio.duration:0;
@@ -133,8 +180,7 @@
       ctx.globalAlpha=x<progressX?.98:.42;
       ctx.fillStyle=x<progressX?'#d36cff':'#5377ff';
       ctx.beginPath();
-      const radius=Math.min(barWidth/2,3);
-      ctx.roundRect(x,y,barWidth,h,radius);
+      ctx.roundRect(x,y,barWidth,h,Math.min(barWidth/2,3));
       ctx.fill();
     });
     ctx.globalAlpha=1;
@@ -143,6 +189,80 @@
       ctx.globalAlpha=.9;
       ctx.fillRect(Math.max(0,Math.min(width-1,progressX)),8,1,Math.max(1,height-16));
       ctx.globalAlpha=1;
+    }
+  };
+
+  const drawLiveWaveform=()=>{
+    const prepared=prepareCanvas();
+    if(!prepared)return;
+    const {canvas,width,height,dpr}=prepared;
+    const ctx=canvas.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,width,height);
+    const base=waveformData||Array.from({length:110},(_,i)=>0.14+(((i*37)%83)/100)*0.7);
+    if(analyser&&analyserData)analyser.getByteFrequencyData(analyserData);
+    const barCount=base.length;
+    const gap=3;
+    const barWidth=Math.max(2,(width-gap*(barCount-1))/barCount);
+    const duration=Number(audio?.duration);
+    const progress=Number.isFinite(duration)&&duration>0?audio.currentTime/duration:0;
+    const progressX=progress*width;
+    for(let i=0;i<barCount;i++){
+      const x=i*(barWidth+gap);
+      const freqIndex=Math.min(analyserData?.length-1||0,Math.floor((i/barCount)*(analyserData?.length||1)));
+      const live=analyserData?.length?(analyserData[freqIndex]/255):0;
+      const pulse=audio&&!audio.paused?.72+.65*live:1;
+      const h=Math.max(5,Math.min(height-10,base[i]*(height-18)*pulse));
+      const y=(height-h)/2;
+      ctx.globalAlpha=x<progressX?.98:.48;
+      ctx.fillStyle=x<progressX?'#d36cff':'#5377ff';
+      ctx.beginPath();
+      ctx.roundRect(x,y,barWidth,h,Math.min(barWidth/2,3));
+      ctx.fill();
+    }
+    ctx.globalAlpha=1;
+    if(Number.isFinite(progressX)){
+      ctx.fillStyle='#ffffff';
+      ctx.globalAlpha=.92;
+      ctx.fillRect(Math.max(0,Math.min(width-1,progressX)),8,1,Math.max(1,height-16));
+      ctx.globalAlpha=1;
+    }
+  };
+
+  const stopVisualiser=()=>{
+    if(visualFrame){window.cancelAnimationFrame(visualFrame);visualFrame=0;}
+  };
+
+  const visualise=()=>{
+    visualFrame=window.requestAnimationFrame(visualise);
+    if(!audio||audio.paused||audio.ended){stopVisualiser();drawWaveform();return;}
+    drawLiveWaveform();
+  };
+
+  const startVisualiser=()=>{
+    if(visualFrame)return;
+    visualFrame=window.requestAnimationFrame(visualise);
+  };
+
+  const ensureAnalyser=()=>{
+    if(!audio)return;
+    if(analyser)return;
+    const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+    if(!AudioContextClass)return;
+    try{
+      audioContext=new AudioContextClass();
+      analyser=audioContext.createAnalyser();
+      analyser.fftSize=256;
+      analyser.smoothingTimeConstant=.72;
+      analyserData=new Uint8Array(analyser.frequencyBinCount);
+      mediaSource=audioContext.createMediaElementSource(audio);
+      mediaSource.connect(analyser);
+      analyser.connect(audioContext.destination);
+    }catch(error){
+      console.warn('svara_sound_live_visualizer_failed',error);
+      analyser=null;
+      analyserData=null;
+      mediaSource=null;
     }
   };
 
@@ -196,11 +316,35 @@
       updateTransport();
       drawWaveform();
     });
-    audio.addEventListener('timeupdate',()=>{updateTransport();drawWaveform()});
-    audio.addEventListener('play',()=>{wave()?.classList.add('playing');setButton(true);drawWaveform()});
-    audio.addEventListener('pause',()=>{wave()?.classList.remove('playing');setButton(false);drawWaveform()});
-    audio.addEventListener('ended',()=>{wave()?.classList.remove('playing');setButton(false);audio.currentTime=0;updateTransport();drawWaveform()});
-    audio.addEventListener('error',()=>{wave()?.classList.remove('playing');setButton(false);setPlayerError('Sound playback could not be loaded.')});
+    audio.addEventListener('durationchange',updateTransport);
+    audio.addEventListener('timeupdate',()=>{updateTransport();if(!audio.paused)drawLiveWaveform();});
+    audio.addEventListener('play',()=>{
+      ensureAnalyser();
+      audioContext?.resume().catch(()=>{});
+      wave()?.classList.add('playing');
+      setButton(true);
+      startVisualiser();
+    });
+    audio.addEventListener('pause',()=>{
+      stopVisualiser();
+      wave()?.classList.remove('playing');
+      setButton(false);
+      drawWaveform();
+    });
+    audio.addEventListener('ended',()=>{
+      stopVisualiser();
+      wave()?.classList.remove('playing');
+      setButton(false);
+      audio.currentTime=0;
+      updateTransport();
+      drawWaveform();
+    });
+    audio.addEventListener('error',()=>{
+      stopVisualiser();
+      wave()?.classList.remove('playing');
+      setButton(false);
+      setPlayerError('Sound playback could not be loaded.');
+    });
     return audio;
   };
 
@@ -462,7 +606,13 @@
         event.stopImmediatePropagation();
         const audioEl=ensureAudio();
         if(!audioEl||!audioEl.src){setPlayerError('No Sound asset is available yet.');return}
-        try{if(audioEl.paused)await audioEl.play();else audioEl.pause()}catch(error){setPlayerError('Sound playback could not start.')}} ,true);
+        try{
+          ensureAnalyser();
+          await audioContext?.resume();
+          if(audioEl.paused)await audioEl.play();
+          else audioEl.pause();
+        }catch(error){setPlayerError('Sound playback could not start.')}
+      },true);
     }
   };
 
