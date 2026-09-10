@@ -59,14 +59,14 @@ async function resolveExistingVoiceInput(env, userId, sourceAssetId) {
   if (!env.DB || !env.GENERATED_AUDIO) throw new Error("Sound input storage is not configured.");
   const voiceId = String(sourceAssetId || "").trim();
   if (!voiceId) throw new Error("Existing Voice input is required.");
-  const voice = await env.DB.prepare(`SELECT id, user_id, script, status, r2_key, format, mime_type, duration_seconds, size_bytes, created_at, completed_at FROM generations WHERE id = ? AND user_id = ? LIMIT 1`).bind(voiceId, userId).first();
+  const voice = await env.DB.prepare(`SELECT id, user_id, script, status, r2_key, format, mime_type, size_bytes, created_at, completed_at FROM generations WHERE id = ? AND user_id = ? LIMIT 1`).bind(voiceId, userId).first();
   if (!voice) throw new Error("Existing Voice generation not found.");
   if (String(voice.status || "") !== "ready") throw new Error("Existing Voice generation is not ready.");
   if (!voice.r2_key) throw new Error("Existing Voice generation has no stored audio asset.");
   if (!String(voice.script || "").trim()) throw new Error("Existing Voice generation has no stored script.");
   const object = await env.GENERATED_AUDIO.head(voice.r2_key);
   if (!object) throw new Error("Existing Voice audio asset not found.");
-  return { id: String(voice.id), inputType: "voice", assetId: String(voice.id), script: String(voice.script).trim(), r2Key: String(voice.r2_key), format: String(voice.format || "mp3"), mimeType: String(voice.mime_type || "audio/mpeg"), durationSeconds: normalizeOptionalNumber(voice.duration_seconds, "durationSeconds"), sizeBytes: Number.isFinite(Number(voice.size_bytes)) ? Number(voice.size_bytes) : Number(object.size || 0), createdAt: voice.created_at, completedAt: voice.completed_at };
+  return { id: String(voice.id), inputType: "voice", assetId: String(voice.id), script: String(voice.script).trim(), r2Key: String(voice.r2_key), format: String(voice.format || "mp3"), mimeType: String(voice.mime_type || "audio/mpeg"), durationSeconds: null, sizeBytes: Number.isFinite(Number(voice.size_bytes)) ? Number(voice.size_bytes) : Number(object.size || 0), createdAt: voice.created_at, completedAt: voice.completed_at };
 }
 
 export async function handleSoundGenerate(request, env, userId) {
