@@ -5,6 +5,7 @@ import { getCachedSoundCapabilities } from "./sound-capabilities.js";
 
 const MAX_PROMPT_CHARS = 2000;
 const SOUND_TYPES = new Set(["music", "soundtrack", "sfx", "ambience", "jingle", "loop"]);
+const SOUND_SOURCE_TYPES = new Set(["text", "voice", "video", "image", "audio"]);
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -257,6 +258,41 @@ async function handleSoundResult(env, userId, body) {
   }
 }
 
+async function resolveExistingVoiceInput(env, userId, sourceAssetId) {
+  if (!env.DB || !env.GENERATED_AUDIO) throw new Error("Sound input storage is not configured.");
+  const voiceId = String(sourceAssetId || "").trim();
+  if (!voiceId) throw new Error("Existing Voice input is required.");
+
+  const voice = await env.DB.prepare(`
+    SELECT id, user_id, text, status, r2_key, format, mime_type, duration_seconds, size_bytes, created_at, completed_at
+    FROM generations
+    WHERE id = ? AND user_id = ?
+    LIMIT 1
+  `).bind(voiceId, userId).first();
+
+  if (!voice) throw new Error("Existing Voice generation not found.");
+  if (String(voice.status || "") !== "ready") throw new Error("Existing Voice generation is not ready.");
+  if (!voice.r2_key) throw new Error("Existing Voice generation has no stored audio asset.");
+  if (!String(voice.text || "").trim()) throw new Error("Existing Voice generation has no stored script.");
+
+  const object = await env.GENERATED_AUDIO.head(voice.r2_key);
+  if (!object) throw new Error("Existing Voice audio asset not found.");
+
+  return {
+    id: String(voice.id),
+    inputType: "voice",
+    assetId: String(voice.id),
+    script: String(voice.text).trim(),
+    r2Key: String(voice.r2_key),
+    format: String(voice.format || "mp3"),
+    mimeType: String(voice.mime_type || "audio/mpeg"),
+    durationSeconds: normalizeOptionalNumber(voice.duration_seconds, "durationSeconds"),
+    sizeBytes: Number.isFinite(Number(voice.size_bytes)) ? Number(voice.size_bytes) : Number(object.size || 0),
+    createdAt: voice.created_at,
+    completedAt: voice.completed_at
+  };
+}
+
 export async function handleSoundGenerate(request, env, userId) {
   if (!env.DB) return json({ error: "Sound generation storage is not configured." }, 503);
 
@@ -313,6 +349,19 @@ export async function handleSoundGenerate(request, env, userId) {
     return json({ error: "A positive durationSeconds value is required for Sound generation." }, 400);
   }
 
+  const sourceType = String(body.sourceType ?? "text").trim().toLowerCase();
+  const sourceAssetId = String(body.sourceAssetId ?? "").trim();
+  if (!SOUND_SOURCE_TYPES.has(sourceType)) return json({ error: "Invalid Sound source type." }, 400);
+
+  let existingVoice = null;
+  if (sourceType === "voice") {
+    try {
+      existingVoice = await resolveExistingVoiceInput(env, userId, sourceAssetId);
+    } catch (error) {
+      return json({ error: String(error?.message || error) }, 400);
+    }
+  }
+
   const provider = String(body.provider || env.SVARAONE_SOUND_PROVIDER || "").trim().toLowerCase();
   if (!provider) return json({ error: "Sound provider is not configured." }, 503);
 
@@ -325,9 +374,18 @@ export async function handleSoundGenerate(request, env, userId) {
   const reservation = await reserveSoundCredits(userId, cost, env, generationId);
   if (!reservation) return json({ error: "Not enough credits." }, 402);
 
-  const inputs = Array.isArray(body.inputs) ? body.inputs : [
-    { inputType: "text", textContent: prompt, role: "prompt" }
-  ];
+  const inputs = Array.isArray(body.inputs) ? [...body.inputs] : [];
+  if (sourceType === "voice" && existingVoice) {
+    inputs.unshift({
+      inputType: "voice",
+      assetId: existingVoice.assetId,
+      textContent: existingVoice.script,
+      role: "existing_voice"
+    });
+  }
+  if (!inputs.some(input => input && typeof input === "object" && String(input.inputType || input.input_type || "") === "text")) {
+    inputs.unshift({ inputType: "text", textContent: prompt, role: "prompt" });
+  }
 
   let generation;
   try {
@@ -337,8 +395,8 @@ export async function handleSoundGenerate(request, env, userId) {
       provider,
       type,
       prompt,
-      sourceType: body.sourceType ?? null,
-      sourceAssetId: body.sourceAssetId ?? null,
+      sourceType,
+      sourceAssetId: sourceAssetId || null,
       durationSeconds,
       sampleRate,
       channels,
@@ -367,8 +425,15 @@ export async function handleSoundGenerate(request, env, userId) {
       userId,
       type,
       prompt,
-      sourceType: body.sourceType ?? null,
-      sourceAssetId: body.sourceAssetId ?? null,
+      sourceType,
+      sourceAssetId: sourceAssetId || null,
+      existingVoice: existingVoice ? {
+        assetId: existingVoice.assetId,
+        script: existingVoice.script,
+        r2Key: existingVoice.r2Key,
+        durationSeconds: existingVoice.durationSeconds,
+        mimeType: existingVoice.mimeType
+      } : null,
       durationSeconds,
       sampleRate,
       channels,
@@ -385,6 +450,15 @@ export async function handleSoundGenerate(request, env, userId) {
       id: generation.id,
       status: generation.status,
       provider,
+      sourceType,
+      sourceAssetId: sourceAssetId || null,
+      existingVoice: existingVoice ? {
+        id: existingVoice.id,
+        script: existingVoice.script,
+        r2Key: existingVoice.r2Key,
+        durationSeconds: existingVoice.durationSeconds,
+        mimeType: existingVoice.mimeType
+      } : null,
       creditsCharged: reservation.cost,
       creditsRemaining: reservation.balance,
       result: result ?? null
