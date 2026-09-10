@@ -23,6 +23,11 @@
     playerScript.defer = false;
     document.head.appendChild(playerScript);
 
+    const soundUiScript = document.createElement('script');
+    soundUiScript.src = 'js/sound-studio-ui.js';
+    soundUiScript.defer = false;
+    document.head.appendChild(soundUiScript);
+
     document.addEventListener('click', event => {
       const link = event.target.closest('aside a[href]');
       if (!link) return;
