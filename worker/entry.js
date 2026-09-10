@@ -342,127 +342,297 @@ async function handleFreeTake(request, env, ctx, body, userId) {
         providerVoiceId: String(generation.provider_voice_id || ""),
         text: String(generation.script || ""),
         format: String(generation.format || "mp3"),
-        speed: generation.speed,
-        stability: generation.stability,
-        style: generation.style
+        speed: Number(generation.speed) || 1,
+        stability: Number.isFinite(Number(generation.stability)) ? Number(generation.stability) : 50,
+        style: String(generation.style || "")
       })
     });
-    const providerId = await resolveProviderVoiceId({ voiceId: generation.voice_id, providerVoiceId: generation.provider_voice_id }, env);
-    const provider = await getVoiceByProviderId(env, providerId);
-    if (!provider) throw new Error("Voice provider is not configured");
-    const audio = await provider.generate({ text: script, voiceId: providerId, format: generation.format || "mp3", speed: generation.speed, stability: generation.stability, style: generation.style }, env);
-    const result = await provider.normalizeResult(audio, env);
-    if (!result?.audio) throw new Error("Voice provider returned no audio");
-    const takeNumber = 2;
-    const nextId = crypto.randomUUID();
-    const r2Key = `users/${userId}/generations/svara1_${String(generation.voice_name || "voice").toLowerCase().replace(/[^a-z0-9]+/g, "_")}_${new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z")}.${generation.format || "mp3"}`;
-    await env.GENERATED_AUDIO.put(r2Key, result.audio, { httpMetadata: { contentType: mimeTypeForFormat(generation.format || "mp3") } });
+
+    const response = await app.fetch(providerRequest, env, ctx);
+    if (!response.ok) {
+      await env.DB.prepare("UPDATE generations SET status = 'ready' WHERE id = ? AND user_id = ? AND status = 'generating'").bind(generationId, userId).run();
+      return response;
+    }
+    if (!response.body) throw new Error("Free take response had no body");
+
+    const audioBytes = await response.arrayBuffer();
+    if (!audioBytes.byteLength) throw new Error("Free take response was empty");
+
+    const format = String(generation.format || "mp3").toLowerCase();
+    const storedObject = await env.GENERATED_AUDIO.put(generation.r2_key, audioBytes, {
+      httpMetadata: {
+        contentType: mimeTypeForFormat(format),
+        cacheControl: "private, no-store"
+      },
+      customMetadata: {
+        generationId,
+        userId,
+        voiceId: String(generation.voice_id || ""),
+        providerVoiceId: String(generation.provider_voice_id || ""),
+        format,
+        take: "2"
+      }
+    });
+
+    if (!storedObject) throw new Error("R2 did not confirm the free take upload");
+
     await env.DB.prepare(`
-      INSERT INTO generations
-        (id, user_id, voice_id, provider_voice_id, voice_name, script,
-         speed, stability, style, format, mime_type, status, r2_key,
-         size_bytes, credits_charged, is_free_take, take_number,
-         parent_generation_id, created_at, completed_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ready', ?, ?, 0, 1, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'), strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-    `).bind(nextId, userId, generation.voice_id, providerId, generation.voice_name, script, generation.speed, generation.stability, generation.style, generation.format || "mp3", mimeTypeForFormat(generation.format || "mp3"), r2Key, result.audio.length, generationId).run();
-    await env.DB.prepare(`UPDATE generations SET status = 'ready' WHERE id = ?`).bind(generationId).run();
-    return json({ ok: true, generationId: nextId, takeNumber, status: "ready", r2Key }, 200);
+      UPDATE generations
+      SET status = 'ready',
+          take_number = 2,
+          is_free_take = 1,
+          r2_etag = ?,
+          size_bytes = ?,
+          completed_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+      WHERE id = ? AND user_id = ? AND status = 'generating'
+    `).bind(
+      storedObject.etag || null,
+      Number.isFinite(Number(audioBytes.byteLength)) ? Number(audioBytes.byteLength) : null,
+      generationId,
+      userId
+    ).run();
+
+    const headers = new Headers(response.headers);
+    headers.set("X-SvaraONE-Generation-ID", generationId);
+    headers.set("X-SvaraONE-Free-Take", "true");
+    return new Response(audioBytes, { status: response.status, statusText: response.statusText, headers });
   } catch (error) {
-    await env.DB.prepare(`UPDATE generations SET status = 'ready' WHERE id = ? AND user_id = ?`).bind(generationId, userId).run();
-    return json({ error: String(error?.message || "Free take failed").slice(0, 300) }, 502);
+    try {
+      await env.DB.prepare("UPDATE generations SET status = 'ready' WHERE id = ? AND user_id = ? AND status = 'generating'").bind(generationId, userId).run();
+    } catch (restoreError) {
+      console.error("free_take_restore_error", restoreError);
+    }
+    console.error("free_take_error", error);
+    return json({ error: "Free take could not be saved." }, 502);
   }
-}
-
-async function handleVoiceGeneration(request, env, ctx, body, userId) {
-  const text = String(body?.text ?? "");
-  if (!text.trim()) return json({ error: "Text is required." }, 400);
-  if (text.length > MAX_GENERATION_CHARS) return json({ error: `Maximum ${MAX_GENERATION_CHARS} characters per generation` }, 400);
-  const voiceId = String(body?.voiceId || "").trim();
-  const providerVoiceId = await resolveProviderVoiceId(body, env);
-  if (!providerVoiceId) return json({ error: "Voice is required." }, 400);
-  const voice = await getVoiceByProviderId(env, providerVoiceId);
-  if (!voice) return json({ error: "Voice not found." }, 404);
-  const cost = generationCost(text, env);
-  const referenceId = crypto.randomUUID();
-  const reservation = await reserveCredits(userId, cost, env, referenceId);
-  if (!reservation) return json({ error: "Insufficient credits." }, 402);
-  const generationId = crypto.randomUUID();
-  try {
-    const plan = await processSvaraFlow(text, env);
-    const translated = translateSvaraFlowPlan(text, plan, env);
-    const audio = await voice.generate({ text: translated.preparedScript, voiceId: providerVoiceId, format: body?.format || "mp3", speed: body?.speed, stability: body?.stability, style: body?.style }, env);
-    if (!audio?.length) throw new Error("Voice provider returned no audio");
-    const format = body?.format || "mp3";
-    const mimeType = mimeTypeForFormat(format);
-    const voiceName = String(voice.name || body?.voiceName || "voice");
-    const safeName = voiceName.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "voice";
-    const now = new Date();
-    const stamp = `${now.getUTCFullYear()}${String(now.getUTCMonth()+1).padStart(2,"0")}${String(now.getUTCDate()).padStart(2,"0")}_${String(now.getUTCHours()).padStart(2,"0")}${String(now.getUTCMinutes()).padStart(2,"0")}${String(now.getUTCSeconds()).padStart(2,"0")}`;
-    const r2Key = `users/${userId}/generations/svara1_${safeName}_${stamp}.${format}`;
-    await env.GENERATED_AUDIO.put(r2Key, audio, { httpMetadata: { contentType: mimeType } });
-    await env.DB.prepare(`
-      INSERT INTO generations
-        (id, user_id, voice_id, provider_voice_id, voice_name, script,
-         speed, stability, style, format, mime_type, status, r2_key,
-         size_bytes, credits_charged, credit_reference_id, take_number,
-         created_at, completed_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ready', ?, ?, ?, ?, 1,
-              strftime('%Y-%m-%dT%H:%M:%fZ','now'), strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-    `).bind(generationId, userId, voiceId || providerVoiceId, providerVoiceId, voiceName, text, body?.speed ?? null, body?.stability ?? null, body?.style ?? null, format, mimeType, r2Key, audio.length, cost, referenceId).run();
-    return json({ ok: true, generationId, status: "ready", r2Key, creditsCharged: cost, svaraflow: translated.metadata }, 200);
-  } catch (error) {
-    await refundCredits(userId, cost, referenceId, env);
-    return json({ error: String(error?.message || "Generation failed").slice(0, 300) }, 502);
-  }
-}
-
-async function handleVoiceMedia(request, env, userId) {
-  if (!env.DB || !env.GENERATED_AUDIO) return new Response("Not found", { status: 404 });
-  const filename = new URL(request.url).searchParams.get("filename") || "";
-  if (!filename) return new Response("Not found", { status: 404 });
-  const row = await env.DB.prepare(`SELECT id, user_id, r2_key, mime_type FROM generations WHERE user_id = ? AND r2_key LIKE ? ORDER BY created_at DESC LIMIT 1`).bind(userId, `%/${filename}`).first();
-  if (!row?.r2_key) return new Response("Not found", { status: 404 });
-  const object = await env.GENERATED_AUDIO.get(row.r2_key);
-  if (!object) return new Response("Not found", { status: 404 });
-  return new Response(object.body, { headers: { "content-type": row.mime_type || "audio/mpeg", "cache-control": "private, no-store" } });
-}
-
-async function handlePricing(request, env) {
-  return json(pricing(env), 200, request);
 }
 
 export default {
   async fetch(request, env, ctx) {
+    const authResponse = await handleAuth(request, env);
+    if (authResponse) return authResponse;
+
+    const payfastResponse = await handlePayfast(request, env);
+    if (payfastResponse) return payfastResponse;
+
     const url = new URL(request.url);
-    if (request.method === "OPTIONS") return new Response(null, { status: 204 });
 
-    if (url.pathname === "/api/sound/generate") {
-      return handleSoundGenerate(request, env, ctx);
+    if (request.method === "GET" && url.pathname === "/api/branding/svaraone-logo.png") {
+      const logo = await storedBrandLogo(env);
+      if (logo) return logo;
+      return new Response("Not found", { status: 404 });
     }
 
-    const userId = await authenticatedUserId(request, env);
-
-    if (url.pathname === "/api/pricing" && request.method === "GET") return handlePricing(request, env);
-
-    if (url.pathname === "/api/generations/media" && request.method === "GET") {
-      if (!userId) return new Response("Unauthorized", { status: 401 });
-      return handleVoiceMedia(request, env, userId);
+    if (request.method === "GET" && url.pathname === "/api/branding/hero-bg.png") {
+      const heroBackground = await storedHeroBackground(env);
+      if (heroBackground) return heroBackground;
+      return new Response("Not found", { status: 404 });
     }
 
-    if (url.pathname.startsWith("/api/sound/assets/") && request.method === "GET") {
-      if (!userId) return json({ error: "Unauthorized." }, 401);
+    if (request.method === "GET" && url.pathname.startsWith("/api/branding/studio-") && url.pathname.endsWith("-card.png")) {
+      const filename = url.pathname.split("/").pop() || "";
+      const allowed = new Set([
+        "studio-voice-card.png",
+        "studio-sound-card.png",
+        "studio-video-card.png",
+        "studio-compose-card.png"
+      ]);
+      if (allowed.has(filename) && env.VOICE_SAMPLES) {
+        const object = await env.VOICE_SAMPLES.get(`branding/${filename}`);
+        if (object) {
+          return new Response(object.body, {
+            headers: {
+              "content-type": "image/png",
+              "cache-control": "public, max-age=31536000, immutable",
+              "etag": object.httpEtag || ""
+            }
+          });
+        }
+      }
+      return new Response("Not found", { status: 404 });
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/pricing") {
+      return new Response(JSON.stringify(pricing(env)), {
+        headers: {
+          "content-type": "application/json; charset=utf-8",
+          "cache-control": "no-store"
+        }
+      });
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/voice-access") {
+      try {
+        return json(await voiceAccess(request, env));
+      } catch (error) {
+        console.error("voice_access_error", error);
+        return json({ fullCatalogue: false, voiceIds: [], error: "Voice access service unavailable." }, 503);
+      }
+    }
+
+    if (request.method === "GET" && url.pathname.startsWith("/api/voice-portraits/")) {
+      const code = url.pathname.split("/").pop();
+      const portrait = await storedPortrait(env, code);
+      if (portrait) return portrait;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/sound/capabilities") {
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return json({ error: "Authentication required." }, 401);
+      const { handleSoundCapabilities } = await import("./sound-capabilities.js");
+      return handleSoundCapabilities(request, env);
+    }
+
+    if (request.method === "GET" && url.pathname.startsWith("/api/sound/assets/") && url.pathname.split("/").length === 5) {
       const generationId = decodeURIComponent(url.pathname.split("/").pop() || "");
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return json({ error: "Authentication required." }, 401);
       return storedSoundAsset(request, env, userId, generationId);
     }
 
-    if (url.pathname === "/api/voice/generate" && request.method === "POST") {
-      if (!userId) return json({ error: "Unauthorized." }, 401);
-      let body;
-      try { body = await request.json(); } catch { return json({ error: "Invalid JSON." }, 400); }
-      if (body?.freeTake) return handleFreeTake(request, env, ctx, body, userId);
-      return handleVoiceGeneration(request, env, ctx, body, userId);
+    if (request.method === "POST" && url.pathname === "/api/sound/generate") {
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return json({ error: "Authentication required." }, 401);
+      return handleSoundGenerate(request, env, userId);
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/voice/generate") {
+      const body = await request.clone().json().catch(() => ({}));
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return new Response(JSON.stringify({ error: "Authentication required." }), { status: 401, headers: { "content-type": "application/json" } });
+      if (!env.DB) return new Response(JSON.stringify({ error: "Account service is not configured." }), { status: 503, headers: { "content-type": "application/json" } });
+      if (!env.GENERATED_AUDIO) return new Response(JSON.stringify({ error: "Generation storage is not configured." }), { status: 503, headers: { "content-type": "application/json" } });
+
+      if (request.headers.get("X-SvaraONE-Free-Take") === "true") {
+        return handleFreeTake(request, env, ctx, body, userId);
+      }
+
+      const text = String(body.text || "").trim();
+      if (!text) return new Response(JSON.stringify({ error: "Text is required" }), { status: 400, headers: { "content-type": "application/json" } });
+      if (text.length > MAX_GENERATION_CHARS) return new Response(JSON.stringify({ error: `Maximum ${MAX_GENERATION_CHARS} characters per generation` }), { status: 400, headers: { "content-type": "application/json" } });
+
+      const access = await voiceAccess(request, env);
+      const providerVoiceId = await resolveProviderVoiceId(body, env);
+      if (!providerVoiceId) return new Response(JSON.stringify({ error: "Voice not found." }), { status: 404, headers: { "content-type": "application/json" } });
+      if (!access.fullCatalogue && !access.voiceIds.includes(providerVoiceId)) {
+        return new Response(JSON.stringify({ error: "That voice is not available on your current plan." }), { status: 403, headers: { "content-type": "application/json" } });
+      }
+
+      let generationText = text;
+      let svaraFlowMetadata = null;
+      if (body.svaraFlow === true) {
+        try {
+          const deliveryPlan = await processSvaraFlow(text, env);
+          const translated = translateSvaraFlowPlan(text, deliveryPlan, env);
+          generationText = translated.preparedScript;
+          svaraFlowMetadata = translated.metadata;
+        } catch (svaraFlowError) {
+          console.error("svaraflow_error", svaraFlowError);
+          generationText = text;
+        }
+      }
+
+      const cost = generationCost(generationText, env);
+      const generationId = crypto.randomUUID();
+      const reservation = await reserveCredits(userId, cost, env, generationId);
+      if (!reservation) return new Response(JSON.stringify({ error: "Not enough credits." }), { status: 402, headers: { "content-type": "application/json" } });
+
+      const format = String(body.format || "mp3").toLowerCase();
+      try {
+        const generation = await createGeneration(env, {
+          id: generationId,
+          userId,
+          voiceId: body.voiceId || providerVoiceId,
+          providerVoiceId,
+          voiceName: body.voiceName || providerVoiceId,
+          script: text,
+          speed: Number(body.speed) || 1,
+          stability: Number.isFinite(Number(body.stability)) ? Number(body.stability) : 50,
+          style: body.style || "",
+          format,
+          creditsCharged: cost,
+          creditReferenceId: reservation.referenceId
+        });
+
+        const providerRequest = generationText === text
+          ? request
+          : new Request(request.url, {
+              method: request.method,
+              headers: new Headers(request.headers),
+              body: JSON.stringify({ ...body, text: generationText })
+            });
+        const response = await app.fetch(providerRequest, env, ctx);
+        if (!response.ok) {
+          await markGenerationFailed(env, generation.id, "failed");
+          await refundCredits(userId, cost, reservation.referenceId, env);
+          return response;
+        }
+
+        if (!response.body) throw new Error("Generated audio response had no body");
+
+        const audioBytes = await response.arrayBuffer();
+        if (!audioBytes.byteLength) throw new Error("Generated audio response was empty");
+
+        const storedObject = await env.GENERATED_AUDIO.put(generation.r2Key, audioBytes, {
+          httpMetadata: {
+            contentType: mimeTypeForFormat(format),
+            cacheControl: "private, no-store"
+          },
+          customMetadata: {
+            generationId,
+            userId,
+            voiceId: String(body.voiceId || providerVoiceId),
+            providerVoiceId,
+            format
+          }
+        });
+
+        if (!storedObject) throw new Error("R2 did not confirm the generated audio upload");
+        await markGenerationReady(env, generation.id, storedObject, audioBytes.byteLength);
+
+        const headers = new Headers(response.headers);
+        headers.set("X-SvaraONE-Credits-Remaining", String(reservation.balance));
+        headers.set("X-SvaraONE-Generation-ID", generation.id);
+        return new Response(audioBytes, { status: response.status, statusText: response.statusText, headers });
+      } catch (error) {
+        try { await markGenerationFailed(env, generationId, "storage_failed"); } catch (markError) { console.error("generation_failure_mark_error", markError); }
+        await refundCredits(userId, cost, reservation.referenceId, env);
+        console.error("generation_persistence_error", error);
+        return new Response(JSON.stringify({ error: "Voice generation could not be saved. Your credits were refunded." }), {
+          status: 502,
+          headers: { "content-type": "application/json", "cache-control": "no-store" }
+        });
+      }
     }
 
     return app.fetch(request, env, ctx);
+  },
+
+  async scheduled(controller, env, ctx) {
+    ctx.waitUntil(runBillingCron(env));
+    ctx.waitUntil((async()=>{
+      try {
+        await syncVoiceRegistry(env);
+        await seedMissingVoiceSamples(env, 3);
+      } catch (error) {
+        console.error("voice_registry_sync_error", error);
+      }
+    })());
+    ctx.waitUntil((async()=>{
+      try {
+        const result = await cleanupExpiredGenerations(env, 100);
+        if (result.deleted) console.log("generation_cleanup", result);
+      } catch (error) {
+        console.error("generation_cleanup_cron_error", error);
+      }
+    })());
+    ctx.waitUntil((async()=>{
+      try {
+        const result = await ensureSoundProviderCapabilities(env);
+        if (result.status !== "cached") console.log("sound_capability_maintenance", result);
+      } catch (error) {
+        console.error("sound_capability_cron_error", error);
+      }
+    })());
   }
 };
