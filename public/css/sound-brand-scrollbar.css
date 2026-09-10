@@ -4,3 +4,10 @@
 .sound-prompt textarea::-webkit-scrollbar-thumb{border:2px solid #080e1a;border-radius:999px;background:linear-gradient(180deg,#c06cff 0%,#8b5cf6 48%,#4e7cff 100%);box-shadow:0 0 12px #9b5cff35}
 .sound-prompt textarea::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#d78cff 0%,#a56cff 48%,#6590ff 100%);box-shadow:0 0 16px #9b5cff55}
 .sound-prompt textarea::-webkit-scrollbar-corner{background:#080e1a}
+
+.sound-advanced-item select{width:100%;margin-top:8px;appearance:none;-webkit-appearance:none;border:1px solid #a85cff35;border-radius:9px;background-color:#0b1524;background-image:linear-gradient(45deg,transparent 50%,#b568ff 50%),linear-gradient(135deg,#b568ff 50%,transparent 50%);background-position:calc(100% - 15px) 50%,calc(100% - 11px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat;color:#dbe7f3;padding:9px 32px 9px 10px;font:600 10px Inter,system-ui,sans-serif;line-height:1.2;outline:none;cursor:pointer;transition:border-color .16s ease,box-shadow .16s ease,background-color .16s ease}
+.sound-advanced-item select:hover{border-color:#a85cff66;background-color:#0e192b}
+.sound-advanced-item select:focus{border-color:#b568ff88;box-shadow:0 0 0 3px #a85cff14}
+.sound-advanced-item select option{background:#0b1524;color:#dbe7f3}
+
+.sound-action{font-size:10px}
