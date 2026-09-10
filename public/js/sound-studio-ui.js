@@ -51,7 +51,10 @@
     });
   };
 
-  const removeMockNote=()=>workspace()?.querySelector('.sound-generation-note')?.remove();
+  const removeMockNote=()=>{
+    const note=workspace()?.querySelector('.sound-generation-note');
+    if(note&&note.textContent.trim()==='Mockup only — generation is not connected to a provider yet.')note.remove();
+  };
 
   const bindVolume=()=>{
     const root=workspace();
