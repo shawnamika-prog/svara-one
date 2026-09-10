@@ -151,7 +151,7 @@ function serviceForRequest(request) {
     if (["music", "soundtrack", "jingle", "loop"].includes(type)) return "video_to_music";
   }
 
-  if (sourceType === "text") {
+  if (sourceType === "text" || sourceType === "voice") {
     if (["sfx", "ambience"].includes(type)) return "text_to_sfx";
     if (["music", "soundtrack", "jingle", "loop"].includes(type)) return "text_to_music";
   }
@@ -179,12 +179,15 @@ function normalizeTaskStatus(value) {
   }
 }
 
-function buildSoniloPrompt(prompt, parameters) {
+function buildSoniloPrompt(prompt, parameters, existingVoice) {
   const direction = soundParametersForPrompt(parameters);
-  if (!direction) return prompt;
-  const combined = `${prompt}\nCreative direction: ${direction}`;
+  const voiceScript = String(existingVoice?.script || "").trim();
+  const parts = [prompt];
+  if (voiceScript) parts.push(`Voice content: ${voiceScript}`);
+  if (direction) parts.push(`Creative direction: ${direction}`);
+  const combined = parts.join("\n");
   if (combined.length > 2000) {
-    throw new Error("Sound prompt and creative parameters exceed Sonilo's 2000 character limit");
+    throw new Error("Sound prompt, Voice content and creative parameters exceed Sonilo's 2000 character limit");
   }
   return combined;
 }
@@ -246,7 +249,7 @@ export class SoniloProvider extends SoundProvider {
 
     const format = formatForRequest(request?.format);
     const service = serviceForRequest(request);
-    const soniloPrompt = buildSoniloPrompt(prompt, request?.parameters || null);
+    const soniloPrompt = buildSoniloPrompt(prompt, request?.parameters || null, request?.existingVoice || null);
     const form = new FormData();
     form.set("prompt", soniloPrompt);
     form.set("duration", String(duration));
