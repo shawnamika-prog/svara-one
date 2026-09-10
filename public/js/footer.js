@@ -23,13 +23,18 @@
     playerScript.defer = false;
     document.head.appendChild(playerScript);
 
+    const voiceInputScript = document.createElement('script');
+    voiceInputScript.src = 'js/sound-voice-input.js';
+    voiceInputScript.defer = false;
+    document.head.appendChild(voiceInputScript);
+
     document.addEventListener('click', event => {
       const link = event.target.closest('aside a[href]');
       if (!link) return;
       const href = link.getAttribute('href') || '';
       if (href === '#sound') return;
-      const audio = document.querySelector('audio[aria-hidden="true"][preload="metadata"]');
-      if (audio && !audio.paused) audio.pause();
+      const audio = document.querySelectorAll('audio[aria-hidden="true"][preload="metadata"]');
+      audio.forEach(player => { if (!player.paused) player.pause(); });
     }, true);
   }
 
