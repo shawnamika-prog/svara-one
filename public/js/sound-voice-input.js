@@ -22,22 +22,23 @@
       .sound-source-tabs{display:flex;gap:6px;margin-bottom:9px}.sound-source-tab{flex:1;border:1px solid #ffffff0d;border-radius:8px;background:#07101b;color:#8092a7;padding:8px;font:700 9px Inter;cursor:pointer}.sound-source-tab.active{color:#e0bdff;background:#28163d;border-color:#a85cff66}
       .sound-source-select{width:100%;border:1px solid #ffffff0d;border-radius:9px;background:#0b1524;color:#dbe7f3;padding:9px;font:600 10px Inter;outline:none}.sound-source-select:focus{border-color:#a75cff77}
       .sound-source-detail{display:none;margin-top:8px;padding:9px;border-radius:9px;background:#060b14;border:1px solid #ffffff0a}.sound-source-detail.show{display:block}.sound-source-detail strong{display:block;color:#cbd8e5;font-size:10px}.sound-source-detail small{display:block;margin-top:3px;color:#62758c;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-      .sound-source-output{margin-bottom:14px;padding:13px;border:1px solid #a85cff2e;border-radius:14px;background:linear-gradient(145deg,#111326,#0b1120);box-shadow:inset 0 0 26px #9c5cff08}.sound-source-output[hidden]{display:none}.sound-source-output-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}.sound-source-output-head strong{font-size:11px}.sound-source-output-head span{font-size:8px;color:#8f6bb5}.sound-source-wave{height:82px;border:1px solid #ffffff0a;border-radius:10px;background:#060a14;overflow:hidden}.sound-source-wave canvas{display:block;width:100%;height:100%}.sound-source-player{display:flex;align-items:center;gap:10px;margin-top:10px}.sound-source-play{width:35px;height:35px;flex:none;border:0;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#6975ff,#bd59ff);color:#fff;cursor:pointer}.sound-source-play span{width:0;height:0;border-top:5px solid transparent;border-bottom:5px solid transparent;border-left:8px solid #fff;margin-left:2px}.sound-source-time{display:flex;justify-content:space-between;gap:8px;flex:1;color:#71839a;font-size:8px}.sound-source-time strong{color:#c4d1de;font-size:9px}.sound-source-volume{display:flex;align-items:center;gap:5px;color:#667990;font-size:7px}.sound-source-volume input{width:70px}
+      .sound-source-output{margin-bottom:14px;padding:13px;border:1px solid #a85cff2e;border-radius:14px;background:linear-gradient(145deg,#111326,#0b1120);box-shadow:inset 0 0 26px #9c5cff08}.sound-source-output[hidden]{display:none}.sound-source-output-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}.sound-source-output-head strong{font-size:11px}.sound-source-output-head span{font-size:8px;color:#8f6bb5}.sound-source-wave{height:82px;border:1px solid #ffffff0a;border-radius:10px;background:#060a14;overflow:hidden}.sound-source-wave canvas{display:block;width:100%;height:100%}.sound-source-player{display:flex;align-items:center;gap:10px;margin-top:10px}.sound-source-play{width:35px;height:35px;flex:none;border:0;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#6975ff,#bd59ff);color:#fff;cursor:pointer}.sound-source-play span{width:0;height:0;border-top:5px solid transparent;border-bottom:5px solid transparent;border-left:8px solid #fff;margin-left:2px}.sound-source-play:disabled{opacity:.5;cursor:wait}.sound-source-time{display:flex;justify-content:space-between;gap:8px;flex:1;color:#71839a;font-size:8px}.sound-source-time strong{color:#c4d1de;font-size:9px}.sound-source-volume{display:flex;align-items:center;gap:5px;color:#667990;font-size:7px}.sound-source-volume input{width:70px}
     `;
     document.head.appendChild(css);
   }
 
   function root(){return document.getElementById('soundWorkspace')}
   function outputBody(){return root()?.querySelector('.sound-output-body')}
-  function prompt(){return root()?.querySelector('#soundPrompt')}
 
   function setInput(){
     const api=state();if(!api)return;
-    if(selected){
-      api.setInput({sourceType:'voice',sourceAssetId:selected.id});
-    }else{
-      api.setInput({sourceType:null,sourceAssetId:null});
-    }
+    if(selected)api.setInput({sourceType:'voice',sourceAssetId:selected.id});
+    else api.setInput({sourceType:null,sourceAssetId:null});
+  }
+
+  function voiceAssetUrl(){
+    if(!selected?.filename)return '';
+    return `/api/generations/media?filename=${encodeURIComponent(selected.filename)}`;
   }
 
   function drawSource(){
@@ -68,10 +69,28 @@
     if(now)now.textContent=time(sourceAudio?.currentTime);if(dur)dur.textContent=time(sourceAudio?.duration);drawSource();
   }
 
+  function showSourceError(){
+    const box=outputBody()?.querySelector('.sound-source-output');
+    const play=box?.querySelector('.sound-source-play');
+    if(play){play.disabled=false;play.innerHTML='<span></span>';}
+    console.warn('svara_sound_voice_preview_error');
+  }
+
   function wireSourceAudio(){
     if(!selected)return;
-    if(sourceAudio){sourceAudio.pause();sourceAudio.src='';}
-    sourceAudio=new Audio(`/api/sound/assets/${encodeURIComponent(selected.id)}`);sourceAudio.preload='metadata';sourceAudio.volume=1;sourceAudio.setAttribute('aria-hidden','true');sourceAudio.addEventListener('loadedmetadata',updateSourceTransport);sourceAudio.addEventListener('timeupdate',updateSourceTransport);sourceAudio.addEventListener('play',()=>{const b=outputBody()?.querySelector('.sound-source-play');if(b)b.innerHTML='<span style="width:7px;height:11px;border:0;border-left:3px solid #fff;border-right:3px solid #fff"></span>';if(!sourceAnimation)sourceAnimation=requestAnimationFrame(visualise)});sourceAudio.addEventListener('pause',()=>{const b=outputBody()?.querySelector('.sound-source-play');if(b)b.innerHTML='<span></span>';if(sourceAnimation){cancelAnimationFrame(sourceAnimation);sourceAnimation=0}drawSource()});sourceAudio.addEventListener('ended',()=>{sourceAudio.currentTime=0;updateSourceTransport()});sourceAudio.addEventListener('error',()=>console.warn('svara_sound_voice_preview_error'));
+    if(sourceAudio){sourceAudio.pause();sourceAudio.remove();sourceAudio=null;}
+    const url=voiceAssetUrl();
+    if(!url){showSourceError();return}
+    sourceAudio=new Audio(url);
+    sourceAudio.preload='metadata';
+    sourceAudio.volume=1;
+    sourceAudio.setAttribute('aria-hidden','true');
+    sourceAudio.addEventListener('loadedmetadata',updateSourceTransport);
+    sourceAudio.addEventListener('timeupdate',updateSourceTransport);
+    sourceAudio.addEventListener('play',()=>{const b=outputBody()?.querySelector('.sound-source-play');if(b)b.innerHTML='<span style="width:7px;height:11px;border:0;border-left:3px solid #fff;border-right:3px solid #fff"></span>';if(!sourceAnimation)sourceAnimation=requestAnimationFrame(visualise)});
+    sourceAudio.addEventListener('pause',()=>{const b=outputBody()?.querySelector('.sound-source-play');if(b)b.innerHTML='<span></span>';if(sourceAnimation){cancelAnimationFrame(sourceAnimation);sourceAnimation=0}drawSource()});
+    sourceAudio.addEventListener('ended',()=>{sourceAudio.currentTime=0;updateSourceTransport()});
+    sourceAudio.addEventListener('error',showSourceError);
     document.body.appendChild(sourceAudio);
   }
 
@@ -83,7 +102,7 @@
     box.innerHTML=`<div class="sound-source-output-head"><strong>Existing Voice</strong><span>${esc(selected.voiceName||'Voice')} · ${time(selected.durationSeconds)}</span></div><div class="sound-source-wave"><canvas></canvas></div><div class="sound-source-player"><button type="button" class="sound-source-play" aria-label="Play Existing Voice"><span></span></button><div class="sound-source-time"><strong class="sound-source-now">0:00</strong><span class="sound-source-duration">${time(selected.durationSeconds)}</span></div><label class="sound-source-volume">VOL <input type="range" min="0" max="100" value="100" aria-label="Existing Voice volume"></label></div>`;
     sourceCanvas=box.querySelector('canvas');
     const play=box.querySelector('.sound-source-play');
-    play.addEventListener('click',async()=>{try{if(sourceAudio?.paused)await sourceAudio.play();else sourceAudio?.pause()}catch(error){console.warn('svara_sound_voice_play_error',error)}});
+    play.addEventListener('click',async()=>{try{if(!sourceAudio)wireSourceAudio();if(sourceAudio?.paused)await sourceAudio.play();else sourceAudio?.pause()}catch(error){console.warn('svara_sound_voice_play_error',error)}});
     box.querySelector('.sound-source-volume')?.querySelector('input')?.addEventListener('input',event=>{if(sourceAudio)sourceAudio.volume=Number(event.target.value)/100});
     drawSource();wireSourceAudio();
   }
@@ -118,7 +137,7 @@
     loadVoices(select);
   }
 
-  function cleanup(){if(!sourceAudio)return;sourceAudio.pause();sourceAudio.src='';sourceAudio.remove();sourceAudio=null;if(sourceAnimation){cancelAnimationFrame(sourceAnimation);sourceAnimation=0}}
+  function cleanup(){if(!sourceAudio)return;sourceAudio.pause();sourceAudio.remove();sourceAudio=null;if(sourceAnimation){cancelAnimationFrame(sourceAnimation);sourceAnimation=0}}
 
   window.addEventListener('svara:sound-state-change',event=>{const s=event.detail;if(s?.input?.sourceType!=='voice'&&selected){selected=null;renderSourceOutput()}});
   window.SvaraSoundVoiceInput={bind,cleanup};
