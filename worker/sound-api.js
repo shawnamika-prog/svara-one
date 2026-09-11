@@ -2,6 +2,7 @@ import { createSoundGeneration, getSoundGeneration, markSoundGenerationFailed, m
 import { getSoundProvider } from "./providers/sound/index.js";
 import { reserveSoundCredits, refundSoundCredits, soundCreditCost } from "./sound-credits.js";
 import { getCachedSoundCapabilities } from "./sound-capabilities.js";
+import { normalizeSoundParameters } from "./sound-parameters.js";
 import { processSvaraFlowSound } from "./svaraflow-sound.js";
 
 const MAX_PROMPT_CHARS = 2000;
@@ -76,14 +77,24 @@ export async function handleSoundGenerate(request, env, userId) {
   if (!body || typeof body !== "object") return json({ error: "Invalid JSON request body." }, 400);
   if (body.svaraflowOnly === true) {
     try {
-      const existingSource = body.existingSource && typeof body.existingSource === "object" ? body.existingSource : null;
+      let type; let format; let durationSeconds; let sourceType; let sourceAssetId;
+      try { type = normalizeType(body.type); format = normalizeFormat(body.format); durationSeconds = normalizeOptionalNumber(body.durationSeconds, "durationSeconds"); } catch (error) { return json({ svaraflow: "sound", status: "failed", error: String(error?.message || error) }, 400); }
+      if (durationSeconds === null || durationSeconds <= 0) return json({ svaraflow: "sound", status: "failed", error: "A positive durationSeconds value is required for SvaraFlow Sound analysis." }, 400);
+      sourceType = String(body.sourceType ?? "text").trim().toLowerCase();
+      sourceAssetId = String(body.sourceAssetId ?? "").trim();
+      if (!SOUND_SOURCE_TYPES.has(sourceType)) return json({ svaraflow: "sound", status: "failed", error: "Invalid Sound source type." }, 400);
+      let existingSource = null;
+      if (sourceType === "voice") {
+        existingSource = await resolveExistingVoiceInput(env, userId, sourceAssetId);
+      }
+      const parameters = normalizeSoundParameters(body.parameters ?? null, { durationSeconds });
       const specification = await processSvaraFlowSound({
         prompt: body.prompt,
-        type: body.type,
+        type,
         existingSource,
-        parameters: body.parameters,
-        durationSeconds: body.durationSeconds,
-        format: body.format
+        parameters,
+        durationSeconds,
+        format
       }, env);
       return json({ svaraflow: "sound", status: "analyzed", specification }, 200);
     } catch (error) {
