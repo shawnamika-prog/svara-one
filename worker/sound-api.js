@@ -4,6 +4,7 @@ import { reserveSoundCredits, refundSoundCredits, soundCreditCost } from "./soun
 import { getCachedSoundCapabilities } from "./sound-capabilities.js";
 import { normalizeSoundParameters } from "./sound-parameters.js";
 import { processSvaraFlowSound } from "./svaraflow-sound.js";
+import { refineSvaraFlowSound } from "./svaraflow-sound-refinement.js";
 
 const MAX_PROMPT_CHARS = 2000;
 const SOUND_TYPES = new Set(["music", "soundtrack", "sfx", "ambience", "jingle", "loop"]);
