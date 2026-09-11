@@ -4,6 +4,12 @@ function configuredRate(env) {
   return rate;
 }
 
+function configuredCreditFactor(env) {
+  const factor = Number(env.SVARAONE_CREDIT_FACTOR);
+  if (!Number.isFinite(factor) || factor <= 0) return null;
+  return factor;
+}
+
 export function soundCreditCost(env, durationSeconds) {
   const duration = Number(durationSeconds);
   if (!Number.isFinite(duration) || duration <= 0) return null;
@@ -11,7 +17,10 @@ export function soundCreditCost(env, durationSeconds) {
   const rate = configuredRate(env);
   if (rate === null) return null;
 
-  return Math.max(1, Math.ceil(duration * rate));
+  const factor = configuredCreditFactor(env);
+  if (factor === null) return null;
+
+  return Math.max(1, Math.ceil(duration * rate * factor));
 }
 
 export async function reserveSoundCredits(userId, cost, env, referenceId = crypto.randomUUID()) {
