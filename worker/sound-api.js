@@ -76,6 +76,39 @@ export async function handleSoundGenerate(request, env, userId) {
   if (!env.DB) return json({ error: "Sound generation storage is not configured." }, 503);
   const body = await request.clone().json().catch(() => null);
   if (!body || typeof body !== "object") return json({ error: "Invalid JSON request body." }, 400);
+  if (body.svaraflowAction === "refine") {
+    try {
+      const feedback = String(body.feedback ?? "").trim();
+      if (!feedback) return json({ svaraflow: "sound", status: "failed", error: "Creator feedback is required for refinement." }, 400);
+      if (feedback.length > MAX_PROMPT_CHARS) return json({ svaraflow: "sound", status: "failed", error: `Maximum ${MAX_PROMPT_CHARS} characters per refinement request.` }, 400);
+      let type; let format; let durationSeconds;
+      try { type = normalizeType(body.type); format = normalizeFormat(body.format); durationSeconds = normalizeOptionalNumber(body.durationSeconds, "durationSeconds"); } catch (error) { return json({ svaraflow: "sound", status: "failed", error: String(error?.message || error) }, 400); }
+      if (durationSeconds === null || durationSeconds <= 0) return json({ svaraflow: "sound", status: "failed", error: "A positive durationSeconds value is required for SvaraFlow Sound refinement." }, 400);
+      const sourceType = String(body.sourceType ?? "text").trim().toLowerCase();
+      const sourceAssetId = String(body.sourceAssetId ?? "").trim();
+      if (!SOUND_SOURCE_TYPES.has(sourceType)) return json({ svaraflow: "sound", status: "failed", error: "Invalid Sound source type." }, 400);
+      let existingSource = null;
+      if (sourceType === "voice") existingSource = await resolveExistingVoiceInput(env, userId, sourceAssetId);
+      const parameters = normalizeSoundParameters(body.parameters ?? null, { durationSeconds });
+      const specification = await refineSvaraFlowSound({
+        feedback,
+        currentSpecification: body.currentSpecification,
+        originalContext: {
+          prompt: body.prompt,
+          type,
+          parameters,
+          constraints: { durationSeconds, format },
+          sourceType: existingSource?.inputType || sourceType,
+          sourceAssetId: existingSource?.assetId || sourceAssetId || null,
+          sourceScript: existingSource?.script || null
+        }
+      }, env);
+      return json({ svaraflow: "sound", status: "refined", specification }, 200);
+    } catch (error) {
+      console.error("svaraflow_sound_refinement_error", error);
+      return json({ svaraflow: "sound", status: "failed", error: String(error?.message || "SvaraFlow Sound refinement failed").slice(0, 300) }, 502);
+    }
+  }
   if (body.svaraflowOnly === true) {
     try {
       let type; let format; let durationSeconds; let sourceType; let sourceAssetId;
