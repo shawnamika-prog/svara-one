@@ -2,6 +2,7 @@ import { createSoundGeneration, getSoundGeneration, markSoundGenerationFailed, m
 import { getSoundProvider } from "./providers/sound/index.js";
 import { reserveSoundCredits, refundSoundCredits, soundCreditCost } from "./sound-credits.js";
 import { getCachedSoundCapabilities } from "./sound-capabilities.js";
+import { processSvaraFlowSound } from "./svaraflow-sound.js";
 
 const MAX_PROMPT_CHARS = 2000;
 const SOUND_TYPES = new Set(["music", "soundtrack", "sfx", "ambience", "jingle", "loop"]);
@@ -73,6 +74,23 @@ export async function handleSoundGenerate(request, env, userId) {
   if (!env.DB) return json({ error: "Sound generation storage is not configured." }, 503);
   const body = await request.clone().json().catch(() => null);
   if (!body || typeof body !== "object") return json({ error: "Invalid JSON request body." }, 400);
+  if (body.svaraflowOnly === true) {
+    try {
+      const existingSource = body.existingSource && typeof body.existingSource === "object" ? body.existingSource : null;
+      const specification = await processSvaraFlowSound({
+        prompt: body.prompt,
+        type: body.type,
+        existingSource,
+        parameters: body.parameters,
+        durationSeconds: body.durationSeconds,
+        format: body.format
+      }, env);
+      return json({ svaraflow: "sound", status: "analyzed", specification }, 200);
+    } catch (error) {
+      console.error("svaraflow_sound_analysis_error", error);
+      return json({ svaraflow: "sound", status: "failed", error: String(error?.message || "SvaraFlow Sound analysis failed").slice(0, 300) }, 502);
+    }
+  }
   if (body.resultOnly === true) return handleSoundResult(env, userId, body);
   if (body.capabilitiesOnly === true) { const provider = String(body.provider || env.SVARAONE_SOUND_PROVIDER || "").trim().toLowerCase(); if (!provider) return json({ error: "Sound provider is not configured." }, 503); const cached = await getCachedSoundCapabilities(env, provider); if (!cached) return json({ error: "Sound provider capabilities are not available." }, 503); return json({ provider: cached.provider, providerVersion: cached.provider_version, status: cached.status, lastVerifiedAt: cached.last_verified_at, capabilities: cached.capabilities }); }
   if (!env.GENERATED_AUDIO) return json({ error: "Sound generation storage is not configured." }, 503);
