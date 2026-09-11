@@ -3,7 +3,7 @@ import { getSoundProvider } from "./providers/sound/index.js";
 import { reserveSoundCredits, refundSoundCredits, soundCreditCost } from "./sound-credits.js";
 import { getCachedSoundCapabilities } from "./sound-capabilities.js";
 import { normalizeSoundParameters } from "./sound-parameters.js";
-import { processSvaraFlowSound } from "./svaraflow-sound.js";
+import { processSvaraFlowSound, validateSoundSvaraFlowSpecification } from "./svaraflow-sound.js";
 import { refineSvaraFlowSound } from "./svaraflow-sound-refinement.js";
 
 const MAX_PROMPT_CHARS = 2000;
@@ -76,6 +76,27 @@ export async function handleSoundGenerate(request, env, userId) {
   if (!env.DB) return json({ error: "Sound generation storage is not configured." }, 503);
   const body = await request.clone().json().catch(() => null);
   if (!body || typeof body !== "object") return json({ error: "Invalid JSON request body." }, 400);
+  if (body.svaraflowAction === "approve") {
+    try {
+      const approval = body.approval === true;
+      if (!approval) return json({ svaraflow: "sound", status: "not_approved", error: "Explicit creator approval is required." }, 400);
+      let type; let format; let durationSeconds;
+      try { type = normalizeType(body.type); format = normalizeFormat(body.format); durationSeconds = normalizeOptionalNumber(body.durationSeconds, "durationSeconds"); } catch (error) { return json({ svaraflow: "sound", status: "failed", error: String(error?.message || error) }, 400); }
+      if (durationSeconds === null || durationSeconds <= 0) return json({ svaraflow: "sound", status: "failed", error: "A positive durationSeconds value is required for SvaraFlow Sound approval." }, 400);
+      const sourceType = String(body.sourceType ?? "text").trim().toLowerCase();
+      const sourceAssetId = String(body.sourceAssetId ?? "").trim();
+      if (!SOUND_SOURCE_TYPES.has(sourceType)) return json({ svaraflow: "sound", status: "failed", error: "Invalid Sound source type." }, 400);
+      let existingSource = null;
+      if (sourceType === "voice") existingSource = await resolveExistingVoiceInput(env, userId, sourceAssetId);
+      const parameters = normalizeSoundParameters(body.parameters ?? null, { durationSeconds });
+      const approvedSpecification = validateSoundSvaraFlowSpecification(body.currentSpecification, { sourceScript: existingSource?.script || null, sourceAssetId: existingSource?.assetId || sourceAssetId || null });
+      if (approvedSpecification.constraints.duration_seconds !== null && Number(approvedSpecification.constraints.duration_seconds) !== Number(durationSeconds)) throw new Error("Approved Sound specification duration does not match the generation duration");
+      return json({ svaraflow: "sound", status: "approved", approval: { approved: true, approvedAt: new Date().toISOString(), by: "creator" }, specification: approvedSpecification, context: { type, parameters, constraints: { durationSeconds, format }, source: existingSource ? { sourceType: existingSource.inputType, sourceAssetId: existingSource.assetId } : { sourceType, sourceAssetId: sourceAssetId || null } } }, 200);
+    } catch (error) {
+      console.error("svaraflow_sound_approval_error", error);
+      return json({ svaraflow: "sound", status: "failed", error: String(error?.message || "SvaraFlow Sound approval failed").slice(0, 300) }, 502);
+    }
+  }
   if (body.svaraflowAction === "refine") {
     try {
       const feedback = String(body.feedback ?? "").trim();
@@ -90,19 +111,7 @@ export async function handleSoundGenerate(request, env, userId) {
       let existingSource = null;
       if (sourceType === "voice") existingSource = await resolveExistingVoiceInput(env, userId, sourceAssetId);
       const parameters = normalizeSoundParameters(body.parameters ?? null, { durationSeconds });
-      const specification = await refineSvaraFlowSound({
-        feedback,
-        currentSpecification: body.currentSpecification,
-        originalContext: {
-          prompt: body.prompt,
-          type,
-          parameters,
-          constraints: { durationSeconds, format },
-          sourceType: existingSource?.inputType || sourceType,
-          sourceAssetId: existingSource?.assetId || sourceAssetId || null,
-          sourceScript: existingSource?.script || null
-        }
-      }, env);
+      const specification = await refineSvaraFlowSound({ feedback, currentSpecification: body.currentSpecification, originalContext: { prompt: body.prompt, type, parameters, constraints: { durationSeconds, format }, sourceType: existingSource?.inputType || sourceType, sourceAssetId: existingSource?.assetId || sourceAssetId || null, sourceScript: existingSource?.script || null } }, env);
       return json({ svaraflow: "sound", status: "refined", specification }, 200);
     } catch (error) {
       console.error("svaraflow_sound_refinement_error", error);
@@ -118,18 +127,9 @@ export async function handleSoundGenerate(request, env, userId) {
       sourceAssetId = String(body.sourceAssetId ?? "").trim();
       if (!SOUND_SOURCE_TYPES.has(sourceType)) return json({ svaraflow: "sound", status: "failed", error: "Invalid Sound source type." }, 400);
       let existingSource = null;
-      if (sourceType === "voice") {
-        existingSource = await resolveExistingVoiceInput(env, userId, sourceAssetId);
-      }
+      if (sourceType === "voice") existingSource = await resolveExistingVoiceInput(env, userId, sourceAssetId);
       const parameters = normalizeSoundParameters(body.parameters ?? null, { durationSeconds });
-      const specification = await processSvaraFlowSound({
-        prompt: body.prompt,
-        type,
-        existingSource,
-        parameters,
-        durationSeconds,
-        format
-      }, env);
+      const specification = await processSvaraFlowSound({ prompt: body.prompt, type, existingSource, parameters, durationSeconds, format }, env);
       return json({ svaraflow: "sound", status: "analyzed", specification }, 200);
     } catch (error) {
       console.error("svaraflow_sound_analysis_error", error);
