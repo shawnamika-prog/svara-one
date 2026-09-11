@@ -72,10 +72,106 @@ async function resolveExistingVoiceInput(env, userId, sourceAssetId) {
   return { id: String(voice.id), inputType: "voice", assetId: String(voice.id), script: String(voice.script).trim(), r2Key: String(voice.r2_key), format: String(voice.format || "mp3"), mimeType: String(voice.mime_type || "audio/mpeg"), durationSeconds: null, sizeBytes: Number.isFinite(Number(voice.size_bytes)) ? Number(voice.size_bytes) : Number(object.size || 0), createdAt: voice.created_at, completedAt: voice.completed_at };
 }
 
+function svaraFlowCreativeDirection(specification) {
+  const creative = specification?.creative || {};
+  const dynamics = specification?.dynamics || {};
+  const voice = specification?.voice_relationship || {};
+  const constraints = specification?.constraints || {};
+  return [
+    `Role: ${specification.role}`,
+    `Intent: ${specification.intent}`,
+    creative.mood ? `Mood: ${creative.mood}` : null,
+    creative.style ? `Style: ${creative.style}` : null,
+    creative.energy ? `Energy: ${creative.energy}` : null,
+    creative.texture ? `Texture: ${creative.texture}` : null,
+    creative.tempo_bpm !== null && creative.tempo_bpm !== undefined ? `Tempo: ${creative.tempo_bpm} BPM` : null,
+    creative.intensity !== null && creative.intensity !== undefined ? `Intensity: ${creative.intensity}` : null,
+    creative.complexity !== null && creative.complexity !== undefined ? `Complexity: ${creative.complexity}` : null,
+    dynamics.opening ? `Opening: ${dynamics.opening}` : null,
+    dynamics.development ? `Development: ${dynamics.development}` : null,
+    dynamics.climax ? `Climax: ${dynamics.climax}` : null,
+    dynamics.ending ? `Ending: ${dynamics.ending}` : null,
+    voice.support_voice ? "Support the voiceover" : null,
+    voice.avoid_competition ? "Avoid competing with speech" : null,
+    specification.vocal_policy ? `Vocal policy: ${specification.vocal_policy}` : null,
+    constraints.language ? `Language: ${constraints.language}` : null,
+    constraints.negative_prompt ? `Avoid: ${constraints.negative_prompt}` : null
+  ].filter(Boolean).join("; ");
+}
+
+function buildApprovedSoundPrompt(originalPrompt, creativeDirection, existingSource) {
+  const parts = [String(originalPrompt || "").trim(), `Approved Creative Direction: ${creativeDirection}`];
+  const sourceScript = String(existingSource?.script || "").trim();
+  if (sourceScript) parts.push(`Voice content: ${sourceScript}`);
+  const combined = parts.filter(Boolean).join("\n");
+  if (combined.length > MAX_PROMPT_CHARS) throw new Error("Approved Sound direction and Voice content exceed the Sound prompt limit");
+  return combined;
+}
+
+async function executeApprovedSound(env, userId, body) {
+  if (body.approval !== true) return json({ svaraflow: "sound", status: "not_approved", error: "Explicit creator approval is required before execution." }, 400);
+  let type; let format; let durationSeconds;
+  try { type = normalizeType(body.type); format = normalizeFormat(body.format); durationSeconds = normalizeOptionalNumber(body.durationSeconds, "durationSeconds"); } catch (error) { return json({ svaraflow: "sound", status: "failed", error: String(error?.message || error) }, 400); }
+  if (durationSeconds === null || durationSeconds <= 0) return json({ svaraflow: "sound", status: "failed", error: "A positive durationSeconds value is required for Sound execution." }, 400);
+  const sourceType = String(body.sourceType ?? "text").trim().toLowerCase();
+  const sourceAssetId = String(body.sourceAssetId ?? "").trim();
+  if (!SOUND_SOURCE_TYPES.has(sourceType)) return json({ svaraflow: "sound", status: "failed", error: "Invalid Sound source type." }, 400);
+  let existingVoice = null;
+  if (sourceType === "voice") existingVoice = await resolveExistingVoiceInput(env, userId, sourceAssetId);
+  const parameters = normalizeSoundParameters(body.parameters ?? null, { durationSeconds });
+  const approvedSpecification = validateSoundSvaraFlowSpecification(body.currentSpecification, { sourceScript: existingVoice?.script || null, sourceAssetId: existingVoice?.assetId || sourceAssetId || null });
+  if (approvedSpecification.constraints.duration_seconds !== null && Number(approvedSpecification.constraints.duration_seconds) !== Number(durationSeconds)) throw new Error("Approved Sound specification duration does not match the generation duration");
+  const configuredProvider = String(env.SVARAONE_SOUND_PROVIDER || "").trim().toLowerCase();
+  if (!configuredProvider) return json({ svaraflow: "sound", status: "failed", error: "Sound provider is not configured." }, 503);
+  const creativeDirection = svaraFlowCreativeDirection(approvedSpecification);
+  const executionPrompt = buildApprovedSoundPrompt(body.prompt, creativeDirection, existingVoice);
+  const executionParameters = {
+    ...(parameters || {}),
+    customParameters: {
+      originalParameters: parameters?.customParameters ?? null,
+      svaraflow: {
+        version: approvedSpecification.version,
+        status: "approved",
+        approvedAt: new Date().toISOString(),
+        approvedBy: "creator",
+        specification: approvedSpecification,
+        creativeDirection
+      }
+    }
+  };
+  const generationId = crypto.randomUUID();
+  const cost = soundCreditCost(env, durationSeconds);
+  if (cost === null) return json({ svaraflow: "sound", status: "failed", error: "Sound credit pricing is not configured." }, 503);
+  const reservation = await reserveSoundCredits(userId, cost, env, generationId);
+  if (!reservation) return json({ svaraflow: "sound", status: "failed", error: "Not enough credits." }, 402);
+  const inputs = Array.isArray(body.inputs) ? [...body.inputs] : [{ inputType: "text", textContent: String(body.prompt || "").trim(), role: "prompt" }];
+  if (sourceType === "voice" && existingVoice) inputs.unshift({ inputType: "voice", assetId: existingVoice.assetId, textContent: existingVoice.script, role: "existing_voice" });
+  let generation;
+  try {
+    generation = await createSoundGeneration(env, { id: generationId, userId, provider: configuredProvider, type, prompt: executionPrompt, sourceType, sourceAssetId: sourceAssetId || null, durationSeconds, format, creditsCharged: reservation.cost, creditReferenceId: reservation.referenceId, inputs, parameters: executionParameters });
+  } catch (error) {
+    try { await refundSoundCredits(userId, reservation.cost, reservation.referenceId, env); } catch (refundError) { console.error("svaraflow_sound_execution_create_refund_error", refundError); }
+    console.error("svaraflow_sound_execution_create_error", error);
+    return json({ svaraflow: "sound", status: "failed", error: "Sound generation could not be created. Your credits were refunded." }, 500);
+  }
+  try {
+    const soundProvider = getSoundProvider(env, configuredProvider);
+    const result = await soundProvider.generate({ generationId, userId, type, prompt: executionPrompt, sourceType, sourceAssetId: sourceAssetId || null, durationSeconds, format, parameters: executionParameters, inputs, existingVoice, approvedSpecification, svaraflowCreativeDirection: creativeDirection });
+    if (result?.providerGenerationId) await setSoundGenerationProviderResult(env, generationId, result.providerGenerationId);
+    return json({ svaraflow: "sound", status: "execution_started", id: generation.id, provider: configuredProvider, creditsCharged: reservation.cost, creditsRemaining: reservation.balance, creativeDirection, specification: approvedSpecification, result: result ?? null }, 202);
+  } catch (error) {
+    try { await markSoundGenerationFailed(env, generationId, "failed"); } catch (markError) { console.error("svaraflow_sound_execution_failure_mark_error", markError); }
+    try { await refundSoundCredits(userId, reservation.cost, reservation.referenceId, env); } catch (refundError) { console.error("svaraflow_sound_execution_refund_error", refundError); }
+    console.error("svaraflow_sound_execution_error", error);
+    return json({ svaraflow: "sound", status: "failed", error: String(error?.message || "Sound generation failed").slice(0, 300), generationId, creditsRefunded: reservation.cost }, 502);
+  }
+}
+
 export async function handleSoundGenerate(request, env, userId) {
   if (!env.DB) return json({ error: "Sound generation storage is not configured." }, 503);
   const body = await request.clone().json().catch(() => null);
   if (!body || typeof body !== "object") return json({ error: "Invalid JSON request body." }, 400);
+  if (body.svaraflowAction === "execute") return executeApprovedSound(env, userId, body);
   if (body.svaraflowAction === "approve") {
     try {
       const approval = body.approval === true;
@@ -166,7 +262,7 @@ export async function handleSoundGenerate(request, env, userId) {
   catch (error) { try { await refundSoundCredits(userId, reservation.cost, reservation.referenceId, env); } catch (refundError) { console.error("sound_generation_create_refund_error", refundError); } console.error("sound_generation_create_error", error); return json({ error: "Sound generation could not be created. Your credits were refunded." }, 500); }
   try {
     const soundProvider = getSoundProvider(env, provider);
-    const result = await soundProvider.generate({ generationId, userId, type, prompt, sourceType, sourceAssetId: sourceAssetId || null, durationSeconds, sampleRate, channels, format, parameters: body.parameters ?? null, inputs });
+    const result = await soundProvider.generate({ generationId, userId, type, prompt, sourceType, sourceAssetId: sourceAssetId || null, durationSeconds, sampleRate, channels, format, parameters: body.parameters ?? null, inputs, existingVoice });
     if (result?.providerGenerationId) await setSoundGenerationProviderResult(env, generationId, result.providerGenerationId);
     return json({ id: generation.id, status: generation.status, provider, creditsCharged: reservation.cost, creditsRemaining: reservation.balance, result: result ?? null }, 202);
   } catch (error) {
