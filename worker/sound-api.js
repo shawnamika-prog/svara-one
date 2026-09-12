@@ -233,7 +233,7 @@ export async function handleSoundGenerate(request, env, userId) {
     }
   }
   if (body.resultOnly === true) return handleSoundResult(env, userId, body);
-  if (body.capabilitiesOnly === true) { const provider = String(body.provider || env.SVARAONE_SOUND_PROVIDER || "").trim().toLowerCase(); if (!provider) return json({ error: "Sound provider is not configured." }, 503); const cached = await getCachedSoundCapabilities(env, provider); if (!cached) return json({ error: "Sound provider capabilities are not available." }, 503); return json({ provider: cached.provider, providerVersion: cached.provider_version, status: cached.status, lastVerifiedAt: cached.last_verified_at, capabilities: cached.capabilities }); }
+  if (body.capabilitiesOnly === true) { const provider = String(env.SVARAONE_SOUND_PROVIDER || "").trim().toLowerCase(); if (!provider) return json({ error: "Sound provider is not configured." }, 503); const cached = await getCachedSoundCapabilities(env, provider); if (!cached) return json({ error: "Sound provider capabilities are not available." }, 503); return json({ provider: cached.provider, providerVersion: cached.provider_version, status: cached.status, lastVerifiedAt: cached.last_verified_at, capabilities: cached.capabilities }); }
   if (!env.GENERATED_AUDIO) return json({ error: "Sound generation storage is not configured." }, 503);
   const prompt = String(body.prompt ?? "").trim();
   if (!prompt) return json({ error: "Prompt is required." }, 400);
@@ -248,7 +248,7 @@ export async function handleSoundGenerate(request, env, userId) {
   if (!SOUND_SOURCE_TYPES.has(sourceType)) return json({ error: "Invalid Sound source type." }, 400);
   let existingVoice = null;
   if (sourceType === "voice") { try { existingVoice = await resolveExistingVoiceInput(env, userId, sourceAssetId); } catch (error) { return json({ error: String(error?.message || error) }, 400); } }
-  const provider = String(body.provider || env.SVARAONE_SOUND_PROVIDER || "").trim().toLowerCase();
+  const provider = String(env.SVARAONE_SOUND_PROVIDER || "").trim().toLowerCase();
   if (!provider) return json({ error: "Sound provider is not configured." }, 503);
   const cost = soundCreditCost(env, durationSeconds);
   if (cost === null) return json({ error: "Sound credit pricing is not configured." }, 503);
