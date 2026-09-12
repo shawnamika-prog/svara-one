@@ -179,12 +179,53 @@ function normalizeTaskStatus(value) {
   }
 }
 
-function buildSoniloPrompt(prompt, parameters, existingVoice) {
-  const direction = soundParametersForPrompt(parameters);
+function approvedCreativeDirectionForSonilo(specification) {
+  const creative = specification?.creative || {};
+  const source = specification?.source || {};
+  const dynamics = specification?.dynamics || {};
+  const voice = specification?.voice_relationship || {};
+  const constraints = specification?.constraints || {};
+
+  return [
+    specification?.role ? `role: ${specification.role}` : null,
+    specification?.intent ? `intent: ${specification.intent}` : null,
+    creative.mood ? `mood: ${creative.mood}` : null,
+    creative.style ? `style: ${creative.style}` : null,
+    creative.energy ? `energy: ${creative.energy}` : null,
+    creative.texture ? `texture: ${creative.texture}` : null,
+    creative.tempo_bpm !== null && creative.tempo_bpm !== undefined ? `tempo: ${creative.tempo_bpm} BPM` : null,
+    creative.intensity !== null && creative.intensity !== undefined ? `intensity: ${creative.intensity}` : null,
+    creative.complexity !== null && creative.complexity !== undefined ? `complexity: ${creative.complexity}` : null,
+    source.relationship ? `source relationship: ${source.relationship}` : null,
+    dynamics.opening ? `opening: ${dynamics.opening}` : null,
+    dynamics.development ? `development: ${dynamics.development}` : null,
+    dynamics.climax ? `climax: ${dynamics.climax}` : null,
+    dynamics.ending ? `ending: ${dynamics.ending}` : null,
+    voice.support_voice === true ? "support the voiceover" : null,
+    voice.avoid_competition === true ? "avoid competing with speech" : null,
+    specification?.vocal_policy ? `vocal policy: ${specification.vocal_policy}` : null,
+    constraints.language ? `language: ${constraints.language}` : null,
+    constraints.negative_prompt ? `avoid: ${constraints.negative_prompt}` : null
+  ].filter(Boolean).join(", ");
+}
+
+function buildSoniloPrompt(prompt, parameters, existingVoice, approvedSpecification) {
   const voiceScript = String(existingVoice?.script || "").trim();
   const parts = [prompt];
   if (voiceScript) parts.push(`Voice content: ${voiceScript}`);
-  if (direction) parts.push(`Creative direction: ${direction}`);
+
+  const direction = approvedSpecification && typeof approvedSpecification === "object"
+    ? approvedCreativeDirectionForSonilo(approvedSpecification)
+    : soundParametersForPrompt(parameters);
+
+  if (direction) {
+    parts.push(
+      approvedSpecification && typeof approvedSpecification === "object"
+        ? `SvaraFlow-approved creative direction: ${direction}`
+        : `Creative direction: ${direction}`
+    );
+  }
+
   const combined = parts.join("\n");
   if (combined.length > 2000) {
     throw new Error("Sound prompt, Voice content and creative parameters exceed Sonilo's 2000 character limit");
@@ -249,7 +290,7 @@ export class SoniloProvider extends SoundProvider {
 
     const format = formatForRequest(request?.format);
     const service = serviceForRequest(request);
-    const soniloPrompt = buildSoniloPrompt(prompt, request?.parameters || null, request?.existingVoice || null);
+    const soniloPrompt = buildSoniloPrompt(prompt, request?.parameters || null, request?.existingVoice || null, request?.approvedSpecification || null);
     const form = new FormData();
     form.set("prompt", soniloPrompt);
     form.set("duration", String(duration));
