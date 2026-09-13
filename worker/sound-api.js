@@ -5,6 +5,7 @@ import { getCachedSoundCapabilities } from "./sound-capabilities.js";
 import { normalizeSoundParameters } from "./sound-parameters.js";
 import { processSvaraFlowSound, validateSoundSvaraFlowSpecification } from "./svaraflow-sound.js";
 import { refineSvaraFlowSound } from "./svaraflow-sound-refinement.js";
+import { runSvaraFlowSoundAgent } from "./svaraflow-sound-agent.js";
 
 const MAX_PROMPT_CHARS = 2000;
 const SOUND_TYPES = new Set(["music", "soundtrack", "sfx", "ambience", "jingle", "loop"]);
@@ -129,14 +130,7 @@ async function executeApprovedSound(env, userId, body) {
     ...(parameters || {}),
     customParameters: {
       originalParameters: parameters?.customParameters ?? null,
-      svaraflow: {
-        version: approvedSpecification.version,
-        status: "approved",
-        approvedAt: new Date().toISOString(),
-        approvedBy: "creator",
-        specification: approvedSpecification,
-        creativeDirection
-      }
+      svaraflow: { version: approvedSpecification.version, status: "approved", approvedAt: new Date().toISOString(), approvedBy: "creator", specification: approvedSpecification, creativeDirection }
     }
   };
   const generationId = crypto.randomUUID();
@@ -147,30 +141,43 @@ async function executeApprovedSound(env, userId, body) {
   const inputs = Array.isArray(body.inputs) ? [...body.inputs] : [{ inputType: "text", textContent: String(body.prompt || "").trim(), role: "prompt" }];
   if (sourceType === "voice" && existingVoice) inputs.unshift({ inputType: "voice", assetId: existingVoice.assetId, textContent: existingVoice.script, role: "existing_voice" });
   let generation;
-  try {
-    generation = await createSoundGeneration(env, { id: generationId, userId, provider: configuredProvider, type, prompt: executionPrompt, sourceType, sourceAssetId: sourceAssetId || null, durationSeconds, format, creditsCharged: reservation.cost, creditReferenceId: reservation.referenceId, inputs, parameters: executionParameters });
-  } catch (error) {
-    try { await refundSoundCredits(userId, reservation.cost, reservation.referenceId, env); } catch (refundError) { console.error("svaraflow_sound_execution_create_refund_error", refundError); }
-    console.error("svaraflow_sound_execution_create_error", error);
-    return json({ svaraflow: "sound", status: "failed", error: "Sound generation could not be created. Your credits were refunded." }, 500);
-  }
+  try { generation = await createSoundGeneration(env, { id: generationId, userId, provider: configuredProvider, type, prompt: executionPrompt, sourceType, sourceAssetId: sourceAssetId || null, durationSeconds, format, creditsCharged: reservation.cost, creditReferenceId: reservation.referenceId, inputs, parameters: executionParameters }); }
+  catch (error) { try { await refundSoundCredits(userId, reservation.cost, reservation.referenceId, env); } catch (refundError) { console.error("svaraflow_sound_execution_create_refund_error", refundError); } console.error("svaraflow_sound_execution_create_error", error); return json({ svaraflow: "sound", status: "failed", error: "Sound generation could not be created. Your credits were refunded." }, 500); }
   try {
     const soundProvider = getSoundProvider(env, configuredProvider);
     const result = await soundProvider.generate({ generationId, userId, type, prompt: executionPrompt, sourceType, sourceAssetId: sourceAssetId || null, durationSeconds, format, parameters: executionParameters, inputs, existingVoice, approvedSpecification, svaraflowCreativeDirection: creativeDirection });
     if (result?.providerGenerationId) await setSoundGenerationProviderResult(env, generationId, result.providerGenerationId);
     return json({ svaraflow: "sound", status: "execution_started", id: generation.id, provider: configuredProvider, creditsCharged: reservation.cost, creditsRemaining: reservation.balance, creativeDirection, specification: approvedSpecification, result: result ?? null }, 202);
-  } catch (error) {
-    try { await markSoundGenerationFailed(env, generationId, "failed"); } catch (markError) { console.error("svaraflow_sound_execution_failure_mark_error", markError); }
-    try { await refundSoundCredits(userId, reservation.cost, reservation.referenceId, env); } catch (refundError) { console.error("svaraflow_sound_execution_refund_error", refundError); }
-    console.error("svaraflow_sound_execution_error", error);
-    return json({ svaraflow: "sound", status: "failed", error: String(error?.message || "Sound generation failed").slice(0, 300), generationId, creditsRefunded: reservation.cost }, 502);
-  }
+  } catch (error) { try { await markSoundGenerationFailed(env, generationId, "failed"); } catch (markError) { console.error("svaraflow_sound_execution_failure_mark_error", markError); } try { await refundSoundCredits(userId, reservation.cost, reservation.referenceId, env); } catch (refundError) { console.error("svaraflow_sound_execution_refund_error", refundError); } console.error("svaraflow_sound_execution_error", error); return json({ svaraflow: "sound", status: "failed", error: String(error?.message || "Sound generation failed").slice(0, 300), generationId, creditsRefunded: reservation.cost }, 502); }
 }
 
 export async function handleSoundGenerate(request, env, userId) {
   if (!env.DB) return json({ error: "Sound generation storage is not configured." }, 503);
   const body = await request.clone().json().catch(() => null);
   if (!body || typeof body !== "object") return json({ error: "Invalid JSON request body." }, 400);
+  if (body.svaraflowAction === "agent") {
+    try {
+      const message = String(body.message ?? "").trim();
+      if (!message) return json({ svaraflow: "sound", status: "failed", error: "Creator message is required." }, 400);
+      if (message.length > MAX_PROMPT_CHARS) return json({ svaraflow: "sound", status: "failed", error: `Maximum ${MAX_PROMPT_CHARS} characters per Sound message.` }, 400);
+      const context = body.context && typeof body.context === "object" ? body.context : {};
+      const type = normalizeType(context.type);
+      const format = normalizeFormat(context.format);
+      const durationSeconds = normalizeOptionalNumber(context.durationSeconds, "durationSeconds");
+      if (durationSeconds === null || durationSeconds <= 0) return json({ svaraflow: "sound", status: "failed", error: "A positive durationSeconds value is required for SvaraFlow Sound conversation." }, 400);
+      const sourceType = String(context.sourceType ?? "text").trim().toLowerCase();
+      const sourceAssetId = String(context.sourceAssetId ?? "").trim();
+      if (!SOUND_SOURCE_TYPES.has(sourceType)) return json({ svaraflow: "sound", status: "failed", error: "Invalid Sound source type." }, 400);
+      let existingSource = null;
+      if (sourceType === "voice") existingSource = await resolveExistingVoiceInput(env, userId, sourceAssetId);
+      const parameters = normalizeSoundParameters(context.parameters ?? null, { durationSeconds });
+      const provider = String(env.SVARAONE_SOUND_PROVIDER || "").trim().toLowerCase();
+      const cached = provider ? await getCachedSoundCapabilities(env, provider) : null;
+      const capabilities = cached?.capabilities || null;
+      const agent = await runSvaraFlowSoundAgent({ message, conversation: body.conversation, currentSpecification: body.currentSpecification || null, context: { prompt: String(context.prompt || message).trim(), type, format, durationSeconds, sourceType: existingSource?.inputType || sourceType, sourceAssetId: existingSource?.assetId || sourceAssetId || null, sourceScript: existingSource?.script || null, parameters }, capabilities }, env);
+      return json({ svaraflow: "sound", status: "agent", action: agent.action, response: agent.response, specification: agent.specification }, 200);
+    } catch (error) { console.error("svaraflow_sound_agent_error", error); return json({ svaraflow: "sound", status: "failed", error: String(error?.message || "SvaraFlow Sound agent failed").slice(0, 300) }, 502); }
+  }
   if (body.svaraflowAction === "execute") return executeApprovedSound(env, userId, body);
   if (body.svaraflowAction === "approve") {
     try {
@@ -188,10 +195,7 @@ export async function handleSoundGenerate(request, env, userId) {
       const approvedSpecification = validateSoundSvaraFlowSpecification(body.currentSpecification, { sourceScript: existingSource?.script || null, sourceAssetId: existingSource?.assetId || sourceAssetId || null });
       if (approvedSpecification.constraints.duration_seconds !== null && Number(approvedSpecification.constraints.duration_seconds) !== Number(durationSeconds)) throw new Error("Approved Sound specification duration does not match the generation duration");
       return json({ svaraflow: "sound", status: "approved", approval: { approved: true, approvedAt: new Date().toISOString(), by: "creator" }, specification: approvedSpecification, context: { type, parameters, constraints: { durationSeconds, format }, source: existingSource ? { sourceType: existingSource.inputType, sourceAssetId: existingSource.assetId } : { sourceType, sourceAssetId: sourceAssetId || null } } }, 200);
-    } catch (error) {
-      console.error("svaraflow_sound_approval_error", error);
-      return json({ svaraflow: "sound", status: "failed", error: String(error?.message || "SvaraFlow Sound approval failed").slice(0, 300) }, 502);
-    }
+    } catch (error) { console.error("svaraflow_sound_approval_error", error); return json({ svaraflow: "sound", status: "failed", error: String(error?.message || "SvaraFlow Sound approval failed").slice(0, 300) }, 502); }
   }
   if (body.svaraflowAction === "refine") {
     try {
@@ -209,10 +213,7 @@ export async function handleSoundGenerate(request, env, userId) {
       const parameters = normalizeSoundParameters(body.parameters ?? null, { durationSeconds });
       const specification = await refineSvaraFlowSound({ feedback, currentSpecification: body.currentSpecification, originalContext: { prompt: body.prompt, type, parameters, constraints: { durationSeconds, format }, sourceType: existingSource?.inputType || sourceType, sourceAssetId: existingSource?.assetId || sourceAssetId || null, sourceScript: existingSource?.script || null } }, env);
       return json({ svaraflow: "sound", status: "refined", specification }, 200);
-    } catch (error) {
-      console.error("svaraflow_sound_refinement_error", error);
-      return json({ svaraflow: "sound", status: "failed", error: String(error?.message || "SvaraFlow Sound refinement failed").slice(0, 300) }, 502);
-    }
+    } catch (error) { console.error("svaraflow_sound_refinement_error", error); return json({ svaraflow: "sound", status: "failed", error: String(error?.message || "SvaraFlow Sound refinement failed").slice(0, 300) }, 502); }
   }
   if (body.svaraflowOnly === true) {
     try {
@@ -227,10 +228,7 @@ export async function handleSoundGenerate(request, env, userId) {
       const parameters = normalizeSoundParameters(body.parameters ?? null, { durationSeconds });
       const specification = await processSvaraFlowSound({ prompt: body.prompt, type, existingSource, parameters, durationSeconds, format }, env);
       return json({ svaraflow: "sound", status: "analyzed", specification }, 200);
-    } catch (error) {
-      console.error("svaraflow_sound_analysis_error", error);
-      return json({ svaraflow: "sound", status: "failed", error: String(error?.message || "SvaraFlow Sound analysis failed").slice(0, 300) }, 502);
-    }
+    } catch (error) { console.error("svaraflow_sound_analysis_error", error); return json({ svaraflow: "sound", status: "failed", error: String(error?.message || "SvaraFlow Sound analysis failed").slice(0, 300) }, 502); }
   }
   if (body.resultOnly === true) return handleSoundResult(env, userId, body);
   if (body.capabilitiesOnly === true) { const provider = String(env.SVARAONE_SOUND_PROVIDER || "").trim().toLowerCase(); if (!provider) return json({ error: "Sound provider is not configured." }, 503); const cached = await getCachedSoundCapabilities(env, provider); if (!cached) return json({ error: "Sound provider capabilities are not available." }, 503); return json({ provider: cached.provider, providerVersion: cached.provider_version, status: cached.status, lastVerifiedAt: cached.last_verified_at, capabilities: cached.capabilities }); }
