@@ -49,25 +49,12 @@
     ].filter(([,value])=>value!==null&&value!==undefined&&value!=='').slice(0,12);
   }
 
-  function appendSpec(box,spec,onApprove,onRefine){
+  function appendSpec(box,spec){
     const card=document.createElement('div');card.className='sound-sf-spec';
     const title=document.createElement('div');title.className='sound-sf-spec-title';title.innerHTML='<span>PROPOSED SOUND DIRECTION</span><span>SVARAFLOW</span>';
     const grid=document.createElement('div');grid.className='sound-sf-spec-grid';
     specSummary(spec).forEach(([label,value])=>{const line=document.createElement('div');line.className='sound-sf-spec-line';line.innerHTML=`${label} <b>${String(value)}</b>`;grid.appendChild(line)});
-    const actions=document.createElement('div');actions.className='sound-sf-actions';
-    const refine=document.createElement('button');refine.type='button';refine.className='sound-sf-action';refine.textContent='Refine';refine.addEventListener('click',onRefine);
-    const approve=document.createElement('button');approve.type='button';approve.className='sound-sf-action primary';approve.textContent='Approve & Generate';approve.addEventListener('click',onApprove);
-    actions.append(refine,approve);card.append(title,grid,actions);box.appendChild(card);
-  }
-
-  function setInteractionLocked(ui,locked,label){
-    ui.busy=locked;
-    ui.button.disabled=locked;
-    ui.textarea.disabled=locked;
-    ui.textarea.setAttribute('aria-disabled',locked?'true':'false');
-    ui.textarea.style.cursor=locked?'wait':'';
-    ui.thread.querySelectorAll('.sound-sf-action').forEach(button=>{button.disabled=locked;button.style.cursor=locked?'wait':'';});
-    if(locked&&label)ui.button.textContent=label;
+    card.appendChild(title);card.appendChild(grid);box.appendChild(card);
   }
 
   async function poll(id){
@@ -98,8 +85,7 @@
 
   async function approve(ui){
     const ctx=context();
-    ui.wrap.classList.add('thinking');
-    setInteractionLocked(ui,true,'Generating Sound…');
+    ui.wrap.classList.add('thinking');ui.button.disabled=true;ui.button.textContent='Preparing Sound…';
     try{
       const approvalResponse=await fetch('/api/sound/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({svaraflowAction:'approve',approval:true,currentSpecification:ui.spec,prompt:ctx.prompt,type:ctx.type,format:ctx.format,durationSeconds:ctx.durationSeconds,sourceType:ctx.sourceType,sourceAssetId:ctx.sourceAssetId,parameters:ctx.parameters})});
       const approved=await read(approvalResponse);
@@ -112,49 +98,37 @@
       addMessage(ui.thread,'assistant','Approved. I’m generating the Sound now.');
       const result=await poll(execution.id);showResult(result,ctx,ui.thread);
     }catch(error){addMessage(ui.thread,'assistant',String(error?.message||'Sound generation failed.'))}
-    finally{ui.wrap.classList.remove('thinking');setInteractionLocked(ui,false);ui.button.textContent='Ask SvaraFlow';ui.textarea.style.cursor='';ui.textarea.focus()}
+    finally{ui.wrap.classList.remove('thinking');ui.button.disabled=false;ui.button.textContent='Ask SvaraFlow'}
   }
 
   async function turn(ui){
-    if(ui.busy)return;
     const latest=text(ui.textarea.value);
     if(!latest){ui.textarea.focus();return;}
     addMessage(ui.thread,'user',latest);
+    ui.messages.push({role:'user',content:latest});
     ui.textarea.value='';
     state()?.setInput?.({prompt:latest});
-    ui.wrap.classList.add('thinking');
-    setInteractionLocked(ui,true,'SvaraFlow is thinking…');
+    ui.wrap.classList.add('thinking');ui.button.disabled=true;ui.button.textContent='SvaraFlow is thinking…';
     const ctx={...context(),prompt:latest};
-    const payload={
-      svaraflowAction:'agent',
-      message:latest,
-      conversation:ui.messages,
-      currentSpecification:ui.spec,
-      context:ctx
-    };
+    const payload={svaraflowAction:'agent',message:latest,conversation:ui.messages,currentSpecification:ui.spec,context:ctx};
     try{
       const response=await fetch('/api/sound/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
       const data=await read(response);
       if(!response.ok)throw new Error(data?.error||`SvaraFlow request failed (${response.status})`);
       const action=String(data?.action||'');
       const reply=text(data?.response);
-      if(reply)addMessage(ui.thread,'assistant',reply);
-      ui.messages.push({role:'user',content:latest});
-      if(reply)ui.messages.push({role:'assistant',content:reply});
+      if(reply){addMessage(ui.thread,'assistant',reply);ui.messages.push({role:'assistant',content:reply});}
       if(action==='approve'){
         if(data.specification)ui.spec=data.specification;
         await approve(ui);
       }else if(action==='propose'||action==='refine'){
         if(!data.specification)throw new Error('SvaraFlow returned no Sound direction.');
         ui.spec=data.specification;
-        const host=addMessage(ui.thread,'assistant','Review the direction below before anything is generated.');
-        appendSpec(host,ui.spec,()=>approve(ui),()=>{ui.textarea.placeholder='Tell SvaraFlow what you want changed…';ui.textarea.focus()});
+        const host=addMessage(ui.thread,'assistant','SvaraFlow has mapped the current creative direction here:');
+        appendSpec(host,ui.spec);
       }
     }catch(error){addMessage(ui.thread,'assistant',String(error?.message||'SvaraFlow could not respond.'))}
-    finally{
-      if(ui.wrap.classList.contains('thinking'))ui.wrap.classList.remove('thinking');
-      if(ui.busy){setInteractionLocked(ui,false);ui.button.textContent='Ask SvaraFlow';ui.textarea.style.cursor='';ui.textarea.focus();}
-    }
+    finally{ui.wrap.classList.remove('thinking');ui.button.disabled=false;ui.button.textContent='Ask SvaraFlow';ui.textarea.focus()}
   }
 
   function bind(){
@@ -163,10 +137,10 @@
     const button=r.querySelector('#soundAskSvaraFlow');const textarea=r.querySelector('#soundPrompt');const thread=r.querySelector('.sound-sf-thread');const wrap=r.querySelector('.sound-sf-textarea-wrap');
     if(!button||!textarea||!thread||!wrap)return;
     r.dataset.soundSfV5AgentBound='1';
-    const ui={button,textarea,thread,wrap,spec:null,messages:[],busy:false};
-    const interceptClick=event=>{event.preventDefault();event.stopImmediatePropagation();if(!ui.busy)turn(ui)};
+    const ui={button,textarea,thread,wrap,spec:null,messages:[]};
+    const interceptClick=event=>{event.preventDefault();event.stopImmediatePropagation();turn(ui)};
     button.addEventListener('click',interceptClick,true);
-    textarea.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();event.stopImmediatePropagation();if(!ui.busy)turn(ui)}},true);
+    textarea.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();event.stopImmediatePropagation();turn(ui)}},true);
     window.SvaraSoundSvaraFlowUIV5={bind,ui};
   }
 
