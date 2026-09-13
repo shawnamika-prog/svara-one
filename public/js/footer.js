@@ -1,4 +1,4 @@
-(() => {
+(()=>{
   const path = window.location.pathname.replace(/\/$/, '') || '/';
   const isStudio = path.endsWith('/studio') || path.endsWith('/studio.html');
   const isAccount = path.endsWith('/account.html');
@@ -29,14 +29,9 @@
     document.head.appendChild(voiceInputScript);
 
     const soundSvaraFlowScript = document.createElement('script');
-    soundSvaraFlowScript.src = 'js/sound-svaraflow-ui-v2.js';
+    soundSvaraFlowScript.src = 'js/sound-svaraflow-ui-v3.js';
     soundSvaraFlowScript.defer = false;
     document.head.appendChild(soundSvaraFlowScript);
-
-    const soundSvaraFlowConversationFix = document.createElement('script');
-    soundSvaraFlowConversationFix.src = 'js/sound-svaraflow-conversation-fix.js';
-    soundSvaraFlowConversationFix.defer = false;
-    document.head.appendChild(soundSvaraFlowConversationFix);
 
     const soundLegacyUiLock = document.createElement('style');
     soundLegacyUiLock.id = 'sound-legacy-ui-lock';
