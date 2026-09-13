@@ -2,7 +2,7 @@ import { validateSoundSvaraFlowSpecification } from "./svaraflow-sound.js";
 
 const TIMEOUT_MS = 30000;
 const MAX_TURNS = 20;
-const ACTIONS = new Set(["propose", "refine", "clarify", "question", "approve"]);
+const ACTIONS = new Set(["propose", "refine", "clarify", "question", "respond", "approve"]);
 const SOUND_ROLES = ["BACKGROUND_MUSIC", "SOUNDTRACK", "SCORE", "JINGLE", "LOOP", "SFX", "AMBIENCE", "TRANSITION"];
 const SOUND_INTENTS = ["CALM", "TENSION", "SUSPENSE", "ENERGY", "JOY", "SADNESS", "TRIUMPH", "MYSTERY", "REFLECTIVE", "DRAMATIC", "PLAYFUL", "NEUTRAL"];
 const SOURCE_RELATIONSHIPS = ["SUPPORT", "CONTRAST", "AMPLIFY", "TRANSITION", "UNDERLAY", "INDEPENDENT"];
@@ -75,7 +75,10 @@ The human is the creative director. You must understand conversational intent:
 - refine: materially change the direction in response to requested changes
 - clarify: the creator is dissatisfied or unclear and has not specified what should change; ask a useful focused question
 - question: answer a question about the current direction or collaboration without inventing a new generation
-- approve: the creator clearly accepts the current direction and wants generation to proceed
+- respond: acknowledge or respond naturally to conversational feedback that does not request a new generation or a change of direction
+- approve: the creator clearly accepts the current direction AND indicates that generation should proceed
+
+Approval requires an actual decision to proceed with generation. Praise, thanks, excitement, compliments, or conversational acknowledgements by themselves are NOT approval. Messages such as liking the result, saying thank you, or celebrating success after generation must not trigger another generation. When the creator is merely acknowledging the result, respond naturally and take no generation action.
 
 Never treat every follow-up as refinement. Approval language must be recognized from meaning, not a fixed phrase list. Vague dissatisfaction should lead to a clarifying response. A request for a new direction must produce a genuinely reconsidered specification, not a cosmetic rewrite.
 
