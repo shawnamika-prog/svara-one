@@ -5,6 +5,17 @@
   const text=value=>String(value??'').trim();
   const state=()=>window.SvaraSoundStudio;
 
+  function brand(){
+    if(document.getElementById('sound-svaraflow-branding-v5'))return;
+    const style=document.createElement('style');
+    style.id='sound-svaraflow-branding-v5';
+    style.textContent=`
+      #soundWorkspace .sound-sf-orb{background:url('/svaraone-orb.png') center/cover no-repeat!important;box-shadow:none!important}
+      #soundWorkspace .sound-sf-avatar.assistant{background:url('/svaraone-orb.png') center/cover no-repeat!important;box-shadow:none!important;color:transparent!important;font-size:0!important;text-indent:-9999px}
+    `;
+    document.head.appendChild(style);
+  }
+
   function context(){
     const r=root();
     const s=state()?.getState?.()||{};
@@ -78,7 +89,6 @@
   async function approve(ui){
     const ctx=context();
     ui.wrap.classList.add('thinking');ui.button.disabled=true;ui.button.textContent='Preparing Sound…';
-    addMessage(ui.thread,'user','Approve this direction and generate it.');
     try{
       const approvalResponse=await fetch('/api/sound/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({svaraflowAction:'approve',approval:true,currentSpecification:ui.spec,prompt:ctx.prompt,type:ctx.type,format:ctx.format,durationSeconds:ctx.durationSeconds,sourceType:ctx.sourceType,sourceAssetId:ctx.sourceAssetId,parameters:ctx.parameters})});
       const approved=await read(approvalResponse);
@@ -133,6 +143,7 @@
 
   function bind(){
     const r=root();if(!r||r.dataset.soundSfV5AgentBound)return;
+    brand();
     const button=r.querySelector('#soundAskSvaraFlow');const textarea=r.querySelector('#soundPrompt');const thread=r.querySelector('.sound-sf-thread');const wrap=r.querySelector('.sound-sf-textarea-wrap');
     if(!button||!textarea||!thread||!wrap)return;
     r.dataset.soundSfV5AgentBound='1';
