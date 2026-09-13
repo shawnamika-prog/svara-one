@@ -60,6 +60,16 @@
     actions.append(refine,approve);card.append(title,grid,actions);box.appendChild(card);
   }
 
+  function setInteractionLocked(ui,locked,label){
+    ui.busy=locked;
+    ui.button.disabled=locked;
+    ui.textarea.disabled=locked;
+    ui.textarea.setAttribute('aria-disabled',locked?'true':'false');
+    ui.textarea.style.cursor=locked?'wait':'';
+    ui.thread.querySelectorAll('.sound-sf-action').forEach(button=>{button.disabled=locked;button.style.cursor=locked?'wait':'';});
+    if(locked&&label)ui.button.textContent=label;
+  }
+
   async function poll(id){
     const started=Date.now();
     for(;;){
@@ -88,7 +98,8 @@
 
   async function approve(ui){
     const ctx=context();
-    ui.wrap.classList.add('thinking');ui.button.disabled=true;ui.button.textContent='Preparing Sound…';
+    ui.wrap.classList.add('thinking');
+    setInteractionLocked(ui,true,'Generating Sound…');
     try{
       const approvalResponse=await fetch('/api/sound/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({svaraflowAction:'approve',approval:true,currentSpecification:ui.spec,prompt:ctx.prompt,type:ctx.type,format:ctx.format,durationSeconds:ctx.durationSeconds,sourceType:ctx.sourceType,sourceAssetId:ctx.sourceAssetId,parameters:ctx.parameters})});
       const approved=await read(approvalResponse);
@@ -101,16 +112,18 @@
       addMessage(ui.thread,'assistant','Approved. I’m generating the Sound now.');
       const result=await poll(execution.id);showResult(result,ctx,ui.thread);
     }catch(error){addMessage(ui.thread,'assistant',String(error?.message||'Sound generation failed.'))}
-    finally{ui.wrap.classList.remove('thinking');ui.button.disabled=false;ui.button.textContent='Ask SvaraFlow'}
+    finally{ui.wrap.classList.remove('thinking');setInteractionLocked(ui,false);ui.button.textContent='Ask SvaraFlow';ui.textarea.style.cursor='';ui.textarea.focus()}
   }
 
   async function turn(ui){
+    if(ui.busy)return;
     const latest=text(ui.textarea.value);
     if(!latest){ui.textarea.focus();return;}
     addMessage(ui.thread,'user',latest);
     ui.textarea.value='';
     state()?.setInput?.({prompt:latest});
-    ui.wrap.classList.add('thinking');ui.button.disabled=true;ui.button.textContent='SvaraFlow is thinking…';
+    ui.wrap.classList.add('thinking');
+    setInteractionLocked(ui,true,'SvaraFlow is thinking…');
     const ctx={...context(),prompt:latest};
     const payload={
       svaraflowAction:'agent',
@@ -138,7 +151,10 @@
         appendSpec(host,ui.spec,()=>approve(ui),()=>{ui.textarea.placeholder='Tell SvaraFlow what you want changed…';ui.textarea.focus()});
       }
     }catch(error){addMessage(ui.thread,'assistant',String(error?.message||'SvaraFlow could not respond.'))}
-    finally{ui.wrap.classList.remove('thinking');ui.button.disabled=false;ui.button.textContent='Ask SvaraFlow';ui.textarea.focus()}
+    finally{
+      if(ui.wrap.classList.contains('thinking'))ui.wrap.classList.remove('thinking');
+      if(ui.busy){setInteractionLocked(ui,false);ui.button.textContent='Ask SvaraFlow';ui.textarea.style.cursor='';ui.textarea.focus();}
+    }
   }
 
   function bind(){
@@ -147,10 +163,10 @@
     const button=r.querySelector('#soundAskSvaraFlow');const textarea=r.querySelector('#soundPrompt');const thread=r.querySelector('.sound-sf-thread');const wrap=r.querySelector('.sound-sf-textarea-wrap');
     if(!button||!textarea||!thread||!wrap)return;
     r.dataset.soundSfV5AgentBound='1';
-    const ui={button,textarea,thread,wrap,spec:null,messages:[]};
-    const interceptClick=event=>{event.preventDefault();event.stopImmediatePropagation();turn(ui)};
+    const ui={button,textarea,thread,wrap,spec:null,messages:[],busy:false};
+    const interceptClick=event=>{event.preventDefault();event.stopImmediatePropagation();if(!ui.busy)turn(ui)};
     button.addEventListener('click',interceptClick,true);
-    textarea.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();event.stopImmediatePropagation();turn(ui)}},true);
+    textarea.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();event.stopImmediatePropagation();if(!ui.busy)turn(ui)}},true);
     window.SvaraSoundSvaraFlowUIV5={bind,ui};
   }
 
