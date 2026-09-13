@@ -16,11 +16,11 @@
 | **S6** | Sound D1 | Sound database | 🟢 | **Yes** | Sound generation/input/parameter/composition persistence | D1 supports lifecycle |
 | **S7** | Sound inputs | `sound_generation_inputs` | 🟢 | **Yes** | Text/assets/Voice/etc. inputs | Inputs persisted/passed through |
 | **S8** | Sound parameters | Creative parameters | 🟢 | **Yes** | Mood, style, energy, texture, tempo, intensity, complexity, vocals, language, negative/provider-specific parameters | Creative intent represented provider-independently |
-| **S9** | Sound Studio UI | Frontend workspace | 🟢 | **Yes** | Build actual Sound Studio workflow | User configures/initiates Sound |
+| **S9** | Sound Studio UI | Frontend workspace | 🟠 | **Yes — foundation complete; UI completion still required** | Complete conversational SvaraFlow Sound Studio UI, Direct Mode, capability-driven adapter controls, interaction polish, and end-to-end generation UX | Sound Studio UI is fully complete and reliable end-to-end |
 | **S10** | Output playback | Audio player | 🟢 | **Yes** | Waveform, playback, volume, output controls | User previews Sound |
 | **S11** | Existing Voice → Sound | Cross-domain workflow | 🟢 | **Yes** | Existing Voice as Sound input | Voice drives Sound creation |
 | **S12** | SvaraFlow Sound | Intelligence/orchestration | 🟢 | **Yes** | Understand content/intent, map to Sound specification/provider capabilities | SvaraFlow prepares Sound requests |
-| **S13** | Generation history | Recent generations | ⚪ | **No** | Persist/display history, metadata, actions | User finds/reuses generations |
+| **S13** | Generation history | Recent generations | ⚪ | **No — blocked pending S9 UI completion** | Persist/display history, metadata, actions | User finds/reuses generations |
 | **S14** | Composition engine | Multi-track composition | ⚪ | **No** | Combine Voice, Sound, ambience, SFX, music etc. | Non-destructive composition |
 | **S15** | Composition persistence | Composition DB | ⚪ | **No** | Persist tracks, order, gain, timing, trims, fades, loops, parents | Compositions survive/reusable |
 | **S16** | Export | MP3 / WAV / PCM | ⚪ | **No** | Render/export formats | User exports composition |
@@ -33,11 +33,28 @@
 
 ## Current locked position
 
-- **Last completed phase:** S12 — SvaraFlow Sound
-- **S12 final commit:** `4fc21c803c1ca012126c1ebbfc14e0a954be1ff1`
+- **S0–S8:** Complete / locked
+- **S9:** Foundation complete, **UI completion still in progress**
+- **S10–S12:** Complete / locked
+- **S13:** **Not started and explicitly blocked until S9 UI completion**
+- **Current UI/backend baseline:** `814b499ca1a2bc6b21418a629890a48107287941`
+- **S12 final architecture commit:** `4fc21c803c1ca012126c1ebbfc14e0a954be1ff1`
 - **S6 D1 compatibility audit:** PASS against live Cloudflare D1 schema supplied on 2026-09-13
-- **Next phase:** **S13 — Generation history**
+- **Next work:** Complete and verify the Sound Studio UI before beginning S13.
+
+## Current S9 / UI direction
+
+- SvaraFlow is the default Sound interaction.
+- Direct Mode is the escape hatch and does not disable SvaraONE.
+- Provider/adapter-specific controls appear only in Direct Mode.
+- Adapter controls are driven by normalized cached capabilities.
+- SvaraFlow remains the agentic creative collaborator and uses OpenAI for semantic conversation/orchestration.
+- The proposed Sound Direction card is informational only; refinement and approval continue conversationally.
+- Conversational approval must trigger generation only when the creator clearly intends to proceed.
+- Conversational praise, thanks, or acknowledgement must not trigger a new generation.
+- Missing or stale capability data must not be treated as proof that a valid Sound operation is unsupported.
+- Configured provider execution remains the final authority for actual provider operation support.
 
 ## Rule
 
-All future Sound work starts by reading this tracker. Phase status in this file is authoritative unless the user explicitly reopens or changes a phase.
+All future Sound work starts by reading this tracker. Completed phases remain locked unless the user explicitly reopens or changes a phase. **Do not begin S13 until the user confirms the Sound Studio UI is complete.**
