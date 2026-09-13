@@ -33,6 +33,11 @@
     soundSvaraFlowScript.defer = false;
     document.head.appendChild(soundSvaraFlowScript);
 
+    const soundLegacyUiLock = document.createElement('style');
+    soundLegacyUiLock.id = 'sound-legacy-ui-lock';
+    soundLegacyUiLock.textContent = '#soundWorkspace .sound-generate,#soundWorkspace .sound-generation-note,#soundWorkspace #soundInspire,#soundWorkspace #soundFlowBadge{display:none!important;}';
+    document.head.appendChild(soundLegacyUiLock);
+
     document.addEventListener('click', event => {
       const link = event.target.closest('aside a[href]');
       if (!link) return;
