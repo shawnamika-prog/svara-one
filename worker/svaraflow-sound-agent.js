@@ -3,14 +3,20 @@ import { validateSoundSvaraFlowSpecification } from "./svaraflow-sound.js";
 const TIMEOUT_MS = 30000;
 const MAX_TURNS = 20;
 const ACTIONS = new Set(["propose", "refine", "clarify", "question", "approve"]);
+const SOUND_ROLES = ["BACKGROUND_MUSIC", "SOUNDTRACK", "SCORE", "JINGLE", "LOOP", "SFX", "AMBIENCE", "TRANSITION"];
+const SOUND_INTENTS = ["CALM", "TENSION", "SUSPENSE", "ENERGY", "JOY", "SADNESS", "TRIUMPH", "MYSTERY", "REFLECTIVE", "DRAMATIC", "PLAYFUL", "NEUTRAL"];
+const SOURCE_RELATIONSHIPS = ["SUPPORT", "CONTRAST", "AMPLIFY", "TRANSITION", "UNDERLAY", "INDEPENDENT"];
+const DYNAMIC_LEVELS = ["LOW", "STEADY", "BUILDING", "PEAK", "RESOLVING"];
+const VOCAL_POLICIES = ["INSTRUMENTAL", "VOCAL_ALLOWED", "VOCAL_REQUIRED", "NO_VOCALS"];
+const SOURCE_TYPES = ["voice", "sound", "video", "text", "none"];
 
 const SPEC_SCHEMA = {
   type: ["object", "null"],
   additionalProperties: false,
   properties: {
     version: { type: "string", enum: ["1.0"] },
-    role: { type: "string" },
-    intent: { type: "string" },
+    role: { type: "string", enum: SOUND_ROLES },
+    intent: { type: "string", enum: SOUND_INTENTS },
     creative: {
       type: "object", additionalProperties: false,
       properties: {
@@ -23,14 +29,15 @@ const SPEC_SCHEMA = {
     source: {
       type: "object", additionalProperties: false,
       properties: {
-        relationship: { type: "string" }, source_type: { type: ["string", "null"] }, source_asset_id: { type: ["string", "null"] }, source_script: { type: ["string", "null"] }
+        relationship: { type: "string", enum: SOURCE_RELATIONSHIPS },
+        source_type: { type: ["string", "null"], enum: [...SOURCE_TYPES, null] }, source_asset_id: { type: ["string", "null"] }, source_script: { type: ["string", "null"] }
       },
       required: ["relationship", "source_type", "source_asset_id", "source_script"]
     },
     dynamics: {
       type: "object", additionalProperties: false,
       properties: {
-        opening: { type: ["string", "null"] }, development: { type: ["string", "null"] }, climax: { type: ["string", "null"] }, ending: { type: ["string", "null"] }
+        opening: { type: ["string", "null"], enum: [...DYNAMIC_LEVELS, null] }, development: { type: ["string", "null"], enum: [...DYNAMIC_LEVELS, null] }, climax: { type: ["string", "null"], enum: [...DYNAMIC_LEVELS, null] }, ending: { type: ["string", "null"], enum: [...DYNAMIC_LEVELS, null] }
       },
       required: ["opening", "development", "climax", "ending"]
     },
@@ -39,7 +46,7 @@ const SPEC_SCHEMA = {
       properties: { support_voice: { type: "boolean" }, avoid_competition: { type: "boolean" } },
       required: ["support_voice", "avoid_competition"]
     },
-    vocal_policy: { type: ["string", "null"] },
+    vocal_policy: { type: ["string", "null"], enum: [...VOCAL_POLICIES, null] },
     constraints: {
       type: "object", additionalProperties: false,
       properties: { duration_seconds: { type: ["number", "null"] }, language: { type: ["string", "null"] }, negative_prompt: { type: ["string", "null"] } },
@@ -74,7 +81,7 @@ Never treat every follow-up as refinement. Approval language must be recognized 
 
 Provider capabilities are supplied as normalized data. Use them to advise the creator when the requested work is unsupported or needs to be expressed differently. Do not mention provider names, APIs, endpoints, model names, or proprietary provider terminology.
 
-Preserve explicit creator decisions. When refining, change what the feedback requires and preserve compatible choices. Do not drop important creative requirements such as instruments, orchestration, emotional arc, narrative purpose, or ending unless the creator changes them.
+Preserve explicit creator decisions. When refining, change what the feedback requires and preserve compatible choices. Do not drop important creative requirements such as instruments, orchestration, emotional arc, narrative purpose, or ending unless creator changes them.
 
 A strong Sound direction can include emotional arc, instrumentation, orchestration, dynamics, texture, pacing, ending/resolution, and relationship to existing source material. Do not force a generic structure when the creator's request calls for something specific.
 
