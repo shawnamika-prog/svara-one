@@ -28,6 +28,11 @@
     voiceInputScript.defer = false;
     document.head.appendChild(voiceInputScript);
 
+    const soundSvaraFlowScript = document.createElement('script');
+    soundSvaraFlowScript.src = 'js/sound-svaraflow-ui-v2.js';
+    soundSvaraFlowScript.defer = false;
+    document.head.appendChild(soundSvaraFlowScript);
+
     document.addEventListener('click', event => {
       const link = event.target.closest('aside a[href]');
       if (!link) return;
