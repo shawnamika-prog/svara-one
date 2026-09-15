@@ -10,10 +10,33 @@
     const style=document.createElement('style');
     style.id='sound-svaraflow-branding-v5';
     style.textContent=`
-      #soundWorkspace .sound-sf-orb{background:url('/svaraone-orb.png') center/cover no-repeat!important;box-shadow:none!important}
-      #soundWorkspace .sound-sf-avatar.assistant{background:url('/svaraone-orb.png') center/cover no-repeat!important;box-shadow:none!important;color:transparent!important;font-size:0!important;text-indent:-9999px}
+      #soundWorkspace .sound-sf-orb{background:none!important;box-shadow:none!important;width:30px;height:30px;display:block}
+      #soundWorkspace .sound-sf-avatar.assistant{background:none!important;box-shadow:none!important;width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:transparent!important;font-size:0!important;text-indent:-9999px}
+      #soundWorkspace .sound-sf-orb img,
+      #soundWorkspace .sound-sf-avatar.assistant img{width:100%;height:100%;display:block;object-fit:contain;border:0}
     `;
     document.head.appendChild(style);
+  }
+
+  function ensureOrb(container){
+    if(!container)return;
+    let img=container.querySelector(':scope > img.sound-sf-orb-image');
+    if(!img){
+      img=document.createElement('img');
+      img.className='sound-sf-orb-image';
+      img.src='/svaraone-orb.png';
+      img.alt='SvaraONE';
+      img.setAttribute('aria-hidden','true');
+      container.textContent='';
+      container.appendChild(img);
+    }else if(img.getAttribute('src')!=='/svaraone-orb.png'){
+      img.src='/svaraone-orb.png';
+    }
+  }
+
+  function brandElements(){
+    document.querySelectorAll('#soundWorkspace .sound-sf-orb').forEach(ensureOrb);
+    document.querySelectorAll('#soundWorkspace .sound-sf-avatar.assistant').forEach(ensureOrb);
   }
 
   function context(){
@@ -35,7 +58,10 @@
     const row=document.createElement('div');row.className=`sound-sf-message-row ${role}`;
     const avatar=document.createElement('div');avatar.className=`sound-sf-avatar ${role}`;avatar.textContent=role==='assistant'?'S':'You';
     const bubble=document.createElement('div');bubble.className=`sound-sf-message ${role}`;bubble.textContent=message;
-    if(role==='assistant')row.append(avatar,bubble);else row.append(bubble,avatar);
+    if(role==='assistant'){
+      row.append(avatar,bubble);
+      ensureOrb(avatar);
+    }else row.append(bubble,avatar);
     thread.appendChild(row);thread.scrollTop=thread.scrollHeight;return bubble;
   }
 
@@ -134,6 +160,7 @@
   function bind(){
     const r=root();if(!r||r.dataset.soundSfV5AgentBound)return;
     brand();
+    brandElements();
     const button=r.querySelector('#soundAskSvaraFlow');const textarea=r.querySelector('#soundPrompt');const thread=r.querySelector('.sound-sf-thread');const wrap=r.querySelector('.sound-sf-textarea-wrap');
     if(!button||!textarea||!thread||!wrap)return;
     r.dataset.soundSfV5AgentBound='1';
@@ -145,5 +172,8 @@
   }
 
   bind();
-  new MutationObserver(bind).observe(document.documentElement,{childList:true,subtree:true});
+  new MutationObserver(mutations=>{
+    bind();
+    if(mutations.some(m=>m.addedNodes?.length))brandElements();
+  }).observe(document.documentElement,{childList:true,subtree:true});
 })();
