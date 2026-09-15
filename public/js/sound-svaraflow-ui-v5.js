@@ -18,25 +18,17 @@
     document.head.appendChild(style);
   }
 
-  function ensureOrb(container){
-    if(!container)return;
-    let img=container.querySelector(':scope > img.sound-sf-orb-image');
-    if(!img){
-      img=document.createElement('img');
-      img.className='sound-sf-orb-image';
-      img.src='/svaraone-orb.png';
-      img.alt='SvaraONE';
-      img.setAttribute('aria-hidden','true');
-      container.textContent='';
-      container.appendChild(img);
-    }else if(img.getAttribute('src')!=='/svaraone-orb.png'){
-      img.src='/svaraone-orb.png';
-    }
+  function orb(){
+    const img=document.createElement('img');
+    img.src='/svaraone-orb.png';
+    img.alt='SvaraONE';
+    img.setAttribute('aria-hidden','true');
+    return img;
   }
 
-  function brandElements(){
-    document.querySelectorAll('#soundWorkspace .sound-sf-orb').forEach(ensureOrb);
-    document.querySelectorAll('#soundWorkspace .sound-sf-avatar.assistant').forEach(ensureOrb);
+  function mountOrb(target){
+    if(!target)return;
+    if(!target.querySelector('img'))target.replaceChildren(orb());
   }
 
   function context(){
@@ -56,12 +48,10 @@
 
   function addMessage(thread,role,message){
     const row=document.createElement('div');row.className=`sound-sf-message-row ${role}`;
-    const avatar=document.createElement('div');avatar.className=`sound-sf-avatar ${role}`;avatar.textContent=role==='assistant'?'S':'You';
+    const avatar=document.createElement('div');avatar.className=`sound-sf-avatar ${role}`;
+    if(role==='assistant')mountOrb(avatar);else avatar.textContent='You';
     const bubble=document.createElement('div');bubble.className=`sound-sf-message ${role}`;bubble.textContent=message;
-    if(role==='assistant'){
-      row.append(avatar,bubble);
-      ensureOrb(avatar);
-    }else row.append(bubble,avatar);
+    if(role==='assistant')row.append(avatar,bubble);else row.append(bubble,avatar);
     thread.appendChild(row);thread.scrollTop=thread.scrollHeight;return bubble;
   }
 
@@ -160,10 +150,10 @@
   function bind(){
     const r=root();if(!r||r.dataset.soundSfV5AgentBound)return;
     brand();
-    brandElements();
     const button=r.querySelector('#soundAskSvaraFlow');const textarea=r.querySelector('#soundPrompt');const thread=r.querySelector('.sound-sf-thread');const wrap=r.querySelector('.sound-sf-textarea-wrap');
     if(!button||!textarea||!thread||!wrap)return;
     r.dataset.soundSfV5AgentBound='1';
+    mountOrb(r.querySelector('.sound-sf-orb'));
     const ui={button,textarea,thread,wrap,spec:null,messages:[]};
     const interceptClick=event=>{event.preventDefault();event.stopImmediatePropagation();turn(ui)};
     button.addEventListener('click',interceptClick,true);
@@ -172,8 +162,5 @@
   }
 
   bind();
-  new MutationObserver(mutations=>{
-    bind();
-    if(mutations.some(m=>m.addedNodes?.length))brandElements();
-  }).observe(document.documentElement,{childList:true,subtree:true});
+  new MutationObserver(bind).observe(document.documentElement,{childList:true,subtree:true});
 })();
