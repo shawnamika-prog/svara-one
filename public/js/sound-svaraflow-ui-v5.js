@@ -23,9 +23,10 @@
         flex:0 0 30px!important;
         align-items:center!important;
         justify-content:center!important;
-        overflow:visible!important;
+        overflow:hidden!important;
         line-height:0!important;
         border:0!important;
+        border-radius:50%!important;
       }
       #soundWorkspace .sound-sf-avatar.assistant{
         background:none!important;
@@ -40,9 +41,10 @@
         flex:0 0 32px!important;
         align-items:center!important;
         justify-content:center!important;
-        overflow:visible!important;
+        overflow:hidden!important;
         line-height:0!important;
         border:0!important;
+        border-radius:50%!important;
         padding:0!important;
         margin:0!important;
       }
@@ -52,12 +54,11 @@
         height:100%!important;
         min-width:100%!important;
         min-height:100%!important;
-        max-width:100%!important;
-        max-height:100%!important;
+        max-width:none!important;
+        max-height:none!important;
         display:block!important;
-        flex:0 0 auto!important;
-        object-fit:contain!important;
-        object-position:center!important;
+        object-fit:cover!important;
+        object-position:left center!important;
         border:0!important;
         padding:0!important;
         margin:0!important;
@@ -72,13 +73,11 @@
     img.src='/svaraone-orb.png';
     img.alt='SvaraONE';
     img.setAttribute('aria-hidden','true');
-    img.style.cssText='width:100%!important;height:100%!important;min-width:100%!important;min-height:100%!important;max-width:100%!important;max-height:100%!important;display:block!important;object-fit:contain!important;object-position:center!important;border:0!important;padding:0!important;margin:0!important;line-height:0!important;';
     return img;
   }
 
   function mountOrb(target){
     if(!target)return;
-    target.style.cssText+=';width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;max-width:32px!important;max-height:32px!important;display:flex!important;flex:0 0 32px!important;align-items:center!important;justify-content:center!important;overflow:visible!important;padding:0!important;margin:0!important;line-height:0!important;';
     if(!target.querySelector('img'))target.replaceChildren(orb());
   }
 
