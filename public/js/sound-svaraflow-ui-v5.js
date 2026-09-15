@@ -70,7 +70,7 @@
 
   function orb(){
     const img=document.createElement('img');
-    img.src='/svaraone-orb.png';
+    img.src='/svaraone-orb-256.png';
     img.alt='SvaraONE';
     img.setAttribute('aria-hidden','true');
     return img;
