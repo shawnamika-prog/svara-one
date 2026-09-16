@@ -14,6 +14,8 @@
       #soundWorkspace .sound-sf-avatar.assistant{background:none!important;box-shadow:none!important;width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;max-width:32px!important;max-height:32px!important;display:flex!important;flex:0 0 32px!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;position:relative!important;line-height:0!important;border:0!important;border-radius:50%!important;padding:0!important;margin:0!important}
       #soundWorkspace .sound-sf-orb img,#soundWorkspace .sound-sf-avatar.assistant img{position:absolute!important;left:50%!important;top:50%!important;width:auto!important;height:100%!important;min-width:0!important;min-height:100%!important;max-width:none!important;max-height:none!important;display:block!important;object-fit:contain!important;object-position:center center!important;transform:translate(-50%,-50%)!important;border:0!important;padding:0!important;margin:0!important;line-height:0!important}
       #soundWorkspace .sound-sf-textarea-wrap textarea:disabled{cursor:wait!important;opacity:.72!important}
+      #soundWorkspace .sound-sf-textarea-wrap.thinking{background:linear-gradient(120deg,#6b4cff,#bd5cff,#ff8a3d,#5d8cff,#ff9f5a,#6b4cff)!important;background-size:360% 100%!important;animation:soundSfThinkingV5 2.2s linear infinite!important;box-shadow:0 0 0 1px #ff8a3d55,0 0 28px #9b5cff35,0 0 50px #ff8a3d18!important}
+      @keyframes soundSfThinkingV5{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
     `;
     document.head.appendChild(style);
   }
