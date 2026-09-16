@@ -84,7 +84,7 @@ Never treat every follow-up as refinement. Approval language must be recognized 
 
 Provider capabilities are supplied as normalized data. Use them to advise the creator when the requested work is unsupported or needs to be expressed differently. Do not mention provider names, APIs, endpoints, model names, or proprietary provider terminology.
 
-Duration limits are hard constraints, not suggestions. When the supplied capabilities define a minimum or maximum duration for the applicable Sound service, never propose or approve a duration outside that range. If the creator requests a duration above the discovered maximum, do not silently reduce it and do not generate it. Respond clearly with the maximum duration that can be created for that Sound type and invite the creator to choose a duration within the supported range. Likewise, if the creator requests a duration below the discovered minimum, state the minimum supported duration. Example wording: "The maximum duration I can create for this Sound type is 6 minutes. I can create it at 6 minutes or less." Do not mention the provider name.
+Duration limits are hard constraints, not suggestions. When the supplied capabilities define a minimum or maximum duration for the applicable Sound service, never propose or approve a duration outside that range. If the creator requests a duration above the discovered maximum, do not silently reduce it and do not generate it. Tell the creator the maximum duration available for that Sound type and that they can choose a supported duration. Likewise, if the creator requests a duration below the discovered minimum, state the minimum supported duration. Example: "The maximum duration I can create for this Sound type is 6 minutes. I can create it at 6 minutes or less." Do not mention the provider name.
 
 Missing capability data is NOT evidence that a Sound operation is unsupported. Never tell the creator that text-only Sound generation is unavailable merely because capabilities are missing, stale, or could not be loaded. For a valid text-based music, soundtrack, jingle, loop, SFX, or ambience request, continue the creative conversation and approve generation when the creator clearly asks to proceed. Only advise that an operation is unsupported when the supplied capabilities explicitly show that the requested operation/input/type is unsupported.
 
@@ -115,6 +115,16 @@ function modelInput({ message, conversation, currentSpecification, context, capa
     `Creative context:\n${JSON.stringify(context || {})}`,
     `Available normalized adapter capabilities:\n${JSON.stringify(capabilities || { unavailable: true })}`
   ].join("\n\n");
+}
+
+function parseRequestedDurationSeconds(message) {
+  const value = text(message).toLowerCase().replace(/,/g, ".");
+  const match = value.match(/(?:about|around|approximately|roughly|exactly|make\s+(?:it|this)\s+)?(\d+(?:\.\d+)?)\s*(seconds?|secs?|s|minutes?|mins?|m)\b/);
+  if (!match) return null;
+  const amount = Number(match[1]);
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+  const unit = match[2];
+  return /^(seconds?|secs?|s)$/.test(unit) ? amount : amount * 60;
 }
 
 function applicableDurationConstraint(context = {}, capabilities = null) {
@@ -150,10 +160,10 @@ function durationLabel(seconds) {
   return `${value} seconds`;
 }
 
-function durationLimitResponse(context = {}, capabilities = null) {
+function durationLimitResponse(context = {}, capabilities = null, requestedDurationSeconds = null) {
   const constraint = applicableDurationConstraint(context, capabilities);
   if (!constraint) return null;
-  const requested = Number(context.requestedDurationSeconds ?? context.durationSeconds);
+  const requested = Number(requestedDurationSeconds ?? context.durationSeconds);
   if (!Number.isFinite(requested) || requested <= 0) return null;
 
   if (constraint.max !== null && requested > constraint.max) {
@@ -201,10 +211,8 @@ export async function runSvaraFlowSoundAgent(input = {}, env = {}) {
   const message = text(input.message);
   if (!message) throw new Error("Creator message is required");
 
-  const limitResponse = durationLimitResponse({
-    ...(input.context || {}),
-    requestedDurationSeconds: input.context?.requestedDurationSeconds ?? input.context?.durationSeconds
-  }, input.capabilities);
+  const requestedDurationSeconds = parseRequestedDurationSeconds(message);
+  const limitResponse = durationLimitResponse(input.context || {}, input.capabilities, requestedDurationSeconds);
   if (limitResponse) {
     return { action: "clarify", response: limitResponse, specification: null };
   }
@@ -223,10 +231,7 @@ export async function runSvaraFlowSoundAgent(input = {}, env = {}) {
   if (result.action === "approve" && !specification && input.currentSpecification) specification = validateSoundSvaraFlowSpecification(input.currentSpecification, { sourceScript: input.context?.sourceScript || null, sourceAssetId: input.context?.sourceAssetId || null });
 
   const returnedDuration = Number(specification?.constraints?.duration_seconds);
-  const returnedLimitResponse = durationLimitResponse({
-    ...(input.context || {}),
-    requestedDurationSeconds: returnedDuration
-  }, input.capabilities);
+  const returnedLimitResponse = durationLimitResponse(input.context || {}, input.capabilities, Number.isFinite(returnedDuration) && returnedDuration > 0 ? returnedDuration : null);
   if (returnedLimitResponse) {
     return { action: "clarify", response: returnedLimitResponse, specification: null };
   }
