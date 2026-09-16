@@ -62,13 +62,17 @@
         max-width:none!important;
         max-height:none!important;
         display:block!important;
-        object-fit:fill!important;
-        object-position:center!important;
+        object-fit:contain!important;
+        object-position:center center!important;
         transform:translate(-50%,-50%)!important;
         border:0!important;
         padding:0!important;
         margin:0!important;
         line-height:0!important;
+      }
+      #soundWorkspace .sound-sf-textarea-wrap textarea:disabled{
+        cursor:wait!important;
+        opacity:.72!important;
       }
     `;
     document.head.appendChild(style);
@@ -157,7 +161,10 @@
 
   async function approve(ui){
     const ctx=context();
-    ui.wrap.classList.add('thinking');ui.button.disabled=true;ui.button.textContent='Preparing Sound…';
+    ui.wrap.classList.add('thinking');
+    ui.button.disabled=true;
+    ui.textarea.disabled=true;
+    ui.button.textContent='Preparing Sound…';
     try{
       const approvalResponse=await fetch('/api/sound/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({svaraflowAction:'approve',approval:true,currentSpecification:ui.spec,prompt:ctx.prompt,type:ctx.type,format:ctx.format,durationSeconds:ctx.durationSeconds,sourceType:ctx.sourceType,sourceAssetId:ctx.sourceAssetId,parameters:ctx.parameters})});
       const approved=await read(approvalResponse);
@@ -170,17 +177,25 @@
       addMessage(ui.thread,'assistant','Approved. I’m generating the Sound now.');
       const result=await poll(execution.id);showResult(result,ctx,ui.thread);
     }catch(error){addMessage(ui.thread,'assistant',String(error?.message||'Sound generation failed.'))}
-    finally{ui.wrap.classList.remove('thinking');ui.button.disabled=false;ui.button.textContent='Ask SvaraFlow'}
+    finally{
+      ui.wrap.classList.remove('thinking');
+      ui.button.disabled=false;
+      ui.textarea.disabled=false;
+      ui.button.textContent='Ask SvaraFlow';
+    }
   }
 
   async function turn(ui){
     const latest=text(ui.textarea.value);
-    if(!latest){ui.textarea.focus();return;}
+    if(!latest||ui.textarea.disabled){ui.textarea.focus();return;}
     addMessage(ui.thread,'user',latest);
     ui.messages.push({role:'user',content:latest});
     ui.textarea.value='';
     state()?.setInput?.({prompt:latest});
-    ui.wrap.classList.add('thinking');ui.button.disabled=true;ui.button.textContent='SvaraFlow is thinking…';
+    ui.wrap.classList.add('thinking');
+    ui.button.disabled=true;
+    ui.textarea.disabled=true;
+    ui.button.textContent='SvaraFlow is thinking…';
     const ctx={...context(),prompt:latest};
     const payload={svaraflowAction:'agent',message:latest,conversation:ui.messages,currentSpecification:ui.spec,context:ctx};
     try{
@@ -200,7 +215,13 @@
         appendSpec(host,ui.spec);
       }
     }catch(error){addMessage(ui.thread,'assistant',String(error?.message||'SvaraFlow could not respond.'))}
-    finally{ui.wrap.classList.remove('thinking');ui.button.disabled=false;ui.button.textContent='Ask SvaraFlow';ui.textarea.focus()}
+    finally{
+      ui.wrap.classList.remove('thinking');
+      ui.button.disabled=false;
+      ui.textarea.disabled=false;
+      ui.button.textContent='Ask SvaraFlow';
+      ui.textarea.focus();
+    }
   }
 
   function bind(){
