@@ -84,6 +84,8 @@ Never treat every follow-up as refinement. Approval language must be recognized 
 
 Provider capabilities are supplied as normalized data. Use them to advise the creator when the requested work is unsupported or needs to be expressed differently. Do not mention provider names, APIs, endpoints, model names, or proprietary provider terminology.
 
+Duration limits are hard constraints, not suggestions. When the supplied capabilities define a minimum or maximum duration for the applicable Sound service, never propose or approve a duration outside that range. If the creator requests a duration above the discovered maximum, do not silently reduce it and do not generate it. Respond clearly with the maximum duration that can be created for that Sound type and invite the creator to choose a duration within the supported range. Likewise, if the creator requests a duration below the discovered minimum, state the minimum supported duration. Example wording: "The maximum duration I can create for this Sound type is 6 minutes. I can create it at 6 minutes or less." Do not mention the provider name.
+
 Missing capability data is NOT evidence that a Sound operation is unsupported. Never tell the creator that text-only Sound generation is unavailable merely because capabilities are missing, stale, or could not be loaded. For a valid text-based music, soundtrack, jingle, loop, SFX, or ambience request, continue the creative conversation and approve generation when the creator clearly asks to proceed. Only advise that an operation is unsupported when the supplied capabilities explicitly show that the requested operation/input/type is unsupported.
 
 Preserve explicit creator decisions. When refining, change what the feedback requires and preserve compatible choices. Do not drop important creative requirements such as instruments, orchestration, emotional arc, narrative purpose, or ending unless creator changes them.
@@ -113,6 +115,54 @@ function modelInput({ message, conversation, currentSpecification, context, capa
     `Creative context:\n${JSON.stringify(context || {})}`,
     `Available normalized adapter capabilities:\n${JSON.stringify(capabilities || { unavailable: true })}`
   ].join("\n\n");
+}
+
+function applicableDurationConstraint(context = {}, capabilities = null) {
+  const type = text(context.type).toLowerCase();
+  const sourceType = text(context.sourceType || "text").toLowerCase();
+  const services = capabilities?.parameters?.serviceConstraints;
+  if (!services || typeof services !== "object") return null;
+
+  let service = null;
+  if (sourceType === "video") {
+    if (["sfx", "ambience"].includes(type)) service = "video_to_sfx";
+    else if (["music", "soundtrack", "jingle", "loop"].includes(type)) service = "video_to_music";
+  } else if (["text", "voice"].includes(sourceType)) {
+    if (["sfx", "ambience"].includes(type)) service = "text_to_sfx";
+    else if (["music", "soundtrack", "jingle", "loop"].includes(type)) service = "text_to_music";
+  }
+
+  if (!service || !services[service]) return null;
+  const constraint = services[service];
+  const min = Number(constraint.minDurationSeconds);
+  const max = Number(constraint.maxDurationSeconds);
+  return {
+    service,
+    min: Number.isFinite(min) ? min : null,
+    max: Number.isFinite(max) ? max : null
+  };
+}
+
+function durationLabel(seconds) {
+  const value = Number(seconds);
+  if (!Number.isFinite(value) || value < 0) return "";
+  if (value % 60 === 0) return `${value / 60} minute${value === 60 ? "" : "s"}`;
+  return `${value} seconds`;
+}
+
+function durationLimitResponse(context = {}, capabilities = null) {
+  const constraint = applicableDurationConstraint(context, capabilities);
+  if (!constraint) return null;
+  const requested = Number(context.requestedDurationSeconds ?? context.durationSeconds);
+  if (!Number.isFinite(requested) || requested <= 0) return null;
+
+  if (constraint.max !== null && requested > constraint.max) {
+    return `The maximum duration I can create for this Sound type is ${durationLabel(constraint.max)}. I can create it at ${durationLabel(constraint.max)} or less.`;
+  }
+  if (constraint.min !== null && requested < constraint.min) {
+    return `The minimum duration I can create for this Sound type is ${durationLabel(constraint.min)}. I can create it at ${durationLabel(constraint.min)} or longer.`;
+  }
+  return null;
 }
 
 async function callModel(input, env) {
@@ -150,6 +200,15 @@ async function callModel(input, env) {
 export async function runSvaraFlowSoundAgent(input = {}, env = {}) {
   const message = text(input.message);
   if (!message) throw new Error("Creator message is required");
+
+  const limitResponse = durationLimitResponse({
+    ...(input.context || {}),
+    requestedDurationSeconds: input.context?.requestedDurationSeconds ?? input.context?.durationSeconds
+  }, input.capabilities);
+  if (limitResponse) {
+    return { action: "clarify", response: limitResponse, specification: null };
+  }
+
   const result = await callModel(input, env);
   if (!ACTIONS.has(String(result.action))) throw new Error("SvaraFlow Sound agent returned an invalid action");
   if (!text(result.response)) throw new Error("SvaraFlow Sound agent returned no response");
@@ -162,5 +221,15 @@ export async function runSvaraFlowSoundAgent(input = {}, env = {}) {
   }
   if (["propose", "refine"].includes(result.action) && !specification) throw new Error("SvaraFlow Sound agent returned no Sound specification for this action");
   if (result.action === "approve" && !specification && input.currentSpecification) specification = validateSoundSvaraFlowSpecification(input.currentSpecification, { sourceScript: input.context?.sourceScript || null, sourceAssetId: input.context?.sourceAssetId || null });
+
+  const returnedDuration = Number(specification?.constraints?.duration_seconds);
+  const returnedLimitResponse = durationLimitResponse({
+    ...(input.context || {}),
+    requestedDurationSeconds: returnedDuration
+  }, input.capabilities);
+  if (returnedLimitResponse) {
+    return { action: "clarify", response: returnedLimitResponse, specification: null };
+  }
+
   return { action: result.action, response: text(result.response), specification };
 }
