@@ -72,7 +72,7 @@
 
   function appendSpec(box,spec){
     const card=document.createElement('div');card.className='sound-sf-spec';
-    const title=document.createElement('div');title.className='sound-sf-spec-title';title.innerHTML='<span>PROPOSED SOUND DIRECTION</span><span>SVARAFLOW</span>';
+    const title=document.createElement('div');title.className='sound-sf-spec-title';title.innerHTML='<span>PROPOSED SOUND DIRECTION</span><span>SvaraFlow (TM)</span>';
     const grid=document.createElement('div');grid.className='sound-sf-spec-grid';
     specSummary(spec).forEach(([label,value])=>{const line=document.createElement('div');line.className='sound-sf-spec-line';line.innerHTML=`${label} <b>${String(value)}</b>`;grid.appendChild(line)});
     card.appendChild(title);card.appendChild(grid);box.appendChild(card);
@@ -182,6 +182,8 @@
     if(!button||!textarea||!thread||!wrap)return;
     r.dataset.soundSfV5AgentBound='1';
     mountOrb(r.querySelector('.sound-sf-orb'));
+    const topBrand=r.querySelector('.sound-sf-brand');
+    if(topBrand&&topBrand.textContent.trim()==='SVARAFLOW')topBrand.textContent='SvaraFlow (TM)';
     const ui={button,textarea,thread,wrap,spec:null,messages:[]};
     const interceptClick=event=>{event.preventDefault();event.stopImmediatePropagation();turn(ui)};
     button.addEventListener('click',interceptClick,true);
