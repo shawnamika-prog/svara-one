@@ -184,7 +184,7 @@
     r.dataset.soundSfV5AgentBound='1';
     mountOrb(r.querySelector('.sound-sf-orb'));
     const topBrand=r.querySelector('.sound-sf-brand');
-    if(topBrand&&topBrand.textContent.trim()==='SVARAFLOW')topBrand.innerHTML='SvaraFlow<sup class="sf-tm">TM</sup>';
+    if(topBrand&&topBrand.textContent.trim()==='SVARAFLOW')topBrand.innerHTML='<span class="sf-name">SvaraFlow</span><sup class="sf-tm">TM</sup>';
     const ui={button,textarea,thread,wrap,spec:null,messages:[]};
     const interceptClick=event=>{event.preventDefault();event.stopImmediatePropagation();turn(ui)};
     button.addEventListener('click',interceptClick,true);
