@@ -13,47 +13,11 @@
       #soundWorkspace .sound-sf-orb{background:none!important;box-shadow:none!important;width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important;max-width:30px!important;max-height:30px!important;display:flex!important;flex:0 0 30px!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;position:relative!important;line-height:0!important;border:0!important;border-radius:50%!important}
       #soundWorkspace .sound-sf-avatar.assistant{background:none!important;box-shadow:none!important;width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;max-width:32px!important;max-height:32px!important;display:flex!important;flex:0 0 32px!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;position:relative!important;line-height:0!important;border:0!important;border-radius:50%!important;padding:0!important;margin:0!important}
       #soundWorkspace .sound-sf-orb img,#soundWorkspace .sound-sf-avatar.assistant img{position:absolute!important;left:50%!important;top:50%!important;width:auto!important;height:100%!important;min-width:0!important;min-height:100%!important;max-width:none!important;max-height:none!important;display:block!important;object-fit:contain!important;object-position:center center!important;transform:translate(-50%,-50%)!important;border:0!important;padding:0!important;margin:0!important;line-height:0!important}
+      @property --sound-sf-angle-v6{syntax:'<angle>';inherits:false;initial-value:0deg}
+      #soundWorkspace .sound-sf-textarea-wrap.thinking{background:conic-gradient(from var(--sound-sf-angle-v6),#ffffff10 0deg 300deg,#5d70ff 310deg,#8b5cff 320deg,#bd5cff 332deg,#ff8a3d 344deg,#ffb36e 352deg,#ffffff10 360deg)!important;background-size:100% 100%!important;animation:soundSfBorderOrbitV6 1.9s linear infinite!important;box-shadow:0 0 0 1px #8b5cff22,0 0 24px #8b5cff18,0 0 38px #ff8a3d0c!important}
+      #soundWorkspace .sound-sf-textarea-wrap.thinking textarea{position:relative!important;z-index:1!important;border-color:transparent!important;background:#050a14!important}
       #soundWorkspace .sound-sf-textarea-wrap textarea:disabled{cursor:wait!important;opacity:.72!important}
-
-      #soundWorkspace .sound-sf-textarea-wrap.thinking{
-        background:#050a14!important;
-        box-shadow:0 0 22px #8b5cff18,0 0 42px #ff8a3d10!important;
-        overflow:hidden!important;
-      }
-      #soundWorkspace .sound-sf-textarea-wrap.thinking::before{
-        content:"";
-        position:absolute!important;
-        inset:-55%!important;
-        z-index:0!important;
-        background:conic-gradient(from 0deg,
-          transparent 0deg 292deg,
-          #5d70ff 300deg,
-          #8b5cff 310deg,
-          #bd5cff 320deg,
-          #ff8a3d 332deg,
-          #ffb36e 340deg,
-          transparent 350deg 360deg
-        )!important;
-        animation:soundSfPerimeterSpinV5 2.4s linear infinite!important;
-        transform-origin:center center!important;
-      }
-      #soundWorkspace .sound-sf-textarea-wrap.thinking::after{
-        content:"";
-        position:absolute!important;
-        inset:0!important;
-        z-index:0!important;
-        border-radius:inherit!important;
-        box-shadow:inset 0 0 0 1px #ffffff0a!important;
-        pointer-events:none!important;
-      }
-      #soundWorkspace .sound-sf-textarea-wrap.thinking textarea{
-        position:relative!important;
-        z-index:1!important;
-        border-color:transparent!important;
-      }
-      @keyframes soundSfPerimeterSpinV5{
-        to{transform:rotate(360deg)}
-      }
+      @keyframes soundSfBorderOrbitV6{to{--sound-sf-angle-v6:360deg}}
     `;
     document.head.appendChild(style);
   }
@@ -146,16 +110,22 @@
     ui.textarea.disabled=true;
     ui.button.textContent='Preparing Sound…';
     try{
-      const approvalResponse=await fetch('/api/sound/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({svaraflowAction:'approve',approval:true,currentSpecification:ui.spec,prompt:ctx.prompt,type:ctx.type,format:ctx.format,durationSeconds:ctx.durationSeconds,sourceType:ctx.sourceType,sourceAssetId:ctx.sourceAssetId,parameters:ctx.parameters})});
+      const approvedSpec=ui.spec||{};
+      const specDuration=Number(approvedSpec?.constraints?.duration_seconds);
+      const approvedDuration=Number.isFinite(specDuration)&&specDuration>0?specDuration:ctx.durationSeconds;
+      const approvalResponse=await fetch('/api/sound/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({svaraflowAction:'approve',approval:true,currentSpecification:approvedSpec,prompt:ctx.prompt,type:ctx.type,format:ctx.format,durationSeconds:approvedDuration,sourceType:ctx.sourceType,sourceAssetId:ctx.sourceAssetId,parameters:ctx.parameters})});
       const approved=await read(approvalResponse);
       if(!approvalResponse.ok)throw new Error(approved?.error||'Sound approval failed.');
-      const executionResponse=await fetch('/api/sound/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({svaraflowAction:'execute',approval:true,currentSpecification:approved?.specification||ui.spec,prompt:ctx.prompt,type:ctx.type,format:ctx.format,durationSeconds:ctx.durationSeconds,sourceType:ctx.sourceType,sourceAssetId:ctx.sourceAssetId,parameters:ctx.parameters})});
+      const executionSpecification=approved?.specification||approvedSpec;
+      const executionSpecDuration=Number(executionSpecification?.constraints?.duration_seconds);
+      const executionDuration=Number.isFinite(executionSpecDuration)&&executionSpecDuration>0?executionSpecDuration:approvedDuration;
+      const executionResponse=await fetch('/api/sound/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({svaraflowAction:'execute',approval:true,currentSpecification:executionSpecification,prompt:ctx.prompt,type:ctx.type,format:ctx.format,durationSeconds:executionDuration,sourceType:ctx.sourceType,sourceAssetId:ctx.sourceAssetId,parameters:ctx.parameters})});
       const execution=await read(executionResponse);
       if(!executionResponse.ok)throw new Error(execution?.error||'Sound execution failed.');
       if(!execution?.id)throw new Error('Sound execution returned no generation ID.');
       state()?.setUI?.({generationId:execution.id,generationStatus:'processing',isGenerating:true,error:null});
       addMessage(ui.thread,'assistant','Approved. I’m generating the Sound now.');
-      const result=await poll(execution.id);showResult(result,ctx,ui.thread);
+      const result=await poll(execution.id);showResult(result,{...ctx,durationSeconds:executionDuration},ui.thread);
     }catch(error){addMessage(ui.thread,'assistant',String(error?.message||'Sound generation failed.'))}
     finally{
       ui.wrap.classList.remove('thinking');
