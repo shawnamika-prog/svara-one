@@ -10,70 +10,10 @@
     const style=document.createElement('style');
     style.id='sound-svaraflow-branding-v5';
     style.textContent=`
-      #soundWorkspace .sound-sf-orb{
-        background:none!important;
-        box-shadow:none!important;
-        width:30px!important;
-        height:30px!important;
-        min-width:30px!important;
-        min-height:30px!important;
-        max-width:30px!important;
-        max-height:30px!important;
-        display:flex!important;
-        flex:0 0 30px!important;
-        align-items:center!important;
-        justify-content:center!important;
-        overflow:hidden!important;
-        position:relative!important;
-        line-height:0!important;
-        border:0!important;
-        border-radius:50%!important;
-      }
-      #soundWorkspace .sound-sf-avatar.assistant{
-        background:none!important;
-        box-shadow:none!important;
-        width:32px!important;
-        height:32px!important;
-        min-width:32px!important;
-        min-height:32px!important;
-        max-width:32px!important;
-        max-height:32px!important;
-        display:flex!important;
-        flex:0 0 32px!important;
-        align-items:center!important;
-        justify-content:center!important;
-        overflow:hidden!important;
-        position:relative!important;
-        line-height:0!important;
-        border:0!important;
-        border-radius:50%!important;
-        padding:0!important;
-        margin:0!important;
-      }
-      #soundWorkspace .sound-sf-orb img,
-      #soundWorkspace .sound-sf-avatar.assistant img{
-        position:absolute!important;
-        left:50%!important;
-        top:50%!important;
-        width:auto!important;
-        height:100%!important;
-        min-width:0!important;
-        min-height:100%!important;
-        max-width:none!important;
-        max-height:none!important;
-        display:block!important;
-        object-fit:contain!important;
-        object-position:center center!important;
-        transform:translate(-50%,-50%)!important;
-        border:0!important;
-        padding:0!important;
-        margin:0!important;
-        line-height:0!important;
-      }
-      #soundWorkspace .sound-sf-textarea-wrap textarea:disabled{
-        cursor:wait!important;
-        opacity:.72!important;
-      }
+      #soundWorkspace .sound-sf-orb{background:none!important;box-shadow:none!important;width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important;max-width:30px!important;max-height:30px!important;display:flex!important;flex:0 0 30px!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;position:relative!important;line-height:0!important;border:0!important;border-radius:50%!important}
+      #soundWorkspace .sound-sf-avatar.assistant{background:none!important;box-shadow:none!important;width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;max-width:32px!important;max-height:32px!important;display:flex!important;flex:0 0 32px!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;position:relative!important;line-height:0!important;border:0!important;border-radius:50%!important;padding:0!important;margin:0!important}
+      #soundWorkspace .sound-sf-orb img,#soundWorkspace .sound-sf-avatar.assistant img{position:absolute!important;left:50%!important;top:50%!important;width:auto!important;height:100%!important;min-width:0!important;min-height:100%!important;max-width:none!important;max-height:none!important;display:block!important;object-fit:contain!important;object-position:center center!important;transform:translate(-50%,-50%)!important;border:0!important;padding:0!important;margin:0!important;line-height:0!important}
+      #soundWorkspace .sound-sf-textarea-wrap textarea:disabled{cursor:wait!important;opacity:.72!important}
     `;
     document.head.appendChild(style);
   }
