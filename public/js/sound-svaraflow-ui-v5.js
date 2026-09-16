@@ -18,6 +18,7 @@
       #soundWorkspace .sound-sf-textarea-wrap.thinking{position:relative!important;background:#050a14!important;box-shadow:0 0 22px #8b5cff18,0 0 42px #ff8a3d10!important;overflow:hidden!important}
       #soundWorkspace .sound-sf-textarea-wrap.thinking::before{content:"";position:absolute!important;inset:0!important;padding:2px!important;border-radius:inherit!important;pointer-events:none!important;z-index:2!important;background:conic-gradient(from var(--sound-sf-angle-v8),#ffffff10 0deg 300deg,#5d70ff 308deg,#8b5cff 320deg,#bd5cff 332deg,#ff8a3d 344deg,#ffb36e 352deg,#ffffff10 360deg)!important;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0)!important;-webkit-mask-composite:xor!important;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0)!important;mask-composite:exclude!important;animation:soundSfPerimeterV8 2.2s linear infinite!important}
       #soundWorkspace .sound-sf-textarea-wrap.thinking textarea{position:relative!important;z-index:3!important;border-color:transparent!important;background:#050a14!important}
+      #soundWorkspace .sound-sf-brand .sf-tm{font-size:.42em!important;line-height:1!important;vertical-align:super!important;position:relative!important;top:-.05em!important;letter-spacing:0!important;margin-left:1px!important;font-weight:700!important}
       @keyframes soundSfPerimeterV8{to{--sound-sf-angle-v8:360deg}}
     `;
     document.head.appendChild(style);
@@ -72,7 +73,7 @@
 
   function appendSpec(box,spec){
     const card=document.createElement('div');card.className='sound-sf-spec';
-    const title=document.createElement('div');title.className='sound-sf-spec-title';title.innerHTML='<span>PROPOSED SOUND DIRECTION</span><span>SvaraFlow (TM)</span>';
+    const title=document.createElement('div');title.className='sound-sf-spec-title';title.innerHTML='<span>PROPOSED SOUND DIRECTION</span><span>SvaraFlow<sup class="sf-tm">TM</sup></span>';
     const grid=document.createElement('div');grid.className='sound-sf-spec-grid';
     specSummary(spec).forEach(([label,value])=>{const line=document.createElement('div');line.className='sound-sf-spec-line';line.innerHTML=`${label} <b>${String(value)}</b>`;grid.appendChild(line)});
     card.appendChild(title);card.appendChild(grid);box.appendChild(card);
@@ -183,7 +184,7 @@
     r.dataset.soundSfV5AgentBound='1';
     mountOrb(r.querySelector('.sound-sf-orb'));
     const topBrand=r.querySelector('.sound-sf-brand');
-    if(topBrand&&topBrand.textContent.trim()==='SVARAFLOW')topBrand.textContent='SvaraFlow (TM)';
+    if(topBrand&&topBrand.textContent.trim()==='SVARAFLOW')topBrand.innerHTML='SvaraFlow<sup class="sf-tm">TM</sup>';
     const ui={button,textarea,thread,wrap,spec:null,messages:[]};
     const interceptClick=event=>{event.preventDefault();event.stopImmediatePropagation();turn(ui)};
     button.addEventListener('click',interceptClick,true);
