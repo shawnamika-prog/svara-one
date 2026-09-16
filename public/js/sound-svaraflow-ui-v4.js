@@ -17,7 +17,8 @@
       #soundWorkspace.sound-direct-active .sound-adapter-controls{display:block!important}
       #soundWorkspace .sound-sf-shell{display:block}
       #soundWorkspace .sound-sf-mode button{border:1px solid #ffffff14;border-radius:9px;background:#0b1624;color:#aebdd0;padding:7px 10px;font:700 8px Inter;cursor:pointer;text-transform:none;letter-spacing:0}
-      #soundWorkspace .sound-sf-mode button:hover{border-color:#a85cff55;color:#ddc8ef}
+      #soundWorkspace .sound-sf-mode button:hover{border-color:#a85cff88;color:#dec9f5;background:linear-gradient(100deg,#211537,#171127);box-shadow:0 0 18px #8b5cff18}
+      #soundWorkspace .sound-adapter-meta{display:none!important}
       #soundWorkspace .sound-sf-thread{scrollbar-width:thin;scrollbar-color:#7a5aa2 transparent}
       #soundWorkspace .sound-sf-textarea-wrap textarea{scrollbar-width:thin;scrollbar-color:#7a5aa2 #050a14}
       #soundWorkspace .sound-sf-thread::-webkit-scrollbar,#soundWorkspace .sound-sf-textarea-wrap textarea::-webkit-scrollbar{width:7px}
@@ -96,6 +97,11 @@
       adapter.dataset.v4Bound='1';
       adapter.setAttribute('aria-label','Provider-supported controls');
     }
+
+    r.querySelectorAll('.sound-direct-note').forEach(note=>{
+      const text='SvaraFlow disabled. Direct mode enabled';
+      if(note.textContent!==text)note.textContent=text;
+    });
   }
 
   bind();
