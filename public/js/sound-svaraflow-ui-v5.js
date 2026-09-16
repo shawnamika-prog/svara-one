@@ -14,8 +14,46 @@
       #soundWorkspace .sound-sf-avatar.assistant{background:none!important;box-shadow:none!important;width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;max-width:32px!important;max-height:32px!important;display:flex!important;flex:0 0 32px!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;position:relative!important;line-height:0!important;border:0!important;border-radius:50%!important;padding:0!important;margin:0!important}
       #soundWorkspace .sound-sf-orb img,#soundWorkspace .sound-sf-avatar.assistant img{position:absolute!important;left:50%!important;top:50%!important;width:auto!important;height:100%!important;min-width:0!important;min-height:100%!important;max-width:none!important;max-height:none!important;display:block!important;object-fit:contain!important;object-position:center center!important;transform:translate(-50%,-50%)!important;border:0!important;padding:0!important;margin:0!important;line-height:0!important}
       #soundWorkspace .sound-sf-textarea-wrap textarea:disabled{cursor:wait!important;opacity:.72!important}
-      #soundWorkspace .sound-sf-textarea-wrap.thinking{background:linear-gradient(120deg,#6b4cff,#bd5cff,#ff8a3d,#5d8cff,#ff9f5a,#6b4cff)!important;background-size:360% 100%!important;animation:soundSfThinkingV5 2.2s linear infinite!important;box-shadow:0 0 0 1px #ff8a3d55,0 0 28px #9b5cff35,0 0 50px #ff8a3d18!important}
-      @keyframes soundSfThinkingV5{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+
+      #soundWorkspace .sound-sf-textarea-wrap.thinking{
+        background:#050a14!important;
+        box-shadow:0 0 22px #8b5cff18,0 0 42px #ff8a3d10!important;
+        overflow:hidden!important;
+      }
+      #soundWorkspace .sound-sf-textarea-wrap.thinking::before{
+        content:"";
+        position:absolute!important;
+        inset:-55%!important;
+        z-index:0!important;
+        background:conic-gradient(from 0deg,
+          transparent 0deg 292deg,
+          #5d70ff 300deg,
+          #8b5cff 310deg,
+          #bd5cff 320deg,
+          #ff8a3d 332deg,
+          #ffb36e 340deg,
+          transparent 350deg 360deg
+        )!important;
+        animation:soundSfPerimeterSpinV5 2.4s linear infinite!important;
+        transform-origin:center center!important;
+      }
+      #soundWorkspace .sound-sf-textarea-wrap.thinking::after{
+        content:"";
+        position:absolute!important;
+        inset:0!important;
+        z-index:0!important;
+        border-radius:inherit!important;
+        box-shadow:inset 0 0 0 1px #ffffff0a!important;
+        pointer-events:none!important;
+      }
+      #soundWorkspace .sound-sf-textarea-wrap.thinking textarea{
+        position:relative!important;
+        z-index:1!important;
+        border-color:transparent!important;
+      }
+      @keyframes soundSfPerimeterSpinV5{
+        to{transform:rotate(360deg)}
+      }
     `;
     document.head.appendChild(style);
   }
