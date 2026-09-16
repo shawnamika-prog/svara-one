@@ -48,6 +48,18 @@
     soundLegacyUiLock.textContent = '#soundWorkspace .sound-generate,#soundWorkspace .sound-generation-note,#soundWorkspace #soundInspire,#soundWorkspace #soundFlowBadge{display:none!important;}';
     document.head.appendChild(soundLegacyUiLock);
 
+    const soundVisualPatch = document.createElement('style');
+    soundVisualPatch.id = 'svara-sound-visual-patch';
+    soundVisualPatch.textContent = `
+      #soundWorkspace .sound-sf-brand .sf-tm{font-size:0!important;line-height:0!important;position:relative!important;top:-4px!important;margin-left:-9px!important;letter-spacing:0!important;width:auto!important;display:inline-block!important;font-weight:700!important}
+      #soundWorkspace .sound-sf-brand .sf-tm::after{content:"™"!important;font-size:7px!important;line-height:1!important}
+      #soundWorkspace .sound-sf-spec-title .sf-tm{font-size:0!important;line-height:0!important;position:relative!important;top:-3px!important;margin-left:1px!important;letter-spacing:0!important;width:auto!important;display:inline-block!important;font-weight:700!important}
+      #soundWorkspace .sound-sf-spec-title .sf-tm::after{content:"™"!important;font-size:6px!important;line-height:1!important}
+      #soundWorkspace aside a.active[href="#sound"]{background:linear-gradient(100deg,#2a1640,#21142f)!important;color:#c478ff!important;box-shadow:inset 0 0 0 1px #a85cff77!important}
+      #soundWorkspace aside a.active[href="#sound"] svg{color:#c478ff!important;stroke:#c478ff!important}
+    `;
+    document.head.appendChild(soundVisualPatch);
+
     document.addEventListener('click', event => {
       const link = event.target.closest('aside a[href]');
       if (!link) return;
