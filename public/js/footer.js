@@ -51,8 +51,10 @@
     const soundVisualPatch = document.createElement('style');
     soundVisualPatch.id = 'svara-sound-visual-patch';
     soundVisualPatch.textContent = `
-      #soundWorkspace .sound-sf-brand .sf-tm{font-size:.42em!important;line-height:1!important;position:relative!important;top:-4px!important;margin-left:-8px!important;letter-spacing:0!important;width:auto!important;display:inline-block!important;font-weight:700!important}
-      #soundWorkspace .sound-sf-spec-title .sf-tm{font-size:.42em!important;line-height:1!important;position:relative!important;top:-2px!important;margin-left:1px!important;letter-spacing:0!important;width:auto!important;display:inline-block!important;font-weight:700!important}
+      #soundWorkspace .sound-sf-brand{font-size:12px!important;gap:9px!important;}
+      #soundWorkspace .sound-sf-brand .sf-name{display:inline-block!important;line-height:1!important;}
+      #soundWorkspace .sound-sf-brand .sf-tm{font-size:.46em!important;line-height:1!important;vertical-align:super!important;position:static!important;margin-left:2px!important;letter-spacing:0!important;width:auto!important;display:inline!important;font-weight:700!important;}
+      #soundWorkspace .sound-sf-spec-title .sf-tm{font-size:.46em!important;line-height:1!important;vertical-align:super!important;position:static!important;margin-left:2px!important;letter-spacing:0!important;width:auto!important;display:inline!important;font-weight:700!important;}
       aside a.active[href="#sound"]{background:linear-gradient(100deg,#2a1640,#21142f)!important;color:#c478ff!important;box-shadow:inset 0 0 0 1px #a85cff77!important}
       aside a.active[href="#sound"] svg{color:#c478ff!important;stroke:#c478ff!important}
     `;
