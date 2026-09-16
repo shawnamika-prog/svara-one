@@ -238,6 +238,13 @@ export default {
     }
   }
 
+  if(url.pathname==="/api/branding/svaraone-orb.png"&&request.method==="GET"){
+    if(!env.VOICE_SAMPLES) return new Response("Not found",{status:404});
+    const object=await env.VOICE_SAMPLES.get("branding/svaraone-orb.png");
+    if(!object) return new Response("Not found",{status:404});
+    return new Response(object.body,{headers:{"content-type":"image/png","cache-control":"public, max-age=31536000, immutable","etag":object.httpEtag||""}});
+  }
+
   if(env.ASSETS) return env.ASSETS.fetch(request);
   return new Response("Not found",{status:404,headers:cors(request)});
  }
