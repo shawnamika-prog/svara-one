@@ -76,7 +76,7 @@
 
   function orb(){
     const img=document.createElement('img');
-    img.src='/svaraone-orb.png';
+    img.src='/api/branding/svaraone-orb.png';
     img.alt='SvaraONE';
     img.setAttribute('aria-hidden','true');
     return img;
