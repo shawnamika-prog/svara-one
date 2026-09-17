@@ -7,6 +7,7 @@
   const inline=value=>escapeHtml(value)
     .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
     .replace(/__([^_]+?)__/g,'<strong>$1</strong>');
+  const normalizeVoiceIntro=value=>text(value).replace(/SvaraFlow has mapped the current creative direction here:/gi,'I have mapped the current creative direction here:');
 
   function proposalShape(source){
     const lines=text(source).split(/\r?\n/);
@@ -56,7 +57,7 @@
 
   function renderProposal(bubble,source){
     if(!bubble||bubble.dataset.sfProposalPolished==='1')return;
-    const shape=proposalShape(source);
+    const shape=proposalShape(normalizeVoiceIntro(source));
     if(!shape)return;
 
     const prefaceHtml=shape.preface.map(line=>`<p>${inline(line)}</p>`).join('');
