@@ -98,7 +98,7 @@
       #soundWorkspace .sound-sf-direction-content{min-width:0!important}
       #soundWorkspace .sound-sf-direction-title{display:flex!important;align-items:center!important;gap:9px!important;flex-wrap:wrap!important;color:#eef6ff!important;font-size:14px!important;font-weight:700!important;line-height:1.5!important}
       #soundWorkspace .sound-sf-direction-title>span:first-child{min-width:0!important}
-      #soundWorkspace .sound-sf-direction-copy{margin-top:4px!important;color:#aab9c8!important;font-size:13px!important;line-height:1.62!important}
+      #soundWorkspace .sound-sf-direction-copy{margin-top:4px!important;color:#aab9c8!important;font-size:12px!important;line-height:1.62!important}
       #soundWorkspace .sound-sf-direction-content strong{color:#eef6ff!important;font-weight:600!important}
       #soundWorkspace .sound-sf-direction-badge{display:inline-flex!important;align-items:center!important;padding:4px 7px!important;border-radius:999px!important;background:#8b5cff16!important;border:1px solid #8b5cff35!important;color:#caa9ff!important;font-size:8px!important;letter-spacing:.12em!important;font-weight:800!important;white-space:nowrap!important}
       #soundWorkspace .sound-sf-proposal-postface{margin-top:11px!important;padding-top:11px!important;border-top:1px solid #ffffff0d!important}
