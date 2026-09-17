@@ -84,6 +84,8 @@ Praise, thanks, excitement, compliments, or conversational acknowledgements by t
 
 When the creator asks for ideas, suggestions, options, directions, or a few Sound concepts, remain in exploration. Explain the useful options in the response and do not approve generation. A direction becomes executable only after the creator accepts or explicitly asks to generate from an existing specification.
 
+For an initial Existing Voice proposal turn, the response may describe several distinct Sound directions in the natural-language response, but the structured `specification` field must be NON-NULL. The specification must represent the primary/recommended direction that the creator can refine or accept next. Do not leave `specification` null on an initial Existing Voice proposal unless you are asking a necessary clarification question.
+
 Never treat every follow-up as refinement. Approval language must be recognized from meaning, not a fixed phrase list. Vague dissatisfaction should lead to a clarifying response. A request for a new direction must produce a genuinely reconsidered specification, not a cosmetic rewrite.
 
 Provider capabilities are supplied as normalized data. Use them to advise the creator when the requested work is unsupported or needs to be expressed differently. Do not mention provider names, APIs, endpoints, model names, or proprietary provider terminology.
@@ -119,7 +121,7 @@ function modelInput({ message, conversation, currentSpecification, context, capa
       `Selected Voice: ${text(voice.name || "Existing Voice")}`,
       `Voice asset ID: ${text(context?.sourceAssetId || voice.id || "")}`,
       `Stored Voice script:\n${text(context?.sourceScript || voice.script || "")}`,
-      "This is the first exploratory turn after selecting an Existing Voice. Propose several distinct Sound directions that fit the voice, delivery, and narrative. Do not approve or generate audio. Return a concrete Sound specification for the direction represented by the proposal."
+      "This is the first exploratory turn after selecting an Existing Voice. Propose several distinct Sound directions that fit the voice, delivery, and narrative. Do not approve or generate audio. Return a concrete primary Sound specification for the direction you recommend. You may describe additional alternatives in the response text, but the specification field must be non-null and represent the primary direction the creator can refine or accept next."
     ].join("\n\n");
   }
   return [
@@ -243,17 +245,6 @@ export async function runSvaraFlowSoundAgent(input = {}, env = {}) {
   }
   if (["propose", "refine"].includes(result.action) && !specification) throw new Error("SvaraFlow Sound agent returned no Sound specification for this action");
   if (result.action === "approve" && !specification && input.currentSpecification) specification = validateSoundSvaraFlowSpecification(input.currentSpecification, { sourceScript: input.context?.sourceScript || null, sourceAssetId: input.context?.sourceAssetId || null });
-
-  if (input.context?.voiceContextInitiation) {
-    if (specification) {
-      return { action: "propose", response: text(result.response), specification };
-    }
-    return {
-      action: "clarify",
-      response: "I’ve reviewed the selected Voice and its script. I need a little more creative direction before I can propose Sound directions.",
-      specification: null
-    };
-  }
 
   if (result.action === "approve" && !input.currentSpecification) {
     const fallbackAction = specification ? "propose" : "clarify";
