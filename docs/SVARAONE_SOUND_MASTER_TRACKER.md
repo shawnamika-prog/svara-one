@@ -37,7 +37,8 @@
 - **S9:** Foundation complete, **final UI completion still in progress**
 - **S10–S12:** Complete / locked
 - **S13:** **Not started and explicitly blocked until S9 UI completion**
-- **Current main HEAD:** `bb16b6be29c630e6eca70127a8c43ad27499395f` — **current implementation head; not yet a user-confirmed baseline lock**
+- **Current S9 implementation HEAD:** `bb16b6be29c630e6eca70127a8c43ad27499395f` — **source-of-truth implementation head before tracker-only maintenance commits; not yet a user-confirmed baseline lock**
+- **Tracker maintenance commit:** `8343f7be08e8b0892cbf437658aa51086f9d1335`
 - **Previous UI/presentation fix:** `3065473932ce7cfd9969af01ce6027cba7045eb2`
 - **S9 UI foundation baseline:** `033af03330db1a6b853225d3eb91d3b9eb1315b0`
 - **S12 final architecture commit:** `4fc21c803c1ca012126c1ebbfc14e0a954be1ff1`
