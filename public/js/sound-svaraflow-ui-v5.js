@@ -75,7 +75,7 @@
 
   function appendSpec(box,spec){
     const card=document.createElement('div');card.className='sound-sf-spec';
-    const title=document.createElement('div');title.className='sound-sf-spec-title');title.innerHTML='<span>PROPOSED SOUND DIRECTION</span><span>SvaraFlow<sup class="sf-tm">TM</sup></span>';
+    const title=document.createElement('div');title.className='sound-sf-spec-title';title.innerHTML='<span>PROPOSED SOUND DIRECTION</span><span>SvaraFlow<sup class="sf-tm">TM</sup></span>';
     const grid=document.createElement('div');grid.className='sound-sf-spec-grid';
     specSummary(spec).forEach(([label,value])=>{const line=document.createElement('div');line.className='sound-sf-spec-line';line.innerHTML=`${label} <b>${String(value)}</b>`;grid.appendChild(line)});
     card.appendChild(title);card.appendChild(grid);box.appendChild(card);
