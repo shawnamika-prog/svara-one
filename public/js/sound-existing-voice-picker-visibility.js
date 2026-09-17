@@ -16,6 +16,7 @@
   function bind(){
     const r=root();
     if(!r||r.dataset.soundExistingVoicePickerVisibilityBound)return false;
+    if(!r.querySelector('.sound-source-picker-trigger'))return false;
     r.dataset.soundExistingVoicePickerVisibilityBound='1';
     r.addEventListener('click',event=>{
       if(event.target.closest('.sound-source-tab'))queueMicrotask(sync);
