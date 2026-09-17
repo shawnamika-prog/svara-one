@@ -56,6 +56,15 @@
     };
   }
 
+  function setConversationAvailability(ui){
+    const s=state()?.getState?.()||{};
+    const sourceType=text(s.input?.sourceType||'text');
+    const sourceAssetId=text(s.input?.sourceAssetId||'');
+    const ready=sourceType!=='voice'||!!sourceAssetId;
+    if(ui.textarea){ui.textarea.disabled=!ready;ui.textarea.placeholder=ready?'Tell SvaraFlow what you want to create…':'Select an existing voice to get started';}
+    if(ui.button)ui.button.disabled=!ready;
+  }
+
   function addMessage(thread,role,message){
     const row=document.createElement('div');row.className=`sound-sf-message-row ${role}`;
     const avatar=document.createElement('div');avatar.className=`sound-sf-avatar ${role}`;
@@ -212,9 +221,10 @@
     ui.voiceContextStarted=false;
     ui.voiceContextVoiceId=null;
     ui.thread?.replaceChildren();
-    if(ui.textarea){ui.textarea.value='';ui.textarea.disabled=false;}
-    if(ui.button){ui.button.disabled=false;ui.button.textContent='Ask SvaraFlow';}
+    if(ui.textarea){ui.textarea.value='';}
+    if(ui.button){ui.button.textContent='Ask SvaraFlow';}
     ui.wrap?.classList.remove('thinking');
+    setConversationAvailability(ui);
   }
 
   async function startVoiceContextConversation(ui,voice){
@@ -289,6 +299,7 @@
       const sourceType=String(event.detail?.sourceType||'');
       if(sourceType==='text'||sourceType==='voice')resetConversation(ui);
     });
+    setConversationAvailability(ui);
   }
 
   bind();
