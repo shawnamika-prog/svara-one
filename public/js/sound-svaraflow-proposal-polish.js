@@ -90,7 +90,7 @@
     style.textContent=`
       #soundWorkspace .sound-sf-thread{height:540px!important;max-height:64vh!important}
       #soundWorkspace .sound-sf-message.assistant.sound-sf-proposal-message{max-width:720px!important;background:linear-gradient(180deg,#0d1928,#0a1523)!important;border:1px solid #ffffff0d!important;border-radius:18px!important;box-shadow:0 12px 30px #0002!important;padding:17px 20px!important;line-height:1.62!important}
-      #soundWorkspace .sound-sf-proposal-content>p{margin:0 0 12px!important;color:#aebdcc!important;font-size:14px!important;line-height:1.62!important}
+      #soundWorkspace .sound-sf-proposal-content>p{margin:0 0 12px!important;color:#aebdcc!important;font-size:12px!important;line-height:1.62!important}
       #soundWorkspace .sound-sf-direction-list{margin-top:4px!important}
       #soundWorkspace .sound-sf-direction{display:grid!important;grid-template-columns:28px minmax(0,1fr)!important;gap:11px!important;padding:13px 0!important;border-top:1px solid #ffffff0d!important}
       #soundWorkspace .sound-sf-direction:first-child{border-top:0!important;padding-top:9px!important}
