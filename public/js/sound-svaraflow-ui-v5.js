@@ -178,6 +178,44 @@
     }
   }
 
+  async function startVoiceContextConversation(ui){
+    if(!ui||ui.textarea.disabled||ui.voiceContextStarted)return false;
+    const ctxBase=context();
+    const voiceName=text(ctxBase.voiceContext?.name||'selected Voice');
+    const latest=`Review the selected ${voiceName} voiceover and its stored script. Propose several distinct Sound directions that fit the voice, delivery, and narrative. Do not approve or generate audio; this is an exploratory proposal only.`;
+    ui.voiceContextStarted=true;
+    ui.wrap.classList.add('thinking');
+    ui.button.disabled=true;
+    ui.textarea.disabled=true;
+    ui.button.textContent='SvaraFlow is thinking…';
+    const payload={svaraflowAction:'agent',message:latest,conversation:ui.messages,currentSpecification:null,context:{...ctxBase,prompt:'',voiceContextInitiation:true,executionAllowed:false}};
+    try{
+      const response=await fetch('/api/sound/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+      const data=await read(response);
+      if(!response.ok)throw new Error(data?.error||`SvaraFlow request failed (${response.status})`);
+      const reply=text(data?.response);
+      if(reply){addMessage(ui.thread,'assistant',reply);ui.messages.push({role:'assistant',content:reply});}
+      if(data?.specification){
+        ui.spec=data.specification;
+        const host=addMessage(ui.thread,'assistant','SvaraFlow has mapped the current creative direction here:');
+        appendSpec(host,ui.spec);
+      }else if(String(data?.action||'')==='approve'){
+        addMessage(ui.thread,'assistant','I’ll keep this exploratory for now. Choose or refine a Sound direction before we generate anything.');
+      }else if(!reply){
+        throw new Error('SvaraFlow returned no Sound directions.');
+      }
+    }catch(error){
+      ui.voiceContextStarted=false;
+      addMessage(ui.thread,'assistant',String(error?.message||'SvaraFlow could not respond.'));
+    }finally{
+      ui.wrap.classList.remove('thinking');
+      ui.button.disabled=false;
+      ui.textarea.disabled=false;
+      ui.button.textContent='Ask SvaraFlow';
+    }
+    return true;
+  }
+
   function bind(){
     const r=root();if(!r||r.dataset.soundSfV5AgentBound)return;
     brand();
@@ -187,11 +225,11 @@
     mountOrb(r.querySelector('.sound-sf-orb'));
     const topBrand=r.querySelector('.sound-sf-brand');
     if(topBrand&&topBrand.textContent.trim()==='SVARAFLOW')topBrand.innerHTML='<span class="sf-name">SvaraFlow</span><sup class="sf-tm">TM</sup>';
-    const ui={button,textarea,thread,wrap,spec:null,messages:[]};
+    const ui={button,textarea,thread,wrap,spec:null,messages:[],voiceContextStarted:false};
     const interceptClick=event=>{event.preventDefault();event.stopImmediatePropagation();turn(ui)};
     button.addEventListener('click',interceptClick,true);
     textarea.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();event.stopImmediatePropagation();turn(ui)}},true);
-    window.SvaraSoundSvaraFlowUIV5={bind,ui};
+    window.SvaraSoundSvaraFlowUIV5={bind,ui,startVoiceContextConversation};
   }
 
   bind();
