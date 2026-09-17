@@ -33,18 +33,34 @@
     r.querySelectorAll('.sound-section,.sound-advanced,.sound-generate,.sound-generation-note,#soundFlowBadge,#soundInspire').forEach(node=>node.classList.add('sound-sf-legacy-hidden'));
   }
 
-  function dedupeModeButtons(r,keep){
-    const buttons=[...r.querySelectorAll('button')].filter(button=>/switch to direct mode/i.test(button.textContent||''));
-    buttons.forEach(button=>{if(button!==keep)button.remove()});
+  function isExistingVoice(r){
+    const active=[...r.querySelectorAll('.sound-source-tabs .sound-source-tab')].find(tab=>tab.classList.contains('active'));
+    return Boolean(active&&/existing voice/i.test(active.textContent||''));
   }
 
   function setDirectMode(r,enabled){
+    if(isExistingVoice(r))enabled=false;
     r.classList.toggle('sound-direct-active',enabled);
     r.querySelector('.sound-direct')?.classList.toggle('active',enabled);
     r.querySelector('.sound-direct-mode')?.classList.toggle('active',enabled);
     const button=r.querySelector('.sound-sf-mode button');
     if(button)button.textContent=enabled?'Return to SvaraFlow':'Switch to Direct Mode';
     if(enabled)r.querySelector('.sound-adapter-controls')?.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+
+  function syncModeAvailability(r){
+    const mode= r.querySelector('.sound-sf-mode');
+    if(!mode)return;
+    const existing=isExistingVoice(r);
+    const button=mode.querySelector('button');
+    if(existing){
+      if(r.classList.contains('sound-direct-active'))setDirectMode(r,false);
+      mode.style.display='none';
+      if(button)button.setAttribute('aria-hidden','true');
+    }else{
+      mode.style.display='';
+      if(button){button.removeAttribute('aria-hidden');button.textContent=r.classList.contains('sound-direct-active')?'Return to SvaraFlow':'Switch to Direct Mode';}
+    }
   }
 
   function bind(){
@@ -92,7 +108,8 @@
       },true);
     }
 
-    r.classList.toggle('sound-direct-active',r.classList.contains('sound-direct-active'));
+    syncModeAvailability(r);
+    r.classList.toggle('sound-direct-active',r.classList.contains('sound-direct-active')&&!isExistingVoice(r));
     const adapter=r.querySelector('.sound-adapter-controls');
     if(adapter&&!adapter.dataset.v4Bound){
       adapter.dataset.v4Bound='1';
@@ -103,6 +120,11 @@
       const text='SvaraFlow disabled. Direct mode enabled';
       if(note.textContent!==text)note.textContent=text;
     });
+  }
+
+  function dedupeModeButtons(r,keep){
+    const buttons=[...r.querySelectorAll('button')].filter(button=>/switch to direct mode/i.test(button.textContent||''));
+    buttons.forEach(button=>{if(button!==keep)button.remove()});
   }
 
   bind();
