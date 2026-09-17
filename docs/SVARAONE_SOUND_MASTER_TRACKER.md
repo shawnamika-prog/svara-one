@@ -16,7 +16,7 @@
 | **S6** | Sound D1 | Sound database | 🟢 | **Yes** | Sound generation/input/parameter/composition persistence | D1 supports lifecycle |
 | **S7** | Sound inputs | `sound_generation_inputs` | 🟢 | **Yes** | Text/assets/Voice/etc. inputs | Inputs persisted/passed through |
 | **S8** | Sound parameters | Creative parameters | 🟢 | **Yes** | Mood, style, energy, texture, tempo, intensity, complexity, vocals, language, negative/provider-specific parameters | Creative intent represented provider-independently |
-| **S9** | Sound Studio UI | Frontend workspace | 🟠 | **Yes — foundation complete; UI completion still required** | Complete conversational SvaraFlow Sound Studio UI, Direct Mode, capability-driven adapter controls, interaction polish, and end-to-end generation UX | Sound Studio UI is fully complete and reliable end-to-end |
+| **S9** | Sound Studio UI | Frontend workspace | 🟠 | **Yes — foundation complete; UI completion still required** | Complete conversational SvaraFlow Sound Studio UI, Direct Mode, capability-driven adapter controls, Existing Voice library workflow, voice/script context, interaction polish, and end-to-end generation UX | Sound Studio UI is fully complete and reliable end-to-end |
 | **S10** | Output playback | Audio player | 🟢 | **Yes** | Waveform, playback, volume, output controls | User previews Sound |
 | **S11** | Existing Voice → Sound | Cross-domain workflow | 🟢 | **Yes** | Existing Voice as Sound input | Voice drives Sound creation |
 | **S12** | SvaraFlow Sound | Intelligence/orchestration | 🟢 | **Yes** | Understand content/intent, map to Sound specification/provider capabilities | SvaraFlow prepares Sound requests |
@@ -37,23 +37,54 @@
 - **S9:** Foundation complete, **UI completion still in progress**
 - **S10–S12:** Complete / locked
 - **S13:** **Not started and explicitly blocked until S9 UI completion**
-- **Current UI/backend baseline:** `814b499ca1a2bc6b21418a629890a48107287941`
+- **Current Sound Studio UI baseline:** `033af03330db1a6b853225d3eb91d3b9eb1315b0`
 - **S12 final architecture commit:** `4fc21c803c1ca012126c1ebbfc14e0a954be1ff1`
 - **S6 D1 compatibility audit:** PASS against live Cloudflare D1 schema supplied on 2026-09-13
 - **Next work:** Complete and verify the Sound Studio UI before beginning S13.
 
 ## Current S9 / UI direction
 
+### 1. Existing Voice selection
+
+- Existing Voice is a Sound source backed by a Voice Library asset.
+- The current single dropdown is not the target long-term interaction.
+- Selecting Existing Voice should open a compact **Voice Library picker** rather than exposing the entire library as a flat `<select>`.
+- The picker should support the user's custom folder organization, search, and clear Voice selection.
+- The selected Voice remains represented by `sourceType` and `sourceAssetId` and becomes the active Sound input.
+
+### 2. Selected Voice presentation
+
+- After selection, show the selected Voice in the Sound workspace as the active source.
+- Keep the existing Voice waveform/playback presentation as the foundation.
+- Clean up styling and hierarchy without changing the established playback behavior.
+- The UI should make it obvious which Voice is currently driving the Sound workflow.
+
+### 3. Voice script as SvaraFlow context
+
+- When an Existing Voice is brought into Sound, its associated voice script/content should become structured context for SvaraFlow.
+- The script is **not merely another free-form Sound prompt**; it is context describing what the generated Sound is supporting.
+- SvaraFlow should receive the selected Voice asset context, voice metadata where available, and the associated script/content before collaborating on Sound direction.
+- The creator's conversational messages remain separate from the Voice/script context.
+
+### 4. Conversational Sound collaboration
+
+- After the Voice and script context are available, SvaraFlow should naturally establish the context and invite the creator into collaboration.
+- The creator can ask SvaraFlow to suggest Sound that fits the voiceover, refine directions, change creative intent, and continue iterating conversationally.
+- The approved Sound specification remains the execution source for generation.
+- The proposed Sound Direction card remains informational only; refinement and approval continue conversationally.
+- Conversational approval must trigger generation only when the creator clearly intends to proceed.
+- Conversational praise, thanks, or acknowledgement must not trigger a new generation.
+
+### S9 interaction and reliability constraints
+
 - SvaraFlow is the default Sound interaction.
 - Direct Mode is the escape hatch and does not disable SvaraONE.
 - Provider/adapter-specific controls appear only in Direct Mode.
 - Adapter controls are driven by normalized cached capabilities.
 - SvaraFlow remains the agentic creative collaborator and uses OpenAI for semantic conversation/orchestration.
-- The proposed Sound Direction card is informational only; refinement and approval continue conversationally.
-- Conversational approval must trigger generation only when the creator clearly intends to proceed.
-- Conversational praise, thanks, or acknowledgement must not trigger a new generation.
 - Missing or stale capability data must not be treated as proof that a valid Sound operation is unsupported.
 - Configured provider execution remains the final authority for actual provider operation support.
+- UI changes must preserve the stable S9 interaction architecture and must not introduce DOM MutationObserver loops or other main-thread hangs.
 
 ## Rule
 
