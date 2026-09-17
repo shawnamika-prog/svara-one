@@ -84,7 +84,7 @@ Praise, thanks, excitement, compliments, or conversational acknowledgements by t
 
 When the creator asks for ideas, suggestions, options, directions, or a few Sound concepts, remain in exploration. Explain the useful options in the response and do not approve generation. A direction becomes executable only after the creator accepts or explicitly asks to generate from an existing specification.
 
-For an initial Existing Voice proposal turn, the response may describe several distinct Sound directions in the natural-language response, but the structured `specification` field must be NON-NULL. The specification must represent the primary/recommended direction that the creator can refine or accept next. Do not leave `specification` null on an initial Existing Voice proposal unless you are asking a necessary clarification question.
+For an initial Existing Voice proposal turn, the response may describe several distinct Sound directions in the natural-language response, but the structured specification field must be NON-NULL. The specification must represent the primary/recommended direction that the creator can refine or accept next. Do not leave specification null on an initial Existing Voice proposal unless you are asking a necessary clarification question.
 
 Never treat every follow-up as refinement. Approval language must be recognized from meaning, not a fixed phrase list. Vague dissatisfaction should lead to a clarifying response. A request for a new direction must produce a genuinely reconsidered specification, not a cosmetic rewrite.
 
@@ -224,9 +224,15 @@ export async function runSvaraFlowSoundAgent(input = {}, env = {}) {
   }
   if (["propose", "refine"].includes(result.action) && !specification) throw new Error("SvaraFlow Sound agent returned no Sound specification for this action");
   if (result.action === "approve" && !specification && input.currentSpecification) specification = validateSoundSvaraFlowSpecification(input.currentSpecification, { sourceScript: input.context?.sourceScript || null, sourceAssetId: input.context?.sourceAssetId || null });
+  if (input.context?.voiceContextInitiation) {
+    if (!specification) return { action: "clarify", response: "I’m still in exploration. I need a little more information before I can propose a Sound direction.", specification: null };
+    return { action: "propose", response: text(result.response), specification };
+  }
   if (result.action === "approve" && !input.currentSpecification) {
     const fallbackAction = specification ? "propose" : "clarify";
-    const fallbackResponse = fallbackAction === "propose" ? "Here is a Sound direction to explore for this Voice. Review it and tell me what you want to keep, change, or generate." : "I can explore Sound ideas for this Voice first. Tell me what direction you want to consider, or ask me for a few options.";
+    const fallbackResponse = fallbackAction === "propose"
+      ? "Here is a Sound direction to explore for this Voice. Review it and tell me what you want to keep, change, or generate."
+      : "I can explore Sound ideas for this Voice first. Tell me what direction you want to consider, or ask me for a few options.";
     return { action: fallbackAction, response: text(result.response) || fallbackResponse, specification };
   }
   const returnedDuration = Number(specification?.constraints?.duration_seconds);
