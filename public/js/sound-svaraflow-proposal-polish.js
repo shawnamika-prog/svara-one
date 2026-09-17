@@ -60,7 +60,11 @@
     const shape=proposalShape(normalizeVoiceIntro(source));
     if(!shape)return;
 
-    const prefaceHtml=shape.preface.map(line=>`<p>${inline(line)}</p>`).join('');
+    const prefaceHtml=shape.preface.map(line=>{
+      const rendered=inline(line);
+      const boldLead=rendered.replace(/^(Recommended direction:)/i,'<strong>$1</strong>');
+      return `<p>${boldLead}</p>`;
+    }).join('');
     const directionHtml=shape.directions.map(item=>{
       const recommended=/\s[—-]\s*recommended\s*:?\s*$/i.test(item.title);
       const title=item.title.replace(/\s[—-]\s*recommended\s*:?\s*$/i,'').trim();
