@@ -21,7 +21,6 @@
       .sound-source-head strong{font-size:10px;color:#dbe6f2;letter-spacing:.08em}.sound-source-head span{font-size:8px;color:#687b91}
       .sound-source-tabs{display:flex;gap:6px;margin-bottom:9px}.sound-source-tab{flex:1;border:1px solid #ffffff0d;border-radius:8px;background:#07101b;color:#8092a7;padding:8px;font:700 9px Inter;cursor:pointer}.sound-source-tab.active{color:#e0bdff;background:#28163d;border-color:#a85cff66}
       .sound-source-select{width:100%;border:1px solid #ffffff0d;border-radius:9px;background:#0b1524;color:#dbe7f3;padding:9px;font:600 10px Inter;outline:none}.sound-source-select:focus{border-color:#a75cff77}
-      .sound-source-detail{display:none;margin-top:8px;padding:9px;border-radius:9px;background:#060b14;border:1px solid #ffffff0a}.sound-source-detail.show{display:block}.sound-source-detail strong{display:block;color:#cbd8e5;font-size:10px}.sound-source-detail small{display:block;margin-top:3px;color:#62758c;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .sound-source-output{margin-bottom:14px;padding:13px;border:1px solid #a85cff2e;border-radius:14px;background:linear-gradient(145deg,#111326,#0b1120);box-shadow:inset 0 0 26px #9c5cff08}.sound-source-output[hidden]{display:none}.sound-source-output-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}.sound-source-output-head strong{font-size:11px}.sound-source-output-head span{font-size:8px;color:#8f6bb5}.sound-source-wave{height:82px;border:1px solid #ffffff0a;border-radius:10px;background:#060a14;overflow:hidden}.sound-source-wave canvas{display:block;width:100%;height:100%}.sound-source-player{display:flex;align-items:center;gap:10px;margin-top:10px}.sound-source-play{width:35px;height:35px;flex:none;border:0;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#6975ff,#bd59ff);color:#fff;cursor:pointer}.sound-source-play span{width:0;height:0;border-top:5px solid transparent;border-bottom:5px solid transparent;border-left:8px solid #fff;margin-left:2px}.sound-source-play:disabled{opacity:.5;cursor:wait}.sound-source-time{display:flex;justify-content:space-between;gap:8px;flex:1;color:#71839a;font-size:8px}.sound-source-time strong{color:#c4d1de;font-size:9px}.sound-source-volume{display:flex;align-items:center;gap:5px;color:#667990;font-size:7px}.sound-source-volume input{width:70px}
     `;
     document.head.appendChild(css);
@@ -108,11 +107,10 @@
   }
 
   function updateDetail(select){
-    const box=root()?.querySelector('.sound-source-detail');if(!box)return;
-    const value=select?.value||'';selected=voices.find(v=>String(v.id)===value)||null;
-    box.classList.toggle('show',Boolean(selected));
-    box.innerHTML=selected?`<strong>${esc(selected.voiceName||'Voice')}</strong><small>${esc(selected.filename||'')} · ${esc(time(selected.durationSeconds))}</small>`:'';
-    setInput();renderSourceOutput();
+    const value=select?.value||'';
+    selected=voices.find(v=>String(v.id)===value)||null;
+    setInput();
+    renderSourceOutput();
   }
 
   async function loadVoices(select){
@@ -129,10 +127,10 @@
   function bind(){
     const r=root();if(!r||r.dataset.soundVoiceInputBound)return;r.dataset.soundVoiceInputBound='1';style();
     const promptWrap=r.querySelector('.sound-prompt');if(!promptWrap)return;
-    const source=document.createElement('section');source.className='sound-source';source.innerHTML='<div class="sound-source-head"><strong>SOUND SOURCE</strong><span>Use text or an existing Voice</span></div><div class="sound-source-tabs"><button type="button" class="sound-source-tab active" data-source="text">Text</button><button type="button" class="sound-source-tab" data-source="voice">Existing Voice</button></div><select class="sound-source-select" aria-label="Existing Voice" hidden><option value="">Choose an existing Voice…</option></select><div class="sound-source-detail"></div>';
+    const source=document.createElement('section');source.className='sound-source';source.innerHTML='<div class="sound-source-head"><strong>SOUND SOURCE</strong><span>Use text or an existing Voice</span></div><div class="sound-source-tabs"><button type="button" class="sound-source-tab active" data-source="text">Text</button><button type="button" class="sound-source-tab" data-source="voice">Existing Voice</button></div><select class="sound-source-select" aria-label="Existing Voice" hidden><option value="">Choose an existing Voice…</option></select>';
     promptWrap.insertAdjacentElement('beforebegin',source);
     const tabs=[...source.querySelectorAll('.sound-source-tab')],select=source.querySelector('.sound-source-select');
-    tabs.forEach(tab=>tab.addEventListener('click',()=>{const voice=tab.dataset.source==='voice';tabs.forEach(t=>t.classList.toggle('active',t===tab));select.hidden=!voice;if(!voice){selected=null;setInput();renderSourceOutput();source.querySelector('.sound-source-detail').classList.remove('show');source.querySelector('.sound-source-detail').innerHTML=''}else loadVoices(select)}));
+    tabs.forEach(tab=>tab.addEventListener('click',()=>{const voice=tab.dataset.source==='voice';tabs.forEach(t=>t.classList.toggle('active',t===tab));select.hidden=!voice;if(!voice){selected=null;setInput();renderSourceOutput()}else loadVoices(select)}));
     select.addEventListener('change',()=>updateDetail(select));
     loadVoices(select);
   }
