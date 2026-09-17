@@ -37,12 +37,62 @@
 - **S9:** Foundation complete, **final UI completion still in progress**
 - **S10–S12:** Complete / locked
 - **S13:** **Not started and explicitly blocked until S9 UI completion**
-- **Current main HEAD:** `e84e31b2e3f402a67702733020a326cc7ee0c737`
+- **Current main HEAD:** `bb16b6be29c630e6eca70127a8c43ad27499395f` — **current implementation head; not yet a user-confirmed baseline lock**
 - **Previous UI/presentation fix:** `3065473932ce7cfd9969af01ce6027cba7045eb2`
 - **S9 UI foundation baseline:** `033af03330db1a6b853225d3eb91d3b9eb1315b0`
 - **S12 final architecture commit:** `4fc21c803c1ca012126c1ebbfc14e0a954be1ff1`
 - **S6 D1 compatibility audit:** PASS against live Cloudflare D1 schema supplied on 2026-09-13
-- **Next work:** Finish the remaining S9 UI fixes, manually verify, then begin S13 only after explicit confirmation that the Sound Studio UI is complete.
+- **Next work:** S9 Increment 1 — make the Generated Sound waveform genuinely audio-reactive, then manually verify before proceeding to the next increment.
+
+## S9 Incremental Work Plan
+
+The remaining S9 UI work is deliberately split into small, independently testable increments. **One increment is implemented and pushed to `main`, then the user tests it. Only an explicit PASS/lock makes that commit the next confirmed baseline.**
+
+### Increment 1 — Generated Sound waveform: real audio reactivity
+
+**Scope — only the Generated Sound player waveform.**
+
+- Keep the existing waveform dimensions, bar count, visual styling, progress indicator, controls, and player layout unchanged.
+- Keep the existing decoded-audio/static waveform generation unchanged.
+- Keep the existing `AnalyserNode` playback path.
+- Remove the artificial time-based `sin()` pulse currently added to live bar height.
+- Drive live waveform bar movement from the actual analyser data only.
+- Do not change generation, backend, Cloudflare, D1/R2, provider routing, credits, SvaraFlow conversation logic, or Existing Voice behavior.
+- Do not change volume controls in this increment; that is Increment 3.
+
+**Expected result:**
+
+- When a Generated Sound is playing, waveform movement corresponds to the actual audio signal.
+- When audio is quiet, the waveform becomes correspondingly quiet rather than continuing an independent rhythmic pulse.
+- Different sections of audio produce visibly different live waveform activity.
+- Pausing/stopping playback stops the live reactive movement.
+- Existing progress/playback behavior remains intact.
+
+**Manual test:**
+
+1. Generate/open a Generated Sound that contains audible variation.
+2. Press Play.
+3. Watch the waveform while listening to the audio.
+4. Confirm movement follows actual audio activity rather than a repeating independent pulse.
+5. Pause and confirm the live movement stops.
+6. Resume and confirm live reactivity resumes.
+7. Confirm no unrelated S9 behavior changed.
+
+**Lock rule:** If the test passes, explicitly lock the resulting commit and update this tracker with that confirmed baseline SHA before starting Increment 2.
+
+### Increment 2 — Existing Voice waveform: real audio reactivity
+
+- Connect Existing Voice playback to a real Web Audio analyser.
+- Derive live waveform movement from the actual voice signal.
+- Preserve current Voice selection, script context, SvaraFlow, playback controls, and visual design.
+- No backend changes.
+
+### Increment 3 — Volume percentage + control consistency
+
+- Add a live percentage readout to Generated Sound volume.
+- Add a live percentage readout to Existing Voice volume.
+- Make the two volume controls visually consistent while preserving current responsive/mobile behavior.
+- Keep audio level and displayed percentage synchronized.
 
 ## Current S9 / UI direction
 
@@ -108,8 +158,10 @@
 - Existing Voice picker: `public/js/sound-existing-voice-picker.js`
 - Existing Voice context card: `public/js/sound-svaraflow-voice-context.js`
 - Direct Mode / adapter UI hardening: `public/js/sound-svaraflow-ui-v4.js`
+- Generated Sound playback/waveform implementation: `public/js/sound-output-player.js`
+- Existing Voice input/waveform implementation: `public/js/sound-voice-input.js`
 - Sound workspace shell/layout is created by `public/js/studio-landing.js`
-- Do not redesign the S9 interaction architecture while fixing the two remaining UI issues.
+- Do not redesign the S9 interaction architecture while fixing the remaining UI issues.
 
 ## Rule
 
