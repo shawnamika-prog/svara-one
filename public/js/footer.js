@@ -33,6 +33,11 @@
     existingVoicePickerScript.defer = false;
     document.head.appendChild(existingVoicePickerScript);
 
+    const existingVoicePickerVisibilityScript = document.createElement('script');
+    existingVoicePickerVisibilityScript.src = 'js/sound-existing-voice-picker-visibility.js';
+    existingVoicePickerVisibilityScript.defer = false;
+    document.head.appendChild(existingVoicePickerVisibilityScript);
+
     const soundSvaraFlowScript = document.createElement('script');
     soundSvaraFlowScript.src = 'js/sound-svaraflow-ui-v3.js';
     soundSvaraFlowScript.defer = false;
