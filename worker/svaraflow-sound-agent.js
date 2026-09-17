@@ -116,11 +116,12 @@ function compactConversation(conversation) {
 function modelInput({ message, conversation, currentSpecification, context, capabilities }) {
   if (context?.voiceContextInitiation) {
     const voice = context?.voiceContext || {};
+    const script = text(context?.sourceScript || voice.script || "").slice(0, 2400);
     return [
-      `Initial Existing Voice proposal request: ${text(message)}`,
+      `Initial Existing Voice proposal request: ${text(message).slice(0, 600)}`,
       `Selected Voice: ${text(voice.name || "Existing Voice")}`,
       `Voice asset ID: ${text(context?.sourceAssetId || voice.id || "")}`,
-      `Stored Voice script:\n${text(context?.sourceScript || voice.script || "")}`,
+      `Stored Voice script:\n${script}`,
       "This is the first exploratory turn after selecting an Existing Voice. Propose several distinct Sound directions that fit the voice, delivery, and narrative. Do not approve or generate audio. Return a concrete primary Sound specification for the direction you recommend. You may describe additional alternatives in the response text, but the specification field must be non-null and represent the primary direction the creator can refine or accept next."
     ].join("\n\n");
   }
@@ -148,7 +149,6 @@ function applicableDurationConstraint(context = {}, capabilities = null) {
   const sourceType = text(context.sourceType || "text").toLowerCase();
   const services = capabilities?.parameters?.serviceConstraints;
   if (!services || typeof services !== "object") return null;
-
   let service = null;
   if (sourceType === "video") {
     if (["sfx", "ambience"].includes(type)) service = "video_to_sfx";
@@ -157,40 +157,27 @@ function applicableDurationConstraint(context = {}, capabilities = null) {
     if (["sfx", "ambience"].includes(type)) service = "text_to_sfx";
     else if (["music", "soundtrack", "jingle", "loop"].includes(type)) service = "text_to_music";
   }
-
   if (!service || !services[service]) return null;
   const constraint = services[service];
   const min = Number(constraint.minDurationSeconds);
   const max = Number(constraint.maxDurationSeconds);
-  return {
-    service,
-    min: Number.isFinite(min) ? min : null,
-    max: Number.isFinite(max) ? max : null
-  };
+  return { service, min: Number.isFinite(min) ? min : null, max: Number.isFinite(max) ? max : null };
 }
-
 function durationLabel(seconds) {
   const value = Number(seconds);
   if (!Number.isFinite(value) || value < 0) return "";
   if (value % 60 === 0) return `${value / 60} minute${value === 60 ? "" : "s"}`;
   return `${value} seconds`;
 }
-
 function durationLimitResponse(context = {}, capabilities = null, requestedDurationSeconds = null) {
   const constraint = applicableDurationConstraint(context, capabilities);
   if (!constraint) return null;
   const requested = Number(requestedDurationSeconds ?? context.durationSeconds);
   if (!Number.isFinite(requested) || requested <= 0) return null;
-
-  if (constraint.max !== null && requested > constraint.max) {
-    return `The maximum duration I can create for this Sound type is ${durationLabel(constraint.max)}. I can create it at ${durationLabel(constraint.max)} or less.`;
-  }
-  if (constraint.min !== null && requested < constraint.min) {
-    return `The minimum duration I can create for this Sound type is ${durationLabel(constraint.min)}. I can create it at ${durationLabel(constraint.min)} or longer.`;
-  }
+  if (constraint.max !== null && requested > constraint.max) return `The maximum duration I can create for this Sound type is ${durationLabel(constraint.max)}. I can create it at ${durationLabel(constraint.max)} or less.`;
+  if (constraint.min !== null && requested < constraint.min) return `The minimum duration I can create for this Sound type is ${durationLabel(constraint.min)}. I can create it at ${durationLabel(constraint.min)} or longer.`;
   return null;
 }
-
 async function callModel(input, env) {
   const apiKey = text(env.OPENAI_API_KEY);
   if (!apiKey) throw new Error("SvaraFlow provider is not configured");
@@ -222,43 +209,28 @@ async function callModel(input, env) {
     throw error;
   } finally { clearTimeout(timeout); }
 }
-
 export async function runSvaraFlowSoundAgent(input = {}, env = {}) {
   const message = text(input.message);
   if (!message) throw new Error("Creator message is required");
-
   const requestedDurationSeconds = parseRequestedDurationSeconds(message);
   const limitResponse = durationLimitResponse(input.context || {}, input.capabilities, requestedDurationSeconds);
-  if (limitResponse) {
-    return { action: "clarify", response: limitResponse, specification: null };
-  }
-
+  if (limitResponse) return { action: "clarify", response: limitResponse, specification: null };
   const result = await callModel(input, env);
   if (!ACTIONS.has(String(result.action))) throw new Error("SvaraFlow Sound agent returned an invalid action");
   if (!text(result.response)) throw new Error("SvaraFlow Sound agent returned no response");
   let specification = null;
   if (result.specification) {
-    specification = validateSoundSvaraFlowSpecification(result.specification, {
-      sourceScript: input.context?.sourceScript || null,
-      sourceAssetId: input.context?.sourceAssetId || null
-    });
+    specification = validateSoundSvaraFlowSpecification(result.specification, { sourceScript: input.context?.sourceScript || null, sourceAssetId: input.context?.sourceAssetId || null });
   }
   if (["propose", "refine"].includes(result.action) && !specification) throw new Error("SvaraFlow Sound agent returned no Sound specification for this action");
   if (result.action === "approve" && !specification && input.currentSpecification) specification = validateSoundSvaraFlowSpecification(input.currentSpecification, { sourceScript: input.context?.sourceScript || null, sourceAssetId: input.context?.sourceAssetId || null });
-
   if (result.action === "approve" && !input.currentSpecification) {
     const fallbackAction = specification ? "propose" : "clarify";
-    const fallbackResponse = fallbackAction === "propose"
-      ? "Here is a Sound direction to explore for this Voice. Review it and tell me what you want to keep, change, or generate."
-      : "I can explore Sound ideas for this Voice first. Tell me what direction you want to consider, or ask me for a few options.";
+    const fallbackResponse = fallbackAction === "propose" ? "Here is a Sound direction to explore for this Voice. Review it and tell me what you want to keep, change, or generate." : "I can explore Sound ideas for this Voice first. Tell me what direction you want to consider, or ask me for a few options.";
     return { action: fallbackAction, response: text(result.response) || fallbackResponse, specification };
   }
-
   const returnedDuration = Number(specification?.constraints?.duration_seconds);
   const returnedLimitResponse = durationLimitResponse(input.context || {}, input.capabilities, Number.isFinite(returnedDuration) && returnedDuration > 0 ? returnedDuration : null);
-  if (returnedLimitResponse) {
-    return { action: "clarify", response: returnedLimitResponse, specification: null };
-  }
-
+  if (returnedLimitResponse) return { action: "clarify", response: returnedLimitResponse, specification: null };
   return { action: result.action, response: text(result.response), specification };
 }
