@@ -1,6 +1,7 @@
 (()=>{
   if(window.SvaraSoundSvaraFlowUIV4)return;
   const root=()=>document.getElementById('soundWorkspace');
+  const state=()=>window.SvaraSoundStudio;
 
   function styles(){
     if(document.getElementById('sound-svaraflow-ui-v4-styles'))return;
@@ -45,6 +46,17 @@
     const button=r.querySelector('.sound-sf-mode button');
     if(button)button.textContent=enabled?'Return to SvaraFlow':'Switch to Direct Mode';
     if(enabled)r.querySelector('.sound-adapter-controls')?.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+
+  function syncSourceAvailability(r){
+    const mode=r.querySelector('.sound-sf-mode');
+    if(!mode)return;
+    const button=mode.querySelector('button');
+    if(!button)return;
+    const input=state()?.getState?.().input||{};
+    const existingVoice=String(input.sourceType||'').toLowerCase()==='voice';
+    button.hidden=existingVoice;
+    if(existingVoice&&r.classList.contains('sound-direct-active'))setDirectMode(r,false);
   }
 
   function bind(){
@@ -103,9 +115,14 @@
       const text='SvaraFlow disabled. Direct mode enabled';
       if(note.textContent!==text)note.textContent=text;
     });
+    syncSourceAvailability(r);
   }
 
   bind();
+  window.addEventListener('svara:sound-state-change',()=>{
+    const r=root();
+    if(r)syncSourceAvailability(r);
+  });
   new MutationObserver(bind).observe(document.documentElement,{childList:true,subtree:true});
   window.SvaraSoundSvaraFlowUIV4={bind,setDirectMode};
 })();
