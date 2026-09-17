@@ -117,7 +117,6 @@
     nodes.forEach(node=>{
       const source=node.textContent||'';
       const normalized=normalizeVoiceIntro(source);
-      if(normalized!==source&&!node.dataset.sfProposalPolished&&!node.dataset.sfMarkdownPolished)node.textContent=normalized;
       renderProposal(node,normalized);
       renderMarkdown(node,normalized);
     });
