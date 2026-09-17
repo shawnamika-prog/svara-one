@@ -7,6 +7,10 @@
   let sourceAudio=null;
   let sourceCanvas=null;
   let sourceAnimation=0;
+  let sourceAudioContext=null;
+  let sourceAnalyser=null;
+  let sourceMediaSource=null;
+  let sourceAnalyserData=null;
 
   const esc=value=>String(value??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
   const time=value=>{const s=Math.max(0,Number(value)||0),m=Math.floor(s/60),sec=Math.floor(s%60).toString().padStart(2,'0');return `${m}:${sec}`};
@@ -50,8 +54,8 @@
     return `/api/generations/media?filename=${encodeURIComponent(selected.filename)}`;
   }
 
-  function drawSource(){
-    if(!sourceCanvas)return;
+  function prepareSourceCanvas(){
+    if(!sourceCanvas)return null;
     const ctx=sourceCanvas.getContext('2d');
     const rect=sourceCanvas.getBoundingClientRect();
     const dpr=window.devicePixelRatio||1;
@@ -59,9 +63,24 @@
     const height=Math.max(60,Math.floor(rect.height||82));
     if(sourceCanvas.width!==width*dpr||sourceCanvas.height!==height*dpr){sourceCanvas.width=width*dpr;sourceCanvas.height=height*dpr;sourceCanvas.style.width='100%';sourceCanvas.style.height='100%'}
     ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,width,height);
-    const bars=70;const progress=sourceAudio&&Number.isFinite(sourceAudio.duration)&&sourceAudio.duration>0?sourceAudio.currentTime/sourceAudio.duration:0;
+    return {ctx,width,height};
+  }
+
+  function drawSource(){
+    const prepared=prepareSourceCanvas();
+    if(!prepared)return;
+    const {ctx,width,height}=prepared;
+    const bars=70;
+    const progress=sourceAudio&&Number.isFinite(sourceAudio.duration)&&sourceAudio.duration>0?sourceAudio.currentTime/sourceAudio.duration:0;
+    if(sourceAnalyser&&sourceAnalyserData)sourceAnalyser.getByteFrequencyData(sourceAnalyserData);
     for(let i=0;i<bars;i++){
-      const x=i*(width/bars)+1;const base=.18+(((i*29)%71)/100)*.62;const live=sourceAudio&&!sourceAudio.paused?Math.sin(performance.now()/180+i*.43)*.08:0;const h=Math.max(5,base*(height-16)*(1+live));const y=(height-h)/2;
+      const x=i*(width/bars)+1;
+      const base=.18+(((i*29)%71)/100)*.62;
+      const freqIndex=Math.min((sourceAnalyserData?.length||1)-1,Math.floor((i/bars)*(sourceAnalyserData?.length||1)));
+      const live=sourceAnalyserData?.length?sourceAnalyserData[freqIndex]/255:0;
+      const pulse=.78+live*.72;
+      const h=Math.max(5,Math.min(height-10,base*(height-16)*pulse));
+      const y=(height-h)/2;
       ctx.globalAlpha=x<progress*width?.96:.42;ctx.fillStyle=x<progress*width?'#d36cff':'#5377ff';ctx.beginPath();ctx.roundRect(x,y,Math.max(2,width/bars-2),h,2);ctx.fill();
     }
     ctx.globalAlpha=1;ctx.fillStyle='#fff';ctx.globalAlpha=.9;ctx.fillRect(Math.max(0,Math.min(width-1,progress*width)),7,1,height-14);ctx.globalAlpha=1;
@@ -85,9 +104,37 @@
     console.warn('svara_sound_voice_preview_error');
   }
 
+  function cleanupSourceAudio(){
+    if(sourceAudio){sourceAudio.pause();sourceAudio.remove();sourceAudio=null;}
+    if(sourceAnimation){cancelAnimationFrame(sourceAnimation);sourceAnimation=0}
+    if(sourceMediaSource){try{sourceMediaSource.disconnect()}catch{}sourceMediaSource=null}
+    if(sourceAnalyser){try{sourceAnalyser.disconnect()}catch{}sourceAnalyser=null}
+    sourceAnalyserData=null;
+    if(sourceAudioContext){sourceAudioContext.close().catch(()=>{});sourceAudioContext=null}
+  }
+
+  function ensureSourceAnalyser(){
+    if(!sourceAudio||sourceAnalyser)return;
+    const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+    if(!AudioContextClass)return;
+    try{
+      sourceAudioContext=new AudioContextClass();
+      sourceAnalyser=sourceAudioContext.createAnalyser();
+      sourceAnalyser.fftSize=256;
+      sourceAnalyser.smoothingTimeConstant=.72;
+      sourceAnalyserData=new Uint8Array(sourceAnalyser.frequencyBinCount);
+      sourceMediaSource=sourceAudioContext.createMediaElementSource(sourceAudio);
+      sourceMediaSource.connect(sourceAnalyser);
+      sourceAnalyser.connect(sourceAudioContext.destination);
+    }catch(error){
+      console.warn('svara_sound_voice_live_visualizer_failed',error);
+      sourceAnalyser=null;sourceAnalyserData=null;sourceMediaSource=null;
+    }
+  }
+
   function wireSourceAudio(){
     if(!selected)return;
-    if(sourceAudio){sourceAudio.pause();sourceAudio.remove();sourceAudio=null;}
+    cleanupSourceAudio();
     const url=voiceAssetUrl();
     if(!url){showSourceError();return}
     sourceAudio=new Audio(url);
@@ -96,7 +143,7 @@
     sourceAudio.setAttribute('aria-hidden','true');
     sourceAudio.addEventListener('loadedmetadata',updateSourceTransport);
     sourceAudio.addEventListener('timeupdate',updateSourceTransport);
-    sourceAudio.addEventListener('play',()=>{const b=outputBody()?.querySelector('.sound-source-play');if(b)b.innerHTML='<span style="width:7px;height:11px;border:0;border-left:3px solid #fff;border-right:3px solid #fff"></span>';if(!sourceAnimation)sourceAnimation=requestAnimationFrame(visualise)});
+    sourceAudio.addEventListener('play',async()=>{ensureSourceAnalyser();if(sourceAudioContext?.state==='suspended')await sourceAudioContext.resume().catch(()=>{});const b=outputBody()?.querySelector('.sound-source-play');if(b)b.innerHTML='<span style="width:7px;height:11px;border:0;border-left:3px solid #fff;border-right:3px solid #fff"></span>';if(!sourceAnimation)sourceAnimation=requestAnimationFrame(visualise)});
     sourceAudio.addEventListener('pause',()=>{const b=outputBody()?.querySelector('.sound-source-play');if(b)b.innerHTML='<span></span>';if(sourceAnimation){cancelAnimationFrame(sourceAnimation);sourceAnimation=0}drawSource()});
     sourceAudio.addEventListener('ended',()=>{sourceAudio.currentTime=0;updateSourceTransport()});
     sourceAudio.addEventListener('error',showSourceError);
@@ -106,7 +153,7 @@
   function renderSourceOutput(){
     const body=outputBody();if(!body)return;
     let box=body.querySelector('.sound-source-output');
-    if(!selected){if(box)box.remove();return}
+    if(!selected){if(box)box.remove();cleanupSourceAudio();return}
     if(!box){box=document.createElement('section');box.className='sound-source-output';body.insertBefore(box,body.firstChild)}
     box.innerHTML=`<div class="sound-source-output-head"><strong>Existing Voice</strong><span>${esc(selected.voiceName||'Voice')} · ${time(selected.durationSeconds)}</span></div><div class="sound-source-wave"><canvas></canvas></div><div class="sound-source-player"><button type="button" class="sound-source-play" aria-label="Play Existing Voice"><span></span></button><div class="sound-source-time"><strong class="sound-source-now">0:00</strong><span class="sound-source-duration">${time(selected.durationSeconds)}</span></div><label class="sound-source-volume">VOL <input type="range" min="0" max="100" value="100" aria-label="Existing Voice volume"></label></div>`;
     sourceCanvas=box.querySelector('canvas');
@@ -146,7 +193,7 @@
     loadVoices(select);
   }
 
-  function cleanup(){if(!sourceAudio)return;sourceAudio.pause();sourceAudio.remove();sourceAudio=null;if(sourceAnimation){cancelAnimationFrame(sourceAnimation);sourceAnimation=0}}
+  function cleanup(){cleanupSourceAudio();sourceCanvas=null}
 
   window.addEventListener('svara:sound-state-change',event=>{const s=event.detail;if(s?.input?.sourceType!=='voice'&&selected){selected=null;renderSourceOutput()}});
   window.SvaraSoundVoiceInput={bind,cleanup};
