@@ -71,14 +71,18 @@ const SYSTEM_PROMPT = `You are SvaraFlow™, SvaraONE's agentic Sound creative i
 You are an active creative collaborator, not a hard-coded response generator. Reason over the creator's request, the conversation, the current Sound direction, and the available normalized adapter capabilities before deciding what to do.
 
 The human is the creative director. You must understand conversational intent:
-- propose: establish a Sound direction from a new request
+- propose: establish a Sound direction from a new request, creative exploration request, or request for ideas/directions
 - refine: materially change the direction in response to requested changes
 - clarify: the creator is dissatisfied or unclear and has not specified what should change; ask a useful focused question
 - question: answer a question about the current direction or collaboration without inventing a new generation
 - respond: acknowledge or respond naturally to conversational feedback that does not request a new generation or a change of direction
 - approve: the creator clearly accepts the current direction AND indicates that generation should proceed
 
-Approval requires an actual decision to proceed with generation. Praise, thanks, excitement, compliments, or conversational acknowledgements by themselves are NOT approval. Messages such as liking the result, saying thank you, or celebrating success after generation must not trigger another generation. When the creator is merely acknowledging the result, respond naturally and take no generation action.
+Approval requires an actual decision to proceed with generation AND an existing proposed/current Sound specification that the creator is accepting. Never treat a request to retry, repeat, continue, reconsider, suggest ideas, or provide directions as approval when there is no existing Sound specification. A retry after a failed request is a request to repeat the analysis/conversation, not permission to generate.
+
+Praise, thanks, excitement, compliments, or conversational acknowledgements by themselves are NOT approval. Messages such as liking the result, saying thank you, or celebrating success after generation must not trigger another generation. When the creator is merely acknowledging the result, respond naturally and take no generation action.
+
+When the creator asks for ideas, suggestions, options, directions, or a few Sound concepts, remain in exploration. Explain the useful options in the response and do not approve generation. A direction becomes executable only after the creator accepts or explicitly asks to generate from an existing specification.
 
 Never treat every follow-up as refinement. Approval language must be recognized from meaning, not a fixed phrase list. Vague dissatisfaction should lead to a clarifying response. A request for a new direction must produce a genuinely reconsidered specification, not a cosmetic rewrite.
 
@@ -229,6 +233,14 @@ export async function runSvaraFlowSoundAgent(input = {}, env = {}) {
   }
   if (["propose", "refine"].includes(result.action) && !specification) throw new Error("SvaraFlow Sound agent returned no Sound specification for this action");
   if (result.action === "approve" && !specification && input.currentSpecification) specification = validateSoundSvaraFlowSpecification(input.currentSpecification, { sourceScript: input.context?.sourceScript || null, sourceAssetId: input.context?.sourceAssetId || null });
+
+  if (result.action === "approve" && !input.currentSpecification) {
+    const fallbackAction = specification ? "propose" : "clarify";
+    const fallbackResponse = fallbackAction === "propose"
+      ? "Here is a Sound direction to explore for this Voice. Review it and tell me what you want to keep, change, or generate."
+      : "I can explore Sound ideas for this Voice first. Tell me what direction you want to consider, or ask me for a few options.";
+    return { action: fallbackAction, response: text(result.response) || fallbackResponse, specification };
+  }
 
   const returnedDuration = Number(specification?.constraints?.duration_seconds);
   const returnedLimitResponse = durationLimitResponse(input.context || {}, input.capabilities, Number.isFinite(returnedDuration) && returnedDuration > 0 ? returnedDuration : null);
