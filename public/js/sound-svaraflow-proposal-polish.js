@@ -26,7 +26,7 @@
 
     for(const rawLine of lines){
       const line=rawLine.trim();
-      const match=line.match(/^\s*(\d+)[.)]\s+\*\*(.+?)\*\*\s*:?[ \t]*(.*)$/);
+      const match=line.match(/^\s*(\d+)[.)]\s+\*\*(.+?)\*\*\s*:?\s*(.*)$/);
       if(match){
         flush();
         afterDirections=false;
@@ -62,8 +62,8 @@
 
     const prefaceHtml=shape.preface.map(line=>`<p>${inline(line)}</p>`).join('');
     const directionHtml=shape.directions.map(item=>{
-      const recommended=/\s[—-]\s*recommended\s*$/i.test(item.title);
-      const title=item.title.replace(/\s[—-]\s*recommended\s*$/i,'').trim();
+      const recommended=/\s[—-]\s*recommended\s*:?\s*$/i.test(item.title);
+      const title=item.title.replace(/\s[—-]\s*recommended\s*:?\s*$/i,'').trim();
       const badge=recommended?'<span class="sound-sf-direction-badge">RECOMMENDED</span>':'';
       const body=item.body?`<div class="sound-sf-direction-copy">${inline(item.body)}</div>`:'';
       return `<article class="sound-sf-direction"><div class="sound-sf-direction-index">${escapeHtml(item.number)}</div><div class="sound-sf-direction-content"><div class="sound-sf-direction-title"><span>${escapeHtml(title)}</span>${badge}</div>${body}</div></article>`;
@@ -88,6 +88,7 @@
     const style=document.createElement('style');
     style.id='sound-svaraflow-proposal-polish';
     style.textContent=`
+      #soundWorkspace .sound-sf-thread{height:540px!important;max-height:64vh!important}
       #soundWorkspace .sound-sf-message.assistant.sound-sf-proposal-message{max-width:720px!important;background:linear-gradient(180deg,#0d1928,#0a1523)!important;border:1px solid #ffffff0d!important;border-radius:18px!important;box-shadow:0 12px 30px #0002!important;padding:17px 20px!important;line-height:1.62!important}
       #soundWorkspace .sound-sf-proposal-content>p{margin:0 0 12px!important;color:#aebdcc!important;font-size:14px!important;line-height:1.62!important}
       #soundWorkspace .sound-sf-direction-list{margin-top:4px!important}
@@ -103,7 +104,8 @@
       #soundWorkspace .sound-sf-proposal-postface{margin-top:11px!important;padding-top:11px!important;border-top:1px solid #ffffff0d!important}
       #soundWorkspace .sound-sf-proposal-postface p{margin:0 0 7px!important;color:#9cadbd!important;font-size:12px!important;line-height:1.58!important}
       #soundWorkspace .sound-sf-markdown-message{white-space:pre-wrap!important}
-      @media(max-width:700px){#soundWorkspace .sound-sf-message.assistant.sound-sf-proposal-message{max-width:100%!important;padding:15px 16px!important}#soundWorkspace .sound-sf-proposal-content>p{font-size:13px!important}#soundWorkspace .sound-sf-direction-title{font-size:13px!important}#soundWorkspace .sound-sf-direction-copy{font-size:12px!important}}
+      @media(max-width:760px){#soundWorkspace .sound-sf-thread{height:330px!important;max-height:52vh!important}#soundWorkspace .sound-sf-message.assistant.sound-sf-proposal-message{max-width:100%!important;padding:15px 16px!important}#soundWorkspace .sound-sf-proposal-content>p{font-size:13px!important}#soundWorkspace .sound-sf-direction-title{font-size:13px!important}#soundWorkspace .sound-sf-direction-copy{font-size:12px!important}}
+      @media(max-width:560px){#soundWorkspace .sound-sf-thread{height:300px!important;max-height:52vh!important}}
     `;
     document.head.appendChild(style);
   }
@@ -114,8 +116,10 @@
     root.querySelectorAll?.('.sound-sf-message.assistant').forEach(node=>nodes.push(node));
     nodes.forEach(node=>{
       const source=node.textContent||'';
-      renderProposal(node,source);
-      renderMarkdown(node,source);
+      const normalized=normalizeVoiceIntro(source);
+      if(normalized!==source&&!node.dataset.sfProposalPolished&&!node.dataset.sfMarkdownPolished)node.textContent=normalized;
+      renderProposal(node,normalized);
+      renderMarkdown(node,normalized);
     });
   }
 
