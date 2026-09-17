@@ -61,10 +61,22 @@
     }
   }
 
+  function boldRecommendedDirectionLead(){
+    root()?.querySelectorAll('.sound-sf-message.assistant').forEach(bubble=>{
+      if(bubble.dataset.sfRecommendedLeadPolished==='1')return;
+      const source=String(bubble.textContent||'').trim();
+      if(!/^Recommended direction:/i.test(source))return;
+      const safe=esc(source).replace(/^(Recommended direction:)/i,'<strong>$1</strong>');
+      bubble.innerHTML=safe.replace(/\r?\n/g,'<br>');
+      bubble.dataset.sfRecommendedLeadPolished='1';
+    });
+  }
+
   function syncFromState(){
     const input=state()?.getState?.().input||{};
     const voice=input.sourceType==='voice'?input.sourceVoiceContext:null;
     if(voice?.id&&text(voice.script))render(voice,{autoStart:false});else remove();
+    boldRecommendedDirectionLead();
   }
 
   function bind(){
@@ -76,11 +88,15 @@
     window.addEventListener('svara:sound-voice-context-ready',event=>{
       const voice=event.detail||{};
       if(voice?.id&&text(voice.script))render(voice,{autoStart:true});else remove();
+      boldRecommendedDirectionLead();
     });
     window.addEventListener('svara:sound-state-change',event=>{
       const input=event.detail?.input||{};
       if(input.sourceType==='voice'&&input.sourceVoiceContext?.id&&text(input.sourceVoiceContext.script))render(input.sourceVoiceContext,{autoStart:false});else if(input.sourceType!=='voice')remove();
+      boldRecommendedDirectionLead();
     });
+    const observer=new MutationObserver(()=>boldRecommendedDirectionLead());
+    observer.observe(r,{childList:true,subtree:true});
     syncFromState();
     return true;
   }
