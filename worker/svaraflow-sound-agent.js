@@ -112,6 +112,16 @@ function compactConversation(conversation) {
   return (Array.isArray(conversation) ? conversation : []).slice(-MAX_TURNS).map(turn => ({ role: turn?.role === "assistant" ? "assistant" : "user", content: text(turn?.content).slice(0, 4000) })).filter(turn => turn.content);
 }
 function modelInput({ message, conversation, currentSpecification, context, capabilities }) {
+  if (context?.voiceContextInitiation) {
+    const voice = context?.voiceContext || {};
+    return [
+      `Initial Existing Voice proposal request: ${text(message)}`,
+      `Selected Voice: ${text(voice.name || "Existing Voice")}`,
+      `Voice asset ID: ${text(context?.sourceAssetId || voice.id || "")}`,
+      `Stored Voice script:\n${text(context?.sourceScript || voice.script || "")}`,
+      "This is the first exploratory turn after selecting an Existing Voice. Propose several distinct Sound directions that fit the voice, delivery, and narrative. Do not approve or generate audio. Return a concrete Sound specification for the direction represented by the proposal."
+    ].join("\n\n");
+  }
   return [
     `Latest creator message: ${text(message)}`,
     `Conversation:\n${JSON.stringify(compactConversation(conversation))}`,
@@ -233,6 +243,17 @@ export async function runSvaraFlowSoundAgent(input = {}, env = {}) {
   }
   if (["propose", "refine"].includes(result.action) && !specification) throw new Error("SvaraFlow Sound agent returned no Sound specification for this action");
   if (result.action === "approve" && !specification && input.currentSpecification) specification = validateSoundSvaraFlowSpecification(input.currentSpecification, { sourceScript: input.context?.sourceScript || null, sourceAssetId: input.context?.sourceAssetId || null });
+
+  if (input.context?.voiceContextInitiation) {
+    if (specification) {
+      return { action: "propose", response: text(result.response), specification };
+    }
+    return {
+      action: "clarify",
+      response: "I’ve reviewed the selected Voice and its script. I need a little more creative direction before I can propose Sound directions.",
+      specification: null
+    };
+  }
 
   if (result.action === "approve" && !input.currentSpecification) {
     const fallbackAction = specification ? "propose" : "clarify";
