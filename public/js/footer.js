@@ -28,6 +28,11 @@
     voiceInputScript.defer = false;
     document.head.appendChild(voiceInputScript);
 
+    const existingVoicePickerScript = document.createElement('script');
+    existingVoicePickerScript.src = 'js/sound-existing-voice-picker.js';
+    existingVoicePickerScript.defer = false;
+    document.head.appendChild(existingVoicePickerScript);
+
     const soundSvaraFlowScript = document.createElement('script');
     soundSvaraFlowScript.src = 'js/sound-svaraflow-ui-v3.js';
     soundSvaraFlowScript.defer = false;
