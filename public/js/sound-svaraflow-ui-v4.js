@@ -1,7 +1,6 @@
 (()=>{
   if(window.SvaraSoundSvaraFlowUIV4)return;
   const root=()=>document.getElementById('soundWorkspace');
-  const state=()=>window.SvaraSoundStudio;
 
   function styles(){
     if(document.getElementById('sound-svaraflow-ui-v4-styles'))return;
@@ -53,8 +52,8 @@
     if(!mode)return;
     const button=mode.querySelector('button');
     if(!button)return;
-    const input=state()?.getState?.().input||{};
-    const existingVoice=String(input.sourceType||'').toLowerCase()==='voice';
+    const voiceTab=r.querySelector('.sound-source-tab.active[data-source="voice"]');
+    const existingVoice=!!voiceTab;
     button.hidden=existingVoice;
     if(existingVoice&&r.classList.contains('sound-direct-active'))setDirectMode(r,false);
   }
@@ -119,7 +118,7 @@
   }
 
   bind();
-  window.addEventListener('svara:sound-state-change',()=>{
+  window.addEventListener('svara:sound-source-change',()=>{
     const r=root();
     if(r)syncSourceAvailability(r);
   });
