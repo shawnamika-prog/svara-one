@@ -4,6 +4,8 @@
   const read=async response=>response.json().catch(()=>null);
   const text=value=>String(value??'').trim();
   const state=()=>window.SvaraSoundStudio;
+  let conversationGeneration=0;
+  let activeController=null;
 
   function brand(){
     if(document.getElementById('sound-svaraflow-branding-v5'))return;
@@ -81,12 +83,15 @@
     card.appendChild(title);card.appendChild(grid);box.appendChild(card);
   }
 
-  async function poll(id){
+  async function poll(id,generation,signal){
     const started=Date.now();
     for(;;){
+      if(generation!==conversationGeneration)return null;
       if(Date.now()-started>120000)throw new Error('Sound generation timed out.');
-      const response=await fetch('/api/sound/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({resultOnly:true,generationId:id})});
+      const response=await fetch('/api/sound/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({resultOnly:true,generationId:id}),signal});
+      if(generation!==conversationGeneration)return null;
       const data=await read(response);
+      if(generation!==conversationGeneration)return null;
       if(!response.ok&&response.status!==202)throw new Error(data?.error||'Sound result unavailable');
       if(data?.status==='ready')return data;
       if(data?.status==='failed'||data?.status==='storage_failed')throw new Error(data?.error||'Sound generation failed');
@@ -94,7 +99,8 @@
     }
   }
 
-  function showResult(data,ctx,thread){
+  function showResult(data,ctx,thread,generation){
+    if(generation!==conversationGeneration||!data)return;
     const r=root();
     r?.querySelector('.sound-empty')?.style.setProperty('display','none');
     const result=r?.querySelector('.sound-result');
@@ -107,31 +113,39 @@
     if(thread)addMessage(thread,'assistant','The Sound is ready. It is now available in the Output panel.');
   }
 
-  async function approve(ui){
+  async function approve(ui,generation,signal){
     const ctx=context();
     ui.wrap.classList.add('thinking');
     ui.button.disabled=true;
     ui.textarea.disabled=true;
     ui.button.textContent='Preparing Sound…';
     try{
+      if(generation!==conversationGeneration)return;
       const approvedSpec=ui.spec||{};
       const specDuration=Number(approvedSpec?.constraints?.duration_seconds);
       const approvedDuration=Number.isFinite(specDuration)&&specDuration>0?specDuration:ctx.durationSeconds;
-      const approvalResponse=await fetch('/api/sound/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({svaraflowAction:'approve',approval:true,currentSpecification:approvedSpec,prompt:ctx.prompt,type:ctx.type,format:ctx.format,durationSeconds:approvedDuration,sourceType:ctx.sourceType,sourceAssetId:ctx.sourceAssetId,sourceScript:ctx.sourceScript,voiceContext:ctx.voiceContext,parameters:ctx.parameters})});
+      const approvalResponse=await fetch('/api/sound/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({svaraflowAction:'approve',approval:true,currentSpecification:approvedSpec,prompt:ctx.prompt,type:ctx.type,format:ctx.format,durationSeconds:approvedDuration,sourceType:ctx.sourceType,sourceAssetId:ctx.sourceAssetId,sourceScript:ctx.sourceScript,voiceContext:ctx.voiceContext,parameters:ctx.parameters}),signal});
+      if(generation!==conversationGeneration)return;
       const approved=await read(approvalResponse);
+      if(generation!==conversationGeneration)return;
       if(!approvalResponse.ok)throw new Error(approved?.error||'Sound approval failed.');
       const executionSpecification=approved?.specification||approvedSpec;
       const executionSpecDuration=Number(executionSpecification?.constraints?.duration_seconds);
       const executionDuration=Number.isFinite(executionSpecDuration)&&executionSpecDuration>0?executionSpecDuration:approvedDuration;
-      const executionResponse=await fetch('/api/sound/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({svaraflowAction:'execute',approval:true,currentSpecification:executionSpecification,prompt:ctx.prompt,type:ctx.type,format:ctx.format,durationSeconds:executionDuration,sourceType:ctx.sourceType,sourceAssetId:ctx.sourceAssetId,sourceScript:ctx.sourceScript,voiceContext:ctx.voiceContext,parameters:ctx.parameters})});
+      const executionResponse=await fetch('/api/sound/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({svaraflowAction:'execute',approval:true,currentSpecification:executionSpecification,prompt:ctx.prompt,type:ctx.type,format:ctx.format,durationSeconds:executionDuration,sourceType:ctx.sourceType,sourceAssetId:ctx.sourceAssetId,sourceScript:ctx.sourceScript,voiceContext:ctx.voiceContext,parameters:ctx.parameters}),signal});
+      if(generation!==conversationGeneration)return;
       const execution=await read(executionResponse);
+      if(generation!==conversationGeneration)return;
       if(!executionResponse.ok)throw new Error(execution?.error||'Sound execution failed.');
       if(!execution?.id)throw new Error('Sound execution returned no generation ID.');
       state()?.setUI?.({generationId:execution.id,generationStatus:'processing',isGenerating:true,error:null});
       addMessage(ui.thread,'assistant','Approved. I’m generating the Sound now.');
-      const result=await poll(execution.id);showResult(result,{...ctx,durationSeconds:executionDuration},ui.thread);
-    }catch(error){addMessage(ui.thread,'assistant',String(error?.message||'Sound generation failed.'))}
-    finally{
+      const result=await poll(execution.id,generation,signal);showResult(result,{...ctx,durationSeconds:executionDuration},ui.thread,generation);
+    }catch(error){
+      if(error?.name==='AbortError'||generation!==conversationGeneration)return;
+      addMessage(ui.thread,'assistant',String(error?.message||'Sound generation failed.'))
+    }finally{
+      if(generation!==conversationGeneration)return;
       ui.wrap.classList.remove('thinking');
       ui.button.disabled=false;
       ui.textarea.disabled=false;
@@ -142,6 +156,10 @@
   async function turn(ui){
     const latest=text(ui.textarea.value);
     if(!latest||ui.textarea.disabled){ui.textarea.focus();return;}
+    const generation=conversationGeneration;
+    if(activeController)activeController.abort();
+    const controller=new AbortController();
+    activeController=controller;
     addMessage(ui.thread,'user',latest);
     ui.messages.push({role:'user',content:latest});
     ui.textarea.value='';
@@ -153,29 +171,50 @@
     const ctx={...context(),prompt:latest};
     const payload={svaraflowAction:'agent',message:latest,conversation:ui.messages,currentSpecification:ui.spec,context:ctx};
     try{
-      const response=await fetch('/api/sound/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+      const response=await fetch('/api/sound/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify(payload),signal:controller.signal});
+      if(generation!==conversationGeneration)return;
       const data=await read(response);
+      if(generation!==conversationGeneration)return;
       if(!response.ok)throw new Error(data?.error||`SvaraFlow request failed (${response.status})`);
       const action=String(data?.action||'');
       const reply=text(data?.response);
       if(reply){addMessage(ui.thread,'assistant',reply);ui.messages.push({role:'assistant',content:reply});}
+      if(generation!==conversationGeneration)return;
       if(action==='approve'){
         if(data.specification)ui.spec=data.specification;
-        await approve(ui);
+        await approve(ui,generation,controller.signal);
       }else if(action==='propose'||action==='refine'){
         if(!data.specification)throw new Error('SvaraFlow returned no Sound direction.');
         ui.spec=data.specification;
         const host=addMessage(ui.thread,'assistant','SvaraFlow has mapped the current creative direction here:');
         appendSpec(host,ui.spec);
       }
-    }catch(error){addMessage(ui.thread,'assistant',String(error?.message||'SvaraFlow could not respond.'))}
-    finally{
+    }catch(error){
+      if(error?.name==='AbortError'||generation!==conversationGeneration)return;
+      addMessage(ui.thread,'assistant',String(error?.message||'SvaraFlow could not respond.'))
+    }finally{
+      if(generation!==conversationGeneration)return;
       ui.wrap.classList.remove('thinking');
       ui.button.disabled=false;
       ui.textarea.disabled=false;
       ui.button.textContent='Ask SvaraFlow';
       ui.textarea.focus();
+      if(activeController===controller)activeController=null;
     }
+  }
+
+  function resetConversation(ui){
+    conversationGeneration+=1;
+    if(activeController){activeController.abort();activeController=null;}
+    if(!ui)return;
+    ui.messages=[];
+    ui.spec=null;
+    ui.voiceContextStarted=false;
+    ui.voiceContextVoiceId=null;
+    ui.thread?.replaceChildren();
+    if(ui.textarea){ui.textarea.value='';ui.textarea.disabled=false;}
+    if(ui.button){ui.button.disabled=false;ui.button.textContent='Ask SvaraFlow';}
+    ui.wrap?.classList.remove('thinking');
   }
 
   async function startVoiceContextConversation(ui,voice){
@@ -183,13 +222,14 @@
     if(!ui||!voiceId)return false;
     if(ui.voiceContextStarted&&ui.voiceContextVoiceId===voiceId)return true;
     if(ui.voiceContextVoiceId!==voiceId){
-      ui.messages=[];
-      ui.spec=null;
-      ui.thread.replaceChildren();
-      ui.voiceContextStarted=false;
+      resetConversation(ui);
       ui.voiceContextVoiceId=voiceId;
     }
     if(ui.textarea.disabled||ui.voiceContextStarted)return false;
+    const generation=conversationGeneration;
+    if(activeController)activeController.abort();
+    const controller=new AbortController();
+    activeController=controller;
     const ctxBase=context();
     const voiceName=text(voice?.name||voice?.voiceName||ctxBase.voiceContext?.name||'selected Voice');
     const latest=`Review the selected ${voiceName} voiceover and its stored script. Propose several distinct Sound directions that fit the voice, delivery, and narrative. Do not approve or generate audio; this is an exploratory proposal only.`;
@@ -200,8 +240,10 @@
     ui.button.textContent='SvaraFlow is thinking…';
     const payload={svaraflowAction:'agent',message:latest,conversation:ui.messages,currentSpecification:null,context:{...ctxBase,prompt:'',voiceContextInitiation:true,executionAllowed:false}};
     try{
-      const response=await fetch('/api/sound/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+      const response=await fetch('/api/sound/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify(payload),signal:controller.signal});
+      if(generation!==conversationGeneration)return false;
       const data=await read(response);
+      if(generation!==conversationGeneration)return false;
       if(!response.ok)throw new Error(data?.error||`SvaraFlow request failed (${response.status})`);
       const reply=text(data?.response);
       if(reply){addMessage(ui.thread,'assistant',reply);ui.messages.push({role:'assistant',content:reply});}
@@ -215,13 +257,16 @@
         throw new Error('SvaraFlow returned no Sound directions.');
       }
     }catch(error){
+      if(error?.name==='AbortError'||generation!==conversationGeneration)return false;
       ui.voiceContextStarted=false;
       addMessage(ui.thread,'assistant',String(error?.message||'SvaraFlow could not respond.'));
     }finally{
+      if(generation!==conversationGeneration)return;
       ui.wrap.classList.remove('thinking');
       ui.button.disabled=false;
       ui.textarea.disabled=false;
       ui.button.textContent='Ask SvaraFlow';
+      if(activeController===controller)activeController=null;
     }
     return true;
   }
@@ -239,7 +284,11 @@
     const interceptClick=event=>{event.preventDefault();event.stopImmediatePropagation();turn(ui)};
     button.addEventListener('click',interceptClick,true);
     textarea.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();event.stopImmediatePropagation();turn(ui)}},true);
-    window.SvaraSoundSvaraFlowUIV5={bind,ui,startVoiceContextConversation:voice=>startVoiceContextConversation(ui,voice)};
+    window.SvaraSoundSvaraFlowUIV5={bind,ui,resetConversation:()=>resetConversation(ui),startVoiceContextConversation:voice=>startVoiceContextConversation(ui,voice)};
+    window.addEventListener('svara:sound-source-change',event=>{
+      const sourceType=String(event.detail?.sourceType||'');
+      if(sourceType==='text'||sourceType==='voice')resetConversation(ui);
+    });
   }
 
   bind();

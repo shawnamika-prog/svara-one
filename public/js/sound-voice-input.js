@@ -130,7 +130,7 @@
     const source=document.createElement('section');source.className='sound-source';source.innerHTML='<div class="sound-source-head"><strong>SOUND SOURCE</strong><span>Use text or an existing Voice</span></div><div class="sound-source-tabs"><button type="button" class="sound-source-tab active" data-source="text">Text</button><button type="button" class="sound-source-tab" data-source="voice">Existing Voice</button></div><select class="sound-source-select" aria-label="Existing Voice" hidden><option value="">Choose an existing Voice…</option></select>';
     promptWrap.insertAdjacentElement('beforebegin',source);
     const tabs=[...source.querySelectorAll('.sound-source-tab')],select=source.querySelector('.sound-source-select');
-    tabs.forEach(tab=>tab.addEventListener('click',()=>{const voice=tab.dataset.source==='voice';tabs.forEach(t=>t.classList.toggle('active',t===tab));select.hidden=!voice;if(!voice){selected=null;setInput();renderSourceOutput()}else loadVoices(select)}));
+    tabs.forEach(tab=>tab.addEventListener('click',()=>{const voice=tab.dataset.source==='voice';tabs.forEach(t=>t.classList.toggle('active',t===tab));select.hidden=!voice;if(!voice){selected=null;setInput();renderSourceOutput();window.dispatchEvent(new CustomEvent('svara:sound-source-change',{detail:{sourceType:'text'}}));}else{window.dispatchEvent(new CustomEvent('svara:sound-source-change',{detail:{sourceType:'voice'}}));loadVoices(select)}}));
     select.addEventListener('change',()=>updateDetail(select));
     loadVoices(select);
   }
