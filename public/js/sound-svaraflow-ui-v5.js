@@ -178,10 +178,20 @@
     }
   }
 
-  async function startVoiceContextConversation(ui){
-    if(!ui||ui.textarea.disabled||ui.voiceContextStarted)return false;
+  async function startVoiceContextConversation(ui,voice){
+    const voiceId=text(voice?.id||context().voiceContext?.id||'');
+    if(!ui||!voiceId)return false;
+    if(ui.voiceContextStarted&&ui.voiceContextVoiceId===voiceId)return true;
+    if(ui.voiceContextVoiceId!==voiceId){
+      ui.messages=[];
+      ui.spec=null;
+      ui.thread.replaceChildren();
+      ui.voiceContextStarted=false;
+      ui.voiceContextVoiceId=voiceId;
+    }
+    if(ui.textarea.disabled||ui.voiceContextStarted)return false;
     const ctxBase=context();
-    const voiceName=text(ctxBase.voiceContext?.name||'selected Voice');
+    const voiceName=text(voice?.name||voice?.voiceName||ctxBase.voiceContext?.name||'selected Voice');
     const latest=`Review the selected ${voiceName} voiceover and its stored script. Propose several distinct Sound directions that fit the voice, delivery, and narrative. Do not approve or generate audio; this is an exploratory proposal only.`;
     ui.voiceContextStarted=true;
     ui.wrap.classList.add('thinking');
@@ -225,11 +235,11 @@
     mountOrb(r.querySelector('.sound-sf-orb'));
     const topBrand=r.querySelector('.sound-sf-brand');
     if(topBrand&&topBrand.textContent.trim()==='SVARAFLOW')topBrand.innerHTML='<span class="sf-name">SvaraFlow</span><sup class="sf-tm">TM</sup>';
-    const ui={button,textarea,thread,wrap,spec:null,messages:[],voiceContextStarted:false};
+    const ui={button,textarea,thread,wrap,spec:null,messages:[],voiceContextStarted:false,voiceContextVoiceId:null};
     const interceptClick=event=>{event.preventDefault();event.stopImmediatePropagation();turn(ui)};
     button.addEventListener('click',interceptClick,true);
     textarea.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();event.stopImmediatePropagation();turn(ui)}},true);
-    window.SvaraSoundSvaraFlowUIV5={bind,ui,startVoiceContextConversation};
+    window.SvaraSoundSvaraFlowUIV5={bind,ui,startVoiceContextConversation:voice=>startVoiceContextConversation(ui,voice)};
   }
 
   bind();
