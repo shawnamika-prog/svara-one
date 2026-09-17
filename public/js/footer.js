@@ -48,6 +48,11 @@
     soundSvaraFlowApprovalScript.defer = false;
     document.head.appendChild(soundSvaraFlowApprovalScript);
 
+    const soundSvaraFlowVoiceContextScript = document.createElement('script');
+    soundSvaraFlowVoiceContextScript.src = 'js/sound-svaraflow-voice-context.js';
+    soundSvaraFlowVoiceContextScript.defer = false;
+    document.head.appendChild(soundSvaraFlowVoiceContextScript);
+
     const soundLegacyUiLock = document.createElement('style');
     soundLegacyUiLock.id = 'sound-legacy-ui-lock';
     soundLegacyUiLock.textContent = '#soundWorkspace .sound-generate,#soundWorkspace .sound-generation-note,#soundWorkspace #soundInspire,#soundWorkspace #soundFlowBadge{display:none!important;}';
