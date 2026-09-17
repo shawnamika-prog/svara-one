@@ -48,6 +48,8 @@
       durationSeconds:Number(adapter?.querySelector('#soundAdapterDuration')?.value||s.generation?.durationSeconds||90),
       sourceType:text(s.input?.sourceType||'text'),
       sourceAssetId:text(s.input?.sourceAssetId||'')||null,
+      sourceScript:text(s.input?.sourceScript||''),
+      voiceContext:s.input?.sourceVoiceContext||null,
       parameters:s.creative||{}
     };
   }
@@ -73,7 +75,7 @@
 
   function appendSpec(box,spec){
     const card=document.createElement('div');card.className='sound-sf-spec';
-    const title=document.createElement('div');title.className='sound-sf-spec-title';title.innerHTML='<span>PROPOSED SOUND DIRECTION</span><span>SvaraFlow<sup class="sf-tm">TM</sup></span>';
+    const title=document.createElement('div');title.className='sound-sf-spec-title');title.innerHTML='<span>PROPOSED SOUND DIRECTION</span><span>SvaraFlow<sup class="sf-tm">TM</sup></span>';
     const grid=document.createElement('div');grid.className='sound-sf-spec-grid';
     specSummary(spec).forEach(([label,value])=>{const line=document.createElement('div');line.className='sound-sf-spec-line';line.innerHTML=`${label} <b>${String(value)}</b>`;grid.appendChild(line)});
     card.appendChild(title);card.appendChild(grid);box.appendChild(card);
@@ -115,13 +117,13 @@
       const approvedSpec=ui.spec||{};
       const specDuration=Number(approvedSpec?.constraints?.duration_seconds);
       const approvedDuration=Number.isFinite(specDuration)&&specDuration>0?specDuration:ctx.durationSeconds;
-      const approvalResponse=await fetch('/api/sound/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({svaraflowAction:'approve',approval:true,currentSpecification:approvedSpec,prompt:ctx.prompt,type:ctx.type,format:ctx.format,durationSeconds:approvedDuration,sourceType:ctx.sourceType,sourceAssetId:ctx.sourceAssetId,parameters:ctx.parameters})});
+      const approvalResponse=await fetch('/api/sound/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({svaraflowAction:'approve',approval:true,currentSpecification:approvedSpec,prompt:ctx.prompt,type:ctx.type,format:ctx.format,durationSeconds:approvedDuration,sourceType:ctx.sourceType,sourceAssetId:ctx.sourceAssetId,sourceScript:ctx.sourceScript,voiceContext:ctx.voiceContext,parameters:ctx.parameters})});
       const approved=await read(approvalResponse);
       if(!approvalResponse.ok)throw new Error(approved?.error||'Sound approval failed.');
       const executionSpecification=approved?.specification||approvedSpec;
       const executionSpecDuration=Number(executionSpecification?.constraints?.duration_seconds);
       const executionDuration=Number.isFinite(executionSpecDuration)&&executionSpecDuration>0?executionSpecDuration:approvedDuration;
-      const executionResponse=await fetch('/api/sound/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({svaraflowAction:'execute',approval:true,currentSpecification:executionSpecification,prompt:ctx.prompt,type:ctx.type,format:ctx.format,durationSeconds:executionDuration,sourceType:ctx.sourceType,sourceAssetId:ctx.sourceAssetId,parameters:ctx.parameters})});
+      const executionResponse=await fetch('/api/sound/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({svaraflowAction:'execute',approval:true,currentSpecification:executionSpecification,prompt:ctx.prompt,type:ctx.type,format:ctx.format,durationSeconds:executionDuration,sourceType:ctx.sourceType,sourceAssetId:ctx.sourceAssetId,sourceScript:ctx.sourceScript,voiceContext:ctx.voiceContext,parameters:ctx.parameters})});
       const execution=await read(executionResponse);
       if(!executionResponse.ok)throw new Error(execution?.error||'Sound execution failed.');
       if(!execution?.id)throw new Error('Sound execution returned no generation ID.');
