@@ -54,6 +54,13 @@
     .sound-history-state{padding:45px 20px;text-align:center;color:#71869d}.sound-history-state strong{display:block;color:#b7c7d7;font-size:12px}.sound-history-state span{display:block;margin-top:6px;font-size:10px}
     @media(max-width:900px){.sound-history-item{grid-template-columns:minmax(180px,1fr) 90px 90px}.sound-history-item .sound-history-meta:nth-child(n+4){display:none}}
     @media(max-width:560px){.sound-history-head{padding:16px}.sound-history-list{padding:12px}.sound-history-item{grid-template-columns:1fr 80px}.sound-history-item .sound-history-meta:nth-child(n+3){display:none}}
+    .sound-history-toolbar{display:flex;gap:8px;align-items:center;padding:12px 20px;border-bottom:1px solid #ffffff0b;flex-wrap:wrap}
+    .sound-history-toolbar input,.sound-history-toolbar select{border:1px solid #ffffff10;border-radius:9px;background:#091522;color:#b9c8d6;padding:9px 10px;font:600 9px Inter;outline:none}
+    .sound-history-toolbar input{flex:1 1 220px;min-width:180px}.sound-history-toolbar select{min-width:105px}
+    .sound-history-toolbar input:focus,.sound-history-toolbar select:focus{border-color:#a85cff55;box-shadow:0 0 0 3px #a85cff10}
+    .sound-history-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px 16px;border-top:1px solid #ffffff0b;color:#65798e;font-size:9px}
+    .sound-history-page-button{border:1px solid #ffffff10;border-radius:8px;background:#091522;color:#aebdcb;padding:8px 10px;font:700 9px Inter;cursor:pointer}.sound-history-page-button:hover:not(:disabled){background:#111e2e;color:#fff}.sound-history-page-button:disabled{opacity:.35;cursor:default}
+    @media(max-width:560px){.sound-history-toolbar{padding:10px 12px}.sound-history-toolbar input,.sound-history-toolbar select{flex:1 1 140px}.sound-history-pagination{padding-left:12px;padding-right:12px}}
     @media(max-width:1050px){.sound-workspace{grid-template-columns:1fr}.sound-output{min-height:0}.sound-empty{min-height:280px}.sound-type-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
     @media(max-width:560px){.sound-workspace{display:block}.sound-workspace>*{margin-bottom:12px}.sound-panel-head{padding:18px 15px}.sound-flow{display:none}.sound-prompt,.sound-section{margin-left:14px;margin-right:14px}.sound-control-grid{grid-template-columns:1fr}.sound-advanced{margin-left:14px;margin-right:14px}.sound-generate{width:calc(100% - 28px);margin-left:14px;margin-right:14px}.sound-type-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.sound-output-body{padding:12px}.sound-wave{margin:12px}.sound-actions{padding-left:12px;padding-right:12px}.sound-player-row{padding-left:12px;padding-right:12px}.sound-variation-wave{width:70px}}
   `;
@@ -171,9 +178,16 @@
       <div><small>SOUND HISTORY</small><h2>Your Sound generations</h2><p>Previously generated Sound assets from your SvaraONE account.</p></div>
       <button id="soundHistoryRefresh" class="sound-history-refresh" type="button">Refresh</button>
     </div>
-    <div id="soundHistoryList" class="sound-history-list">
-      <div class="sound-history-state"><strong>Loading Sound history…</strong><span>Retrieving your saved generations.</span></div>
-    </div>`;
+    <div class="sound-history-toolbar">
+      <input id="soundHistorySearch" type="search" placeholder="Search generations…" aria-label="Search Sound history">
+      <select id="soundHistoryType" aria-label="Filter by Sound type"><option value="">All types</option></select>
+      <select id="soundHistoryFormat" aria-label="Filter by output format"><option value="">All formats</option></select>
+      <select id="soundHistorySource" aria-label="Filter by source"><option value="">All sources</option><option value="text">Text</option><option value="voice">Existing Voice</option></select>
+      <select id="soundHistoryStatus" aria-label="Filter by status"><option value="">All statuses</option><option value="ready">Ready</option><option value="processing">Processing</option><option value="failed">Failed</option><option value="storage_failed">Storage failed</option></select>
+      <select id="soundHistoryDate" aria-label="Filter by date"><option value="">All dates</option><option value="today">Today</option><option value="7d">Last 7 days</option><option value="30d">Last 30 days</option></select>
+    </div>
+    <div id="soundHistoryList" class="sound-history-list"><div class="sound-history-state"><strong>Loading Sound history…</strong><span>Retrieving your saved generations.</span></div></div>
+    <div class="sound-history-pagination"><span id="soundHistoryPageInfo">Page 1</span><div><button id="soundHistoryPrev" class="sound-history-page-button" type="button">Previous</button><button id="soundHistoryNext" class="sound-history-page-button" type="button">Next</button></div></div>`;
   workspace.appendChild(soundHistory);
 
 
@@ -210,38 +224,51 @@
 
   const soundHistoryList=document.getElementById('soundHistoryList');
   const soundHistoryRefresh=document.getElementById('soundHistoryRefresh');
+  const soundHistorySearch=document.getElementById('soundHistorySearch');
+  const soundHistoryType=document.getElementById('soundHistoryType');
+  const soundHistoryFormat=document.getElementById('soundHistoryFormat');
+  const soundHistorySource=document.getElementById('soundHistorySource');
+  const soundHistoryStatus=document.getElementById('soundHistoryStatus');
+  const soundHistoryDate=document.getElementById('soundHistoryDate');
+  const soundHistoryPrev=document.getElementById('soundHistoryPrev');
+  const soundHistoryNext=document.getElementById('soundHistoryNext');
+  const soundHistoryPageInfo=document.getElementById('soundHistoryPageInfo');
+  let soundHistoryPage=1;
+  let soundHistoryLoading=false;
 
   const escapeHistory=value=>String(value??'').replace(/[&<>\"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));
   const formatHistoryDate=value=>{if(!value)return '—';const d=new Date(value);return Number.isNaN(d.getTime())?'—':new Intl.DateTimeFormat(undefined,{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}).format(d);};
   const formatHistoryDuration=value=>{const s=Math.max(0,Math.round(Number(value)||0));return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;};
+  const setHistoryOptions=(select,values,labels={})=>{if(!select)return;const current=select.value;const label=select===soundHistoryType?'types':'formats';select.innerHTML=`<option value="">All ${label}</option>`;values.forEach(value=>{const option=document.createElement('option');option.value=value;option.textContent=labels[value]||String(value).toUpperCase();select.appendChild(option);});if(values.includes(current))select.value=current;};
+  const loadSoundCapabilities=async()=>{try{const response=await fetch('/api/sound/capabilities',{credentials:'same-origin',cache:'no-store',headers:{accept:'application/json'}});if(!response.ok)throw new Error('capabilities unavailable');const data=await response.json();const capabilities=data?.capabilities||{};setHistoryOptions(soundHistoryType,Array.isArray(capabilities.types)?capabilities.types:[],{soundtrack:'Soundtrack'});setHistoryOptions(soundHistoryFormat,Array.isArray(capabilities.outputFormats)?capabilities.outputFormats:[]);}catch(error){setHistoryOptions(soundHistoryType,[]);setHistoryOptions(soundHistoryFormat,[]);}};
   const loadSoundHistory=async()=>{
-    if(!soundHistoryList)return;
+    if(!soundHistoryList||soundHistoryLoading)return;
+    soundHistoryLoading=true;
     soundHistoryList.innerHTML='<div class="sound-history-state"><strong>Loading Sound history…</strong><span>Retrieving your saved generations.</span></div>';
+    const params=new URLSearchParams({limit:'20',page:String(soundHistoryPage)});
+    [[soundHistorySearch,'search'],[soundHistoryType,'type'],[soundHistoryFormat,'format'],[soundHistorySource,'sourceType'],[soundHistoryStatus,'status'],[soundHistoryDate,'date']].forEach(([control,key])=>{const value=String(control?.value||'').trim();if(value)params.set(key,value);});
     try{
-      const response=await fetch('/api/sound/generations?limit=50',{credentials:'same-origin',cache:'no-store',headers:{accept:'application/json'}});
+      const response=await fetch(`/api/sound/generations?${params.toString()}`,{credentials:'same-origin',cache:'no-store',headers:{accept:'application/json'}});
       const data=await response.json().catch(()=>({}));
       if(response.status===401){window.location.replace('/login.html?next=/studio');return;}
       if(!response.ok)throw new Error(data.error||`Sound history unavailable (${response.status})`);
       const items=Array.isArray(data.generations)?data.generations:[];
-      if(!items.length){soundHistoryList.innerHTML='<div class="sound-history-state"><strong>No Sound generations yet</strong><span>Generate Sound and your saved assets will appear here.</span></div>';return;}
-      soundHistoryList.innerHTML=items.map(item=>{
-        const prompt=item.prompt?escapeHistory(item.prompt):'No prompt recorded';
-        const source=item.sourceType?escapeHistory(item.sourceType):'direct';
-        return `<article class="sound-history-item">
-          <div class="sound-history-main"><strong>${escapeHistory(item.type||'Sound generation')}</strong><small title="${prompt}">${prompt}</small></div>
-          <span class="sound-history-meta">${formatHistoryDuration(item.durationSeconds)}</span>
-          <span class="sound-history-meta">${escapeHistory(String(item.format||'').toUpperCase())}</span>
-          <span class="sound-history-meta">${escapeHistory(source)}</span>
-          <span class="sound-history-status ${escapeHistory(item.status)}">${escapeHistory(item.status)}</span>
-          <span class="sound-history-meta">${formatHistoryDate(item.createdAt)}</span>
-        </article>`;
-      }).join('');
-    }catch(error){
-      soundHistoryList.innerHTML=`<div class="sound-history-state"><strong>Could not load Sound history</strong><span>${escapeHistory(error?.message||'Please try again.')}</span></div>`;
-    }
+      const pageCount=Number(data.pageCount||0);
+      if(soundHistoryPageInfo)soundHistoryPageInfo.textContent=pageCount?`Page ${data.page} of ${pageCount} · ${data.total} total`:'No results';
+      if(soundHistoryPrev)soundHistoryPrev.disabled=!data.hasPrevious;
+      if(soundHistoryNext)soundHistoryNext.disabled=!data.hasNext;
+      if(!items.length){soundHistoryList.innerHTML='<div class="sound-history-state"><strong>No matching Sound generations</strong><span>Try changing your search or filters.</span></div>';return;}
+      soundHistoryList.innerHTML=items.map(item=>{const prompt=item.prompt?escapeHistory(item.prompt):'No prompt recorded';const source=item.sourceType==='voice'?'Existing Voice':item.sourceType?escapeHistory(item.sourceType):'Direct';return `<article class="sound-history-item"><div class="sound-history-main"><strong>${escapeHistory(item.type||'Sound generation')}</strong><small title="${prompt}">${prompt}</small></div><span class="sound-history-meta">${formatHistoryDuration(item.durationSeconds)}</span><span class="sound-history-meta">${escapeHistory(String(item.format||'').toUpperCase())}</span><span class="sound-history-meta">${escapeHistory(source)}</span><span class="sound-history-status ${escapeHistory(item.status)}">${escapeHistory(item.status)}</span><span class="sound-history-meta">${formatHistoryDate(item.createdAt)}</span></article>`;}).join('');
+    }catch(error){soundHistoryList.innerHTML=`<div class="sound-history-state"><strong>Could not load Sound history</strong><span>${escapeHistory(error?.message||'Please try again.')}</span></div>`;}
+    finally{soundHistoryLoading=false;}
   };
-  soundHistoryRefresh?.addEventListener('click',loadSoundHistory);
-
+  const resetSoundHistory=()=>{soundHistoryPage=1;loadSoundHistory();};
+  soundHistoryRefresh?.addEventListener('click',()=>{soundHistoryPage=1;loadSoundHistory();loadSoundCapabilities();});
+  soundHistoryPrev?.addEventListener('click',()=>{if(soundHistoryPage>1){soundHistoryPage-=1;loadSoundHistory();}});
+  soundHistoryNext?.addEventListener('click',()=>{soundHistoryPage+=1;loadSoundHistory();});
+  [soundHistoryType,soundHistoryFormat,soundHistorySource,soundHistoryStatus,soundHistoryDate].forEach(control=>control?.addEventListener('change',resetSoundHistory));
+  soundHistorySearch?.addEventListener('input',()=>{clearTimeout(soundHistorySearch._timer);soundHistorySearch._timer=setTimeout(resetSoundHistory,250);});
+  loadSoundCapabilities();
   const soundPrompt=document.getElementById('soundPrompt');
   const soundPromptCount=document.getElementById('soundPromptCount');
   const soundInspire=document.getElementById('soundInspire');
