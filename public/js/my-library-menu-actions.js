@@ -15,19 +15,12 @@
     const button = event.target.closest('.my-library-file-menu button');
     if (!button || !activeItem?.filename) return;
     const label = button.querySelector('span:last-child')?.textContent?.trim();
-    if (!['Rename','Preview','Download','Delete'].includes(label)) return;
+    if (!['Rename','Download','Delete'].includes(label)) return;
     event.preventDefault();
     event.stopImmediatePropagation();
     button.closest('.my-library-file-menu')?.remove();
     const item = {...activeItem};
     activeItem = null;
-    if (label === 'Preview') {
-      const url = item.assetType === 'sound'
-        ? '/api/sound/assets/' + encodeURIComponent(item.id)
-        : '/api/generations/media?filename=' + encodeURIComponent(item.filename);
-      window.open(url, '_blank', 'noopener');
-      return;
-    }
     if (label === 'Download') {
       const url = item.assetType === 'sound'
         ? '/api/sound/assets/' + encodeURIComponent(item.id) + '?download=1'
