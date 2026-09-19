@@ -260,6 +260,7 @@
   searchInput?.addEventListener('input', render);
   dateFilter?.addEventListener('change', render);
   formatFilter?.addEventListener('change', render);
+  typeFilter?.addEventListener('change', render);
 
   setupSortMenu();
   setupFileActionMenu();
