@@ -49,6 +49,7 @@
     .sound-history-list{padding:14px 20px 20px;display:grid;gap:8px}
     .sound-history-item{display:grid;grid-template-columns:minmax(220px,1.7fr) 75px 75px 90px 100px 130px;gap:12px;align-items:center;padding:13px 14px;border:1px solid #ffffff0b;border-radius:11px;background:#09111e}
     .sound-history-item:hover{border-color:#a85cff24;background:#0b1523}
+    .sound-history-play{width:30px;height:30px;border:1px solid #ffffff10;border-radius:50%;background:#0b1523;color:#cdb0ff;font:700 11px Inter;cursor:pointer;display:flex;align-items:center;justify-content:center}.sound-history-play:hover:not(:disabled){background:#151f30;color:#fff;border-color:#a85cff44}.sound-history-play:disabled{opacity:.28;cursor:default}
     .sound-history-main{min-width:0}.sound-history-main strong{display:block;color:#dce8f3;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sound-history-main small{display:block;margin-top:4px;color:#667b91;font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .sound-history-meta{color:#91a3b7;font-size:9px;white-space:nowrap}.sound-history-status{font-size:8px;text-transform:uppercase;letter-spacing:.08em;font-weight:800}.sound-history-status.ready{color:#31e3c8}.sound-history-status.processing{color:#d7a8ff}.sound-history-status.failed,.sound-history-status.storage_failed{color:#ef7777}
     .sound-history-state{padding:45px 20px;text-align:center;color:#71869d}.sound-history-state strong{display:block;color:#b7c7d7;font-size:12px}.sound-history-state span{display:block;margin-top:6px;font-size:10px}
@@ -258,9 +259,28 @@
       if(soundHistoryPrev)soundHistoryPrev.disabled=!data.hasPrevious;
       if(soundHistoryNext)soundHistoryNext.disabled=!data.hasNext;
       if(!items.length){soundHistoryList.innerHTML='<div class="sound-history-state"><strong>No matching Sound generations</strong><span>Try changing your search or filters.</span></div>';return;}
-      soundHistoryList.innerHTML=items.map(item=>{const prompt=item.prompt?escapeHistory(item.prompt):'No prompt recorded';const source=item.sourceType==='voice'?'Existing Voice':item.sourceType?escapeHistory(item.sourceType):'Direct';return `<article class="sound-history-item"><div class="sound-history-main"><strong>${escapeHistory(item.type||'Sound generation')}</strong><small title="${prompt}">${prompt}</small></div><span class="sound-history-meta">${formatHistoryDuration(item.durationSeconds)}</span><span class="sound-history-meta">${escapeHistory(String(item.format||'').toUpperCase())}</span><span class="sound-history-meta">${escapeHistory(source)}</span><span class="sound-history-status ${escapeHistory(item.status)}">${escapeHistory(item.status)}</span><span class="sound-history-meta">${formatHistoryDate(item.createdAt)}</span></article>`;}).join('');
+      soundHistoryList.innerHTML=items.map(item=>{const prompt=item.prompt?escapeHistory(item.prompt):'No prompt recorded';const source=item.sourceType==='voice'?'Existing Voice':item.sourceType?escapeHistory(item.sourceType):'Direct';return `<article class="sound-history-item"><button class="sound-history-play" type="button" data-sound-history-play="${escapeHistory(item.id)}" data-sound-history-url="${escapeHistory(item.assetUrl||"")}" ${item.status!=="ready"||!item.assetUrl?"disabled":""} aria-label="Play Sound">${item.status==="ready"&&item.assetUrl?"▶":"—"}</button><div class="sound-history-main"><strong>${escapeHistory(item.type||'Sound generation')}</strong><small title="${prompt}">${prompt}</small></div><span class="sound-history-meta">${formatHistoryDuration(item.durationSeconds)}</span><span class="sound-history-meta">${escapeHistory(String(item.format||'').toUpperCase())}</span><span class="sound-history-meta">${escapeHistory(source)}</span><span class="sound-history-status ${escapeHistory(item.status)}">${escapeHistory(item.status)}</span><span class="sound-history-meta">${formatHistoryDate(item.createdAt)}</span></article>`;}).join('');
+      bindSoundHistoryPlayback();
     }catch(error){soundHistoryList.innerHTML=`<div class="sound-history-state"><strong>Could not load Sound history</strong><span>${escapeHistory(error?.message||'Please try again.')}</span></div>`;}
     finally{soundHistoryLoading=false;}
+  };
+  let soundHistoryAudio=null;
+  let soundHistoryPlayingButton=null;
+  const stopSoundHistoryAudio=()=>{if(soundHistoryAudio){soundHistoryAudio.pause();soundHistoryAudio.currentTime=0;soundHistoryAudio=null;}if(soundHistoryPlayingButton){soundHistoryPlayingButton.textContent="▶";soundHistoryPlayingButton=null;}};
+  const bindSoundHistoryPlayback=()=>{
+    soundHistoryList?.querySelectorAll("[data-sound-history-play]").forEach(button=>button.addEventListener("click",()=>{
+      const url=button.dataset.soundHistoryUrl;
+      if(!url)return;
+      if(soundHistoryPlayingButton===button){stopSoundHistoryAudio();return;}
+      stopSoundHistoryAudio();
+      const audio=new Audio(url);
+      soundHistoryAudio=audio;
+      soundHistoryPlayingButton=button;
+      button.textContent="❚❚";
+      audio.addEventListener("ended",stopSoundHistoryAudio,{once:true});
+      audio.addEventListener("error",stopSoundHistoryAudio,{once:true});
+      audio.play().catch(stopSoundHistoryAudio);
+    }));
   };
   const resetSoundHistory=()=>{soundHistoryPage=1;loadSoundHistory();};
   soundHistoryRefresh?.addEventListener('click',()=>{soundHistoryPage=1;loadSoundHistory();loadSoundCapabilities();});
