@@ -25,9 +25,9 @@
     if (!headerCheckbox) return;
     const rows = visibleRows().map(assetFor).filter(item => item.id);
     const count = rows.filter(item => selected.has(item.id)).length;
-    headerCheckbox.checked = names.length > 0 && count === names.length;
-    headerCheckbox.indeterminate = count > 0 && count < names.length;
-    headerCheckbox.disabled = names.length === 0;
+    headerCheckbox.checked = rows.length > 0 && count === rows.length;
+    headerCheckbox.indeterminate = count > 0 && count < rows.length;
+    headerCheckbox.disabled = rows.length === 0;
   }
 
   function updateBar() {
@@ -160,10 +160,7 @@
       try {
         const response = await fetch('/api/library/assets/move', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify({ assets, folderId: folderId === '__unfiled__' ? null : folderId }) });
         const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || `Could not move selected files (${response.status})`););
-          const data = await response.json().catch(() => ({}));
-          if (!response.ok) throw new Error(data.error || `Could not move ${filename}`);
-        }
+        if (!response.ok) throw new Error(data.error || `Could not move selected files (${response.status})`);
         m.close();
         clear();
         window.SvaraLibrary?.refresh?.();
@@ -179,7 +176,7 @@
 
   function openDelete() {
     if (actionLock || !selected.size) return;
-    const names = [...selected];
+    const names = [...selected.values()].map(asset => asset.filename);
     const list = names.slice(0, 8).map(name => `<div>${esc(name)}</div>`).join('');
     const more = names.length > 8 ? `<div>+ ${names.length - 8} more</div>` : '';
     const m = modal(`Delete ${names.length} ${names.length === 1 ? 'file' : 'files'}?`, `<p class="svara-modal-delete-name">Delete ${names.length} ${names.length === 1 ? 'file' : 'files'}?</p><p class="svara-modal-help">This will permanently remove the selected generations from your SvaraONE library. This action cannot be undone.</p><div class="svara-modal-bulk-list">${list}${more}</div>`, 'Delete', true);
