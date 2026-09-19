@@ -53,16 +53,11 @@
       return;
     }
     if (label === 'Delete') {
-      if (!window.confirm('Delete “' + item.filename + '”? This cannot be undone.')) return;
-      fetch('/api/library/assets/delete', {
-        method:'POST', credentials:'same-origin',
-        headers:{'content-type':'application/json',accept:'application/json'},
-        body:JSON.stringify({assetId:item.id,assetType:item.assetType})
-      }).then(async response => {
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || 'Delete failed (' + response.status + ')');
-        window.SvaraLibrary?.refresh?.();
-      }).catch(error => console.error(error));
+      if (!window.SvaraModal?.delete) return;
+      window.SvaraModal.delete(item.filename, {
+        assetId: item.id,
+        assetType: item.assetType
+      });
     }
   }, true);
 })();
