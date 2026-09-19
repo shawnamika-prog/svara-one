@@ -133,6 +133,12 @@
   async function openMove() {
     if (actionLock || !selected.size) return;
     const assets = [...selected.values()];
+    if (assets.length === 1) {
+      if (window.SvaraLibrary?.openMoveDialog) {
+        window.SvaraLibrary.openMoveDialog(assets[0]);
+      }
+      return;
+    }
     const m = modal(`Move ${assets.length} ${assets.length === 1 ? 'file' : 'files'}`, `<label class="svara-modal-label" for="svaraBulkMoveFolder">Move ${assets.length} ${assets.length === 1 ? 'file' : 'files'} to</label><select id="svaraBulkMoveFolder" class="svara-modal-input"><option value="" selected disabled>Loading folders…</option></select><p class="svara-modal-help">All selected files will be moved together. Their audio files are not changed.</p>`, 'Move to');
     const select = m.root.querySelector('#svaraBulkMoveFolder');
     const help = m.root.querySelector('.svara-modal-help');
@@ -176,7 +182,15 @@
 
   function openDelete() {
     if (actionLock || !selected.size) return;
-    const names = [...selected.values()].map(asset => asset.filename);
+    const assets = [...selected.values()];
+    if (assets.length === 1) {
+      const asset = assets[0];
+      if (window.SvaraModal?.delete) {
+        window.SvaraModal.delete(asset.filename, { assetId: asset.id, assetType: asset.assetType });
+      }
+      return;
+    }
+    const names = assets.map(asset => asset.filename);
     const list = names.slice(0, 8).map(name => `<div>${esc(name)}</div>`).join('');
     const more = names.length > 8 ? `<div>+ ${names.length - 8} more</div>` : '';
     const m = modal(`Delete ${names.length} ${names.length === 1 ? 'file' : 'files'}?`, `<p class="svara-modal-delete-name">Delete ${names.length} ${names.length === 1 ? 'file' : 'files'}?</p><p class="svara-modal-help">This will permanently remove the selected generations from your SvaraONE library. This action cannot be undone.</p><div class="svara-modal-bulk-list">${list}${more}</div>`, 'Delete', true);
