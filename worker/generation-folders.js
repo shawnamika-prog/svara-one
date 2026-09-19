@@ -202,6 +202,59 @@ app.fetch = async (request, env, ctx) => {
     }
   }
 
+  if (request.method === "POST" && url.pathname === "/api/library/assets/rename") {
+    const userId = await authenticatedUserId(request, env);
+    if (!userId) return json({ error: "Authentication required." }, 401);
+    if (!env.DB || !env.GENERATED_AUDIO) return json({ error: "Library storage is not configured." }, 503);
+    try {
+      const body = await request.json().catch(() => ({}));
+      const assetId = String(body?.assetId || "").trim();
+      const assetType = String(body?.assetType || "").trim().toLowerCase();
+      const requestedFilename = String(body?.filename || "").trim();
+      if (!assetId || !["voice","sound"].includes(assetType) || !requestedFilename) return json({ error: "Asset ID, asset type and filename are required." }, 400);
+      const table = assetType === "sound" ? "sound_generations" : "generations";
+      const row = await env.DB.prepare("SELECT id,r2_key,format FROM " + table + " WHERE id=? AND user_id=? LIMIT 1").bind(assetId, userId).first();
+      if (!row?.r2_key) return json({ error: "Asset not found." }, 404);
+      const oldKey = String(row.r2_key), originalFilename = oldKey.split("/").pop() || "";
+      const dot = originalFilename.lastIndexOf(".");
+      const extension = dot > 0 ? originalFilename.slice(dot).toLowerCase() : "." + String(row.format || "mp3").toLowerCase();
+      let filename = requestedFilename.replace(/[\\/]/g, "").trim();
+      if (!filename || filename === "." || filename === "..") return json({ error: "A valid filename is required." }, 400);
+      if (!filename.toLowerCase().endsWith(extension)) filename += extension;
+      if (filename.length > 180) return json({ error: "Filename is too long." }, 400);
+      const prefix = assetType === "sound" ? "users/" + userId + "/sound/" : "users/" + userId + "/generations/";
+      const newKey = prefix + filename;
+      if (newKey !== oldKey && await env.GENERATED_AUDIO.head(newKey)) return json({ error: "An asset with that filename already exists." }, 409);
+      if (newKey !== oldKey) {
+        const source = await env.GENERATED_AUDIO.get(oldKey);
+        if (!source?.body) return json({ error: "Asset file could not be read." }, 404);
+        await env.GENERATED_AUDIO.put(newKey, source.body, { httpMetadata: source.httpMetadata, customMetadata: source.customMetadata, storageClass: source.storageClass });
+        const update = await env.DB.prepare("UPDATE " + table + " SET r2_key=? WHERE id=? AND user_id=?").bind(newKey, assetId, userId).run();
+        if (!update.meta?.changes) { await env.GENERATED_AUDIO.delete(newKey); return json({ error: "Asset metadata could not be updated." }, 500); }
+        await env.GENERATED_AUDIO.delete(oldKey);
+      }
+      return json({ success: true, assetId, assetType, filename });
+    } catch (error) { console.error("library_asset_rename_error", error); return json({ error: error?.message || "Could not rename asset." }, 500); }
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/library/assets/delete") {
+    const userId = await authenticatedUserId(request, env);
+    if (!userId) return json({ error: "Authentication required." }, 401);
+    if (!env.DB || !env.GENERATED_AUDIO) return json({ error: "Library storage is not configured." }, 503);
+    try {
+      const body = await request.json().catch(() => ({}));
+      const assetId = String(body?.assetId || "").trim();
+      const assetType = String(body?.assetType || "").trim().toLowerCase();
+      if (!assetId || !["voice","sound"].includes(assetType)) return json({ error: "Asset ID and asset type are required." }, 400);
+      const table = assetType === "sound" ? "sound_generations" : "generations";
+      const row = await env.DB.prepare("SELECT id,r2_key FROM " + table + " WHERE id=? AND user_id=? LIMIT 1").bind(assetId, userId).first();
+      if (!row?.id) return json({ error: "Asset not found." }, 404);
+      if (row.r2_key) await env.GENERATED_AUDIO.delete(String(row.r2_key));
+      const result = await env.DB.prepare("DELETE FROM " + table + " WHERE id=? AND user_id=?").bind(assetId, userId).run();
+      if (!result.meta?.changes) return json({ error: "Asset metadata could not be removed." }, 500);
+      return json({ success: true, assetId, assetType });
+    } catch (error) { console.error("library_asset_delete_error", error); return json({ error: error?.message || "Could not delete asset." }, 500); }
+  }
   if (request.method === "POST" && url.pathname === "/api/generations/move") {
     const userId = await authenticatedUserId(request, env);
     if (!userId) return json({ error: "Authentication required." }, 401);
