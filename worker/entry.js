@@ -214,6 +214,7 @@ async function storedSoundAsset(request, env, userId, generationId) {
   }
 
   const totalSize = Number(generation.size_bytes);
+  const wantsDownload = new URL(request.url).searchParams.get("download") === "1";
   const rangeHeader = request.headers.get("Range");
   let object;
   let status = 200;
@@ -267,6 +268,10 @@ async function storedSoundAsset(request, env, userId, generationId) {
   }
 
   if (object.httpEtag) headers.set("etag", object.httpEtag);
+  if (wantsDownload) {
+    const extension = String(generation.format || "mp3").toLowerCase();
+    headers.set("content-disposition", 'attachment; filename="svaraone-sound-' + String(generation.id) + '.' + extension + '"');
+  }
   return new Response(object.body, { status, headers });
 }
 
