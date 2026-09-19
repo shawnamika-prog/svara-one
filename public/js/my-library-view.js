@@ -152,30 +152,6 @@
   }
 
   function closeFileMenu() { if (openFileMenu) { openFileMenu.remove(); openFileMenu = null; } }
-  let selectedAssetIds = new Set();
-  function selectedItems(){return generations.filter(item=>selectedAssetIds.has(String(item.id||"")));}
-  function updateSelectionBar(){
-    let bar=libraryView.querySelector(".my-library-selection-bar"); const items=selectedItems();
-    if(!items.length){bar?.remove();return;}
-    if(!bar){bar=document.createElement("div");bar.className="my-library-selection-bar";toolbar?.insertAdjacentElement("afterend",bar);}
-    bar.innerHTML="<span><strong>"+items.length+"</strong> selected</span><button type=\"button\" class=\"my-library-bulk-move\">Move to…</button><button type=\"button\" class=\"my-library-bulk-clear\">Clear</button>";
-    bar.querySelector(".my-library-bulk-clear").onclick=()=>{selectedAssetIds.clear();render();};
-    bar.querySelector(".my-library-bulk-move").onclick=openBulkMoveDialog;
-  }
-  function toggleSelection(id,checked){const key=String(id||"");if(!key)return;if(checked)selectedAssetIds.add(key);else selectedAssetIds.delete(key);updateSelectionBar();}
-  async function openBulkMoveDialog(){
-    const items=selectedItems();if(!items.length)return;
-    const response=await fetch("/api/generations/folders",{credentials:"same-origin",cache:"no-store",headers:{accept:"application/json"}});
-    const data=await response.json().catch(()=>({}));if(!response.ok){console.error(data.error||"Could not load folders.");return;}
-    const folders=Array.isArray(data.folders)?data.folders:[];
-    const options=["<option value=\"__unfiled__\">Unfiled</option>"].concat(folders.map(folder=>"<option value=\""+escapeHtml(folder.id)+"\">"+escapeHtml(folder.name)+"</option>")).join("");
-    const root=document.createElement("div");root.className="my-library-bulk-modal";
-    root.innerHTML="<div class=\"my-library-bulk-backdrop\"></div><section class=\"my-library-folder-dialog\" role=\"dialog\" aria-modal=\"true\"><div class=\"my-library-folder-dialog-head\"><div><small>MY LIBRARY</small><h3>Move "+items.length+" "+(items.length===1?"file":"files")+"</h3></div><button type=\"button\" class=\"my-library-folder-close\" aria-label=\"Close\">×</button></div><div class=\"my-library-folder-dialog-body\"><label for=\"myLibraryBulkMoveFolder\">Move selected files to</label><select id=\"myLibraryBulkMoveFolder\">"+options+"</select><p class=\"my-library-folder-dialog-help\">Voice and Sound assets will be moved using their own domain storage.</p></div><div class=\"my-library-folder-dialog-actions\"><button type=\"button\" class=\"my-library-folder-dialog-button\" data-cancel>Cancel</button><button type=\"button\" class=\"my-library-folder-dialog-button primary\" data-move>Move</button></div></section>";
-    document.body.appendChild(root);const close=()=>root.remove();root.querySelector("[data-cancel]").onclick=close;root.querySelector(".my-library-folder-close").onclick=close;root.querySelector(".my-library-bulk-backdrop").onclick=close;
-    root.querySelector("[data-move]").onclick=async()=>{const button=root.querySelector("[data-move]");button.disabled=true;button.textContent="Moving…";try{const folderId=root.querySelector("#myLibraryBulkMoveFolder").value;const moveResponse=await fetch("/api/library/assets/move",{method:"POST",credentials:"same-origin",headers:{"content-type":"application/json",accept:"application/json"},body:JSON.stringify({assets:items.map(item=>({id:item.id,assetType:item.assetType||"voice"})),folderId:folderId==="__unfiled__"?null:folderId})});const moveData=await moveResponse.json().catch(()=>({}));if(!moveResponse.ok)throw new Error(moveData.error||"Could not move files ("+moveResponse.status+")");selectedAssetIds.clear();close();await window.SvaraLibrary?.refresh?.();}catch(error){button.disabled=false;button.textContent="Move";root.querySelector(".my-library-folder-dialog-body")?.insertAdjacentHTML("beforeend","<div class=\"my-library-folder-dialog-error\">"+escapeHtml(error?.message||"Could not move files.")+"</div>");}};
-  }
-
-  function injectSelectionStyles(){if(document.getElementById("my-library-selection-styles"))return;const style=document.createElement("style");style.id="my-library-selection-styles";style.textContent=".my-library-selection-bar{display:flex;align-items:center;gap:10px;padding:9px 12px;margin-top:10px;border:1px solid #ffffff10;border-radius:10px;background:#081522;color:#9fb2c5;font-size:11px}.my-library-selection-bar strong{color:#e7eef5}.my-library-selection-bar button{padding:7px 11px;border:1px solid #ffffff12;border-radius:7px;background:#0b1b29;color:#9fb2c5;font:inherit;cursor:pointer}.my-library-selection-bar .my-library-bulk-move{margin-left:auto;border-color:#31e3c855;background:#0d2930;color:#31e3c8}.my-library-select{width:15px;height:15px;accent-color:#31e3c8}.my-library-bulk-modal{position:fixed;inset:0;z-index:1100;display:flex;align-items:center;justify-content:center;padding:24px}.my-library-bulk-backdrop{position:absolute;inset:0;background:#0009;backdrop-filter:blur(4px)}";document.head.appendChild(style);}
   function setupFileActionMenu() {
     if (!table || table.dataset.fileMenuReady) return;
     table.dataset.fileMenuReady = 'true';
@@ -282,7 +258,6 @@
   dateFilter?.addEventListener('change', render);
   formatFilter?.addEventListener('change', render);
 
-  injectSelectionStyles();
   setupSortMenu();
   setupFileActionMenu();
   showView(location.hash === '#library' ? 'library' : 'voice');
