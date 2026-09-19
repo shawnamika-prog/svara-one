@@ -42,6 +42,18 @@
     .sound-player-row{display:flex;align-items:center;gap:12px;padding:0 17px 17px}.sound-play{width:43px;height:43px;flex:none;border:0;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#6975ff,#bd59ff);cursor:pointer;box-shadow:0 0 22px #a85cff28}.sound-play span{width:0;height:0;border-top:6px solid transparent;border-bottom:6px solid transparent;border-left:9px solid #fff;margin-left:2px}.sound-time{display:flex;justify-content:space-between;color:#71839a;font-size:9px;flex:1}.sound-time strong{color:#c4d1de;font-size:10px}
     .sound-actions{display:flex;gap:8px;padding:0 17px 17px}.sound-action{flex:1;border:1px solid #ffffff12;border-radius:10px;background:#0b1523;color:#aab9c8;padding:10px;font:700 9px Inter;cursor:pointer}.sound-action.primary{background:linear-gradient(105deg,#263b72,#7439a4);border-color:#a85cff55;color:#fff}
     .sound-variations{margin-top:16px}.sound-subhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}.sound-subhead small{color:#75889f;font-size:9px;letter-spacing:.14em;font-weight:800}.sound-subhead span{color:#5e7289;font-size:8px}.sound-variation{display:flex;align-items:center;gap:10px;padding:11px;border:1px solid #ffffff0b;border-radius:11px;background:#09111e;margin-bottom:7px}.sound-mini-play{width:28px;height:28px;border-radius:50%;border:1px solid #a85cff44;background:#18122a;color:#ca82ff;display:grid;place-items:center;cursor:pointer;font-size:9px}.sound-variation-copy{min-width:0;flex:1}.sound-variation-copy strong{display:block;color:#cdd9e5;font-size:10px}.sound-variation-copy small{display:block;margin-top:3px;color:#61758c;font-size:8px}.sound-variation-wave{height:26px;width:100px;display:flex;align-items:center;gap:2px}.sound-variation-wave i{width:2px;height:var(--h);background:#7253a8;border-radius:99px;opacity:.7}.sound-mock-note{margin-top:14px;padding:10px 11px;border:1px solid #a85cff22;border-radius:10px;background:#120e1d;color:#786b8a;font-size:8px;line-height:1.5}.sound-mock-note strong{color:#a97dca}
+    .sound-history-workspace{grid-column:1/-1;border:1px solid #ffffff10;background:linear-gradient(180deg,#0a1020,#080d19);border-radius:18px;overflow:hidden;box-shadow:0 20px 60px #0004}
+    .sound-history-head{padding:22px;border-bottom:1px solid #ffffff0b;display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+    .sound-history-head small{color:#a66cff;font-size:9px;letter-spacing:.2em;font-weight:800}.sound-history-head h2{margin:6px 0 0;font-size:22px;letter-spacing:-.04em}.sound-history-head p{margin:7px 0 0;color:#8091a8;font-size:11px;line-height:1.5}
+    .sound-history-refresh{border:1px solid #ffffff12;border-radius:9px;background:#0b1523;color:#aebdcb;padding:9px 12px;font:700 9px Inter;cursor:pointer}.sound-history-refresh:hover{background:#111e2e;color:#fff}
+    .sound-history-list{padding:14px 20px 20px;display:grid;gap:8px}
+    .sound-history-item{display:grid;grid-template-columns:minmax(220px,1.7fr) 100px 100px 130px 90px;gap:12px;align-items:center;padding:13px 14px;border:1px solid #ffffff0b;border-radius:11px;background:#09111e}
+    .sound-history-item:hover{border-color:#a85cff24;background:#0b1523}
+    .sound-history-main{min-width:0}.sound-history-main strong{display:block;color:#dce8f3;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sound-history-main small{display:block;margin-top:4px;color:#667b91;font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .sound-history-meta{color:#91a3b7;font-size:9px;white-space:nowrap}.sound-history-status{font-size:8px;text-transform:uppercase;letter-spacing:.08em;font-weight:800}.sound-history-status.ready{color:#31e3c8}.sound-history-status.processing{color:#d7a8ff}.sound-history-status.failed,.sound-history-status.storage_failed{color:#ef7777}
+    .sound-history-state{padding:45px 20px;text-align:center;color:#71869d}.sound-history-state strong{display:block;color:#b7c7d7;font-size:12px}.sound-history-state span{display:block;margin-top:6px;font-size:10px}
+    @media(max-width:900px){.sound-history-item{grid-template-columns:minmax(180px,1fr) 90px 90px}.sound-history-item .sound-history-meta:nth-child(n+4){display:none}}
+    @media(max-width:560px){.sound-history-head{padding:16px}.sound-history-list{padding:12px}.sound-history-item{grid-template-columns:1fr 80px}.sound-history-item .sound-history-meta:nth-child(n+3){display:none}}
     @media(max-width:1050px){.sound-workspace{grid-template-columns:1fr}.sound-output{min-height:0}.sound-empty{min-height:280px}.sound-type-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
     @media(max-width:560px){.sound-workspace{display:block}.sound-workspace>*{margin-bottom:12px}.sound-panel-head{padding:18px 15px}.sound-flow{display:none}.sound-prompt,.sound-section{margin-left:14px;margin-right:14px}.sound-control-grid{grid-template-columns:1fr}.sound-advanced{margin-left:14px;margin-right:14px}.sound-generate{width:calc(100% - 28px);margin-left:14px;margin-right:14px}.sound-type-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.sound-output-body{padding:12px}.sound-wave{margin:12px}.sound-actions{padding-left:12px;padding-right:12px}.sound-player-row{padding-left:12px;padding-right:12px}.sound-variation-wave{width:70px}}
   `;
@@ -150,6 +162,21 @@
     </section>`;
   workspace.appendChild(soundView);
 
+  const soundHistory=document.createElement('section');
+  soundHistory.id='soundHistoryWorkspace';
+  soundHistory.className='sound-history-workspace';
+  soundHistory.hidden=true;
+  soundHistory.innerHTML=`
+    <div class="sound-history-head">
+      <div><small>SOUND HISTORY</small><h2>Your Sound generations</h2><p>Previously generated Sound assets from your SvaraONE account.</p></div>
+      <button id="soundHistoryRefresh" class="sound-history-refresh" type="button">Refresh</button>
+    </div>
+    <div id="soundHistoryList" class="sound-history-list">
+      <div class="sound-history-state"><strong>Loading Sound history…</strong><span>Retrieving your saved generations.</span></div>
+    </div>`;
+  workspace.appendChild(soundHistory);
+
+
   const placeholder=document.createElement('section');
   placeholder.id='studioPlaceholder';
   placeholder.className='studio-domain-placeholder';
@@ -167,6 +194,7 @@
     landing.hidden=view!=='studio';
     voiceView.hidden=view!=='voice';
     soundView.hidden=view!=='sound';
+    soundHistory.hidden=view!=='sound';
     libraryView.hidden=view!=='library';
     placeholder.hidden=!['video','compose'].includes(view);
     if(['video','compose'].includes(view)){
@@ -176,8 +204,43 @@
     }
     setActive(view);
     if(view==='library')window.SvaraLibrary?.refresh?.();
+    if(view==='sound')loadSoundHistory();
     window.scrollTo({top:0,behavior:'smooth'});
   }
+
+  const soundHistoryList=document.getElementById('soundHistoryList');
+  const soundHistoryRefresh=document.getElementById('soundHistoryRefresh');
+
+  const escapeHistory=value=>String(value??'').replace(/[&<>\"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));
+  const formatHistoryDate=value=>{if(!value)return '—';const d=new Date(value);return Number.isNaN(d.getTime())?'—':new Intl.DateTimeFormat(undefined,{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}).format(d);};
+  const formatHistoryDuration=value=>{const s=Math.max(0,Math.round(Number(value)||0));return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;};
+  const loadSoundHistory=async()=>{
+    if(!soundHistoryList)return;
+    soundHistoryList.innerHTML='<div class="sound-history-state"><strong>Loading Sound history…</strong><span>Retrieving your saved generations.</span></div>';
+    try{
+      const response=await fetch('/api/sound/generations?limit=50',{credentials:'same-origin',cache:'no-store',headers:{accept:'application/json'}});
+      const data=await response.json().catch(()=>({}));
+      if(response.status===401){window.location.replace('/login.html?next=/studio');return;}
+      if(!response.ok)throw new Error(data.error||`Sound history unavailable (${response.status})`);
+      const items=Array.isArray(data.generations)?data.generations:[];
+      if(!items.length){soundHistoryList.innerHTML='<div class="sound-history-state"><strong>No Sound generations yet</strong><span>Generate Sound and your saved assets will appear here.</span></div>';return;}
+      soundHistoryList.innerHTML=items.map(item=>{
+        const prompt=item.prompt?escapeHistory(item.prompt):'No prompt recorded';
+        const source=item.sourceType?escapeHistory(item.sourceType):'direct';
+        return `<article class="sound-history-item">
+          <div class="sound-history-main"><strong>${escapeHistory(item.type||'Sound generation')}</strong><small title="${prompt}">${prompt}</small></div>
+          <span class="sound-history-meta">${formatHistoryDuration(item.durationSeconds)}</span>
+          <span class="sound-history-meta">${escapeHistory(String(item.format||'').toUpperCase())}</span>
+          <span class="sound-history-meta">${escapeHistory(source)}</span>
+          <span class="sound-history-status ${escapeHistory(item.status)}">${escapeHistory(item.status)}</span>
+          <span class="sound-history-meta">${formatHistoryDate(item.createdAt)}</span>
+        </article>`;
+      }).join('');
+    }catch(error){
+      soundHistoryList.innerHTML=`<div class="sound-history-state"><strong>Could not load Sound history</strong><span>${escapeHistory(error?.message||'Please try again.')}</span></div>`;
+    }
+  };
+  soundHistoryRefresh?.addEventListener('click',loadSoundHistory);
 
   const soundPrompt=document.getElementById('soundPrompt');
   const soundPromptCount=document.getElementById('soundPromptCount');
