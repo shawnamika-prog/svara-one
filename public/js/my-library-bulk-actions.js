@@ -30,6 +30,16 @@
     headerCheckbox.disabled = rows.length === 0;
   }
 
+  function removeSelection(assetId) {
+    const id = String(assetId || '');
+    if (!id) return;
+    selected.delete(id);
+    const row = table.querySelector(`.my-library-row[data-asset-id="${CSS.escape(id)}"]`);
+    const checkbox = row?.querySelector('.my-library-select[data-row-select]');
+    if (checkbox) checkbox.checked = false;
+    updateBar();
+  }
+
   function updateBar() {
     if (!bulkBar) return;
     const count = selected.size;
@@ -241,5 +251,7 @@
   setupHeader();
   setupRows();
   setupBar();
+  window.SvaraLibrary = window.SvaraLibrary || {};
+  window.SvaraLibrary.removeSelection = removeSelection;
   updateBar();
 })();
