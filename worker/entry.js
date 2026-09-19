@@ -505,6 +505,8 @@ export default {
       const requestedSourceType = String(url.searchParams.get("sourceType") || "").trim().toLowerCase();
       const requestedFormat = String(url.searchParams.get("format") || "").trim().toLowerCase();
       const requestedDate = String(url.searchParams.get("date") || "").trim().toLowerCase();
+      const requestedFolder = String(url.searchParams.get("folderId") || "").trim();
+
       const requestedSearch = String(url.searchParams.get("search") || "").trim().toLowerCase();
       const allowedStatuses = new Set(["processing", "ready", "failed", "storage_failed"]);
       const allowedDates = new Set(["today", "7d", "30d"]);
@@ -517,6 +519,7 @@ export default {
       if (requestedType) { conditions.push("LOWER(sg.type) = ?"); bindings.push(requestedType); }
       if (requestedSourceType) { conditions.push("LOWER(sg.source_type) = ?"); bindings.push(requestedSourceType); }
       if (requestedFormat) { conditions.push("LOWER(sg.format) = ?"); bindings.push(requestedFormat); }
+      if (requestedFolder) { if (requestedFolder === "__unfiled__") conditions.push("sg.folder_id IS NULL"); else { conditions.push("sg.folder_id = ?"); bindings.push(requestedFolder); } }
       if (requestedSearch) {
         conditions.push("(LOWER(COALESCE(sg.prompt, '')) LIKE ? OR LOWER(COALESCE(sg.type, '')) LIKE ? OR LOWER(COALESCE(sg.source_type, '')) LIKE ?)");
         const searchTerm = "%" + requestedSearch + "%";
