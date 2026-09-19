@@ -8,6 +8,7 @@
   const searchInput = libraryView.querySelector('.my-library-search');
   const dateFilter = libraryView.querySelector('[aria-label="Filter by date"]');
   const formatFilter = libraryView.querySelector('[aria-label="Filter by format"]');
+  const typeFilter = libraryView.querySelector('[aria-label="Filter by type"]');
   const filesHead = libraryView.querySelector('.my-library-files-head');
   const filesTitle = filesHead?.querySelector('strong');
   const filesCount = filesHead?.querySelector('span');
@@ -95,12 +96,14 @@
     const query = String(searchInput?.value || '').trim().toLowerCase();
     const dateValue = dateFilter?.value || 'All dates';
     const formatValue = formatFilter?.value || 'All formats';
+    const typeValue = typeFilter?.value || 'All types';
     return generations.filter(item => {
       const haystack = `${item.filename} ${item.voiceName} ${item.assetType || ''} ${item.soundType || ''} ${item.format} ${item.status}`.toLowerCase();
       const queryOk = !query || haystack.includes(query);
       const dateOk = dateMatches(item.createdAt, dateValue);
       const formatOk = formatValue === 'All formats' || item.format === formatValue;
-      return queryOk && dateOk && formatOk;
+      const typeOk = typeValue === 'All types' || (typeValue === 'Voice' ? item.assetType !== 'sound' : item.assetType === 'sound');
+      return queryOk && dateOk && formatOk && typeOk;
     });
   }
 
@@ -197,7 +200,7 @@
     if (!table || !tableHead || !empty) return;
     closeFileMenu();
     const visible = filteredAndSortedGenerations();
-    const activeFilter = Boolean((searchInput?.value || '').trim()) || (dateFilter?.value || 'All dates') !== 'All dates' || (formatFilter?.value || 'All formats') !== 'All formats';
+    const activeFilter = Boolean((searchInput?.value || '').trim()) || (dateFilter?.value || 'All dates') !== 'All dates' || (formatFilter?.value || 'All formats') !== 'All formats' || (typeFilter?.value || 'All types') !== 'All types';
     table.querySelectorAll('.my-library-row').forEach(row => row.remove());
     if (filesTitle) filesTitle.textContent = activeFilter ? 'Filtered generations' : 'All generations';
     if (filesCount) filesCount.textContent = `${visible.length} ${visible.length === 1 ? 'item' : 'items'}`;
