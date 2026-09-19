@@ -209,6 +209,9 @@
       const row = document.createElement('div');
       row.className = `my-library-row status-${escapeHtml(item.status)}`;
       row.dataset.generationIndex = String(index);
+      row.dataset.assetId = String(item.id || '');
+      row.dataset.assetType = String(item.assetType || 'voice');
+      row.dataset.folderId = String(item.folderId || '');
       row.innerHTML = `<span class="my-library-name" title="${escapeHtml(item.filename)}"><strong>${escapeHtml(item.filename)}</strong>${item.status !== 'ready' ? `<small>${escapeHtml(item.status)}</small>` : ''}</span><span>${escapeHtml(item.assetType === 'sound' ? 'Sound' : item.voiceName)}</span><span>${escapeHtml(formatDate(item.createdAt))}</span><span>${escapeHtml(item.format)}</span><span>${escapeHtml(formatBytes(item.sizeBytes))}</span><span class="my-library-expiry" title="Automatically removed after 90 days">${escapeHtml(formatRemovalDate(item.expiresAt))}</span>`;
       fragment.appendChild(row);
     });
