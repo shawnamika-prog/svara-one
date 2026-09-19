@@ -4,13 +4,13 @@
   const filesHead = libraryView?.querySelector('.my-library-files-head');
   if (!libraryView || !table || !filesHead) return;
 
-  const selected = new Set();
+  const selected = new Map();
   let headerCheckbox = null;
   let bulkBar = null;
   let actionLock = false;
   const esc = value => String(value ?? '').replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
   const visibleRows = () => [...table.querySelectorAll('.my-library-row')].filter(row => !row.hidden && getComputedStyle(row).display !== 'none');
-  const filenameFor = row => row.querySelector('.my-library-name strong')?.textContent?.trim() || '';
+  const assetFor = row => ({ id: String(row.dataset.assetId || ''), assetType: String(row.dataset.assetType || 'voice'), filename: row.querySelector('.my-library-name strong')?.textContent?.trim() || '' });
 
   function styles() {
     if (document.getElementById('my-library-bulk-styles')) return;
@@ -23,8 +23,8 @@
 
   function updateHeader() {
     if (!headerCheckbox) return;
-    const names = visibleRows().map(filenameFor).filter(Boolean);
-    const count = names.filter(name => selected.has(name)).length;
+    const rows = visibleRows().map(assetFor).filter(item => item.id);
+    const count = rows.filter(item => selected.has(item.id)).length;
     headerCheckbox.checked = names.length > 0 && count === names.length;
     headerCheckbox.indeterminate = count > 0 && count < names.length;
     headerCheckbox.disabled = names.length === 0;
@@ -47,8 +47,8 @@
 
   function selectAll() {
     visibleRows().forEach(row => {
-      const filename = filenameFor(row);
-      if (filename) selected.add(filename);
+      const asset = assetFor(row);
+      if (asset.id) selected.set(asset.id, asset);
     });
     table.querySelectorAll('.my-library-select[data-row-select]').forEach(input => {
       const row = input.closest('.my-library-row');
@@ -76,21 +76,21 @@
   function setupRows() {
     table.querySelectorAll('.my-library-row').forEach(row => {
       if (row.querySelector('.my-library-select-wrap')) return;
-      const filename = filenameFor(row);
-      if (!filename) return;
+      const asset = assetFor(row);
+      if (!asset.id) return;
       const wrap = document.createElement('label');
       wrap.className = 'my-library-select-wrap';
-      wrap.title = `Select ${filename}`;
+      wrap.title = `Select ${asset.filename}`;
       const input = document.createElement('input');
       input.type = 'checkbox';
       input.className = 'my-library-select';
       input.dataset.rowSelect = 'true';
-      input.checked = selected.has(filename);
-      input.setAttribute('aria-label', `Select ${filename}`);
+      input.checked = selected.has(asset.id);
+      input.setAttribute('aria-label', `Select ${asset.filename}`);
       input.addEventListener('click', event => event.stopPropagation());
       input.addEventListener('change', () => {
-        if (input.checked) selected.add(filename);
-        else selected.delete(filename);
+        if (input.checked) selected.set(asset.id, asset);
+        else selected.delete(asset.id);
         updateBar();
       });
       wrap.appendChild(input);
@@ -132,8 +132,8 @@
 
   async function openMove() {
     if (actionLock || !selected.size) return;
-    const names = [...selected];
-    const m = modal(`Move ${names.length} ${names.length === 1 ? 'file' : 'files'}`, `<label class="svara-modal-label" for="svaraBulkMoveFolder">Move ${names.length} ${names.length === 1 ? 'file' : 'files'} to</label><select id="svaraBulkMoveFolder" class="svara-modal-input"><option value="" selected disabled>Loading folders…</option></select><p class="svara-modal-help">All selected files will be moved together. Their audio files are not changed.</p>`, 'Move to');
+    const assets = [...selected.values()];
+    const m = modal(`Move ${assets.length} ${assets.length === 1 ? 'file' : 'files'}`, `<label class="svara-modal-label" for="svaraBulkMoveFolder">Move ${assets.length} ${assets.length === 1 ? 'file' : 'files'} to</label><select id="svaraBulkMoveFolder" class="svara-modal-input"><option value="" selected disabled>Loading folders…</option></select><p class="svara-modal-help">All selected files will be moved together. Their audio files are not changed.</p>`, 'Move to');
     const select = m.root.querySelector('#svaraBulkMoveFolder');
     const help = m.root.querySelector('.svara-modal-help');
     try {
@@ -158,13 +158,9 @@
       m.confirm.disabled = true;
       m.confirm.textContent = 'Moving…';
       try {
-        for (const filename of names) {
-          const response = await fetch('/api/generations/move', {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: { 'content-type': 'application/json', accept: 'application/json' },
-            body: JSON.stringify({ filename, folderId: folderId === '__unfiled__' ? null : folderId })
-          });
+        const response = await fetch('/api/library/assets/move', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify({ assets, folderId: folderId === '__unfiled__' ? null : folderId }) });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || `Could not move selected files (${response.status})`););
           const data = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(data.error || `Could not move ${filename}`);
         }
