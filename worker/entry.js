@@ -490,6 +490,94 @@ export default {
       return storedSoundAsset(request, env, userId, generationId);
     }
 
+    if (request.method === "GET" && url.pathname === "/api/sound/generations") {
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return json({ error: "Authentication required." }, 401);
+      if (!env.DB) return json({ error: "Sound history storage is not configured." }, 503);
+
+      const requestedLimit = Number(url.searchParams.get("limit") || 50);
+      const limit = Number.isInteger(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 100) : 50;
+      const requestedStatus = String(url.searchParams.get("status") || "").trim().toLowerCase();
+      const allowedStatuses = new Set(["processing", "ready", "failed", "storage_failed"]);
+      if (requestedStatus && !allowedStatuses.has(requestedStatus)) {
+        return json({ error: "Invalid Sound generation status." }, 400);
+      }
+
+      const conditions = ["sg.user_id = ?"];
+      const bindings = [userId];
+      if (requestedStatus) {
+        conditions.push("sg.status = ?");
+        bindings.push(requestedStatus);
+      }
+
+      const where = conditions.join(" AND ");
+      const rows = await env.DB.prepare(`
+        SELECT
+          sg.id,
+          sg.user_id,
+          sg.provider,
+          sg.provider_generation_id,
+          sg.type,
+          sg.prompt,
+          sg.source_type,
+          sg.source_asset_id,
+          sg.duration_seconds,
+          sg.sample_rate,
+          sg.channels,
+          sg.format,
+          sg.mime_type,
+          sg.status,
+          sg.r2_key,
+          sg.r2_etag,
+          sg.size_bytes,
+          sg.credits_charged,
+          sg.credit_reference_id,
+          sg.parent_generation_id,
+          sg.folder_id,
+          lf.name AS folder_name,
+          sg.created_at,
+          sg.completed_at,
+          sg.expires_at
+        FROM sound_generations sg
+        LEFT JOIN library_folders lf
+          ON lf.id = sg.folder_id
+         AND lf.user_id = sg.user_id
+        WHERE ${where}
+        ORDER BY sg.created_at DESC
+        LIMIT ?
+      `).bind(...bindings, limit).all();
+
+      const generations = (rows.results || []).map(row => ({
+        id: row.id,
+        provider: row.provider,
+        providerGenerationId: row.provider_generation_id,
+        type: row.type,
+        prompt: row.prompt,
+        sourceType: row.source_type,
+        sourceAssetId: row.source_asset_id,
+        durationSeconds: row.duration_seconds,
+        sampleRate: row.sample_rate,
+        channels: row.channels,
+        format: row.format,
+        mimeType: row.mime_type,
+        status: row.status,
+        r2Key: row.r2_key,
+        r2Etag: row.r2_etag,
+        sizeBytes: row.size_bytes,
+        creditsCharged: row.credits_charged,
+        creditReferenceId: row.credit_reference_id,
+        parentGenerationId: row.parent_generation_id,
+        folderId: row.folder_id,
+        folderName: row.folder_name,
+        createdAt: row.created_at,
+        completedAt: row.completed_at,
+        expiresAt: row.expires_at,
+        assetUrl: row.status === "ready" ? `/api/sound/assets/${encodeURIComponent(row.id)}` : null
+      }));
+
+      return json({ generations, count: generations.length, limit, status: requestedStatus || null });
+    }
+
     if (request.method === "POST" && url.pathname === "/api/sound/generate") {
       const userId = await authenticatedUserId(request, env);
       if (!userId) return json({ error: "Authentication required." }, 401);
