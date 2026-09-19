@@ -47,7 +47,7 @@
     .sound-history-head small{color:#a66cff;font-size:9px;letter-spacing:.2em;font-weight:800}.sound-history-head h2{margin:6px 0 0;font-size:22px;letter-spacing:-.04em}.sound-history-head p{margin:7px 0 0;color:#8091a8;font-size:11px;line-height:1.5}
     .sound-history-refresh{border:1px solid #ffffff12;border-radius:9px;background:#0b1523;color:#aebdcb;padding:9px 12px;font:700 9px Inter;cursor:pointer}.sound-history-refresh:hover{background:#111e2e;color:#fff}
     .sound-history-list{padding:14px 20px 20px;display:grid;gap:8px}
-    .sound-history-item{display:grid;grid-template-columns:minmax(220px,1.7fr) 100px 100px 130px 90px;gap:12px;align-items:center;padding:13px 14px;border:1px solid #ffffff0b;border-radius:11px;background:#09111e}
+    .sound-history-item{display:grid;grid-template-columns:minmax(220px,1.7fr) 75px 75px 90px 100px 130px;gap:12px;align-items:center;padding:13px 14px;border:1px solid #ffffff0b;border-radius:11px;background:#09111e}
     .sound-history-item:hover{border-color:#a85cff24;background:#0b1523}
     .sound-history-main{min-width:0}.sound-history-main strong{display:block;color:#dce8f3;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sound-history-main small{display:block;margin-top:4px;color:#667b91;font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .sound-history-meta{color:#91a3b7;font-size:9px;white-space:nowrap}.sound-history-status{font-size:8px;text-transform:uppercase;letter-spacing:.08em;font-weight:800}.sound-history-status.ready{color:#31e3c8}.sound-history-status.processing{color:#d7a8ff}.sound-history-status.failed,.sound-history-status.storage_failed{color:#ef7777}
