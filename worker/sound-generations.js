@@ -19,6 +19,14 @@ function normalizeStatus(status) {
   return value;
 }
 
+const SOUND_RETENTION_DAYS = 90;
+
+function soundGenerationExpiryDate(from = new Date()) {
+  const date = new Date(from);
+  date.setUTCDate(date.getUTCDate() + SOUND_RETENTION_DAYS);
+  return date.toISOString();
+}
+
 function normalizeCredits(value) {
   const credits = Number(value);
   if (!Number.isFinite(credits) || credits < 0) throw new Error("Sound generation credits must be a non-negative number");
@@ -76,6 +84,7 @@ export async function createSoundGeneration(env, {
   if (!generationType) throw new Error("Sound generation type is required");
 
   const outputMimeType = String(mimeType || mimeTypeForSoundFormat(outputFormat));
+  const effectiveExpiresAt = expiresAt ? String(expiresAt) : soundGenerationExpiryDate();
   const credits = normalizeCredits(creditsCharged);
   const duration = normalizeOptionalNumber(durationSeconds, "durationSeconds");
   const rate = sampleRate === null || sampleRate === undefined || sampleRate === "" ? null : Number(sampleRate);
@@ -113,7 +122,7 @@ export async function createSoundGeneration(env, {
       creditReferenceId,
       parentGenerationId,
       folderId,
-      expiresAt
+      effectiveExpiresAt
     )
   ];
 
@@ -171,7 +180,7 @@ export async function createSoundGeneration(env, {
     mimeType: outputMimeType,
     creditsCharged: credits,
     r2Key: null,
-    expiresAt,
+    expiresAt: effectiveExpiresAt,
     parameters: normalizedParameters
   };
 }
