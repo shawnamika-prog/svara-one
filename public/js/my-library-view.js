@@ -96,7 +96,7 @@
     const dateValue = dateFilter?.value || 'All dates';
     const formatValue = formatFilter?.value || 'All formats';
     return generations.filter(item => {
-      const haystack = `${item.filename} ${item.voiceName} ${item.format} ${item.status}`.toLowerCase();
+      const haystack = `${item.filename} ${item.voiceName} ${item.assetType || ''} ${item.soundType || ''} ${item.format} ${item.status}`.toLowerCase();
       const queryOk = !query || haystack.includes(query);
       const dateOk = dateMatches(item.createdAt, dateValue);
       const formatOk = formatValue === 'All formats' || item.format === formatValue;
@@ -209,7 +209,7 @@
       const row = document.createElement('div');
       row.className = `my-library-row status-${escapeHtml(item.status)}`;
       row.dataset.generationIndex = String(index);
-      row.innerHTML = `<span class="my-library-name" title="${escapeHtml(item.filename)}"><strong>${escapeHtml(item.filename)}</strong>${item.status !== 'ready' ? `<small>${escapeHtml(item.status)}</small>` : ''}</span><span>${escapeHtml(item.voiceName)}</span><span>${escapeHtml(formatDate(item.createdAt))}</span><span>${escapeHtml(item.format)}</span><span>${escapeHtml(formatBytes(item.sizeBytes))}</span><span class="my-library-expiry" title="Automatically removed after 90 days">${escapeHtml(formatRemovalDate(item.expiresAt))}</span>`;
+      row.innerHTML = `<span class="my-library-name" title="${escapeHtml(item.filename)}"><strong>${escapeHtml(item.filename)}</strong>${item.status !== 'ready' ? `<small>${escapeHtml(item.status)}</small>` : ''}</span><span>${escapeHtml(item.assetType === 'sound' ? 'Sound' : item.voiceName)}</span><span>${escapeHtml(formatDate(item.createdAt))}</span><span>${escapeHtml(item.format)}</span><span>${escapeHtml(formatBytes(item.sizeBytes))}</span><span class="my-library-expiry" title="Automatically removed after 90 days">${escapeHtml(formatRemovalDate(item.expiresAt))}</span>`;
       fragment.appendChild(row);
     });
     table.appendChild(fragment);
