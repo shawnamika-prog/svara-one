@@ -121,6 +121,29 @@ app.fetch = async (request, env, ctx) => {
     }
   }
 
+  if (request.method === "POST" && url.pathname === "/api/library/assets/move") {
+    const userId=await authenticatedUserId(request,env);
+    if(!userId)return json({error:"Authentication required."},401);
+    if(!env.DB)return json({error:"Library storage is not configured."},503);
+    try{
+      const body=await request.json().catch(()=>({}));
+      const assets=Array.isArray(body?.assets)?body.assets:[];
+      const folderId=body?.folderId==null||body?.folderId===""?null:String(body.folderId).trim();
+      if(!assets.length)return json({error:"No assets selected."},400);
+      if(assets.length>500)return json({error:"Too many assets selected."},400);
+      if(folderId&&!(await folderForUser(env,folderId,userId)))return json({error:"Folder not found."},404);
+      let moved=0;
+      for(const asset of assets){
+        const id=String(asset?.id||"").trim();
+        const type=String(asset?.assetType||"voice").trim().toLowerCase();
+        if(!id||!["voice","sound"].includes(type))return json({error:"Invalid asset selection."},400);
+        const tableName=type==="sound"?"sound_generations":"generations";
+        const result=await env.DB.prepare("UPDATE "+tableName+" SET folder_id=? WHERE id=? AND user_id=?").bind(folderId,id,userId).run();
+        if(result.meta?.changes)moved+=Number(result.meta.changes);
+      }
+      return json({success:true,moved,total:assets.length,folderId});
+    }catch(error){console.error("library_assets_move_error",error);return json({error:error?.message||"Could not move assets."},500);}
+  }
   if (request.method === "POST" && url.pathname === "/api/generations/folders/rename") {
     const userId = await authenticatedUserId(request, env);
     if (!userId) return json({ error: "Authentication required." }, 401);
