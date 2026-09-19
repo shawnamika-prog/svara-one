@@ -266,20 +266,36 @@
   };
   let soundHistoryAudio=null;
   let soundHistoryPlayingButton=null;
-  const stopSoundHistoryAudio=()=>{if(soundHistoryAudio){soundHistoryAudio.pause();soundHistoryAudio.currentTime=0;soundHistoryAudio=null;}if(soundHistoryPlayingButton){soundHistoryPlayingButton.textContent="▶";soundHistoryPlayingButton=null;}};
+  let soundHistoryObjectUrl=null;
+  const stopSoundHistoryAudio=()=>{
+    if(soundHistoryAudio){soundHistoryAudio.pause();soundHistoryAudio.currentTime=0;soundHistoryAudio.src="";soundHistoryAudio=null;}
+    if(soundHistoryObjectUrl){URL.revokeObjectURL(soundHistoryObjectUrl);soundHistoryObjectUrl=null;}
+    if(soundHistoryPlayingButton){soundHistoryPlayingButton.textContent="▶";soundHistoryPlayingButton=null;}
+  };
   const bindSoundHistoryPlayback=()=>{
-    soundHistoryList?.querySelectorAll("[data-sound-history-play]").forEach(button=>button.addEventListener("click",()=>{
+    soundHistoryList?.querySelectorAll("[data-sound-history-play]").forEach(button=>button.addEventListener("click",async()=>{
       const url=button.dataset.soundHistoryUrl;
       if(!url)return;
       if(soundHistoryPlayingButton===button){stopSoundHistoryAudio();return;}
       stopSoundHistoryAudio();
-      const audio=new Audio(url);
-      soundHistoryAudio=audio;
       soundHistoryPlayingButton=button;
       button.textContent="❚❚";
-      audio.addEventListener("ended",stopSoundHistoryAudio,{once:true});
-      audio.addEventListener("error",stopSoundHistoryAudio,{once:true});
-      audio.play().catch(stopSoundHistoryAudio);
+      try{
+        const response=await fetch(url,{credentials:"same-origin",cache:"no-store"});
+        if(!response.ok)throw new Error(`Sound asset unavailable (${response.status})`);
+        const blob=await response.blob();
+        if(!blob.size)throw new Error("Sound asset is empty");
+        soundHistoryObjectUrl=URL.createObjectURL(blob);
+        const audio=new Audio(soundHistoryObjectUrl);
+        audio.preload="auto";
+        soundHistoryAudio=audio;
+        audio.addEventListener("ended",stopSoundHistoryAudio,{once:true});
+        audio.addEventListener("error",()=>{console.error("Sound history playback failed",audio.error);stopSoundHistoryAudio();},{once:true});
+        await audio.play();
+      }catch(error){
+        console.error("Sound history playback unavailable",error);
+        stopSoundHistoryAudio();
+      }
     }));
   };
   const resetSoundHistory=()=>{soundHistoryPage=1;loadSoundHistory();};
