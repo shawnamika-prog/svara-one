@@ -115,7 +115,7 @@
       case 'oldest': return sorted.sort((a, b) => time(a.createdAt) - time(b.createdAt));
       case 'name-asc': return sorted.sort((a, b) => text(a.filename).localeCompare(text(b.filename)));
       case 'name-desc': return sorted.sort((a, b) => text(b.filename).localeCompare(text(a.filename)));
-      case 'voice-asc': return sorted.sort((a, b) => text(a.voiceName).localeCompare(text(b.voiceName)) || time(b.createdAt) - time(a.createdAt));
+      case 'type-asc': return sorted.sort((a, b) => text(a.assetType === 'sound' ? 'Sound' : 'Voice').localeCompare(text(b.assetType === 'sound' ? 'Sound' : 'Voice')) || text(a.filename).localeCompare(text(b.filename)) || time(b.createdAt) - time(a.createdAt));
       case 'size-desc': return sorted.sort((a, b) => (Number(b.sizeBytes) || 0) - (Number(a.sizeBytes) || 0));
       case 'size-asc': return sorted.sort((a, b) => (Number(a.sizeBytes) || 0) - (Number(b.sizeBytes) || 0));
       case 'newest':
@@ -136,7 +136,7 @@
     const menu = document.createElement('div');
     menu.className = 'my-library-sort-menu';
     menu.hidden = true;
-    menu.innerHTML = `<button type="button" data-sort="newest">Newest first</button><button type="button" data-sort="oldest">Oldest first</button><button type="button" data-sort="name-asc">Name A–Z</button><button type="button" data-sort="name-desc">Name Z–A</button><button type="button" data-sort="voice-asc">Voice A–Z</button><button type="button" data-sort="size-desc">Largest first</button><button type="button" data-sort="size-asc">Smallest first</button>`;
+    menu.innerHTML = `<button type="button" data-sort="newest">Newest first</button><button type="button" data-sort="oldest">Oldest first</button><button type="button" data-sort="name-asc">Name A–Z</button><button type="button" data-sort="name-desc">Name Z–A</button><button type="button" data-sort="type-asc">Type A–Z</button><button type="button" data-sort="size-desc">Largest first</button><button type="button" data-sort="size-asc">Smallest first</button>`;
     wrapper.appendChild(menu);
     if (!document.getElementById('my-library-sort-styles')) {
       const style = document.createElement('style');
@@ -201,7 +201,7 @@
     table.querySelectorAll('.my-library-row').forEach(row => row.remove());
     if (filesTitle) filesTitle.textContent = activeFilter ? 'Filtered generations' : 'All generations';
     if (filesCount) filesCount.textContent = `${visible.length} ${visible.length === 1 ? 'item' : 'items'}`;
-    if (!visible.length) { empty.hidden = false; empty.innerHTML = `<div><div class="my-library-empty-icon">◈</div><h3>${escapeHtml(generations.length ? 'No matching generations' : 'Your generations will appear here')}</h3><p>${escapeHtml(generations.length ? 'Try changing your search or filters.' : 'Generate a voice and your original audio will be added to My Library.')}</p></div>`; return; }
+    if (!visible.length) { empty.hidden = false; empty.innerHTML = `<div><div class="my-library-empty-icon">◈</div><h3>${escapeHtml(generations.length ? 'No matching generations' : 'Your generations will appear here')}</h3><p>${escapeHtml(generations.length ? 'Try changing your search or filters.' : 'Generate a Voice or Sound and the asset will be added to My Library.')}</p></div>`; return; }
     empty.hidden = true;
     const fragment = document.createDocumentFragment();
     visible.forEach((item, index) => {
@@ -211,7 +211,7 @@
       row.dataset.assetId = String(item.id || '');
       row.dataset.assetType = String(item.assetType || 'voice');
       row.dataset.folderId = String(item.folderId || '');
-      row.innerHTML = `<span class="my-library-name" title="${escapeHtml(item.filename)}"><strong>${escapeHtml(item.filename)}</strong>${item.status !== 'ready' ? `<small>${escapeHtml(item.status)}</small>` : ''}</span><span>${escapeHtml(item.assetType === 'sound' ? 'Sound' : item.voiceName)}</span><span>${escapeHtml(formatDate(item.createdAt))}</span><span>${escapeHtml(item.format)}</span><span>${escapeHtml(formatBytes(item.sizeBytes))}</span><span class="my-library-expiry" title="Automatically removed after 90 days">${escapeHtml(formatRemovalDate(item.expiresAt))}</span>`;
+      row.innerHTML = `<span class="my-library-name" title="${escapeHtml(item.filename)}"><strong>${escapeHtml(item.filename)}</strong>${item.status !== 'ready' ? `<small>${escapeHtml(item.status)}</small>` : ''}</span><span title="${escapeHtml(item.assetType === 'sound' ? 'Sound' : 'Voice')}">${escapeHtml(item.assetType === 'sound' ? 'Sound' : 'Voice')}</span><span>${escapeHtml(formatDate(item.createdAt))}</span><span>${escapeHtml(item.format)}</span><span>${escapeHtml(formatBytes(item.sizeBytes))}</span><span class="my-library-expiry" title="Automatically removed after 90 days">${escapeHtml(formatRemovalDate(item.expiresAt))}</span>`;
       fragment.appendChild(row);
     });
     table.appendChild(fragment);
