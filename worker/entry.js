@@ -495,22 +495,42 @@ export default {
       if (!userId) return json({ error: "Authentication required." }, 401);
       if (!env.DB) return json({ error: "Sound history storage is not configured." }, 503);
 
-      const requestedLimit = Number(url.searchParams.get("limit") || 50);
-      const limit = Number.isInteger(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 100) : 50;
+      const requestedLimit = Number(url.searchParams.get("limit") || 20);
+      const limit = Number.isInteger(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 100) : 20;
+      const requestedPage = Number(url.searchParams.get("page") || 1);
+      const page = Number.isInteger(requestedPage) ? Math.max(requestedPage, 1) : 1;
+      const offset = (page - 1) * limit;
       const requestedStatus = String(url.searchParams.get("status") || "").trim().toLowerCase();
+      const requestedType = String(url.searchParams.get("type") || "").trim().toLowerCase();
+      const requestedSourceType = String(url.searchParams.get("sourceType") || "").trim().toLowerCase();
+      const requestedFormat = String(url.searchParams.get("format") || "").trim().toLowerCase();
+      const requestedDate = String(url.searchParams.get("date") || "").trim().toLowerCase();
+      const requestedSearch = String(url.searchParams.get("search") || "").trim().toLowerCase();
       const allowedStatuses = new Set(["processing", "ready", "failed", "storage_failed"]);
-      if (requestedStatus && !allowedStatuses.has(requestedStatus)) {
-        return json({ error: "Invalid Sound generation status." }, 400);
-      }
+      const allowedDates = new Set(["today", "7d", "30d"]);
+      if (requestedStatus && !allowedStatuses.has(requestedStatus)) return json({ error: "Invalid Sound generation status." }, 400);
+      if (requestedDate && !allowedDates.has(requestedDate)) return json({ error: "Invalid Sound generation date filter." }, 400);
 
       const conditions = ["sg.user_id = ?"];
       const bindings = [userId];
-      if (requestedStatus) {
-        conditions.push("sg.status = ?");
-        bindings.push(requestedStatus);
+      if (requestedStatus) { conditions.push("sg.status = ?"); bindings.push(requestedStatus); }
+      if (requestedType) { conditions.push("LOWER(sg.type) = ?"); bindings.push(requestedType); }
+      if (requestedSourceType) { conditions.push("LOWER(sg.source_type) = ?"); bindings.push(requestedSourceType); }
+      if (requestedFormat) { conditions.push("LOWER(sg.format) = ?"); bindings.push(requestedFormat); }
+      if (requestedSearch) {
+        conditions.push("(LOWER(COALESCE(sg.prompt, '')) LIKE ? OR LOWER(COALESCE(sg.type, '')) LIKE ? OR LOWER(COALESCE(sg.source_type, '')) LIKE ?)");
+        const searchTerm = "%" + requestedSearch + "%";
+        bindings.push(searchTerm, searchTerm, searchTerm);
+      }
+      if (requestedDate) {
+        const dateModifier = requestedDate === "today" ? "-1 day" : requestedDate === "7d" ? "-7 days" : "-30 days";
+        conditions.push("sg.created_at >= datetime('now', ?)");
+        bindings.push(dateModifier);
       }
 
       const where = conditions.join(" AND ");
+      const totalRow = await env.DB.prepare("SELECT COUNT(*) AS total FROM sound_generations sg WHERE " + where).bind(...bindings).first();
+      const total = Number(totalRow?.total || 0);
       const rows = await env.DB.prepare(`
         SELECT
           sg.id,
@@ -544,8 +564,8 @@ export default {
          AND lf.user_id = sg.user_id
         WHERE ${where}
         ORDER BY sg.created_at DESC
-        LIMIT ?
-      `).bind(...bindings, limit).all();
+        LIMIT ? OFFSET ?
+      `).bind(...bindings, limit, offset).all();
 
       const generations = (rows.results || []).map(row => ({
         id: row.id,
@@ -575,7 +595,25 @@ export default {
         assetUrl: row.status === "ready" ? `/api/sound/assets/${encodeURIComponent(row.id)}` : null
       }));
 
-      return json({ generations, count: generations.length, limit, status: requestedStatus || null });
+      const pageCount = total ? Math.ceil(total / limit) : 0;
+      return json({
+        generations,
+        count: generations.length,
+        total,
+        limit,
+        page,
+        pageCount,
+        hasNext: page < pageCount,
+        hasPrevious: page > 1 && pageCount > 0,
+        filters: {
+          status: requestedStatus || null,
+          type: requestedType || null,
+          sourceType: requestedSourceType || null,
+          format: requestedFormat || null,
+          date: requestedDate || null,
+          search: requestedSearch || null
+        }
+      });
     }
 
     if (request.method === "POST" && url.pathname === "/api/sound/generate") {
