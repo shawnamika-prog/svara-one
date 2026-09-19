@@ -50,7 +50,17 @@ app.fetch = async (request, env, ctx) => {
 
     if (request.method === "GET") {
       try {
-        const rows = await env.DB.prepare(`SELECT f.id,f.name,f.created_at,COUNT(g.id) AS item_count FROM library_folders f LEFT JOIN generations g ON g.folder_id=f.id AND g.user_id=f.user_id WHERE f.user_id=? GROUP BY f.id,f.name,f.created_at ORDER BY f.created_at ASC`).bind(userId).all();
+        const rows = await env.DB.prepare(`
+          SELECT
+            f.id,
+            f.name,
+            f.created_at,
+            (SELECT COUNT(*) FROM generations g WHERE g.folder_id=f.id AND g.user_id=f.user_id)
+            + (SELECT COUNT(*) FROM sound_generations sg WHERE sg.folder_id=f.id AND sg.user_id=f.user_id) AS item_count
+          FROM library_folders f
+          WHERE f.user_id=?
+          ORDER BY f.created_at ASC
+        `).bind(userId).all();
         return json({ folders: (rows.results || []).map(row => ({ id: String(row.id), name: String(row.name), createdAt: row.created_at || null, itemCount: Number(row.item_count) || 0 })) });
       } catch (error) {
         console.error("library_folder_list_error", error);
