@@ -25,7 +25,7 @@
       const url = item.assetType === 'sound'
         ? '/api/sound/assets/' + encodeURIComponent(item.id)
         : '/api/generations/media?filename=' + encodeURIComponent(item.filename);
-      window.SvaraModal?.preview?.(url, item);
+      window.open(url, '_blank', 'noopener');
       return;
     }
     if (label === 'Download') {
@@ -59,6 +59,17 @@
       }).catch(error => console.error(error));
       return;
     }
-    if (label === 'Delete') window.SvaraModal?.delete?.(item.filename, item);
+    if (label === 'Delete') {
+      if (!window.confirm('Delete “' + item.filename + '”? This cannot be undone.')) return;
+      fetch('/api/library/assets/delete', {
+        method:'POST', credentials:'same-origin',
+        headers:{'content-type':'application/json',accept:'application/json'},
+        body:JSON.stringify({assetId:item.id,assetType:item.assetType})
+      }).then(async response => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || 'Delete failed (' + response.status + ')');
+        window.SvaraLibrary?.refresh?.();
+      }).catch(error => console.error(error));
+    }
   }, true);
 })();
