@@ -74,6 +74,43 @@ app.fetch = async (request, env, ctx) => {
     }
   }
 
+  if (request.method === "POST" && url.pathname === "/api/sound/generations/move") {
+    const userId = await authenticatedUserId(request, env);
+    if (!userId) return json({ error: "Authentication required." }, 401);
+    if (!env.DB) return json({ error: "Library storage is not configured." }, 503);
+    try {
+      const body = await request.json().catch(() => ({}));
+      const generationId = String(body?.generationId || "").trim();
+      const folderId = body?.folderId == null || body?.folderId === "" ? null : String(body.folderId).trim();
+      if (!generationId) return json({ error: "Sound generation ID is required." }, 400);
+
+      const generation = await env.DB.prepare(
+        "SELECT id,folder_id FROM sound_generations WHERE id=? AND user_id=? LIMIT 1"
+      ).bind(generationId, userId).first();
+      if (!generation) return json({ error: "Sound generation not found." }, 404);
+
+      if (folderId) {
+        const folder = await env.DB.prepare(
+          "SELECT id,name FROM library_folders WHERE id=? AND user_id=? LIMIT 1"
+        ).bind(folderId, userId).first();
+        if (!folder) return json({ error: "Folder not found." }, 404);
+      }
+
+      const result = await env.DB.prepare(
+        "UPDATE sound_generations SET folder_id=? WHERE id=? AND user_id=?"
+      ).bind(folderId, generationId, userId).run();
+      if (!result.meta?.changes) return json({ error: "Sound generation could not be moved." }, 404);
+
+      const folder = folderId
+        ? await env.DB.prepare("SELECT name FROM library_folders WHERE id=? AND user_id=? LIMIT 1").bind(folderId, userId).first()
+        : null;
+      return json({ success: true, generationId, folderId, folderName: folder?.name || null });
+    } catch (error) {
+      console.error("sound_generation_move_error", error);
+      return json({ error: error?.message || "Could not move Sound generation." }, 500);
+    }
+  }
+
   if (request.method === "POST" && url.pathname === "/api/generations/folders/rename") {
     const userId = await authenticatedUserId(request, env);
     if (!userId) return json({ error: "Authentication required." }, 401);
