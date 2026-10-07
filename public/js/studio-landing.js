@@ -127,6 +127,12 @@
     .compose-track-trim-handle.left{left:var(--trim-left,0%);transform:translateX(-50%)}
     .compose-track-trim-handle.right{left:calc(100% - var(--trim-right,0%));transform:translateX(-50%)}
     .compose-track-trim-handle:after{content:"";position:absolute;left:2px;top:50%;width:2px;height:18px;border-radius:2px;background:#fff;transform:translateY(-50%);opacity:.9}
+    .compose-track-fade-indicator{position:absolute;top:0;bottom:0;z-index:3;pointer-events:none;opacity:.8;border-radius:7px}
+    .compose-track-fade-indicator.in{left:var(--fade-in-left,0%);width:var(--fade-in-width,0%);background:repeating-linear-gradient(135deg,transparent 0,transparent 7px,#9ab8ff66 7px,#9ab8ff66 8px)}
+    .compose-track-fade-indicator.out{right:var(--fade-out-right,0%);width:var(--fade-out-width,0%);background:repeating-linear-gradient(45deg,transparent 0,transparent 7px,#9ab8ff66 7px,#9ab8ff66 8px)}
+    .compose-track-fade-indicator.in:after,.compose-track-fade-indicator.out:after{content:"";position:absolute;top:0;bottom:0;width:1px;background:#b9ccff99}
+    .compose-track-fade-indicator.in:after{right:0}
+    .compose-track-fade-indicator.out:after{left:0}
     .compose-track-trim-readout{position:absolute;left:50%;top:-8px;z-index:6;transform:translate(-50%,-100%);padding:4px 7px;border:1px solid #4f7cff66;border-radius:5px;background:#071426ee;color:#b9ccff;font:700 8px Inter;white-space:nowrap;opacity:0;pointer-events:none}
     .compose-track-editor.trimming .compose-track-trim-readout{opacity:1}
     .compose-track-wave i{width:3px;height:var(--h);min-height:4px;border-radius:99px;background:#7da3ff;opacity:.86;transform-origin:center}
@@ -538,6 +544,8 @@
           <span class="compose-track-time-guide">Start 0:00</span>
           <div class="compose-track-wave" aria-label="Track waveform">
             ${waveform}
+            <span class="compose-track-fade-indicator in" aria-hidden="true"></span>
+            <span class="compose-track-fade-indicator out" aria-hidden="true"></span>
             <span class="compose-track-trim-handle left" data-compose-trim="in" title="Trim start"></span>
             <span class="compose-track-trim-handle right" data-compose-trim="out" title="Trim end"></span>
             <span class="compose-track-trim-readout">Trim 0:00.00 – 0:00.00</span>
@@ -573,6 +581,8 @@
     const trimInHandle=row.querySelector('[data-compose-trim="in"]');
     const trimOutHandle=row.querySelector('[data-compose-trim="out"]');
     const trimReadout=row.querySelector('.compose-track-trim-readout');
+    const fadeInIndicator=row.querySelector('.compose-track-fade-indicator.in');
+    const fadeOutIndicator=row.querySelector('.compose-track-fade-indicator.out');
     const volume=row.querySelector('.compose-track-volume input');
     const fadeIn=row.querySelector('[data-compose-fade="in"]');
     const fadeOut=row.querySelector('[data-compose-fade="out"]');
@@ -613,8 +623,8 @@
       audio.volume=baseVolume()*gain;
     };
     volume?.addEventListener('input',()=>applyPlaybackGain());
-    fadeIn?.addEventListener('input',()=>{row.dataset.fadeIn=String(Number(fadeIn.value)||0);renderFadeValues();applyPlaybackGain();});
-    fadeOut?.addEventListener('input',()=>{row.dataset.fadeOut=String(Number(fadeOut.value)||0);renderFadeValues();applyPlaybackGain();});
+    fadeIn?.addEventListener('input',()=>{row.dataset.fadeIn=String(Number(fadeIn.value)||0);renderFadeValues();renderTrim();applyPlaybackGain();});
+    fadeOut?.addEventListener('input',()=>{row.dataset.fadeOut=String(Number(fadeOut.value)||0);renderFadeValues();renderTrim();applyPlaybackGain();});
     audio?.addEventListener('timeupdate',applyPlaybackGain);
     mute?.addEventListener('click',()=>{
       if(!audio)return;
@@ -654,6 +664,15 @@
       wave?.style.setProperty('--trim-left',String(trimIn*100)+'%');
       wave?.style.setProperty('--trim-right',String(trimOut*100)+'%');
       const duration=sourceDuration();
+      const visibleRatio=Math.max(.02,1-trimIn-trimOut);
+      const fadeInSeconds=Math.min(Number(row.dataset.fadeIn||0),duration*visibleRatio);
+      const fadeOutSeconds=Math.min(Number(row.dataset.fadeOut||0),duration*visibleRatio);
+      const fadeInRatio=Math.min(visibleRatio,fadeInSeconds/duration);
+      const fadeOutRatio=Math.min(visibleRatio,fadeOutSeconds/duration);
+      wave?.style.setProperty('--fade-in-left',String(trimIn*100)+'%');
+      wave?.style.setProperty('--fade-in-width',String(fadeInRatio*100)+'%');
+      wave?.style.setProperty('--fade-out-right',String(trimOut*100)+'%');
+      wave?.style.setProperty('--fade-out-width',String(fadeOutRatio*100)+'%');
       if(trimReadout)trimReadout.textContent='Trim '+formatTrimTime(trimIn*duration)+' – '+formatTrimTime((1-trimOut)*duration);
       if(trimInHandle)trimInHandle.title='Trim start: '+formatTrimTime(trimIn*duration);
       if(trimOutHandle)trimOutHandle.title='Trim end: '+formatTrimTime((1-trimOut)*duration);
