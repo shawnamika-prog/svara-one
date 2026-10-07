@@ -620,29 +620,77 @@
       const ctx=waveformCanvas.getContext('2d');
       ctx.setTransform(dpr,0,0,dpr,0,0);
       ctx.clearRect(0,0,width,height);
+
       const samples=buffer.getChannelData(0);
-      const bins=Math.max(1,Math.floor(width/2));
+      const bins=Math.max(120,Math.floor(width/2));
       const step=Math.max(1,Math.floor(samples.length/bins));
-      ctx.strokeStyle='#7da3ff';
-      ctx.globalAlpha=.9;
-      ctx.lineWidth=1.5;
+      const peaks=new Float32Array(bins);
+
+      for(let x=0;x<bins;x++){
+        const startSample=x*step;
+        const endSample=Math.min(samples.length,startSample+step);
+        let peak=0;
+        for(let i=startSample;i<endSample;i+=Math.max(1,Math.floor((endSample-startSample)/120))){
+          const value=Math.abs(samples[i]);
+          if(value>peak)peak=value;
+        }
+        peaks[x]=peak;
+      }
+
+      // Light smoothing keeps the waveform legible at timeline scale
+      // without changing the underlying audio data.
+      const smooth=new Float32Array(bins);
+      for(let x=0;x<bins;x++){
+        const a=peaks[Math.max(0,x-1)];
+        const b=peaks[x];
+        const d=peaks[Math.min(bins-1,x+1)];
+        smooth[x]=(a+b*2+d)/4;
+      }
+
+      const centre=height/2;
+      const maxAmplitude=height*.40;
+      const top=new Float32Array(bins);
+      const bottom=new Float32Array(bins);
+      for(let x=0;x<bins;x++){
+        const amp=Math.max(1.5,smooth[x]*maxAmplitude);
+        top[x]=centre-amp;
+        bottom[x]=centre+amp;
+      }
+
+      ctx.beginPath();
+      ctx.moveTo(0,centre);
+      for(let x=0;x<bins;x++){
+        ctx.lineTo(x*(width/(bins-1)),top[x]);
+      }
+      for(let x=bins-1;x>=0;x--){
+        ctx.lineTo(x*(width/(bins-1)),bottom[x]);
+      }
+      ctx.closePath();
+      ctx.fillStyle='#7da3ff';
+      ctx.globalAlpha=.82;
+      ctx.fill();
+
+      // Crisp centre reference line.
+      ctx.beginPath();
+      ctx.moveTo(0,centre);
+      ctx.lineTo(width,centre);
+      ctx.strokeStyle='#a9c2ff';
+      ctx.globalAlpha=.18;
+      ctx.lineWidth=1;
+      ctx.stroke();
+
+      // Subtle highlight along the positive envelope.
       ctx.beginPath();
       for(let x=0;x<bins;x++){
-        const start=x*step;
-        const end=Math.min(samples.length,start+step);
-        let min=1,max=-1;
-        for(let i=start;i<end;i+=Math.max(1,Math.floor((end-start)/80))){
-          const value=samples[i];
-          if(value<min)min=value;
-          if(value>max)max=value;
-        }
-        const top=height/2+min*(height*.42);
-        const bottom=height/2+max*(height*.42);
-        const px=x*(width/bins);
-        ctx.moveTo(px,top);
-        ctx.lineTo(px,bottom);
+        const px=x*(width/(bins-1));
+        if(x===0)ctx.moveTo(px,top[x]);
+        else ctx.lineTo(px,top[x]);
       }
+      ctx.strokeStyle='#9ab8ff';
+      ctx.globalAlpha=.42;
+      ctx.lineWidth=1;
       ctx.stroke();
+
       waveformCanvas.dataset.real='true';
     };
     const renderActualWaveform=async()=>{
