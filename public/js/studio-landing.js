@@ -104,11 +104,8 @@
     .compose-add-track-inline{display:block;margin:14px auto 0}
     .compose-track-editor{display:grid;grid-template-columns:180px minmax(720px,1fr);grid-template-rows:auto auto;gap:0;border:1px solid #ffffff0d;border-radius:11px;background:#07121d;overflow:hidden}
     .compose-track-editor.selected{border-color:#4f7cff66;box-shadow:inset 0 0 0 1px #4f7cff22}
-    .compose-track-identity{grid-column:1;grid-row:1 / span 2;display:flex;align-items:flex-start;gap:9px;padding:12px;border-right:1px solid #ffffff0b;background:#091522;cursor:pointer}
-    .compose-track-identity:after{content:"Double-click to play";display:block;position:absolute;opacity:0;pointer-events:none}
-    .compose-track-identity .compose-track-row-main{min-width:0}
-    .compose-track-select{margin-left:auto;border:1px solid #ffffff10;border-radius:7px;background:#0b1827;color:#72879d;padding:6px 7px;font:700 8px Inter;cursor:pointer}
-    .compose-track-editor.selected .compose-track-select{border-color:#4f7cff55;color:#75a0ff;background:#102554}
+    .compose-track-identity{grid-column:1;grid-row:1 / span 2;display:grid;grid-template-columns:34px 1fr;grid-template-rows:32px 1fr;align-items:start;gap:8px;padding:12px;border-right:1px solid #ffffff0b;background:#091522;cursor:pointer}
+    .compose-track-identity .compose-track-row-main{grid-column:1 / span 2;grid-row:2;min-width:0;align-self:end;padding-bottom:1px}
     .compose-track-lane{position:relative;grid-column:2;grid-row:1;display:flex;align-items:center;min-height:92px;padding:10px 0;background:#060d17;overflow:hidden}
     .compose-track-lane:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(to right,transparent 0,transparent calc(16.6667% - 1px),#ffffff0c calc(16.6667% - 1px),#ffffff0c 16.6667%)}
     .compose-track-region{position:relative;z-index:2;display:flex;align-items:center;width:100%;min-width:120px;cursor:grab;transition:margin-left .08s ease}
@@ -140,7 +137,8 @@
     .compose-track-wave.playing i{animation:composeWavePulse .72s ease-in-out infinite alternate}
     .compose-track-wave.playing i:nth-child(2n){animation-delay:-.18s}.compose-track-wave.playing i:nth-child(3n){animation-delay:-.34s}
     @keyframes composeWavePulse{from{transform:scaleY(.58);opacity:.38}to{transform:scaleY(1.06);opacity:.9}}
-    .compose-track-play{width:30px;height:30px;border:1px solid #4f7cff55;border-radius:8px;background:#102554;color:#8eb0ff;display:grid;place-items:center;flex:0 0 30px;font-size:11px;cursor:pointer}
+    .compose-track-play{width:30px;height:30px;border:1px solid #4f7cff55;border-radius:8px;background:#102554;color:#8eb0ff;display:grid;place-items:center;font-size:11px;cursor:pointer;padding:0}
+    .compose-track-play:disabled{opacity:.45;cursor:not-allowed}
     .compose-track-controls{grid-column:2;grid-row:2;display:flex;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid #ffffff08;flex-wrap:wrap}
     .compose-track-volume,.compose-track-fade{display:flex;align-items:center;gap:8px;min-width:150px;flex:1;color:#6f849b;font-size:9px}
     .compose-track-volume input,.compose-track-fade input{width:100%;accent-color:#5f8cff}
@@ -531,7 +529,7 @@
     const seed=String(asset.id||asset.filename||'track').split('').reduce((sum,char)=>((sum*31)+char.charCodeAt(0))%997,17);
     const bars=Array.from({length:84},(_,i)=>Math.max(10,Math.round(22+Math.abs(Math.sin(seed+i*1.73))*58+Math.abs(Math.cos(seed/7+i*.37))*15)));
     const waveform=bars.map(height=>`<i style="--h:${height}%"></i>`).join('');
-    const assetUrl=String(asset.assetUrl||'');
+    const assetUrl=String(asset.assetUrl||asset.audioUrl||asset.url||asset.r2Url||'');
     const capabilityList=Array.isArray(asset.capabilities)?asset.capabilities:Array.isArray(asset.tools)?asset.tools:[];
     const capabilities=capabilityList.map(value=>String(value||'').trim()).filter(Boolean);
     const dynamicTools=capabilities.length?capabilities.map(value=>`<span class="compose-track-tool dynamic">${escapeHistory(value)}</span>`).join(''):'';
@@ -540,7 +538,6 @@
         <button class="compose-track-play" type="button" aria-label="Play track" title="Play track">▶</button>
         <div class="compose-track-row-icon">◈</div>
         <div class="compose-track-row-main"><strong>${escapeHistory(asset.filename||'Untitled asset')}</strong><span>${escapeHistory(labelForComposeType(type))}${asset.soundType?' · '+escapeHistory(asset.soundType):''}${asset.format?' · '+escapeHistory(asset.format):''}</span></div>
-        <button class="compose-track-select" type="button">Select</button>
       </div>
       <div class="compose-track-lane">
         <div class="compose-track-region" title="Drag to position track">
@@ -593,13 +590,11 @@
     const fadeOutValue=row.querySelector('[data-compose-fade-value="out"]');
     const mute=row.querySelector('[data-compose-mute]');
     const solo=row.querySelector('[data-compose-solo]');
-    const select=row.querySelector('.compose-track-select');
     const selectTrack=()=>{
       list.querySelectorAll('.compose-track-editor').forEach(item=>item.classList.toggle('selected',item===row));
     };
-    select?.addEventListener('click',selectTrack);
     row.querySelector('.compose-track-identity')?.addEventListener('click',event=>{
-      if(event.target.closest('button'))return;
+      if(event.target.closest('.compose-track-play'))return;
       selectTrack();
     });
     row.dataset.fadeIn='0';
@@ -641,28 +636,48 @@
     });
     const syncPlayButton=()=>{
       if(!play)return;
-      const active=!audio?.paused;
+      const active=!!audio&&!audio.paused;
       play.classList.toggle('active',active);
       play.textContent=active?'❚❚':'▶';
       play.setAttribute('aria-label',active?'Pause track':'Play track');
       play.setAttribute('title',active?'Pause track':'Play track');
+      play.disabled=!audio;
     };
-    const togglePlayback=()=>{
+    const pauseOtherTracks=()=>{
+      list.querySelectorAll('.compose-track-audio').forEach(other=>{
+        if(other===audio)return;
+        other.pause();
+        const otherRow=other.closest('.compose-track-editor');
+        const otherPlay=otherRow?.querySelector('.compose-track-play');
+        otherRow?.querySelector('.compose-track-wave')?.classList.remove('playing');
+        if(otherPlay){otherPlay.classList.remove('active');otherPlay.textContent='▶';otherPlay.setAttribute('aria-label','Play track');otherPlay.setAttribute('title','Play track');}
+      });
+    };
+    const togglePlayback=async()=>{
       if(!audio)return;
       if(audio.paused){
-        list.querySelectorAll('.compose-track-audio').forEach(other=>{if(other!==audio){other.pause();other.closest('.compose-track-editor')?.querySelector('.compose-track-play')?.classList.remove('active');other.closest('.compose-track-editor')?.querySelector('.compose-track-play')?.replaceChildren();}});
-        audio.play().then(syncPlayButton).catch(()=>{});
-        wave.classList.add('playing');
+        pauseOtherTracks();
+        try{
+          if(audio.readyState===0)audio.load();
+          await audio.play();
+          wave.classList.add('playing');
+          syncPlayButton();
+        }catch(error){
+          console.warn('compose_track_play_error',error);
+          syncPlayButton();
+        }
       }else{
         audio.pause();
         wave.classList.remove('playing');
         syncPlayButton();
       }
     };
+    syncPlayButton();
     play?.addEventListener('click',event=>{event.stopPropagation();togglePlayback();});
     audio?.addEventListener('play',syncPlayButton);
-    audio?.addEventListener('pause',syncPlayButton);
-    row.querySelector('.compose-track-identity')?.addEventListener('dblclick',togglePlayback);
+    audio?.addEventListener('pause',()=>{wave.classList.remove('playing');syncPlayButton();});
+    audio?.addEventListener('error',()=>{syncPlayButton();console.warn('compose_track_audio_error',audio.currentSrc||assetUrl);});
+    row.querySelector('.compose-track-identity')?.addEventListener('dblclick',event=>{if(!event.target.closest('button'))togglePlayback();});
     audio?.addEventListener('loadedmetadata',()=>{
       if(Number.isFinite(audio.duration)&&audio.duration>0)row.dataset.sourceDuration=String(audio.duration);
       renderTrim();
