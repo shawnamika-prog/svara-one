@@ -128,8 +128,11 @@
     .compose-track-trim-handle.right{left:calc(100% - var(--trim-right,0%));transform:translateX(-50%)}
     .compose-track-trim-handle:after{content:"";position:absolute;left:2px;top:50%;width:2px;height:18px;border-radius:2px;background:#fff;transform:translateY(-50%);opacity:.9}
     .compose-track-fade-indicator{position:absolute;top:0;bottom:0;z-index:3;pointer-events:none;border-radius:7px;overflow:hidden}
-    .compose-track-fade-indicator.in{left:var(--fade-in-left,0%);width:var(--fade-in-width,0%);background:linear-gradient(to right,#071426cc 0%,#07142666 48%,transparent 100%)}
-    .compose-track-fade-indicator.out{right:var(--fade-out-right,0%);width:var(--fade-out-width,0%);background:linear-gradient(to left,#071426cc 0%,#07142666 48%,transparent 100%)}
+    .compose-track-fade-indicator.in{left:var(--fade-in-left,0%);width:var(--fade-in-width,0%);background:linear-gradient(135deg,transparent 49.2%,#b9ccffcc 49.6%,#b9ccffcc 50.4%,transparent 50.8%)}
+    .compose-track-fade-indicator.out{right:var(--fade-out-right,0%);width:var(--fade-out-width,0%);background:linear-gradient(45deg,transparent 49.2%,#b9ccffcc 49.6%,#b9ccffcc 50.4%,transparent 50.8%)}
+    .compose-track-fade-indicator.in:before,.compose-track-fade-indicator.out:before{content:"";position:absolute;inset:0;background:#071426aa}
+    .compose-track-fade-indicator.in:before{clip-path:polygon(0 0,100% 0,0 100%)}
+    .compose-track-fade-indicator.out:before{clip-path:polygon(0 0,100% 0,100% 100%)}
     .compose-track-fade-indicator.in:after,.compose-track-fade-indicator.out:after{content:"";position:absolute;top:0;bottom:0;width:2px;background:#b9ccffcc;box-shadow:0 0 8px #4f7cff55}
     .compose-track-fade-indicator.in:after{right:0}
     .compose-track-fade-indicator.out:after{left:0}
