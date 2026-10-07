@@ -389,16 +389,23 @@
     const close=()=>closeComposeTrackModal();
     const labelForType=type=>({voice:'Voice',sound:'Sound',composition:'Composition'})[type]||type;
     const labelForSoundType=type=>String(type||'Sound').replace(/[_-]+/g,' ').replace(/\b\w/g,letter=>letter.toUpperCase());
-    const normalized=asset=>({
-      ...asset,
-      id:String(asset?.id||''),
-      assetType:String(asset?.assetType||'').toLowerCase(),
-      soundType:String(asset?.soundType||asset?.type||'').toLowerCase(),
-      filename:String(asset?.filename||asset?.name||'Untitled asset'),
-      folderId:asset?.folderId?String(asset.folderId):'__unfiled__',
-      format:String(asset?.format||'').toUpperCase(),
-      status:String(asset?.status||'ready').toLowerCase()
-    });
+    const normalized=asset=>{
+      const id=String(asset?.id||'');
+      const assetType=String(asset?.assetType||'').toLowerCase();
+      const existingUrl=String(asset?.assetUrl||asset?.audioUrl||asset?.playbackUrl||asset?.fileUrl||asset?.downloadUrl||asset?.outputUrl||asset?.url||asset?.r2Url||asset?.storageUrl||'');
+      const assetUrl=existingUrl||(assetType==='sound'&&id?'/api/sound/assets/'+encodeURIComponent(id):'');
+      return {
+        ...asset,
+        id,
+        assetType,
+        soundType:String(asset?.soundType||asset?.type||'').toLowerCase(),
+        filename:String(asset?.filename||asset?.name||'Untitled asset'),
+        folderId:asset?.folderId?String(asset.folderId):'__unfiled__',
+        format:String(asset?.format||'').toUpperCase(),
+        status:String(asset?.status||'ready').toLowerCase(),
+        assetUrl
+      };
+    };
     const typeMatches=asset=>{
       if(selectedType==='voice')return asset.assetType==='voice';
       if(selectedType==='sound')return asset.assetType==='sound';
