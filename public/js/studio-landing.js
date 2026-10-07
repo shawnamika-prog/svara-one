@@ -87,25 +87,32 @@
     .compose-track-backdrop{position:absolute;inset:0;background:#020611cc;backdrop-filter:blur(6px)}
     .compose-track-dialog{position:relative;width:min(560px,calc(100vw - 32px));padding:24px;border:1px solid #4f7cff44;border-radius:18px;background:linear-gradient(180deg,#0b1426,#080f1c);box-shadow:0 28px 90px #000b;color:#dbe7f5}
     .compose-track-subtitle{max-width:390px}
-    .compose-track-list{display:flex;flex-direction:column;gap:12px;width:min(920px,100%);margin:0 auto}
+    .compose-timeline{width:min(1120px,100%);margin:0 auto;overflow-x:auto}
+    .compose-timeline-ruler{display:grid;grid-template-columns:180px minmax(720px,1fr);align-items:end;border-bottom:1px solid #ffffff10;margin-bottom:8px;min-width:900px}
+    .compose-timeline-label{padding:0 12px 8px;color:#5f7390;font-size:8px;font-weight:800;letter-spacing:.16em}
+    .compose-timeline-scale{display:grid;grid-template-columns:repeat(7,1fr);padding:0 4px 8px;border-left:1px solid #ffffff08}
+    .compose-timeline-scale span{color:#60758d;font-size:8px;border-left:1px solid #ffffff08;padding-left:6px}
+    .compose-timeline-list{display:flex;flex-direction:column;gap:7px;min-width:900px}
     .compose-add-track-inline{display:block;margin:14px auto 0}
-    .compose-track-editor{border:1px solid #4f7cff22;border-radius:13px;background:#091522;padding:13px}
-    .compose-track-editor-head{display:flex;align-items:center;gap:12px}
-    .compose-track-wave-wrap{display:flex;align-items:center;gap:12px;margin-top:12px;padding:10px;border:1px solid #ffffff0a;border-radius:10px;background:#060d17}
-    .compose-track-play{width:34px;height:34px;border:1px solid #4f7cff44;border-radius:50%;background:#102554;color:#75a0ff;display:grid;place-items:center;flex:0 0 34px;cursor:pointer}
+    .compose-track-editor{display:grid;grid-template-columns:180px minmax(720px,1fr);grid-template-rows:auto auto;gap:0;border:1px solid #ffffff0d;border-radius:11px;background:#07121d;overflow:hidden}
+    .compose-track-editor.selected{border-color:#4f7cff66;box-shadow:inset 0 0 0 1px #4f7cff22}
+    .compose-track-identity{grid-column:1;grid-row:1 / span 2;display:flex;align-items:flex-start;gap:9px;padding:12px;border-right:1px solid #ffffff0b;background:#091522;cursor:pointer}
+    .compose-track-identity .compose-track-row-main{min-width:0}
+    .compose-track-select{margin-left:auto;border:1px solid #ffffff10;border-radius:7px;background:#0b1827;color:#72879d;padding:6px 7px;font:700 8px Inter;cursor:pointer}
+    .compose-track-editor.selected .compose-track-select{border-color:#4f7cff55;color:#75a0ff;background:#102554}
+    .compose-track-lane{position:relative;grid-column:2;grid-row:1;display:flex;align-items:center;gap:10px;min-height:86px;padding:10px 12px;background:#060d17}
+    .compose-track-lane:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(to right,transparent 0,transparent calc(14.285% - 1px),#ffffff08 calc(14.285% - 1px),#ffffff08 14.285%)}
+    .compose-track-playhead{position:absolute;top:0;bottom:0;left:14.285%;width:1px;background:#5f8cff55;pointer-events:none}
+    .compose-track-play{position:relative;z-index:1;width:32px;height:32px;border:1px solid #4f7cff44;border-radius:50%;background:#102554;color:#75a0ff;display:grid;place-items:center;flex:0 0 32px;cursor:pointer}
     .compose-track-play:hover{background:#17336e;color:#fff}
-    .compose-track-wave{height:66px;display:flex;align-items:center;gap:2px;flex:1;overflow:hidden}
+    .compose-track-wave{position:relative;z-index:1;height:64px;display:flex;align-items:center;gap:2px;flex:1;overflow:hidden}
     .compose-track-wave i{width:3px;height:var(--h);min-height:4px;border-radius:99px;background:#4f7cff;opacity:.5;transform-origin:center}
     .compose-track-wave.playing i{animation:composeWavePulse .72s ease-in-out infinite alternate}
     .compose-track-wave.playing i:nth-child(2n){animation-delay:-.18s}.compose-track-wave.playing i:nth-child(3n){animation-delay:-.34s}
     @keyframes composeWavePulse{from{transform:scaleY(.58);opacity:.38}to{transform:scaleY(1.06);opacity:.9}}
-    .compose-track-controls{display:flex;align-items:center;gap:8px;margin-top:11px;flex-wrap:wrap}
+    .compose-track-controls{grid-column:2;grid-row:2;display:flex;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid #ffffff08;flex-wrap:wrap}
     .compose-track-volume{display:flex;align-items:center;gap:8px;min-width:210px;flex:1;color:#6f849b;font-size:9px}
     .compose-track-volume input{width:100%;accent-color:#5f8cff}
-    .compose-track-control,.compose-track-tool{border:1px solid #ffffff10;border-radius:8px;background:#0b1827;color:#8fa4ba;padding:8px 10px;font:700 9px Inter;cursor:pointer}
-    .compose-track-control:hover,.compose-track-tool:hover{background:#102554;color:#dbe7f5}
-    .compose-track-control.active{border-color:#4f7cff66;background:#102554;color:#75a0ff}
-    .compose-track-tool.dynamic{color:#75a0ff;border-color:#4f7cff33}
     .compose-track-row{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #4f7cff22;border-radius:11px;background:#091522}
     .compose-track-row-icon{width:32px;height:32px;display:grid;place-items:center;border-radius:8px;background:#102554;color:#5f8cff;font-size:12px;flex:0 0 32px}
     .compose-track-row-main{min-width:0;display:flex;flex-direction:column;gap:4px;flex:1}
@@ -154,7 +161,7 @@
     .compose-import-track{border:1px solid #4f7cff66;border-radius:10px;background:linear-gradient(105deg,#24458f,#17336e);color:#fff;padding:11px 17px;font:800 10px Inter;cursor:pointer;box-shadow:0 8px 24px #193f8a33}
     .compose-import-track:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px)}
     .compose-import-track:disabled{opacity:.4;cursor:default}
-    @media(max-width:560px){.compose-head{padding:18px 15px}.compose-canvas{min-height:400px;padding:20px}.compose-track-dialog{padding:18px}.compose-track-options{grid-template-columns:repeat(2,minmax(0,1fr))}.compose-track-footer{align-items:stretch;flex-direction:column}.compose-import-track{width:100%}.compose-finder-controls{grid-template-columns:1fr}.compose-finder-list{height:230px}.compose-finder-date{display:none}}
+    @media(max-width:560px){.compose-head{padding:18px 15px}.compose-canvas{min-height:400px;padding:20px}.compose-track-dialog{padding:18px}.compose-track-options{grid-template-columns:repeat(2,minmax(0,1fr))}.compose-track-footer{align-items:stretch;flex-direction:column}.compose-import-track{width:100%}.compose-finder-controls{grid-template-columns:1fr}.compose-finder-list{height:230px}.compose-finder-date{display:none}.compose-timeline-ruler{grid-template-columns:140px minmax(720px,1fr)}.compose-track-editor{grid-template-columns:140px minmax(720px,1fr)}.compose-track-identity{padding:10px 8px}.compose-track-select{display:none}}
   `;
   document.head.appendChild(composeStyle);
 
@@ -470,12 +477,21 @@
     if(!canvas||!asset)return;
     const empty=canvas.querySelector('.compose-empty');
     if(empty)empty.remove();
-    let list=canvas.querySelector('.compose-track-list');
-    if(!list){
-      list=document.createElement('div');
-      list.className='compose-track-list';
-      canvas.appendChild(list);
+
+    let timeline=canvas.querySelector('.compose-timeline');
+    if(!timeline){
+      timeline=document.createElement('div');
+      timeline.className='compose-timeline';
+      timeline.innerHTML=`
+        <div class="compose-timeline-ruler">
+          <div class="compose-timeline-label">TRACKS</div>
+          <div class="compose-timeline-scale"><span>0:00</span><span>0:05</span><span>0:10</span><span>0:15</span><span>0:20</span><span>0:25</span><span>0:30</span></div>
+        </div>
+        <div class="compose-timeline-list"></div>
+      `;
+      canvas.appendChild(timeline);
     }
+    const list=timeline.querySelector('.compose-timeline-list');
     const row=document.createElement('article');
     row.className='compose-track-editor';
     const seed=String(asset.id||asset.filename||'track').split('').reduce((sum,char)=>((sum*31)+char.charCodeAt(0))%997,17);
@@ -486,12 +502,13 @@
     const capabilities=capabilityList.map(value=>String(value||'').trim()).filter(Boolean);
     const dynamicTools=capabilities.length?capabilities.map(value=>`<span class="compose-track-tool dynamic">${escapeHistory(value)}</span>`).join(''):'';
     row.innerHTML=`
-      <div class="compose-track-editor-head">
+      <div class="compose-track-identity">
         <div class="compose-track-row-icon">◈</div>
         <div class="compose-track-row-main"><strong>${escapeHistory(asset.filename||'Untitled asset')}</strong><span>${escapeHistory(labelForComposeType(type))}${asset.soundType?' · '+escapeHistory(asset.soundType):''}${asset.format?' · '+escapeHistory(asset.format):''}</span></div>
-        <span class="compose-track-row-status">Imported</span>
+        <button class="compose-track-select" type="button">Select</button>
       </div>
-      <div class="compose-track-wave-wrap">
+      <div class="compose-track-lane">
+        <div class="compose-track-playhead"></div>
         <button class="compose-track-play" type="button" aria-label="Play track">${assetUrl?'▶':'—'}</button>
         <div class="compose-track-wave" aria-label="Track waveform">${waveform}</div>
       </div>
@@ -504,6 +521,7 @@
       ${assetUrl?`<audio class="compose-track-audio" preload="metadata" src="${escapeHistory(assetUrl)}"></audio>`:''}
     `;
     list.appendChild(row);
+
     let addButton=canvas.querySelector('.compose-add-track-inline');
     if(!addButton){
       addButton=document.createElement('button');
@@ -513,12 +531,22 @@
       addButton.addEventListener('click',openComposeTrackModal);
       canvas.appendChild(addButton);
     }
+
     const audio=row.querySelector('.compose-track-audio');
     const play=row.querySelector('.compose-track-play');
     const wave=row.querySelector('.compose-track-wave');
     const volume=row.querySelector('.compose-track-volume input');
     const mute=row.querySelector('[data-compose-mute]');
     const solo=row.querySelector('[data-compose-solo]');
+    const select=row.querySelector('.compose-track-select');
+    const selectTrack=()=>{
+      list.querySelectorAll('.compose-track-editor').forEach(item=>item.classList.toggle('selected',item===row));
+    };
+    select?.addEventListener('click',selectTrack);
+    row.querySelector('.compose-track-identity')?.addEventListener('click',event=>{
+      if(event.target.closest('button'))return;
+      selectTrack();
+    });
     volume?.addEventListener('input',()=>{if(audio)audio.volume=Number(volume.value)/100;});
     mute?.addEventListener('click',()=>{
       if(!audio)return;
