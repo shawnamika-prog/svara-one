@@ -109,7 +109,7 @@
     .compose-track-identity .compose-track-row-main{min-width:0}
     .compose-track-select{margin-left:auto;border:1px solid #ffffff10;border-radius:7px;background:#0b1827;color:#72879d;padding:6px 7px;font:700 8px Inter;cursor:pointer}
     .compose-track-editor.selected .compose-track-select{border-color:#4f7cff55;color:#75a0ff;background:#102554}
-    .compose-track-lane{position:relative;grid-column:2;grid-row:1;display:flex;align-items:center;min-height:92px;padding:10px 12px;background:#060d17;overflow:hidden}
+    .compose-track-lane{position:relative;grid-column:2;grid-row:1;display:flex;align-items:center;min-height:92px;padding:10px 0;background:#060d17;overflow:hidden}
     .compose-track-lane:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(to right,transparent 0,transparent calc(16.6667% - 1px),#ffffff0c calc(16.6667% - 1px),#ffffff0c 16.6667%)}
     .compose-track-region{position:relative;z-index:2;display:flex;align-items:center;width:100%;min-width:120px;cursor:grab;transition:margin-left .08s ease}
     .compose-track-region:hover{filter:brightness(1.05)}
