@@ -133,9 +133,7 @@
     .compose-track-fade-indicator.in:before,.compose-track-fade-indicator.out:before{content:"";position:absolute;inset:0;background:#071426aa}
     .compose-track-fade-indicator.in:before{clip-path:polygon(0 0,100% 0,0 100%)}
     .compose-track-fade-indicator.out:before{clip-path:polygon(0 0,100% 0,100% 100%)}
-    .compose-track-fade-indicator.in:after,.compose-track-fade-indicator.out:after{content:"";position:absolute;top:0;bottom:0;width:2px;background:#b9ccffcc;box-shadow:0 0 8px #4f7cff33;transform-origin:center}
-    .compose-track-fade-indicator.in:after{right:0;transform:skewX(-45deg)}
-    .compose-track-fade-indicator.out:after{left:0;transform:skewX(45deg)}
+    .compose-track-fade-indicator.in:after,.compose-track-fade-indicator.out:after{display:none}
     .compose-track-trim-readout{position:absolute;left:50%;top:-8px;z-index:6;transform:translate(-50%,-100%);padding:4px 7px;border:1px solid #4f7cff66;border-radius:5px;background:#071426ee;color:#b9ccff;font:700 8px Inter;white-space:nowrap;opacity:0;pointer-events:none}
     .compose-track-editor.trimming .compose-track-trim-readout{opacity:1}
     .compose-track-wave i{width:3px;height:var(--h);min-height:4px;border-radius:99px;background:#7da3ff;opacity:.86;transform-origin:center}
