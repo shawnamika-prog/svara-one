@@ -529,7 +529,7 @@
     const seed=String(asset.id||asset.filename||'track').split('').reduce((sum,char)=>((sum*31)+char.charCodeAt(0))%997,17);
     const bars=Array.from({length:84},(_,i)=>Math.max(10,Math.round(22+Math.abs(Math.sin(seed+i*1.73))*58+Math.abs(Math.cos(seed/7+i*.37))*15)));
     const waveform=bars.map(height=>`<i style="--h:${height}%"></i>`).join('');
-    const assetUrl=String(asset.assetUrl||asset.audioUrl||asset.url||asset.r2Url||'');
+    const assetUrl=String(asset.assetUrl||asset.audioUrl||asset.playbackUrl||asset.fileUrl||asset.downloadUrl||asset.outputUrl||asset.url||asset.r2Url||asset.storageUrl||'');
     const capabilityList=Array.isArray(asset.capabilities)?asset.capabilities:Array.isArray(asset.tools)?asset.tools:[];
     const capabilities=capabilityList.map(value=>String(value||'').trim()).filter(Boolean);
     const dynamicTools=capabilities.length?capabilities.map(value=>`<span class="compose-track-tool dynamic">${escapeHistory(value)}</span>`).join(''):'';
@@ -641,7 +641,7 @@
       play.textContent=active?'❚❚':'▶';
       play.setAttribute('aria-label',active?'Pause track':'Play track');
       play.setAttribute('title',active?'Pause track':'Play track');
-      play.disabled=!audio;
+      play.disabled=false;
     };
     const pauseOtherTracks=()=>{
       list.querySelectorAll('.compose-track-audio').forEach(other=>{
@@ -654,7 +654,10 @@
       });
     };
     const togglePlayback=async()=>{
-      if(!audio)return;
+      if(!audio){
+        console.warn('compose_track_no_audio_url',asset);
+        return;
+      }
       if(audio.paused){
         pauseOtherTracks();
         try{
