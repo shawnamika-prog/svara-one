@@ -104,8 +104,12 @@
     .compose-track-lane:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(to right,transparent 0,transparent calc(14.285% - 1px),#ffffff08 calc(14.285% - 1px),#ffffff08 14.285%)}
     .compose-track-playhead{position:absolute;top:0;bottom:0;left:14.285%;width:1px;background:#5f8cff55;pointer-events:none;z-index:3}
     .compose-track-region{position:relative;z-index:2;display:flex;align-items:center;gap:10px;width:100%;min-width:120px;cursor:grab;transition:margin-left .08s ease}
+    .compose-track-region:hover{filter:brightness(1.05)}
     .compose-track-region:active{cursor:grabbing}
-    .compose-track-editor.dragging .compose-track-region{cursor:grabbing;transition:none}
+    .compose-track-editor.dragging .compose-track-region{cursor:grabbing;transition:none;filter:brightness(1.1)}
+    .compose-track-editor.dragging .compose-track-wave{filter:drop-shadow(0 0 5px #4f7cff55)}
+    .compose-track-time-guide{position:absolute;top:4px;left:0;z-index:4;padding:3px 6px;border:1px solid #4f7cff55;border-radius:5px;background:#071426ee;color:#8fb0ff;font:700 8px Inter;opacity:0;pointer-events:none;white-space:nowrap;transform:translateY(-100%)}
+    .compose-track-editor.dragging .compose-track-time-guide{opacity:1}
     .compose-track-play{position:relative;z-index:1;width:32px;height:32px;border:1px solid #4f7cff44;border-radius:50%;background:#102554;color:#75a0ff;display:grid;place-items:center;flex:0 0 32px;cursor:pointer}
     .compose-track-play:hover{background:#17336e;color:#fff}
     .compose-track-wave{position:relative;z-index:1;height:64px;display:flex;align-items:center;gap:2px;flex:1;overflow:hidden}
@@ -513,7 +517,8 @@
       </div>
       <div class="compose-track-lane">
         <div class="compose-track-playhead"></div>
-        <div class="compose-track-region" draggable="true" title="Drag to position track">
+        <div class="compose-track-region" title="Drag to position track">
+          <span class="compose-track-time-guide">Start 0:00</span>
           <button class="compose-track-play" type="button" aria-label="Play track">${assetUrl?'▶':'—'}</button>
           <div class="compose-track-wave" aria-label="Track waveform">${waveform}</div>
         </div>
@@ -583,30 +588,51 @@
     const timelineWidth=()=>Math.max(1,row.closest('.compose-timeline')?.querySelector('.compose-timeline-scale')?.getBoundingClientRect().width||720);
     const applyStart=seconds=>{
       const maxSeconds=30;
+      const grid=0.25;
       const clamped=Math.max(0,Math.min(maxSeconds,Number(seconds)||0));
-      row.dataset.startSeconds=String(clamped);
-      const offset=(clamped/maxSeconds)*100;
+      const snapped=Math.round(clamped/grid)*grid;
+      row.dataset.startSeconds=String(snapped);
+      const offset=(snapped/maxSeconds)*100;
       region.style.marginLeft=`calc(${offset}% )`;
       region.style.maxWidth=`calc(100% - ${offset}% )`;
+      const guide=row.querySelector('.compose-track-time-guide');
+      if(guide)guide.textContent=`Start ${formatComposeTime(snapped)}`;
     };
     let dragStartX=0;
     let dragStartSeconds=0;
-    region?.addEventListener('dragstart',event=>{
+    let dragging=false;
+    const beginDrag=event=>{
+      if(event.button!==0)return;
+      dragging=true;
       dragStartX=event.clientX;
       dragStartSeconds=Number(row.dataset.startSeconds||0);
       row.classList.add('dragging');
-      event.dataTransfer.effectAllowed='move';
-      event.dataTransfer.setData('text/plain','compose-track');
-    });
-    region?.addEventListener('dragend',event=>{
+      event.preventDefault();
+    };
+    const moveDrag=event=>{
+      if(!dragging)return;
       const dx=event.clientX-dragStartX;
       const secondsPerPixel=30/timelineWidth();
       applyStart(dragStartSeconds+(dx*secondsPerPixel));
+    };
+    const endDrag=()=>{
+      if(!dragging)return;
+      dragging=false;
       row.classList.remove('dragging');
-    });
+    };
+    region?.addEventListener('mousedown',beginDrag);
+    window.addEventListener('mousemove',moveDrag);
+    window.addEventListener('mouseup',endDrag);
     region?.addEventListener('click',()=>selectTrack());
 
     applyStart(Number(row.dataset.startSeconds||0));
+  }
+
+  function formatComposeTime(seconds){
+    const value=Math.max(0,Number(seconds)||0);
+    const minutes=Math.floor(value/60);
+    const secs=(value%60).toFixed(2).padStart(5,'0');
+    return `${minutes}:${secs}`;
   }
 
   function labelForComposeType(type){
