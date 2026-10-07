@@ -588,15 +588,14 @@
       return {left:rect.left,width:Math.max(1,rect.width),maxSeconds:30};
     };
     const applyStart=seconds=>{
-      const {maxSeconds}=timelineGeometry();
+      const geometry=timelineGeometry();
       const grid=0.25;
-      const clamped=Math.max(0,Math.min(maxSeconds,Number(seconds)||0));
+      const clamped=Math.max(0,Math.min(geometry.maxSeconds,Number(seconds)||0));
       const snapped=Math.round(clamped/grid)*grid;
       row.dataset.startSeconds=String(snapped);
-      const geometry=timelineGeometry();
-      const offset=Math.max(0,Math.min(100,(snapped/geometry.maxSeconds)*100));
-      region.style.marginLeft=`${offset}%`;
-      region.style.maxWidth=`calc(100% - ${offset}% )`;
+      const offsetPx=(snapped/geometry.maxSeconds)*geometry.width;
+      region.style.marginLeft=`${offsetPx}px`;
+      region.style.maxWidth=`calc(100% - ${offsetPx}px)`;
       const guide=row.querySelector('.compose-track-time-guide');
       if(guide)guide.textContent=`Start ${formatComposeTime(snapped)}`;
     };
@@ -615,8 +614,10 @@
       if(!dragging)return;
       const geometry=timelineGeometry();
       const dx=event.clientX-dragStartX;
-      const secondsPerPixel=geometry.maxSeconds/geometry.width;
-      applyStart(dragStartSeconds+(dx*secondsPerPixel));
+      const startPx=(dragStartSeconds/geometry.maxSeconds)*geometry.width;
+      const targetPx=Math.max(0,Math.min(geometry.width,startPx+dx));
+      const targetSeconds=(targetPx/geometry.width)*geometry.maxSeconds;
+      applyStart(targetSeconds);
     };
     const endDrag=()=>{
       if(!dragging)return;
