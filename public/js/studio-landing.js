@@ -100,9 +100,12 @@
     .compose-track-identity .compose-track-row-main{min-width:0}
     .compose-track-select{margin-left:auto;border:1px solid #ffffff10;border-radius:7px;background:#0b1827;color:#72879d;padding:6px 7px;font:700 8px Inter;cursor:pointer}
     .compose-track-editor.selected .compose-track-select{border-color:#4f7cff55;color:#75a0ff;background:#102554}
-    .compose-track-lane{position:relative;grid-column:2;grid-row:1;display:flex;align-items:center;gap:10px;min-height:86px;padding:10px 12px;background:#060d17}
+    .compose-track-lane{position:relative;grid-column:2;grid-row:1;display:flex;align-items:center;min-height:86px;padding:10px 12px;background:#060d17;overflow:hidden}
     .compose-track-lane:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(to right,transparent 0,transparent calc(14.285% - 1px),#ffffff08 calc(14.285% - 1px),#ffffff08 14.285%)}
-    .compose-track-playhead{position:absolute;top:0;bottom:0;left:14.285%;width:1px;background:#5f8cff55;pointer-events:none}
+    .compose-track-playhead{position:absolute;top:0;bottom:0;left:14.285%;width:1px;background:#5f8cff55;pointer-events:none;z-index:3}
+    .compose-track-region{position:relative;z-index:2;display:flex;align-items:center;gap:10px;width:100%;min-width:120px;cursor:grab;transition:margin-left .08s ease}
+    .compose-track-region:active{cursor:grabbing}
+    .compose-track-editor.dragging .compose-track-region{cursor:grabbing;transition:none}
     .compose-track-play{position:relative;z-index:1;width:32px;height:32px;border:1px solid #4f7cff44;border-radius:50%;background:#102554;color:#75a0ff;display:grid;place-items:center;flex:0 0 32px;cursor:pointer}
     .compose-track-play:hover{background:#17336e;color:#fff}
     .compose-track-wave{position:relative;z-index:1;height:64px;display:flex;align-items:center;gap:2px;flex:1;overflow:hidden}
@@ -494,6 +497,7 @@
     const list=timeline.querySelector('.compose-timeline-list');
     const row=document.createElement('article');
     row.className='compose-track-editor';
+    row.dataset.startSeconds='0';
     const seed=String(asset.id||asset.filename||'track').split('').reduce((sum,char)=>((sum*31)+char.charCodeAt(0))%997,17);
     const bars=Array.from({length:84},(_,i)=>Math.max(10,Math.round(22+Math.abs(Math.sin(seed+i*1.73))*58+Math.abs(Math.cos(seed/7+i*.37))*15)));
     const waveform=bars.map(height=>`<i style="--h:${height}%"></i>`).join('');
@@ -509,8 +513,10 @@
       </div>
       <div class="compose-track-lane">
         <div class="compose-track-playhead"></div>
-        <button class="compose-track-play" type="button" aria-label="Play track">${assetUrl?'▶':'—'}</button>
-        <div class="compose-track-wave" aria-label="Track waveform">${waveform}</div>
+        <div class="compose-track-region" draggable="true" title="Drag to position track">
+          <button class="compose-track-play" type="button" aria-label="Play track">${assetUrl?'▶':'—'}</button>
+          <div class="compose-track-wave" aria-label="Track waveform">${waveform}</div>
+        </div>
       </div>
       <div class="compose-track-controls">
         <label class="compose-track-volume"><span>Volume</span><input type="range" min="0" max="100" value="100" aria-label="Track volume"></label>
@@ -535,6 +541,7 @@
     const audio=row.querySelector('.compose-track-audio');
     const play=row.querySelector('.compose-track-play');
     const wave=row.querySelector('.compose-track-wave');
+    const region=row.querySelector('.compose-track-region');
     const volume=row.querySelector('.compose-track-volume input');
     const mute=row.querySelector('[data-compose-mute]');
     const solo=row.querySelector('[data-compose-solo]');
@@ -572,6 +579,34 @@
       }
     });
     audio?.addEventListener('ended',()=>{play.textContent='▶';wave.classList.remove('playing');});
+
+    const timelineWidth=()=>Math.max(1,row.closest('.compose-timeline')?.querySelector('.compose-timeline-scale')?.getBoundingClientRect().width||720);
+    const applyStart=seconds=>{
+      const maxSeconds=30;
+      const clamped=Math.max(0,Math.min(maxSeconds,Number(seconds)||0));
+      row.dataset.startSeconds=String(clamped);
+      const offset=(clamped/maxSeconds)*100;
+      region.style.marginLeft=`calc(${offset}% )`;
+      region.style.maxWidth=`calc(100% - ${offset}% )`;
+    };
+    let dragStartX=0;
+    let dragStartSeconds=0;
+    region?.addEventListener('dragstart',event=>{
+      dragStartX=event.clientX;
+      dragStartSeconds=Number(row.dataset.startSeconds||0);
+      row.classList.add('dragging');
+      event.dataTransfer.effectAllowed='move';
+      event.dataTransfer.setData('text/plain','compose-track');
+    });
+    region?.addEventListener('dragend',event=>{
+      const dx=event.clientX-dragStartX;
+      const secondsPerPixel=30/timelineWidth();
+      applyStart(dragStartSeconds+(dx*secondsPerPixel));
+      row.classList.remove('dragging');
+    });
+    region?.addEventListener('click',()=>selectTrack());
+
+    applyStart(Number(row.dataset.startSeconds||0));
   }
 
   function labelForComposeType(type){
