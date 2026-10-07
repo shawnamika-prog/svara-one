@@ -88,6 +88,7 @@
     .compose-track-dialog{position:relative;width:min(560px,calc(100vw - 32px));padding:24px;border:1px solid #4f7cff44;border-radius:18px;background:linear-gradient(180deg,#0b1426,#080f1c);box-shadow:0 28px 90px #000b;color:#dbe7f5}
     .compose-track-subtitle{max-width:390px}
     .compose-track-list{display:flex;flex-direction:column;gap:12px;width:min(920px,100%);margin:0 auto}
+    .compose-add-track-inline{display:block;margin:14px auto 0}
     .compose-track-editor{border:1px solid #4f7cff22;border-radius:13px;background:#091522;padding:13px}
     .compose-track-editor-head{display:flex;align-items:center;gap:12px}
     .compose-track-wave-wrap{display:flex;align-items:center;gap:12px;margin-top:12px;padding:10px;border:1px solid #ffffff0a;border-radius:10px;background:#060d17}
@@ -503,6 +504,15 @@
       ${assetUrl?`<audio class="compose-track-audio" preload="metadata" src="${escapeHistory(assetUrl)}"></audio>`:''}
     `;
     list.appendChild(row);
+    let addButton=canvas.querySelector('.compose-add-track-inline');
+    if(!addButton){
+      addButton=document.createElement('button');
+      addButton.type='button';
+      addButton.className='compose-add-track compose-add-track-inline';
+      addButton.textContent='+ Add Track';
+      addButton.addEventListener('click',openComposeTrackModal);
+      canvas.appendChild(addButton);
+    }
     const audio=row.querySelector('.compose-track-audio');
     const play=row.querySelector('.compose-track-play');
     const wave=row.querySelector('.compose-track-wave');
