@@ -119,6 +119,16 @@
     .compose-track-time-guide{position:absolute;top:2px;left:0;z-index:4;padding:3px 6px;border:1px solid #4f7cff66;border-radius:5px;background:#071426ee;color:#a9c2ff;font:700 8px Inter;opacity:0;pointer-events:none;white-space:nowrap;transform:translateY(-100%)}
     .compose-track-editor.dragging .compose-track-time-guide{opacity:1}
     .compose-track-wave{position:relative;z-index:1;height:68px;display:flex;align-items:center;gap:2px;flex:1;overflow:hidden;padding:0 8px;border:1px solid #4f7cff33;border-radius:8px;background:#0b1a2b}
+    .compose-track-wave:before,.compose-track-wave:after{content:"";position:absolute;top:0;bottom:0;z-index:2;background:#06101dcc;pointer-events:none}
+    .compose-track-wave:before{left:0;width:var(--trim-left,0%);border-right:1px solid #4f7cff55}
+    .compose-track-wave:after{right:0;width:var(--trim-right,0%);border-left:1px solid #4f7cff55}
+    .compose-track-trim-handle{position:absolute;top:4px;bottom:4px;z-index:4;width:8px;border:1px solid #9ab8ff;border-radius:4px;background:#5f8cff;box-shadow:0 0 12px #4f7cff66;cursor:ew-resize;opacity:.9}
+    .compose-track-trim-handle:hover,.compose-track-editor.trimming .compose-track-trim-handle{background:#8eb0ff;opacity:1;box-shadow:0 0 15px #4f7cff99}
+    .compose-track-trim-handle.left{left:var(--trim-left,0%);transform:translateX(-50%)}
+    .compose-track-trim-handle.right{left:calc(100% - var(--trim-right,0%));transform:translateX(-50%)}
+    .compose-track-trim-handle:after{content:"";position:absolute;left:2px;top:50%;width:2px;height:18px;border-radius:2px;background:#fff;transform:translateY(-50%);opacity:.9}
+    .compose-track-trim-readout{position:absolute;left:50%;top:-8px;z-index:6;transform:translate(-50%,-100%);padding:4px 7px;border:1px solid #4f7cff66;border-radius:5px;background:#071426ee;color:#b9ccff;font:700 8px Inter;white-space:nowrap;opacity:0;pointer-events:none}
+    .compose-track-editor.trimming .compose-track-trim-readout{opacity:1}
     .compose-track-wave i{width:3px;height:var(--h);min-height:4px;border-radius:99px;background:#7da3ff;opacity:.86;transform-origin:center}
     .compose-track-wave.playing i{animation:composeWavePulse .72s ease-in-out infinite alternate}
     .compose-track-wave.playing i:nth-child(2n){animation-delay:-.18s}.compose-track-wave.playing i:nth-child(3n){animation-delay:-.34s}
@@ -524,7 +534,12 @@
       <div class="compose-track-lane">
         <div class="compose-track-region" title="Drag to position track">
           <span class="compose-track-time-guide">Start 0:00</span>
-          <div class="compose-track-wave" aria-label="Track waveform">${waveform}</div>
+          <div class="compose-track-wave" aria-label="Track waveform">
+            ${waveform}
+            <span class="compose-track-trim-handle left" data-compose-trim="in" title="Trim start"></span>
+            <span class="compose-track-trim-handle right" data-compose-trim="out" title="Trim end"></span>
+            <span class="compose-track-trim-readout">Trim 0:00.00 – 0:00.00</span>
+          </div>
         </div>
       </div>
       <div class="compose-track-controls">
@@ -551,6 +566,9 @@
     const play=row.querySelector('.compose-track-play');
     const wave=row.querySelector('.compose-track-wave');
     const region=row.querySelector('.compose-track-region');
+    const trimInHandle=row.querySelector('[data-compose-trim="in"]');
+    const trimOutHandle=row.querySelector('[data-compose-trim="out"]');
+    const trimReadout=row.querySelector('.compose-track-trim-readout');
     const volume=row.querySelector('.compose-track-volume input');
     const mute=row.querySelector('[data-compose-mute]');
     const solo=row.querySelector('[data-compose-solo]');
@@ -586,8 +604,57 @@
       }
     };
     row.querySelector('.compose-track-identity')?.addEventListener('dblclick',togglePlayback);
+    audio?.addEventListener('loadedmetadata',()=>{
+      if(Number.isFinite(audio.duration)&&audio.duration>0)row.dataset.sourceDuration=String(audio.duration);
+      renderTrim();
+    });
     audio?.addEventListener('ended',()=>{wave.classList.remove('playing');});
 
+    row.dataset.trimIn='0';
+    row.dataset.trimOut='0';
+    const formatTrimTime=seconds=>formatComposeTime(seconds);
+    const sourceDuration=()=>Math.max(0.01,Number(row.dataset.sourceDuration||asset.durationSeconds||asset.duration||30)||30);
+    const renderTrim=()=>{
+      const trimIn=Math.max(0,Math.min(.98,Number(row.dataset.trimIn||0)));
+      const trimOut=Math.max(0,Math.min(.98,Number(row.dataset.trimOut||0)));
+      wave?.style.setProperty('--trim-left',String(trimIn*100)+'%');
+      wave?.style.setProperty('--trim-right',String(trimOut*100)+'%');
+      const duration=sourceDuration();
+      if(trimReadout)trimReadout.textContent='Trim '+formatTrimTime(trimIn*duration)+' – '+formatTrimTime((1-trimOut)*duration);
+      if(trimInHandle)trimInHandle.title='Trim start: '+formatTrimTime(trimIn*duration);
+      if(trimOutHandle)trimOutHandle.title='Trim end: '+formatTrimTime((1-trimOut)*duration);
+    };
+    const beginTrim=(side,event)=>{
+      if(event.button!==0)return;
+      event.preventDefault();
+      event.stopPropagation();
+      const rect=wave.getBoundingClientRect();
+      const startIn=Number(row.dataset.trimIn||0);
+      const startOut=Number(row.dataset.trimOut||0);
+      const minGap=.02;
+      row.classList.add('trimming');
+      const moveTrim=moveEvent=>{
+        const width=Math.max(1,rect.width);
+        const ratio=Math.max(0,Math.min(1,(moveEvent.clientX-rect.left)/width));
+        if(side==='in'){
+          const next=Math.min(1-startOut-minGap,ratio);
+          row.dataset.trimIn=String(Math.max(0,next));
+        }else{
+          const next=Math.min(1-startIn-minGap,1-ratio);
+          row.dataset.trimOut=String(Math.max(0,next));
+        }
+        renderTrim();
+      };
+      const endTrim=()=>{
+        row.classList.remove('trimming');
+        window.removeEventListener('mousemove',moveTrim);
+        window.removeEventListener('mouseup',endTrim);
+      };
+      window.addEventListener('mousemove',moveTrim);
+      window.addEventListener('mouseup',endTrim);
+    };
+    trimInHandle?.addEventListener('mousedown',event=>beginTrim('in',event));
+    trimOutHandle?.addEventListener('mousedown',event=>beginTrim('out',event));
     const timelineGeometry=()=>{
       const timeline=row.closest('.compose-timeline');
       const scale=timeline?.querySelector('.compose-timeline-scale');
@@ -638,6 +705,7 @@
     region?.addEventListener('click',()=>selectTrack());
 
     applyStart(Number(row.dataset.startSeconds||0));
+    renderTrim();
   }
 
   function formatComposeTime(seconds){
