@@ -83,7 +83,27 @@
     .compose-empty p{margin:8px 0 20px;color:#71869d;font-size:10px;line-height:1.6}
     .compose-add-track{border:1px solid #4f7cff66;border-radius:11px;background:linear-gradient(105deg,#12265a,#12213d);color:#5f8cff;padding:12px 18px;font:800 10px Inter;cursor:pointer;box-shadow:0 10px 28px #0003}
     .compose-add-track:hover{background:linear-gradient(105deg,#193274,#172a4e);color:#fff}
-    @media(max-width:560px){.compose-head{padding:18px 15px}.compose-canvas{min-height:400px;padding:20px}}
+    .compose-track-modal{position:fixed;inset:0;z-index:1300;display:flex;align-items:center;justify-content:center;padding:24px}
+    .compose-track-backdrop{position:absolute;inset:0;background:#020611cc;backdrop-filter:blur(6px)}
+    .compose-track-dialog{position:relative;width:min(560px,calc(100vw - 32px));padding:24px;border:1px solid #4f7cff44;border-radius:18px;background:linear-gradient(180deg,#0b1426,#080f1c);box-shadow:0 28px 90px #000b;color:#dbe7f5}
+    .compose-track-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:20px}
+    .compose-track-eyebrow{margin:0;color:#5f8cff;font-size:9px;letter-spacing:.2em;font-weight:800}
+    .compose-track-head h3{margin:7px 0 0;font-size:20px;letter-spacing:-.035em}
+    .compose-track-head p{margin:6px 0 0;color:#71869d;font-size:10px;line-height:1.5}
+    .compose-track-close{width:32px;height:32px;border:1px solid #ffffff12;border-radius:9px;background:#0c1728;color:#91a5bb;font-size:20px;line-height:1;cursor:pointer}
+    .compose-track-close:hover{color:#fff;border-color:#4f7cff55}
+    .compose-track-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+    .compose-track-option{min-height:72px;border:1px solid #ffffff10;border-radius:12px;background:#091522;color:#8fa2b7;padding:11px 8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;font:700 9px Inter;cursor:pointer;transition:.16s ease}
+    .compose-track-option:hover{background:#0d1c31;color:#dbe7f5;border-color:#ffffff22}
+    .compose-track-option.active{background:linear-gradient(145deg,#132b60,#0e1c38);color:#75a0ff;border-color:#4f7cff88;box-shadow:inset 0 0 22px #4f7cff12}
+    .compose-track-option svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+    .compose-track-footer{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:20px;padding-top:16px;border-top:1px solid #ffffff0b}
+    .compose-track-selection{color:#667b91;font-size:9px}
+    .compose-track-selection strong{color:#a9c0e0}
+    .compose-import-track{border:1px solid #4f7cff66;border-radius:10px;background:linear-gradient(105deg,#24458f,#17336e);color:#fff;padding:11px 17px;font:800 10px Inter;cursor:pointer;box-shadow:0 8px 24px #193f8a33}
+    .compose-import-track:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px)}
+    .compose-import-track:disabled{opacity:.4;cursor:default}
+    @media(max-width:560px){.compose-head{padding:18px 15px}.compose-canvas{min-height:400px;padding:20px}.compose-track-dialog{padding:18px}.compose-track-options{grid-template-columns:repeat(2,minmax(0,1fr))}.compose-track-footer{align-items:stretch;flex-direction:column}.compose-import-track{width:100%}}
   `;
   document.head.appendChild(composeStyle);
 
@@ -219,6 +239,66 @@
   placeholder.hidden=true;
   workspace.appendChild(placeholder);
 
+  function closeComposeTrackModal(){
+    const modal=document.getElementById('composeTrackModal');
+    if(modal)modal.remove();
+  }
+
+  function openComposeTrackModal(){
+    closeComposeTrackModal();
+    let selectedType='';
+    const modal=document.createElement('div');
+    modal.id='composeTrackModal';
+    modal.className='compose-track-modal';
+    modal.innerHTML=`
+      <div class="compose-track-backdrop"></div>
+      <section class="compose-track-dialog" role="dialog" aria-modal="true" aria-labelledby="composeTrackTitle">
+        <div class="compose-track-head">
+          <div><p class="compose-track-eyebrow">COMPOSE</p><h3 id="composeTrackTitle">Add a track</h3><p>Choose the kind of existing audio asset you want to import.</p></div>
+          <button class="compose-track-close" type="button" aria-label="Close">×</button>
+        </div>
+        <div class="compose-track-options">
+          <button class="compose-track-option" type="button" data-compose-track-type="voice"><svg viewBox="0 0 24 24"><path d="M3 12h2M7 8v8M11 5v14M15 9v6M19 3v18M23 10v4"/></svg><span>Voice</span></button>
+          <button class="compose-track-option" type="button" data-compose-track-type="sound"><svg viewBox="0 0 24 24"><path d="M4 9.5v5h4l5 4V5.5l-5 4z"/><path d="M17 9.2a4.2 4.2 0 0 1 0 5.6M19.5 6.8a7.5 7.5 0 0 1 0 10.4"/></svg><span>Sound</span></button>
+          <button class="compose-track-option" type="button" data-compose-track-type="sfx"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l6 4V5l-6 4z"/><path d="M18 9a4 4 0 0 1 0 6M20 6a8 8 0 0 1 0 12"/></svg><span>SFX</span></button>
+          <button class="compose-track-option" type="button" data-compose-track-type="ambience"><svg viewBox="0 0 24 24"><path d="M4 16c3-4 6-4 8 0s5 4 8 0"/><path d="M4 11c3-4 6-4 8 0s5 4 8 0"/></svg><span>Ambience</span></button>
+          <button class="compose-track-option" type="button" data-compose-track-type="music"><svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg><span>Music</span></button>
+          <button class="compose-track-option" type="button" data-compose-track-type="composition"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h10M7 13h6"/></svg><span>Composition</span></button>
+        </div>
+        <div class="compose-track-footer">
+          <span class="compose-track-selection">Select a track type to continue.</span>
+          <button class="compose-import-track" type="button" disabled>Import Track</button>
+        </div>
+      </section>`;
+    document.body.appendChild(modal);
+
+    const options=[...modal.querySelectorAll('[data-compose-track-type]')];
+    const selection=modal.querySelector('.compose-track-selection');
+    const importButton=modal.querySelector('.compose-import-track');
+    const close=()=>closeComposeTrackModal();
+
+    options.forEach(option=>option.addEventListener('click',()=>{
+      options.forEach(item=>item.classList.remove('active'));
+      option.classList.add('active');
+      selectedType=option.dataset.composeTrackType||'';
+      selection.innerHTML=`Selected: <strong>${option.querySelector('span')?.textContent||selectedType}</strong>`;
+      importButton.disabled=!selectedType;
+    }));
+
+    importButton.addEventListener('click',()=>{
+      if(!selectedType)return;
+      modal.dispatchEvent(new CustomEvent('compose-track-import',{detail:{type:selectedType}}));
+      close();
+    });
+    modal.querySelector('.compose-track-close').addEventListener('click',close);
+    modal.querySelector('.compose-track-backdrop').addEventListener('click',close);
+    document.addEventListener('keydown',function onKeydown(event){
+      if(!document.getElementById('composeTrackModal')){document.removeEventListener('keydown',onKeydown);return;}
+      if(event.key==='Escape'){close();document.removeEventListener('keydown',onKeydown);}
+    });
+    options[0]?.focus();
+  }
+
   function setActive(active){
     [homeLink,voiceLink,soundLink,videoLink,composeLink,libraryLink].filter(Boolean).forEach(link=>link.classList.remove('active'));
     const link=({studio:homeLink,voice:voiceLink,sound:soundLink,video:videoLink,compose:composeLink,library:libraryLink})[active];
@@ -236,6 +316,7 @@
     if(view==='compose'){
       placeholder.className='compose-workspace';
       placeholder.innerHTML=`<div class="compose-head"><small>COMPOSE</small><h2>Create your composition</h2><p>Combine Voice, Sound, SFX, Ambience and more into one composition.</p></div><div class="compose-canvas"><div class="compose-empty"><p>Import audio assets into your composition one track at a time.</p><button class="compose-add-track" type="button">+ Add Track</button></div></div>`;
+      placeholder.querySelector('.compose-add-track')?.addEventListener('click',openComposeTrackModal);
     }else if(view==='video'){
       placeholder.className='studio-domain-placeholder';
       placeholder.innerHTML=`<div class="placeholder-panel"><small>VIDEO</small><h2>Video workspace</h2><p>This workspace is being built as an independent SvaraONE domain. The Studio landing page is ready for it.</p></div>`;
