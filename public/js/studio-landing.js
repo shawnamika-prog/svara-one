@@ -140,6 +140,7 @@
     .compose-track-wave.playing i{animation:composeWavePulse .72s ease-in-out infinite alternate}
     .compose-track-wave.playing i:nth-child(2n){animation-delay:-.18s}.compose-track-wave.playing i:nth-child(3n){animation-delay:-.34s}
     @keyframes composeWavePulse{from{transform:scaleY(.58);opacity:.38}to{transform:scaleY(1.06);opacity:.9}}
+    .compose-track-play{width:30px;height:30px;border:1px solid #4f7cff55;border-radius:8px;background:#102554;color:#8eb0ff;display:grid;place-items:center;flex:0 0 30px;font-size:11px;cursor:pointer}
     .compose-track-controls{grid-column:2;grid-row:2;display:flex;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid #ffffff08;flex-wrap:wrap}
     .compose-track-volume,.compose-track-fade{display:flex;align-items:center;gap:8px;min-width:150px;flex:1;color:#6f849b;font-size:9px}
     .compose-track-volume input,.compose-track-fade input{width:100%;accent-color:#5f8cff}
