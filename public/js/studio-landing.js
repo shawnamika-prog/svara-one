@@ -332,7 +332,7 @@
     const finderList=modal.querySelector('.compose-finder-list');
     const close=()=>closeComposeTrackModal();
     const labelForType=type=>({voice:'Voice',sound:'Sound',composition:'Composition'})[type]||type;
-    const labelForSoundType=type=>String(type||'Sound').replace(/[_-]+/g,' ').replace(/\\b\\w/g,letter=>letter.toUpperCase());
+    const labelForSoundType=type=>String(type||'Sound').replace(/[_-]+/g,' ').replace(/\b\w/g,letter=>letter.toUpperCase());
     const normalized=asset=>({
       ...asset,
       id:String(asset?.id||''),
