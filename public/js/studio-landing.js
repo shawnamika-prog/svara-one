@@ -622,74 +622,43 @@
       ctx.clearRect(0,0,width,height);
 
       const samples=buffer.getChannelData(0);
-      const bins=Math.max(120,Math.floor(width/2));
+
+      // Deliberately discrete editor-style waveform:
+      // each bar represents a small slice of the real audio,
+      // making cut points and transients easy to see.
+      const barWidth=2;
+      const gap=2;
+      const bins=Math.max(1,Math.floor(width/(barWidth+gap)));
       const step=Math.max(1,Math.floor(samples.length/bins));
-      const peaks=new Float32Array(bins);
+      const centre=height/2;
+      const maxAmplitude=height*.42;
+
+      ctx.fillStyle='#7da3ff';
+      ctx.globalAlpha=.9;
 
       for(let x=0;x<bins;x++){
         const startSample=x*step;
         const endSample=Math.min(samples.length,startSample+step);
         let peak=0;
-        for(let i=startSample;i<endSample;i+=Math.max(1,Math.floor((endSample-startSample)/120))){
+
+        for(let i=startSample;i<endSample;i+=Math.max(1,Math.floor((endSample-startSample)/100))){
           const value=Math.abs(samples[i]);
           if(value>peak)peak=value;
         }
-        peaks[x]=peak;
+
+        // Keep very quiet audio visible without flattening its dynamics.
+        const amplitude=Math.max(2,peak*maxAmplitude);
+        const px=x*(barWidth+gap);
+        const top=centre-amplitude;
+        const barHeight=amplitude*2;
+
+        ctx.fillRect(px,top,barWidth,barHeight);
       }
 
-      // Light smoothing keeps the waveform legible at timeline scale
-      // without changing the underlying audio data.
-      const smooth=new Float32Array(bins);
-      for(let x=0;x<bins;x++){
-        const a=peaks[Math.max(0,x-1)];
-        const b=peaks[x];
-        const d=peaks[Math.min(bins-1,x+1)];
-        smooth[x]=(a+b*2+d)/4;
-      }
-
-      const centre=height/2;
-      const maxAmplitude=height*.40;
-      const top=new Float32Array(bins);
-      const bottom=new Float32Array(bins);
-      for(let x=0;x<bins;x++){
-        const amp=Math.max(1.5,smooth[x]*maxAmplitude);
-        top[x]=centre-amp;
-        bottom[x]=centre+amp;
-      }
-
-      ctx.beginPath();
-      ctx.moveTo(0,centre);
-      for(let x=0;x<bins;x++){
-        ctx.lineTo(x*(width/(bins-1)),top[x]);
-      }
-      for(let x=bins-1;x>=0;x--){
-        ctx.lineTo(x*(width/(bins-1)),bottom[x]);
-      }
-      ctx.closePath();
-      ctx.fillStyle='#7da3ff';
-      ctx.globalAlpha=.82;
-      ctx.fill();
-
-      // Crisp centre reference line.
-      ctx.beginPath();
-      ctx.moveTo(0,centre);
-      ctx.lineTo(width,centre);
-      ctx.strokeStyle='#a9c2ff';
-      ctx.globalAlpha=.18;
-      ctx.lineWidth=1;
-      ctx.stroke();
-
-      // Subtle highlight along the positive envelope.
-      ctx.beginPath();
-      for(let x=0;x<bins;x++){
-        const px=x*(width/(bins-1));
-        if(x===0)ctx.moveTo(px,top[x]);
-        else ctx.lineTo(px,top[x]);
-      }
-      ctx.strokeStyle='#9ab8ff';
-      ctx.globalAlpha=.42;
-      ctx.lineWidth=1;
-      ctx.stroke();
+      // Very subtle centre reference line.
+      ctx.globalAlpha=.16;
+      ctx.fillRect(0,centre,width,1);
+      ctx.globalAlpha=1;
 
       waveformCanvas.dataset.real='true';
     };
