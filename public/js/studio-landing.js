@@ -127,10 +127,10 @@
     .compose-track-trim-handle.left{left:var(--trim-left,0%);transform:translateX(-50%)}
     .compose-track-trim-handle.right{left:calc(100% - var(--trim-right,0%));transform:translateX(-50%)}
     .compose-track-trim-handle:after{content:"";position:absolute;left:2px;top:50%;width:2px;height:18px;border-radius:2px;background:#fff;transform:translateY(-50%);opacity:.9}
-    .compose-track-fade-indicator{position:absolute;top:0;bottom:0;z-index:3;pointer-events:none;opacity:.8;border-radius:7px}
-    .compose-track-fade-indicator.in{left:var(--fade-in-left,0%);width:var(--fade-in-width,0%);background:repeating-linear-gradient(135deg,transparent 0,transparent 7px,#9ab8ff66 7px,#9ab8ff66 8px)}
-    .compose-track-fade-indicator.out{right:var(--fade-out-right,0%);width:var(--fade-out-width,0%);background:repeating-linear-gradient(45deg,transparent 0,transparent 7px,#9ab8ff66 7px,#9ab8ff66 8px)}
-    .compose-track-fade-indicator.in:after,.compose-track-fade-indicator.out:after{content:"";position:absolute;top:0;bottom:0;width:1px;background:#b9ccff99}
+    .compose-track-fade-indicator{position:absolute;top:0;bottom:0;z-index:3;pointer-events:none;border-radius:7px;overflow:hidden}
+    .compose-track-fade-indicator.in{left:var(--fade-in-left,0%);width:var(--fade-in-width,0%);background:linear-gradient(to right,#071426cc 0%,#07142666 48%,transparent 100%)}
+    .compose-track-fade-indicator.out{right:var(--fade-out-right,0%);width:var(--fade-out-width,0%);background:linear-gradient(to left,#071426cc 0%,#07142666 48%,transparent 100%)}
+    .compose-track-fade-indicator.in:after,.compose-track-fade-indicator.out:after{content:"";position:absolute;top:0;bottom:0;width:2px;background:#b9ccffcc;box-shadow:0 0 8px #4f7cff55}
     .compose-track-fade-indicator.in:after{right:0}
     .compose-track-fade-indicator.out:after{left:0}
     .compose-track-trim-readout{position:absolute;left:50%;top:-8px;z-index:6;transform:translate(-50%,-100%);padding:4px 7px;border:1px solid #4f7cff66;border-radius:5px;background:#071426ee;color:#b9ccff;font:700 8px Inter;white-space:nowrap;opacity:0;pointer-events:none}
@@ -669,9 +669,11 @@
       const fadeOutSeconds=Math.min(Number(row.dataset.fadeOut||0),duration*visibleRatio);
       const fadeInRatio=Math.min(visibleRatio,fadeInSeconds/duration);
       const fadeOutRatio=Math.min(visibleRatio,fadeOutSeconds/duration);
-      wave?.style.setProperty('--fade-in-left',String(trimIn*100)+'%');
+      const fadeInLeft=trimIn*100;
+      const fadeOutRight=trimOut*100;
+      wave?.style.setProperty('--fade-in-left',String(fadeInLeft)+'%');
       wave?.style.setProperty('--fade-in-width',String(fadeInRatio*100)+'%');
-      wave?.style.setProperty('--fade-out-right',String(trimOut*100)+'%');
+      wave?.style.setProperty('--fade-out-right',String(fadeOutRight)+'%');
       wave?.style.setProperty('--fade-out-width',String(fadeOutRatio*100)+'%');
       if(trimReadout)trimReadout.textContent='Trim '+formatTrimTime(trimIn*duration)+' – '+formatTrimTime((1-trimOut)*duration);
       if(trimInHandle)trimInHandle.title='Trim start: '+formatTrimTime(trimIn*duration);
