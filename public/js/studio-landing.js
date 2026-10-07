@@ -86,6 +86,31 @@
     .compose-track-modal{position:fixed;inset:0;z-index:1300;display:flex;align-items:center;justify-content:center;padding:24px}
     .compose-track-backdrop{position:absolute;inset:0;background:#020611cc;backdrop-filter:blur(6px)}
     .compose-track-dialog{position:relative;width:min(560px,calc(100vw - 32px));padding:24px;border:1px solid #4f7cff44;border-radius:18px;background:linear-gradient(180deg,#0b1426,#080f1c);box-shadow:0 28px 90px #000b;color:#dbe7f5}
+    .compose-track-subtitle{max-width:390px}
+    .compose-finder-toolbar{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+    .compose-finder-back{border:0;background:transparent;color:#7890ad;font:700 10px Inter;cursor:pointer;padding:4px 0}
+    .compose-finder-back:hover{color:#9ebcff}
+    .compose-finder-title{display:flex;flex-direction:column;gap:3px}
+    .compose-finder-title strong{color:#e4ecf7;font-size:13px}
+    .compose-finder-title span{color:#667b91;font-size:9px}
+    .compose-finder-controls{display:grid;grid-template-columns:minmax(0,1fr) 180px;gap:9px;margin-bottom:12px}
+    .compose-finder-search{display:flex;align-items:center;gap:8px;padding:0 11px;border:1px solid #ffffff12;border-radius:9px;background:#07121d;color:#71869d}
+    .compose-finder-search:focus-within{border-color:#4f7cff66}
+    .compose-finder-search span{font-size:17px}
+    .compose-finder-search input{width:100%;padding:10px 0;border:0;outline:0;background:transparent;color:#dbe7f5;font:inherit;font-size:11px}
+    .compose-finder-folder{width:100%;padding:10px 11px;border:1px solid #ffffff12;border-radius:9px;background:#07121d;color:#a9b9ca;font:inherit;font-size:10px;outline:0}
+    .compose-finder-list{height:260px;overflow:auto;border:1px solid #ffffff0d;border-radius:11px;background:#07111c;padding:5px}
+    .compose-finder-state{min-height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;color:#647a91;font-size:10px;padding:20px}
+    .compose-finder-state strong{color:#a9bad0;font-size:11px}
+    .compose-finder-state span{max-width:330px;line-height:1.5}
+    .compose-finder-item{width:100%;display:flex;align-items:center;gap:10px;padding:10px;border:1px solid transparent;border-radius:8px;background:transparent;color:#a9b9ca;text-align:left;cursor:pointer}
+    .compose-finder-item:hover{background:#0b1b2d;border-color:#ffffff0b}
+    .compose-finder-item.active{background:#102554;border-color:#4f7cff66;color:#e1ebff}
+    .compose-finder-icon{width:26px;height:26px;display:grid;place-items:center;border-radius:7px;background:#0d1c2d;color:#5f8cff;font-size:12px;flex:0 0 26px}
+    .compose-finder-main{min-width:0;display:flex;flex-direction:column;gap:3px;flex:1}
+    .compose-finder-main strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}
+    .compose-finder-main small{color:#61768d;font-size:8px;text-transform:capitalize}
+    .compose-finder-date{color:#61768d;font-size:8px;white-space:nowrap}
     .compose-track-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:20px}
     .compose-track-eyebrow{margin:0;color:#5f8cff;font-size:9px;letter-spacing:.2em;font-weight:800}
     .compose-track-head h3{margin:7px 0 0;font-size:20px;letter-spacing:-.035em}
@@ -103,7 +128,7 @@
     .compose-import-track{border:1px solid #4f7cff66;border-radius:10px;background:linear-gradient(105deg,#24458f,#17336e);color:#fff;padding:11px 17px;font:800 10px Inter;cursor:pointer;box-shadow:0 8px 24px #193f8a33}
     .compose-import-track:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px)}
     .compose-import-track:disabled{opacity:.4;cursor:default}
-    @media(max-width:560px){.compose-head{padding:18px 15px}.compose-canvas{min-height:400px;padding:20px}.compose-track-dialog{padding:18px}.compose-track-options{grid-template-columns:repeat(2,minmax(0,1fr))}.compose-track-footer{align-items:stretch;flex-direction:column}.compose-import-track{width:100%}}
+    @media(max-width:560px){.compose-head{padding:18px 15px}.compose-canvas{min-height:400px;padding:20px}.compose-track-dialog{padding:18px}.compose-track-options{grid-template-columns:repeat(2,minmax(0,1fr))}.compose-track-footer{align-items:stretch;flex-direction:column}.compose-import-track{width:100%}.compose-finder-controls{grid-template-columns:1fr}.compose-finder-list{height:230px}.compose-finder-date{display:none}}
   `;
   document.head.appendChild(composeStyle);
 
@@ -247,47 +272,148 @@
   function openComposeTrackModal(){
     closeComposeTrackModal();
     let selectedType='';
+    let selectedAsset=null;
+    let generations=[];
+    let folders=[];
     const modal=document.createElement('div');
     modal.id='composeTrackModal';
     modal.className='compose-track-modal';
     modal.innerHTML=`
       <div class="compose-track-backdrop"></div>
-      <section class="compose-track-dialog" role="dialog" aria-modal="true" aria-labelledby="composeTrackTitle">
+      <section class="compose-track-dialog compose-track-wizard" role="dialog" aria-modal="true" aria-labelledby="composeTrackTitle">
         <div class="compose-track-head">
-          <div><p class="compose-track-eyebrow">COMPOSE</p><h3 id="composeTrackTitle">Add a track</h3><p>Choose the kind of existing audio asset you want to import.</p></div>
+          <div><p class="compose-track-eyebrow">COMPOSE</p><h3 id="composeTrackTitle">Add a track</h3><p class="compose-track-subtitle">Choose the kind of existing audio asset you want to import.</p></div>
           <button class="compose-track-close" type="button" aria-label="Close">×</button>
         </div>
-        <div class="compose-track-options">
-          <button class="compose-track-option" type="button" data-compose-track-type="voice"><svg viewBox="0 0 24 24"><path d="M3 12h2M7 8v8M11 5v14M15 9v6M19 3v18M23 10v4"/></svg><span>Voice</span></button>
-          <button class="compose-track-option" type="button" data-compose-track-type="sound"><svg viewBox="0 0 24 24"><path d="M4 9.5v5h4l5 4V5.5l-5 4z"/><path d="M17 9.2a4.2 4.2 0 0 1 0 5.6M19.5 6.8a7.5 7.5 0 0 1 0 10.4"/></svg><span>Sound</span></button>
-          <button class="compose-track-option" type="button" data-compose-track-type="sfx"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l6 4V5l-6 4z"/><path d="M18 9a4 4 0 0 1 0 6M20 6a8 8 0 0 1 0 12"/></svg><span>SFX</span></button>
-          <button class="compose-track-option" type="button" data-compose-track-type="ambience"><svg viewBox="0 0 24 24"><path d="M4 16c3-4 6-4 8 0s5 4 8 0"/><path d="M4 11c3-4 6-4 8 0s5 4 8 0"/></svg><span>Ambience</span></button>
-          <button class="compose-track-option" type="button" data-compose-track-type="music"><svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg><span>Music</span></button>
-          <button class="compose-track-option" type="button" data-compose-track-type="composition"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h10M7 13h6"/></svg><span>Composition</span></button>
+        <div class="compose-track-step" data-compose-step="type">
+          <div class="compose-track-options">
+            <button class="compose-track-option" type="button" data-compose-track-type="voice"><svg viewBox="0 0 24 24"><path d="M3 12h2M7 8v8M11 5v14M15 9v6M19 3v18M23 10v4"/></svg><span>Voice</span></button>
+            <button class="compose-track-option" type="button" data-compose-track-type="sound"><svg viewBox="0 0 24 24"><path d="M4 9.5v5h4l5 4V5.5l-5 4z"/><path d="M17 9.2a4.2 4.2 0 0 1 0 5.6M19.5 6.8a7.5 7.5 0 0 1 0 10.4"/></svg><span>Sound</span></button>
+            <button class="compose-track-option" type="button" data-compose-track-type="sfx"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l6 4V5l-6 4z"/><path d="M18 9a4 4 0 0 1 0 6M20 6a8 8 0 0 1 0 12"/></svg><span>SFX</span></button>
+            <button class="compose-track-option" type="button" data-compose-track-type="ambience"><svg viewBox="0 0 24 24"><path d="M4 16c3-4 6-4 8 0s5 4 8 0"/><path d="M4 11c3-4 6-4 8 0s5 4 8 0"/></svg><span>Ambience</span></button>
+            <button class="compose-track-option" type="button" data-compose-track-type="music"><svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg><span>Music</span></button>
+            <button class="compose-track-option" type="button" data-compose-track-type="composition"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h10M7 13h6"/></svg><span>Composition</span></button>
+          </div>
+        </div>
+        <div class="compose-track-step" data-compose-step="finder" hidden>
+          <div class="compose-finder-toolbar">
+            <button class="compose-finder-back" type="button">← Back</button>
+            <div class="compose-finder-title"><strong></strong><span>Choose an existing asset</span></div>
+          </div>
+          <div class="compose-finder-controls">
+            <label class="compose-finder-search"><span>⌕</span><input type="search" placeholder="Search assets…" aria-label="Search assets"></label>
+            <select class="compose-finder-folder" aria-label="Filter by folder"><option value="__all__">All folders</option><option value="__unfiled__">Unfiled</option></select>
+          </div>
+          <div class="compose-finder-list"><div class="compose-finder-state">Loading your assets…</div></div>
         </div>
         <div class="compose-track-footer">
-          <span class="compose-track-selection">Select a track type to continue.</span>
+          <span class="compose-track-selection">Choose a track type to continue.</span>
           <button class="compose-import-track" type="button" disabled>Import Track</button>
         </div>
       </section>`;
     document.body.appendChild(modal);
 
+    const typeStep=modal.querySelector('[data-compose-step="type"]');
+    const finderStep=modal.querySelector('[data-compose-step="finder"]');
     const options=[...modal.querySelectorAll('[data-compose-track-type]')];
     const selection=modal.querySelector('.compose-track-selection');
     const importButton=modal.querySelector('.compose-import-track');
+    const finderTitle=modal.querySelector('.compose-finder-title strong');
+    const finderSearch=modal.querySelector('.compose-finder-search input');
+    const finderFolder=modal.querySelector('.compose-finder-folder');
+    const finderList=modal.querySelector('.compose-finder-list');
     const close=()=>closeComposeTrackModal();
+    const labelForType=type=>({voice:'Voice',sound:'Sound',sfx:'SFX',ambience:'Ambience',music:'Music',composition:'Composition'})[type]||type;
+    const normalized=asset=>({
+      ...asset,
+      id:String(asset?.id||''),
+      assetType:String(asset?.assetType||'').toLowerCase(),
+      soundType:String(asset?.soundType||asset?.type||'').toLowerCase(),
+      filename:String(asset?.filename||asset?.name||'Untitled asset'),
+      folderId:asset?.folderId?String(asset.folderId):'__unfiled__',
+      format:String(asset?.format||'').toUpperCase(),
+      status:String(asset?.status||'ready').toLowerCase()
+    });
+    const typeMatches=asset=>{
+      if(selectedType==='voice')return asset.assetType==='voice';
+      if(selectedType==='sound')return asset.assetType==='sound';
+      if(selectedType==='sfx')return asset.assetType==='sound'&&asset.soundType==='sfx';
+      if(selectedType==='ambience')return asset.assetType==='sound'&&asset.soundType==='ambience';
+      if(selectedType==='music')return asset.assetType==='sound'&&asset.soundType==='music';
+      if(selectedType==='composition')return asset.assetType==='composition';
+      return false;
+    };
+    const filtered=()=>{
+      const query=String(finderSearch?.value||'').trim().toLowerCase();
+      const folder=finderFolder?.value||'__all__';
+      return generations.filter(asset=>{
+        const haystack=`${asset.filename} ${asset.voiceName||''} ${asset.soundType||''} ${asset.format||''} ${asset.status||''}`.toLowerCase();
+        const queryOk=!query||haystack.includes(query);
+        const folderOk=folder==='__all__'||(folder==='__unfiled__'?asset.folderId==='__unfiled__':asset.folderId===folder);
+        return typeMatches(asset)&&queryOk&&folderOk&&asset.status==='ready';
+      });
+    };
+    const renderList=()=>{
+      if(!finderList)return;
+      const items=filtered();
+      if(!items.length){
+        finderList.innerHTML=`<div class="compose-finder-state"><strong>No ${labelForType(selectedType)} assets found</strong><span>Generate or save a ${labelForType(selectedType)} asset first, then return here to import it.</span></div>`;
+        return;
+      }
+      finderList.innerHTML=items.map(asset=>`<button type="button" class="compose-finder-item${selectedAsset?.id===asset.id?' active':''}" data-compose-asset-id="${escapeHistory(asset.id)}"><span class="compose-finder-icon">◈</span><span class="compose-finder-main"><strong>${escapeHistory(asset.filename)}</strong><small>${escapeHistory(asset.soundType||labelForType(asset.assetType))}${asset.format?' · '+escapeHistory(asset.format):''}</small></span><span class="compose-finder-date">${formatHistoryDate(asset.createdAt)}</span></button>`).join('');
+      finderList.querySelectorAll('[data-compose-asset-id]').forEach(button=>button.addEventListener('click',()=>{
+        selectedAsset=items.find(asset=>asset.id===button.dataset.composeAssetId)||null;
+        finderList.querySelectorAll('.compose-finder-item').forEach(item=>item.classList.toggle('active',item===button));
+        selection.innerHTML=selectedAsset?`Selected: <strong>${escapeHistory(selectedAsset.filename)}</strong>`:'Choose an asset to continue.';
+        importButton.disabled=!selectedAsset;
+      }));
+    };
+    const loadFolders=async()=>{
+      try{
+        const response=await fetch('/api/generations/folders',{credentials:'same-origin',cache:'no-store',headers:{accept:'application/json'}});
+        const data=await response.json().catch(()=>({}));
+        if(response.ok){
+          folders=Array.isArray(data.folders)?data.folders:[];
+          finderFolder.innerHTML='<option value="__all__">All folders</option><option value="__unfiled__">Unfiled</option>'+folders.map(folder=>`<option value="${escapeHistory(folder.id)}">${escapeHistory(folder.name)}</option>`).join('');
+        }
+      }catch(error){console.warn('compose_track_folder_load_error',error);}
+    };
+    const loadAssets=async()=>{
+      finderList.innerHTML='<div class="compose-finder-state">Loading your assets…</div>';
+      try{
+        const response=await fetch('/api/generations?limit=500',{credentials:'same-origin',cache:'no-store',headers:{accept:'application/json'}});
+        const data=await response.json().catch(()=>({}));
+        if(response.status===401){window.location.replace('/login.html?next=/studio');return;}
+        if(!response.ok)throw new Error(data.error||`Generation service unavailable (${response.status})`);
+        generations=(Array.isArray(data.generations)?data.generations:[]).map(normalized);
+        renderList();
+      }catch(error){
+        finderList.innerHTML=`<div class="compose-finder-state"><strong>Could not load assets</strong><span>${escapeHistory(error?.message||'Please try again.')}</span></div>`;
+      }
+    };
+    const showFinder=async type=>{
+      selectedType=type;
+      selectedAsset=null;
+      typeStep.hidden=true;
+      finderStep.hidden=false;
+      finderTitle.textContent=labelForType(type);
+      finderSearch.value='';
+      finderFolder.value='__all__';
+      selection.textContent=`Choose a ${labelForType(type)} asset to continue.`;
+      importButton.disabled=true;
+      await Promise.all([loadFolders(),loadAssets()]);
+      finderSearch.focus();
+    };
 
-    options.forEach(option=>option.addEventListener('click',()=>{
-      options.forEach(item=>item.classList.remove('active'));
-      option.classList.add('active');
-      selectedType=option.dataset.composeTrackType||'';
-      selection.innerHTML=`Selected: <strong>${option.querySelector('span')?.textContent||selectedType}</strong>`;
-      importButton.disabled=!selectedType;
-    }));
-
+    options.forEach(option=>option.addEventListener('click',()=>showFinder(option.dataset.composeTrackType||'')));
+    finderSearch.addEventListener('input',renderList);
+    finderFolder.addEventListener('change',renderList);
+    modal.querySelector('.compose-finder-back').addEventListener('click',()=>{
+      finderStep.hidden=true;typeStep.hidden=false;selectedAsset=null;selection.textContent='Choose a track type to continue.';importButton.disabled=true;
+    });
     importButton.addEventListener('click',()=>{
-      if(!selectedType)return;
-      modal.dispatchEvent(new CustomEvent('compose-track-import',{detail:{type:selectedType}}));
+      if(!selectedAsset)return;
+      modal.dispatchEvent(new CustomEvent('compose-track-import',{detail:{type:selectedType,asset:selectedAsset}}));
       close();
     });
     modal.querySelector('.compose-track-close').addEventListener('click',close);
@@ -298,6 +424,7 @@
     });
     options[0]?.focus();
   }
+
 
   function setActive(active){
     [homeLink,voiceLink,soundLink,videoLink,composeLink,libraryLink].filter(Boolean).forEach(link=>link.classList.remove('active'));
