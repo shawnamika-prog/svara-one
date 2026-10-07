@@ -420,7 +420,7 @@
     });
     importButton.addEventListener('click',()=>{
       if(!selectedAsset)return;
-      modal.dispatchEvent(new CustomEvent('compose-track-import',{detail:{type:selectedType,asset:selectedAsset}}));
+      addComposeTrack(selectedType,selectedAsset);
       close();
     });
     modal.querySelector('.compose-track-close').addEventListener('click',close);
@@ -472,7 +472,7 @@
       placeholder.className='compose-workspace';
       placeholder.innerHTML=`<div class="compose-head"><small>COMPOSE</small><h2>Create your composition</h2><p>Combine Voice, Sound, SFX, Ambience and more into one composition.</p></div><div class="compose-canvas"><div class="compose-empty"><p>Import audio assets into your composition one track at a time.</p><button class="compose-add-track" type="button">+ Add Track</button></div></div>`;
       placeholder.querySelector('.compose-add-track')?.addEventListener('click',openComposeTrackModal);
-      placeholder.addEventListener('compose-track-import',event=>addComposeTrack(event.detail?.type,event.detail?.asset));
+
     }else if(view==='video'){
       placeholder.className='studio-domain-placeholder';
       placeholder.innerHTML=`<div class="placeholder-panel"><small>VIDEO</small><h2>Video workspace</h2><p>This workspace is being built as an independent SvaraONE domain. The Studio landing page is ready for it.</p></div>`;
