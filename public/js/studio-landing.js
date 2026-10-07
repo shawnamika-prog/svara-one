@@ -537,6 +537,7 @@
     const dynamicTools=capabilities.length?capabilities.map(value=>`<span class="compose-track-tool dynamic">${escapeHistory(value)}</span>`).join(''):'';
     row.innerHTML=`
       <div class="compose-track-identity">
+        <button class="compose-track-play" type="button" aria-label="Play track" title="Play track">▶</button>
         <div class="compose-track-row-icon">◈</div>
         <div class="compose-track-row-main"><strong>${escapeHistory(asset.filename||'Untitled asset')}</strong><span>${escapeHistory(labelForComposeType(type))}${asset.soundType?' · '+escapeHistory(asset.soundType):''}${asset.format?' · '+escapeHistory(asset.format):''}</span></div>
         <button class="compose-track-select" type="button">Select</button>
@@ -638,17 +639,29 @@
       solo.classList.toggle('active');
       list.querySelectorAll('[data-compose-solo]').forEach(other=>{if(other!==solo)other.classList.remove('active');});
     });
+    const syncPlayButton=()=>{
+      if(!play)return;
+      const active=!audio?.paused;
+      play.classList.toggle('active',active);
+      play.textContent=active?'❚❚':'▶';
+      play.setAttribute('aria-label',active?'Pause track':'Play track');
+      play.setAttribute('title',active?'Pause track':'Play track');
+    };
     const togglePlayback=()=>{
       if(!audio)return;
       if(audio.paused){
-        list.querySelectorAll('.compose-track-audio').forEach(other=>{if(other!==audio){other.pause();}});
-        audio.play().catch(()=>{});
+        list.querySelectorAll('.compose-track-audio').forEach(other=>{if(other!==audio){other.pause();other.closest('.compose-track-editor')?.querySelector('.compose-track-play')?.classList.remove('active');other.closest('.compose-track-editor')?.querySelector('.compose-track-play')?.replaceChildren();}});
+        audio.play().then(syncPlayButton).catch(()=>{});
         wave.classList.add('playing');
       }else{
         audio.pause();
         wave.classList.remove('playing');
+        syncPlayButton();
       }
     };
+    play?.addEventListener('click',event=>{event.stopPropagation();togglePlayback();});
+    audio?.addEventListener('play',syncPlayButton);
+    audio?.addEventListener('pause',syncPlayButton);
     row.querySelector('.compose-track-identity')?.addEventListener('dblclick',togglePlayback);
     audio?.addEventListener('loadedmetadata',()=>{
       if(Number.isFinite(audio.duration)&&audio.duration>0)row.dataset.sourceDuration=String(audio.duration);
