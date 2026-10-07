@@ -87,7 +87,24 @@
     .compose-track-backdrop{position:absolute;inset:0;background:#020611cc;backdrop-filter:blur(6px)}
     .compose-track-dialog{position:relative;width:min(560px,calc(100vw - 32px));padding:24px;border:1px solid #4f7cff44;border-radius:18px;background:linear-gradient(180deg,#0b1426,#080f1c);box-shadow:0 28px 90px #000b;color:#dbe7f5}
     .compose-track-subtitle{max-width:390px}
-    .compose-track-list{display:flex;flex-direction:column;gap:8px;width:min(760px,100%);margin:0 auto}
+    .compose-track-list{display:flex;flex-direction:column;gap:12px;width:min(920px,100%);margin:0 auto}
+    .compose-track-editor{border:1px solid #4f7cff22;border-radius:13px;background:#091522;padding:13px}
+    .compose-track-editor-head{display:flex;align-items:center;gap:12px}
+    .compose-track-wave-wrap{display:flex;align-items:center;gap:12px;margin-top:12px;padding:10px;border:1px solid #ffffff0a;border-radius:10px;background:#060d17}
+    .compose-track-play{width:34px;height:34px;border:1px solid #4f7cff44;border-radius:50%;background:#102554;color:#75a0ff;display:grid;place-items:center;flex:0 0 34px;cursor:pointer}
+    .compose-track-play:hover{background:#17336e;color:#fff}
+    .compose-track-wave{height:66px;display:flex;align-items:center;gap:2px;flex:1;overflow:hidden}
+    .compose-track-wave i{width:3px;height:var(--h);min-height:4px;border-radius:99px;background:#4f7cff;opacity:.5;transform-origin:center}
+    .compose-track-wave.playing i{animation:composeWavePulse .72s ease-in-out infinite alternate}
+    .compose-track-wave.playing i:nth-child(2n){animation-delay:-.18s}.compose-track-wave.playing i:nth-child(3n){animation-delay:-.34s}
+    @keyframes composeWavePulse{from{transform:scaleY(.58);opacity:.38}to{transform:scaleY(1.06);opacity:.9}}
+    .compose-track-controls{display:flex;align-items:center;gap:8px;margin-top:11px;flex-wrap:wrap}
+    .compose-track-volume{display:flex;align-items:center;gap:8px;min-width:210px;flex:1;color:#6f849b;font-size:9px}
+    .compose-track-volume input{width:100%;accent-color:#5f8cff}
+    .compose-track-control,.compose-track-tool{border:1px solid #ffffff10;border-radius:8px;background:#0b1827;color:#8fa4ba;padding:8px 10px;font:700 9px Inter;cursor:pointer}
+    .compose-track-control:hover,.compose-track-tool:hover{background:#102554;color:#dbe7f5}
+    .compose-track-control.active{border-color:#4f7cff66;background:#102554;color:#75a0ff}
+    .compose-track-tool.dynamic{color:#75a0ff;border-color:#4f7cff33}
     .compose-track-row{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #4f7cff22;border-radius:11px;background:#091522}
     .compose-track-row-icon{width:32px;height:32px;display:grid;place-items:center;border-radius:8px;background:#102554;color:#5f8cff;font-size:12px;flex:0 0 32px}
     .compose-track-row-main{min-width:0;display:flex;flex-direction:column;gap:4px;flex:1}
@@ -459,9 +476,64 @@
       canvas.appendChild(list);
     }
     const row=document.createElement('article');
-    row.className='compose-track-row';
-    row.innerHTML=`<div class="compose-track-row-icon">◈</div><div class="compose-track-row-main"><strong>${escapeHistory(asset.filename||'Untitled asset')}</strong><span>${escapeHistory(labelForComposeType(type))}${asset.format?' · '+escapeHistory(asset.format):''}</span></div><span class="compose-track-row-status">Imported</span>`;
+    row.className='compose-track-editor';
+    const seed=String(asset.id||asset.filename||'track').split('').reduce((sum,char)=>((sum*31)+char.charCodeAt(0))%997,17);
+    const bars=Array.from({length:84},(_,i)=>Math.max(10,Math.round(22+Math.abs(Math.sin(seed+i*1.73))*58+Math.abs(Math.cos(seed/7+i*.37))*15)));
+    const waveform=bars.map(height=>`<i style="--h:${height}%"></i>`).join('');
+    const assetUrl=String(asset.assetUrl||'');
+    const capabilityList=Array.isArray(asset.capabilities)?asset.capabilities:Array.isArray(asset.tools)?asset.tools:[];
+    const capabilities=capabilityList.map(value=>String(value||'').trim()).filter(Boolean);
+    const dynamicTools=capabilities.length?capabilities.map(value=>`<span class="compose-track-tool dynamic">${escapeHistory(value)}</span>`).join(''):'';
+    row.innerHTML=`
+      <div class="compose-track-editor-head">
+        <div class="compose-track-row-icon">◈</div>
+        <div class="compose-track-row-main"><strong>${escapeHistory(asset.filename||'Untitled asset')}</strong><span>${escapeHistory(labelForComposeType(type))}${asset.soundType?' · '+escapeHistory(asset.soundType):''}${asset.format?' · '+escapeHistory(asset.format):''}</span></div>
+        <span class="compose-track-row-status">Imported</span>
+      </div>
+      <div class="compose-track-wave-wrap">
+        <button class="compose-track-play" type="button" aria-label="Play track">${assetUrl?'▶':'—'}</button>
+        <div class="compose-track-wave" aria-label="Track waveform">${waveform}</div>
+      </div>
+      <div class="compose-track-controls">
+        <label class="compose-track-volume"><span>Volume</span><input type="range" min="0" max="100" value="100" aria-label="Track volume"></label>
+        <button type="button" class="compose-track-control" data-compose-mute>Mute</button>
+        <button type="button" class="compose-track-control" data-compose-solo>Solo</button>
+        ${dynamicTools}
+      </div>
+      ${assetUrl?`<audio class="compose-track-audio" preload="metadata" src="${escapeHistory(assetUrl)}"></audio>`:''}
+    `;
     list.appendChild(row);
+    const audio=row.querySelector('.compose-track-audio');
+    const play=row.querySelector('.compose-track-play');
+    const wave=row.querySelector('.compose-track-wave');
+    const volume=row.querySelector('.compose-track-volume input');
+    const mute=row.querySelector('[data-compose-mute]');
+    const solo=row.querySelector('[data-compose-solo]');
+    volume?.addEventListener('input',()=>{if(audio)audio.volume=Number(volume.value)/100;});
+    mute?.addEventListener('click',()=>{
+      if(!audio)return;
+      audio.muted=!audio.muted;
+      mute.classList.toggle('active',audio.muted);
+      mute.textContent=audio.muted?'Unmute':'Mute';
+    });
+    solo?.addEventListener('click',()=>{
+      solo.classList.toggle('active');
+      list.querySelectorAll('[data-compose-solo]').forEach(other=>{if(other!==solo)other.classList.remove('active');});
+    });
+    play?.addEventListener('click',()=>{
+      if(!audio)return;
+      if(audio.paused){
+        list.querySelectorAll('.compose-track-audio').forEach(other=>{if(other!==audio){other.pause();}});
+        audio.play().catch(()=>{});
+        play.textContent='❚❚';
+        wave.classList.add('playing');
+      }else{
+        audio.pause();
+        play.textContent='▶';
+        wave.classList.remove('playing');
+      }
+    });
+    audio?.addEventListener('ended',()=>{play.textContent='▶';wave.classList.remove('playing');});
   }
 
   function labelForComposeType(type){
