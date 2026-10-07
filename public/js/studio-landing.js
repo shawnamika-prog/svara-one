@@ -69,6 +69,24 @@
   `;
   document.head.appendChild(soundStyle);
 
+  const composeStyle=document.createElement('style');
+  composeStyle.textContent=`
+    .compose-workspace{grid-column:1/-1;min-height:calc(100vh - 124px);display:flex;flex-direction:column;gap:18px}
+    .compose-head{padding:24px 24px 20px;border:1px solid #ffffff10;border-radius:18px;background:linear-gradient(180deg,#0a1020,#080d19);box-shadow:0 20px 60px #0004}
+    .compose-head small{color:#31e3c8;font-size:9px;letter-spacing:.2em;font-weight:800}
+    .compose-head h2{margin:7px 0 0;font-size:24px;letter-spacing:-.04em}
+    .compose-head p{margin:7px 0 0;color:#8091a8;font-size:11px;line-height:1.55}
+    .compose-canvas{flex:1;min-height:480px;border:1px solid #ffffff10;border-radius:18px;background:linear-gradient(180deg,#09121f,#070d18);box-shadow:0 20px 60px #0004;display:grid;place-items:center;padding:30px}
+    .compose-empty{text-align:center;max-width:430px}
+    .compose-empty-icon{width:58px;height:58px;margin:0 auto 18px;border:1px solid #31e3c844;border-radius:16px;display:grid;place-items:center;background:#0b242d;color:#31e3c8;font-size:25px;box-shadow:0 0 30px #31e3c812}
+    .compose-empty h3{margin:0;color:#dce8f3;font-size:16px}
+    .compose-empty p{margin:8px 0 20px;color:#71869d;font-size:10px;line-height:1.6}
+    .compose-add-track{border:1px solid #31e3c855;border-radius:11px;background:linear-gradient(105deg,#0d302f,#10253a);color:#31e3c8;padding:12px 18px;font:800 10px Inter;cursor:pointer;box-shadow:0 10px 28px #0003}
+    .compose-add-track:hover{background:linear-gradient(105deg,#10403d,#122d45);color:#fff}
+    @media(max-width:560px){.compose-head{padding:18px 15px}.compose-canvas{min-height:400px;padding:20px}}
+  `;
+  document.head.appendChild(composeStyle);
+
   const landing=document.createElement('section');
   landing.id='studioLanding';
   landing.className='studio-landing';
@@ -215,10 +233,12 @@
     soundHistory.hidden=view!=='sound';
     libraryView.hidden=view!=='library';
     placeholder.hidden=!['video','compose'].includes(view);
-    if(['video','compose'].includes(view)){
-      const labels={video:['Video','Video workspace'],compose:['Compose','SvaraFlow composition workspace']};
-      const [title,subtitle]=labels[view];
-      placeholder.innerHTML=`<div class="placeholder-panel"><small>${title.toUpperCase()}</small><h2>${subtitle}</h2><p>This workspace is being built as an independent SvaraONE domain. The Studio landing page is ready for it.</p></div>`;
+    if(view==='compose'){
+      placeholder.className='compose-workspace';
+      placeholder.innerHTML=`<div class="compose-head"><small>COMPOSE</small><h2>Create your composition</h2><p>Combine Voice, Sound, SFX, Ambience and more into one composition.</p></div><div class="compose-canvas"><div class="compose-empty"><div class="compose-empty-icon" aria-hidden="true">＋</div><h3>No tracks yet</h3><p>Import audio assets into your composition one track at a time.</p><button class="compose-add-track" type="button">+ Add Track</button></div></div>`;
+    }else if(view==='video'){
+      placeholder.className='studio-domain-placeholder';
+      placeholder.innerHTML=`<div class="placeholder-panel"><small>VIDEO</small><h2>Video workspace</h2><p>This workspace is being built as an independent SvaraONE domain. The Studio landing page is ready for it.</p></div>`;
     }
     setActive(view);
     if(view==='library')window.SvaraLibrary?.refresh?.();
