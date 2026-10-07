@@ -97,23 +97,21 @@
     .compose-track-editor{display:grid;grid-template-columns:180px minmax(720px,1fr);grid-template-rows:auto auto;gap:0;border:1px solid #ffffff0d;border-radius:11px;background:#07121d;overflow:hidden}
     .compose-track-editor.selected{border-color:#4f7cff66;box-shadow:inset 0 0 0 1px #4f7cff22}
     .compose-track-identity{grid-column:1;grid-row:1 / span 2;display:flex;align-items:flex-start;gap:9px;padding:12px;border-right:1px solid #ffffff0b;background:#091522;cursor:pointer}
+    .compose-track-identity:after{content:"Double-click to play";display:block;position:absolute;opacity:0;pointer-events:none}
     .compose-track-identity .compose-track-row-main{min-width:0}
     .compose-track-select{margin-left:auto;border:1px solid #ffffff10;border-radius:7px;background:#0b1827;color:#72879d;padding:6px 7px;font:700 8px Inter;cursor:pointer}
     .compose-track-editor.selected .compose-track-select{border-color:#4f7cff55;color:#75a0ff;background:#102554}
-    .compose-track-lane{position:relative;grid-column:2;grid-row:1;display:flex;align-items:center;min-height:86px;padding:10px 12px;background:#060d17;overflow:hidden}
+    .compose-track-lane{position:relative;grid-column:2;grid-row:1;display:flex;align-items:center;min-height:92px;padding:10px 12px;background:#060d17;overflow:hidden}
     .compose-track-lane:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(to right,transparent 0,transparent calc(14.285% - 1px),#ffffff08 calc(14.285% - 1px),#ffffff08 14.285%)}
-    .compose-track-playhead{position:absolute;top:0;bottom:0;left:14.285%;width:1px;background:#5f8cff55;pointer-events:none;z-index:3}
-    .compose-track-region{position:relative;z-index:2;display:flex;align-items:center;gap:10px;width:100%;min-width:120px;cursor:grab;transition:margin-left .08s ease}
+    .compose-track-region{position:relative;z-index:2;display:flex;align-items:center;width:100%;min-width:120px;cursor:grab;transition:margin-left .08s ease}
     .compose-track-region:hover{filter:brightness(1.05)}
     .compose-track-region:active{cursor:grabbing}
-    .compose-track-editor.dragging .compose-track-region{cursor:grabbing;transition:none;filter:brightness(1.1)}
-    .compose-track-editor.dragging .compose-track-wave{filter:drop-shadow(0 0 5px #4f7cff55)}
-    .compose-track-time-guide{position:absolute;top:4px;left:0;z-index:4;padding:3px 6px;border:1px solid #4f7cff55;border-radius:5px;background:#071426ee;color:#8fb0ff;font:700 8px Inter;opacity:0;pointer-events:none;white-space:nowrap;transform:translateY(-100%)}
+    .compose-track-editor.dragging .compose-track-region{cursor:grabbing;transition:none;filter:brightness(1.08)}
+    .compose-track-editor.dragging .compose-track-wave{filter:drop-shadow(0 0 7px #4f7cff66)}
+    .compose-track-time-guide{position:absolute;top:2px;left:0;z-index:4;padding:3px 6px;border:1px solid #4f7cff66;border-radius:5px;background:#071426ee;color:#a9c2ff;font:700 8px Inter;opacity:0;pointer-events:none;white-space:nowrap;transform:translateY(-100%)}
     .compose-track-editor.dragging .compose-track-time-guide{opacity:1}
-    .compose-track-play{position:relative;z-index:1;width:32px;height:32px;border:1px solid #4f7cff44;border-radius:50%;background:#102554;color:#75a0ff;display:grid;place-items:center;flex:0 0 32px;cursor:pointer}
-    .compose-track-play:hover{background:#17336e;color:#fff}
-    .compose-track-wave{position:relative;z-index:1;height:64px;display:flex;align-items:center;gap:2px;flex:1;overflow:hidden}
-    .compose-track-wave i{width:3px;height:var(--h);min-height:4px;border-radius:99px;background:#4f7cff;opacity:.5;transform-origin:center}
+    .compose-track-wave{position:relative;z-index:1;height:68px;display:flex;align-items:center;gap:2px;flex:1;overflow:hidden;padding:0 8px;border:1px solid #4f7cff33;border-radius:8px;background:#0b1a2b}
+    .compose-track-wave i{width:3px;height:var(--h);min-height:4px;border-radius:99px;background:#7da3ff;opacity:.86;transform-origin:center}
     .compose-track-wave.playing i{animation:composeWavePulse .72s ease-in-out infinite alternate}
     .compose-track-wave.playing i:nth-child(2n){animation-delay:-.18s}.compose-track-wave.playing i:nth-child(3n){animation-delay:-.34s}
     @keyframes composeWavePulse{from{transform:scaleY(.58);opacity:.38}to{transform:scaleY(1.06);opacity:.9}}
@@ -516,10 +514,8 @@
         <button class="compose-track-select" type="button">Select</button>
       </div>
       <div class="compose-track-lane">
-        <div class="compose-track-playhead"></div>
         <div class="compose-track-region" title="Drag to position track">
           <span class="compose-track-time-guide">Start 0:00</span>
-          <button class="compose-track-play" type="button" aria-label="Play track">${assetUrl?'▶':'—'}</button>
           <div class="compose-track-wave" aria-label="Track waveform">${waveform}</div>
         </div>
       </div>
@@ -570,20 +566,19 @@
       solo.classList.toggle('active');
       list.querySelectorAll('[data-compose-solo]').forEach(other=>{if(other!==solo)other.classList.remove('active');});
     });
-    play?.addEventListener('click',()=>{
+    const togglePlayback=()=>{
       if(!audio)return;
       if(audio.paused){
         list.querySelectorAll('.compose-track-audio').forEach(other=>{if(other!==audio){other.pause();}});
         audio.play().catch(()=>{});
-        play.textContent='❚❚';
         wave.classList.add('playing');
       }else{
         audio.pause();
-        play.textContent='▶';
         wave.classList.remove('playing');
       }
-    });
-    audio?.addEventListener('ended',()=>{play.textContent='▶';wave.classList.remove('playing');});
+    };
+    row.querySelector('.compose-track-identity')?.addEventListener('dblclick',togglePlayback);
+    audio?.addEventListener('ended',()=>{wave.classList.remove('playing');});
 
     const timelineGeometry=()=>{
       const timeline=row.closest('.compose-timeline');
