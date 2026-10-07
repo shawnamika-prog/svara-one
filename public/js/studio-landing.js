@@ -129,6 +129,15 @@
     .compose-track-trim-handle:after{content:"";position:absolute;left:2px;top:50%;width:2px;height:18px;border-radius:2px;background:#fff;transform:translateY(-50%);opacity:.9}
     .compose-track-trim-readout{position:absolute;left:50%;top:-8px;z-index:6;transform:translate(-50%,-100%);padding:4px 7px;border:1px solid #4f7cff66;border-radius:5px;background:#071426ee;color:#b9ccff;font:700 8px Inter;white-space:nowrap;opacity:0;pointer-events:none}
     .compose-track-editor.trimming .compose-track-trim-readout{opacity:1}
+    .compose-track-fade{position:absolute;top:0;bottom:0;z-index:3;pointer-events:none;opacity:0}
+    .compose-track-fade.in{left:0;width:var(--fade-in,0%);background:linear-gradient(to right,#071426dd,transparent)}
+    .compose-track-fade.out{right:0;width:var(--fade-out,0%);background:linear-gradient(to left,#071426dd,transparent)}
+    .compose-track-fade-handle{position:absolute;top:4px;bottom:4px;z-index:5;width:7px;border:1px solid #8faeff;border-radius:4px;background:#6d96ff;cursor:ew-resize;opacity:0;box-shadow:0 0 10px #4f7cff55}
+    .compose-track-wave:hover .compose-track-fade-handle,.compose-track-editor.fading .compose-track-fade-handle{opacity:.9}
+    .compose-track-fade-handle.in{left:var(--fade-in,0%);transform:translateX(-50%)}
+    .compose-track-fade-handle.out{right:var(--fade-out,0%);transform:translateX(50%)}
+    .compose-track-fade-readout{position:absolute;left:50%;top:-8px;z-index:6;transform:translate(-50%,-100%);padding:4px 7px;border:1px solid #4f7cff66;border-radius:5px;background:#071426ee;color:#b9ccff;font:700 8px Inter;white-space:nowrap;opacity:0;pointer-events:none}
+    .compose-track-editor.fading .compose-track-fade-readout{opacity:1}
     .compose-track-wave i{width:3px;height:var(--h);min-height:4px;border-radius:99px;background:#7da3ff;opacity:.86;transform-origin:center}
     .compose-track-wave.playing i{animation:composeWavePulse .72s ease-in-out infinite alternate}
     .compose-track-wave.playing i:nth-child(2n){animation-delay:-.18s}.compose-track-wave.playing i:nth-child(3n){animation-delay:-.34s}
@@ -538,7 +547,12 @@
             ${waveform}
             <span class="compose-track-trim-handle left" data-compose-trim="in" title="Trim start"></span>
             <span class="compose-track-trim-handle right" data-compose-trim="out" title="Trim end"></span>
+            <span class="compose-track-fade in" data-compose-fade="in"></span>
+            <span class="compose-track-fade out" data-compose-fade="out"></span>
+            <span class="compose-track-fade-handle in" data-compose-fade-handle="in" title="Fade in"></span>
+            <span class="compose-track-fade-handle out" data-compose-fade-handle="out" title="Fade out"></span>
             <span class="compose-track-trim-readout">Trim 0:00.00 – 0:00.00</span>
+            <span class="compose-track-fade-readout">Fade in 0:00.00 · Fade out 0:00.00</span>
           </div>
         </div>
       </div>
@@ -569,6 +583,11 @@
     const trimInHandle=row.querySelector('[data-compose-trim="in"]');
     const trimOutHandle=row.querySelector('[data-compose-trim="out"]');
     const trimReadout=row.querySelector('.compose-track-trim-readout');
+    const fadeIn=row.querySelector('[data-compose-fade="in"]');
+    const fadeOut=row.querySelector('[data-compose-fade="out"]');
+    const fadeInHandle=row.querySelector('[data-compose-fade-handle="in"]');
+    const fadeOutHandle=row.querySelector('[data-compose-fade-handle="out"]');
+    const fadeReadout=row.querySelector('.compose-track-fade-readout');
     const volume=row.querySelector('.compose-track-volume input');
     const mute=row.querySelector('[data-compose-mute]');
     const solo=row.querySelector('[data-compose-solo]');
@@ -607,8 +626,47 @@
     audio?.addEventListener('loadedmetadata',()=>{
       if(Number.isFinite(audio.duration)&&audio.duration>0)row.dataset.sourceDuration=String(audio.duration);
       renderTrim();
+      renderFade();
     });
     audio?.addEventListener('ended',()=>{wave.classList.remove('playing');});
+
+    row.dataset.fadeIn='0';
+    row.dataset.fadeOut='0';
+    const renderFade=()=>{
+      const fadeInValue=Math.max(0,Math.min(.8,Number(row.dataset.fadeIn||0)));
+      const fadeOutValue=Math.max(0,Math.min(.8,Number(row.dataset.fadeOut||0)));
+      fadeIn?.style.setProperty('--fade-in',String(fadeInValue*100)+'%');
+      fadeOut?.style.setProperty('--fade-out',String(fadeOutValue*100)+'%');
+      fadeInHandle?.style.setProperty('--fade-in',String(fadeInValue*100)+'%');
+      fadeOutHandle?.style.setProperty('--fade-out',String(fadeOutValue*100)+'%');
+      const duration=sourceDuration();
+      if(fadeReadout)fadeReadout.textContent='Fade in '+formatComposeTime(fadeInValue*duration)+' · Fade out '+formatComposeTime(fadeOutValue*duration);
+      if(fadeInHandle)fadeInHandle.title='Fade in: '+formatComposeTime(fadeInValue*duration);
+      if(fadeOutHandle)fadeOutHandle.title='Fade out: '+formatComposeTime(fadeOutValue*duration);
+    };
+    const beginFade=(side,event)=>{
+      if(event.button!==0)return;
+      event.preventDefault();
+      event.stopPropagation();
+      const rect=wave.getBoundingClientRect();
+      row.classList.add('fading');
+      const moveFade=moveEvent=>{
+        const width=Math.max(1,rect.width);
+        const ratio=Math.max(0,Math.min(.8,(moveEvent.clientX-rect.left)/width));
+        if(side==='in')row.dataset.fadeIn=String(ratio);
+        else row.dataset.fadeOut=String(Math.max(0,Math.min(.8,1-ratio)));
+        renderFade();
+      };
+      const endFade=()=>{
+        row.classList.remove('fading');
+        window.removeEventListener('mousemove',moveFade);
+        window.removeEventListener('mouseup',endFade);
+      };
+      window.addEventListener('mousemove',moveFade);
+      window.addEventListener('mouseup',endFade);
+    };
+    fadeInHandle?.addEventListener('mousedown',event=>beginFade('in',event));
+    fadeOutHandle?.addEventListener('mousedown',event=>beginFade('out',event));
 
     row.dataset.trimIn='0';
     row.dataset.trimOut='0';
@@ -706,6 +764,7 @@
 
     applyStart(Number(row.dataset.startSeconds||0));
     renderTrim();
+    renderFade();
   }
 
   function formatComposeTime(seconds){
