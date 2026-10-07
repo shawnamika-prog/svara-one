@@ -134,8 +134,10 @@
     .compose-track-wave.playing i:nth-child(2n){animation-delay:-.18s}.compose-track-wave.playing i:nth-child(3n){animation-delay:-.34s}
     @keyframes composeWavePulse{from{transform:scaleY(.58);opacity:.38}to{transform:scaleY(1.06);opacity:.9}}
     .compose-track-controls{grid-column:2;grid-row:2;display:flex;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid #ffffff08;flex-wrap:wrap}
-    .compose-track-volume{display:flex;align-items:center;gap:8px;min-width:210px;flex:1;color:#6f849b;font-size:9px}
-    .compose-track-volume input{width:100%;accent-color:#5f8cff}
+    .compose-track-volume,.compose-track-fade{display:flex;align-items:center;gap:8px;min-width:150px;flex:1;color:#6f849b;font-size:9px}
+    .compose-track-volume input,.compose-track-fade input{width:100%;accent-color:#5f8cff}
+    .compose-track-fade-value{min-width:32px;color:#9ab8ff;font-size:8px;text-align:right;font-variant-numeric:tabular-nums}
+    .compose-track-fade input{accent-color:#7da3ff}
     .compose-track-row{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #4f7cff22;border-radius:11px;background:#091522}
     .compose-track-row-icon{width:32px;height:32px;display:grid;place-items:center;border-radius:8px;background:#102554;color:#5f8cff;font-size:12px;flex:0 0 32px}
     .compose-track-row-main{min-width:0;display:flex;flex-direction:column;gap:4px;flex:1}
@@ -544,6 +546,8 @@
       </div>
       <div class="compose-track-controls">
         <label class="compose-track-volume"><span>Volume</span><input type="range" min="0" max="100" value="100" aria-label="Track volume"></label>
+        <label class="compose-track-fade"><span>Fade in</span><input type="range" min="0" max="10" step="0.1" value="0" data-compose-fade="in" aria-label="Fade in duration"><strong class="compose-track-fade-value" data-compose-fade-value="in">0.0s</strong></label>
+        <label class="compose-track-fade"><span>Fade out</span><input type="range" min="0" max="10" step="0.1" value="0" data-compose-fade="out" aria-label="Fade out duration"><strong class="compose-track-fade-value" data-compose-fade-value="out">0.0s</strong></label>
         <button type="button" class="compose-track-control" data-compose-mute>Mute</button>
         <button type="button" class="compose-track-control" data-compose-solo>Solo</button>
         ${dynamicTools}
@@ -570,6 +574,10 @@
     const trimOutHandle=row.querySelector('[data-compose-trim="out"]');
     const trimReadout=row.querySelector('.compose-track-trim-readout');
     const volume=row.querySelector('.compose-track-volume input');
+    const fadeIn=row.querySelector('[data-compose-fade="in"]');
+    const fadeOut=row.querySelector('[data-compose-fade="out"]');
+    const fadeInValue=row.querySelector('[data-compose-fade-value="in"]');
+    const fadeOutValue=row.querySelector('[data-compose-fade-value="out"]');
     const mute=row.querySelector('[data-compose-mute]');
     const solo=row.querySelector('[data-compose-solo]');
     const select=row.querySelector('.compose-track-select');
@@ -581,7 +589,33 @@
       if(event.target.closest('button'))return;
       selectTrack();
     });
-    volume?.addEventListener('input',()=>{if(audio)audio.volume=Number(volume.value)/100;});
+    row.dataset.fadeIn='0';
+    row.dataset.fadeOut='0';
+    const baseVolume=()=>Math.max(0,Math.min(1,Number(volume?.value||100)/100));
+    const renderFadeValues=()=>{
+      const fadeInSeconds=Math.min(10,Math.max(0,Number(row.dataset.fadeIn||0)));
+      const fadeOutSeconds=Math.min(10,Math.max(0,Number(row.dataset.fadeOut||0)));
+      if(fadeInValue)fadeInValue.textContent=fadeInSeconds.toFixed(1)+'s';
+      if(fadeOutValue)fadeOutValue.textContent=fadeOutSeconds.toFixed(1)+'s';
+    };
+    const applyPlaybackGain=()=>{
+      if(!audio)return;
+      const duration=Number.isFinite(audio.duration)&&audio.duration>0?audio.duration:sourceDuration();
+      const trimInSeconds=Number(row.dataset.trimIn||0)*duration;
+      const trimOutSeconds=Number(row.dataset.trimOut||0)*duration;
+      const effectiveDuration=Math.max(0.01,duration-trimInSeconds-trimOutSeconds);
+      const position=Math.max(0,audio.currentTime-trimInSeconds);
+      const inSeconds=Math.min(Number(row.dataset.fadeIn||0),effectiveDuration);
+      const outSeconds=Math.min(Number(row.dataset.fadeOut||0),effectiveDuration);
+      let gain=1;
+      if(inSeconds>0&&position<inSeconds)gain=Math.min(gain,position/inSeconds);
+      if(outSeconds>0&&position>effectiveDuration-outSeconds)gain=Math.min(gain,Math.max(0,(effectiveDuration-position)/outSeconds));
+      audio.volume=baseVolume()*gain;
+    };
+    volume?.addEventListener('input',()=>applyPlaybackGain());
+    fadeIn?.addEventListener('input',()=>{row.dataset.fadeIn=String(Number(fadeIn.value)||0);renderFadeValues();applyPlaybackGain();});
+    fadeOut?.addEventListener('input',()=>{row.dataset.fadeOut=String(Number(fadeOut.value)||0);renderFadeValues();applyPlaybackGain();});
+    audio?.addEventListener('timeupdate',applyPlaybackGain);
     mute?.addEventListener('click',()=>{
       if(!audio)return;
       audio.muted=!audio.muted;
@@ -706,6 +740,8 @@
 
     applyStart(Number(row.dataset.startSeconds||0));
     renderTrim();
+    renderFadeValues();
+    applyPlaybackGain();
   }
 
   function formatComposeTime(seconds){
