@@ -130,8 +130,6 @@
     .compose-track-trim-readout{position:absolute;left:50%;top:-8px;z-index:6;transform:translate(-50%,-100%);padding:4px 7px;border:1px solid #4f7cff66;border-radius:5px;background:#071426ee;color:#b9ccff;font:700 8px Inter;white-space:nowrap;opacity:0;pointer-events:none}
     .compose-track-editor.trimming .compose-track-trim-readout{opacity:1}
     .compose-track-wave i{width:3px;height:var(--h);min-height:4px;border-radius:99px;background:#7da3ff;opacity:.86;transform-origin:center}
-    .compose-track-waveform-canvas{position:absolute;inset:0;width:100%;height:100%;z-index:1;display:block;pointer-events:none}
-    .compose-track-wave.loading .compose-track-waveform-canvas{opacity:.42}
     .compose-track-wave.playing i{animation:composeWavePulse .72s ease-in-out infinite alternate}
     .compose-track-wave.playing i:nth-child(2n){animation-delay:-.18s}.compose-track-wave.playing i:nth-child(3n){animation-delay:-.34s}
     @keyframes composeWavePulse{from{transform:scaleY(.58);opacity:.38}to{transform:scaleY(1.06);opacity:.9}}
@@ -537,7 +535,7 @@
         <div class="compose-track-region" title="Drag to position track">
           <span class="compose-track-time-guide">Start 0:00</span>
           <div class="compose-track-wave" aria-label="Track waveform">
-            <canvas class="compose-track-waveform-canvas" aria-hidden="true"></canvas>
+            ${waveform}
             <span class="compose-track-trim-handle left" data-compose-trim="in" title="Trim start"></span>
             <span class="compose-track-trim-handle right" data-compose-trim="out" title="Trim end"></span>
             <span class="compose-track-trim-readout">Trim 0:00.00 – 0:00.00</span>
@@ -567,7 +565,6 @@
     const audio=row.querySelector('.compose-track-audio');
     const play=row.querySelector('.compose-track-play');
     const wave=row.querySelector('.compose-track-wave');
-    const waveformCanvas=row.querySelector('.compose-track-waveform-canvas');
     const region=row.querySelector('.compose-track-region');
     const trimInHandle=row.querySelector('[data-compose-trim="in"]');
     const trimOutHandle=row.querySelector('[data-compose-trim="out"]');
@@ -584,110 +581,6 @@
       if(event.target.closest('button'))return;
       selectTrack();
     });
-    const drawFallbackWaveform=()=>{
-      if(!wave||!waveformCanvas)return;
-      const width=Math.max(240,Math.floor(wave.clientWidth));
-      const height=Math.max(40,Math.floor(wave.clientHeight));
-      const dpr=Math.min(2,window.devicePixelRatio||1);
-      waveformCanvas.width=width*dpr;
-      waveformCanvas.height=height*dpr;
-      const ctx=waveformCanvas.getContext('2d');
-      ctx.setTransform(dpr,0,0,dpr,0,0);
-      ctx.clearRect(0,0,width,height);
-      ctx.strokeStyle='#7da3ff';
-      ctx.globalAlpha=.86;
-      ctx.lineWidth=1.5;
-      const seed=String(asset.id||asset.filename||'track').split('').reduce((sum,char)=>((sum*31)+char.charCodeAt(0))%997,17);
-      ctx.beginPath();
-      for(let x=0;x<width;x+=2){
-        const t=x/width;
-        const envelope=.12+.88*Math.abs(Math.sin(t*9.7+seed*.013));
-        const amp=(5+envelope*(height*.34))*(.45+.55*Math.abs(Math.sin(t*31+seed)));
-        ctx.moveTo(x,height/2-amp);
-        ctx.lineTo(x,height/2+amp);
-      }
-      ctx.stroke();
-    };
-    const drawRealWaveform=buffer=>{
-      if(!wave||!waveformCanvas)return;
-      const width=Math.max(240,Math.floor(wave.clientWidth));
-      const height=Math.max(40,Math.floor(wave.clientHeight));
-      const dpr=Math.min(2,window.devicePixelRatio||1);
-      waveformCanvas.width=Math.floor(width*dpr);
-      waveformCanvas.height=Math.floor(height*dpr);
-      waveformCanvas.style.width=width+'px';
-      waveformCanvas.style.height=height+'px';
-      const ctx=waveformCanvas.getContext('2d');
-      ctx.setTransform(dpr,0,0,dpr,0,0);
-      ctx.clearRect(0,0,width,height);
-
-      const samples=buffer.getChannelData(0);
-
-      // Deliberately discrete editor-style waveform:
-      // each bar represents a small slice of the real audio,
-      // making cut points and transients easy to see.
-      const barWidth=2;
-      const gap=2;
-      const bins=Math.max(1,Math.floor(width/(barWidth+gap)));
-      const step=Math.max(1,Math.floor(samples.length/bins));
-      const centre=height/2;
-      const maxAmplitude=height*.42;
-
-      ctx.fillStyle='#7da3ff';
-      ctx.globalAlpha=.9;
-
-      for(let x=0;x<bins;x++){
-        const startSample=x*step;
-        const endSample=Math.min(samples.length,startSample+step);
-        let peak=0;
-
-        for(let i=startSample;i<endSample;i+=Math.max(1,Math.floor((endSample-startSample)/100))){
-          const value=Math.abs(samples[i]);
-          if(value>peak)peak=value;
-        }
-
-        // Keep very quiet audio visible without flattening its dynamics.
-        const amplitude=Math.max(2,peak*maxAmplitude);
-        const px=x*(barWidth+gap);
-        const top=centre-amplitude;
-        const barHeight=amplitude*2;
-
-        ctx.fillRect(px,top,barWidth,barHeight);
-      }
-
-      // Very subtle centre reference line.
-      ctx.globalAlpha=.16;
-      ctx.fillRect(0,centre,width,1);
-      ctx.globalAlpha=1;
-
-      waveformCanvas.dataset.real='true';
-    };
-    const renderActualWaveform=async()=>{
-      if(!waveformCanvas)return;
-      drawFallbackWaveform();
-      if(!assetUrl)return;
-      try{
-        wave?.classList.add('loading');
-        const response=await fetch(assetUrl,{credentials:'same-origin',cache:'force-cache'});
-        if(!response.ok)throw new Error('waveform asset fetch failed');
-        const buffer=await response.arrayBuffer();
-        const AudioContextClass=window.AudioContext||window.webkitAudioContext;
-        if(!AudioContextClass)throw new Error('AudioContext unavailable');
-        const context=new AudioContextClass();
-        try{
-          const decoded=await context.decodeAudioData(buffer.slice(0));
-          if(Number.isFinite(decoded.duration)&&decoded.duration>0)row.dataset.sourceDuration=String(decoded.duration);
-          drawRealWaveform(decoded);
-          renderTrim();
-        }finally{
-          await context.close().catch(()=>{});
-        }
-      }catch(error){
-        console.warn('compose_real_waveform_fallback',error);
-      }finally{
-        wave?.classList.remove('loading');
-      }
-    };
     volume?.addEventListener('input',()=>{if(audio)audio.volume=Number(volume.value)/100;});
     mute?.addEventListener('click',()=>{
       if(!audio)return;
@@ -813,8 +706,6 @@
 
     applyStart(Number(row.dataset.startSeconds||0));
     renderTrim();
-    renderActualWaveform();
-    window.addEventListener('resize',()=>{if(waveformCanvas?.dataset.real==='true')renderActualWaveform();});
   }
 
   function formatComposeTime(seconds){
