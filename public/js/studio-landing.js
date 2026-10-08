@@ -145,6 +145,12 @@
     .compose-track-controls{grid-column:2;grid-row:2;display:flex;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid #ffffff08;flex-wrap:wrap}
     .compose-track-volume,.compose-track-fade{display:flex;align-items:center;gap:8px;min-width:150px;flex:1;color:#6f849b;font-size:9px}
     .compose-track-volume input,.compose-track-fade input{width:100%;accent-color:#5f8cff}
+    .compose-track-control{height:30px;padding:0 12px;border:1px solid #4f7cff44;border-radius:8px;background:#0d1c31;color:#91a9d6;font:700 9px Inter;cursor:pointer;transition:.15s ease}
+    .compose-track-control:hover{background:#12264a;color:#cbd9f4;border-color:#5f8cff66}
+    .compose-track-control.active{background:#162e5a;border-color:#5f8cff88;color:#cbd9ff;box-shadow:inset 0 0 14px #4f7cff18}
+    .compose-track-editor.muted .compose-track-volume{color:#4f6279}
+    .compose-track-editor.muted .compose-track-volume input{opacity:.42;filter:grayscale(.45)}
+    .compose-track-editor.muted .compose-track-volume span{color:#61758d}
     .compose-track-fade-value{min-width:32px;color:#9ab8ff;font-size:8px;text-align:right;font-variant-numeric:tabular-nums}
     .compose-track-fade input{accent-color:#7da3ff}
     .compose-track-row{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #4f7cff22;border-radius:11px;background:#091522}
@@ -680,8 +686,12 @@
     mute?.addEventListener('click',()=>{
       if(!audio)return;
       audio.muted=!audio.muted;
+      row.classList.toggle('muted',audio.muted);
       mute.classList.toggle('active',audio.muted);
-      mute.textContent=audio.muted?'Unmute':'Mute';
+      mute.textContent=audio.muted?'Muted':'Mute';
+      mute.setAttribute('aria-pressed',String(audio.muted));
+      mute.setAttribute('title',audio.muted?'Unmute track':'Mute track');
+      applyPlaybackGain();
     });
     solo?.addEventListener('click',()=>{
       solo.classList.toggle('active');
