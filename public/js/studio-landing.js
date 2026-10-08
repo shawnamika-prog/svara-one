@@ -405,7 +405,9 @@
       const id=String(asset?.id||'');
       const assetType=String(asset?.assetType||'').toLowerCase();
       const existingUrl=String(asset?.assetUrl||asset?.audioUrl||asset?.playbackUrl||asset?.fileUrl||asset?.downloadUrl||asset?.outputUrl||asset?.url||asset?.r2Url||asset?.storageUrl||'');
-      const assetUrl=existingUrl||(assetType==='sound'&&id?'/api/sound/assets/'+encodeURIComponent(id):'');
+      const assetUrl=existingUrl
+        ||(assetType==='sound'&&id?'/api/sound/assets/'+encodeURIComponent(id):'')
+        ||(assetType==='voice'&&asset?.filename?'/api/generations/media?filename='+encodeURIComponent(String(asset.filename)):'');
       return {
         ...asset,
         id,
