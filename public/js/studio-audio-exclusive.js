@@ -5,8 +5,10 @@ const tracked=new Set();
 const NativeAudio=window.Audio;
 
 function stopOthers(current){
+  const currentIsCompose=!!current?.closest?.('.compose-track-editor');
   document.querySelectorAll('audio,video').forEach(media=>{
-    if(media!==current&&!media.paused){
+    const isCompose=!!media.closest?.('.compose-track-editor');
+    if(media!==current&&!media.paused&&!(currentIsCompose&&isCompose)){
       media.pause();
       try{media.currentTime=0}catch{}
     }
