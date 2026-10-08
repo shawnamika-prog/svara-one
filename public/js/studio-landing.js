@@ -552,18 +552,29 @@
         const audios=[...timeline.querySelectorAll('.compose-track-audio')];
         const playing=audios.some(item=>!item.paused);
         if(playAllButton){
-          playAllButton.textContent=playing?'❚❚ Pause All':'▶ Play All';
-          playAllButton.setAttribute('aria-label',playing?'Pause all tracks':'Play all tracks');
-          playAllButton.setAttribute('title',playing?'Pause all tracks':'Play all tracks');
+          playAllButton.textContent=playing?'■ Stop All':'▶ Play All';
+          playAllButton.setAttribute('aria-label',playing?'Stop all tracks':'Play all tracks');
+          playAllButton.setAttribute('title',playing?'Stop all tracks':'Play all tracks');
           playAllButton.classList.toggle('active',playing);
         }
+      };
+      const stopAll=()=>{
+        const audios=[...timeline.querySelectorAll('.compose-track-audio')];
+        audios.forEach(item=>{
+          item.pause();
+          try{item.currentTime=0;}catch(error){console.warn('compose_stop_all_reset_error',error);}
+          const row=item.closest('.compose-track-editor');
+          const wave=row?.querySelector('.compose-track-wave');
+          wave?.classList.remove('playing');
+          item.dispatchEvent(new Event('timeupdate'));
+        });
+        syncPlayAllButton();
       };
       const playAll=async()=>{
         const audios=[...timeline.querySelectorAll('.compose-track-audio')];
         if(!audios.length)return;
         if(audios.some(item=>!item.paused)){
-          audios.forEach(item=>item.pause());
-          syncPlayAllButton();
+          stopAll();
           return;
         }
         const results=await Promise.allSettled(audios.map(async item=>{
