@@ -104,6 +104,8 @@
     .compose-timeline-scale span:nth-child(5){left:66.6667%}
     .compose-timeline-scale span:nth-child(6){left:83.3333%}
     .compose-timeline-scale span:nth-child(7){left:100%;transform:translateX(-100%)}
+    .compose-timeline-playhead{position:absolute;top:0;bottom:0;left:var(--timeline-playhead,0%);z-index:6;width:2px;background:#d7e2ff;box-shadow:0 0 10px #5f8cffaa;transform:translateX(-1px);pointer-events:none;opacity:.95}
+    .compose-timeline-playhead:before{content:"";position:absolute;top:-1px;left:50%;width:8px;height:8px;border-radius:50%;background:#fff;box-shadow:0 0 9px #5f8cffcc;transform:translateX(-50%)}
     .compose-timeline-list{display:flex;flex-direction:column;gap:7px;min-width:900px}
     .compose-add-track-inline{display:block;margin:14px auto 0}
     .compose-track-editor{display:grid;grid-template-columns:180px minmax(720px,1fr);grid-template-rows:auto auto;gap:0;border:1px solid #ffffff0d;border-radius:11px;background:#07121d;overflow:hidden}
@@ -542,14 +544,31 @@
         <div class="compose-timeline-transport"><button type="button" class="compose-transport-button" data-compose-play-all aria-label="Play all tracks" title="Play all tracks">▶ Play All</button></div>
         <div class="compose-timeline-ruler">
           <div class="compose-timeline-label">TRACKS</div>
-          <div class="compose-timeline-scale"><span>0:00</span><span>0:05</span><span>0:10</span><span>0:15</span><span>0:20</span><span>0:25</span><span>0:30</span></div>
+          <div class="compose-timeline-scale"><span>0:00</span><span>0:05</span><span>0:10</span><span>0:15</span><span>0:20</span><span>0:25</span><span>0:30</span><span class="compose-timeline-playhead" aria-hidden="true"></span></div>
         </div>
         <div class="compose-timeline-list"></div>
       `;
       canvas.appendChild(timeline);
       const playAllButton=timeline.querySelector('[data-compose-play-all]');
+      const timelineScale=timeline.querySelector('.compose-timeline-scale');
       let playAllRunId=0;
       let playAllRunning=false;
+      let playAllStartedAt=0;
+      let playAllFrame=0;
+      const renderTimelinePlayhead=seconds=>{
+        const value=Math.max(0,Math.min(30,Number(seconds)||0));
+        timelineScale?.style.setProperty('--timeline-playhead',String((value/30)*100)+'%');
+      };
+      const stopTimelinePlayhead=()=>{
+        if(playAllFrame)cancelAnimationFrame(playAllFrame);
+        playAllFrame=0;
+      };
+      const animateTimelinePlayhead=()=>{
+        if(!playAllRunning)return;
+        const elapsed=Math.max(0,(performance.now()-playAllStartedAt)/1000);
+        renderTimelinePlayhead(elapsed);
+        playAllFrame=requestAnimationFrame(animateTimelinePlayhead);
+      };
       let playAllPending=0;
       const playAllActive=new Set();
       const playAllTimeouts=new Set();
@@ -577,6 +596,8 @@
         playAllRunId+=1;
         playAllRunning=false;
         playAllPending=0;
+        stopTimelinePlayhead();
+        renderTimelinePlayhead(0);
         playAllActive.clear();
         clearPlayAllTimeouts();
         const audios=[...timeline.querySelectorAll('.compose-track-audio')];
@@ -614,6 +635,9 @@
         const runId=++playAllRunId;
         playAllRunning=true;
         playAllPending=rows.filter(row=>row.querySelector('.compose-track-audio')).length;
+        playAllStartedAt=performance.now();
+        renderTimelinePlayhead(0);
+        animateTimelinePlayhead();
         syncPlayAllButton();
 
         rows.forEach(row=>{
