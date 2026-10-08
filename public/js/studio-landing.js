@@ -151,6 +151,9 @@
     .compose-track-editor.muted .compose-track-volume{color:#4f6279}
     .compose-track-editor.muted .compose-track-volume input{opacity:.42;filter:grayscale(.45)}
     .compose-track-editor.muted .compose-track-volume span{color:#61758d}
+    .compose-track-editor.solo-muted .compose-track-volume{opacity:.55}
+    .compose-track-editor.solo-muted .compose-track-volume span{color:#4f6279}
+
     .compose-track-fade-value{min-width:32px;color:#9ab8ff;font-size:8px;text-align:right;font-variant-numeric:tabular-nums}
     .compose-track-fade input{accent-color:#7da3ff}
     .compose-track-row{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #4f7cff22;border-radius:11px;background:#091522}
@@ -693,9 +696,38 @@
       mute.setAttribute('title',audio.muted?'Unmute track':'Mute track');
       applyPlaybackGain();
     });
+    const syncSoloState=()=>{
+      const soloRows=[...list.querySelectorAll('.compose-track-editor')].filter(item=>item.querySelector('[data-compose-solo]')?.classList.contains('active'));
+      const soloRow=soloRows[0]||null;
+      list.querySelectorAll('.compose-track-editor').forEach(item=>{
+        const itemSolo=item.querySelector('[data-compose-solo]');
+        const itemAudio=item.querySelector('.compose-track-audio');
+        if(!itemSolo)return;
+        const isSolo=item===soloRow;
+        itemSolo.setAttribute('aria-pressed',String(isSolo));
+        itemSolo.title=isSolo?'Disable solo':'Solo track';
+        if(soloRow){
+          if(isSolo){
+            item.classList.remove('solo-muted');
+            if(itemAudio)itemAudio.muted=false;
+          }else{
+            item.classList.add('solo-muted');
+            if(itemAudio)itemAudio.muted=true;
+          }
+        }else{
+          item.classList.remove('solo-muted');
+          if(itemAudio){
+            const muteButton=item.querySelector('[data-compose-mute]');
+            itemAudio.muted=!!muteButton?.classList.contains('active');
+          }
+        }
+      });
+    };
     solo?.addEventListener('click',()=>{
-      solo.classList.toggle('active');
-      list.querySelectorAll('[data-compose-solo]').forEach(other=>{if(other!==solo)other.classList.remove('active');});
+      const wasActive=solo.classList.contains('active');
+      list.querySelectorAll('[data-compose-solo]').forEach(other=>other.classList.remove('active'));
+      solo.classList.toggle('active',!wasActive);
+      syncSoloState();
     });
     const syncPlayButton=()=>{
       if(!play)return;
