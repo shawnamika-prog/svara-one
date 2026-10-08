@@ -577,9 +577,16 @@
           const trimStart=trimIn*duration;
           const effectiveDuration=Math.max(.01,duration*(1-trimIn-trimOut));
           const startSeconds=Math.max(0,Number(row.dataset.startSeconds||0)||0);
+          const endSeconds=startSeconds+effectiveDuration;
+          if(masterTime<startSeconds){
+            playhead.style.visibility='hidden';
+            return;
+          }
+          playhead.style.visibility='visible';
           const localPosition=Math.max(0,Math.min(effectiveDuration,masterTime-startSeconds));
           const ratio=Math.max(0,Math.min(1,(trimStart+localPosition)/duration));
           playhead.style.setProperty('--playhead',String(ratio*100)+'%');
+          if(masterTime>=endSeconds)playhead.style.setProperty('--playhead',String(((trimStart+effectiveDuration)/duration)*100)+'%');
         });
       };
       const animateTimelinePlayhead=()=>{
@@ -718,6 +725,7 @@
       };
       playAllButton?.addEventListener('click',playAll);
       timeline._syncPlayAllButton=syncPlayAllButton;
+      timeline._isPlayAllRunning=()=>playAllRunning;
     }
     const list=timeline.querySelector('.compose-timeline-list');
     const row=document.createElement('article');
@@ -833,7 +841,11 @@
       const ratio=Math.max(0,Math.min(1,(trimIn*duration+position)/duration));
       playhead.style.setProperty('--playhead',String(ratio*100)+'%');
     };
-    audio?.addEventListener('timeupdate',()=>{applyPlaybackGain();renderPlayhead();});
+    audio?.addEventListener('timeupdate',()=>{
+      applyPlaybackGain();
+      const composeTimeline=row.closest('.compose-timeline');
+      if(!composeTimeline?._isPlayAllRunning?.())renderPlayhead();
+    });
     const seekFromPointer=event=>{
       if(!audio||event.target.closest('.compose-track-trim-handle'))return;
       const rect=wave.getBoundingClientRect();
@@ -946,9 +958,15 @@
     audio?.addEventListener('loadedmetadata',()=>{
       if(Number.isFinite(audio.duration)&&audio.duration>0)row.dataset.sourceDuration=String(audio.duration);
       renderTrim();
-      renderPlayhead();
+      const composeTimeline=row.closest('.compose-timeline');
+      if(!composeTimeline?._isPlayAllRunning?.())renderPlayhead();
     });
-    audio?.addEventListener('ended',()=>{wave.classList.remove('playing');renderPlayhead();row.closest('.compose-timeline')?._syncPlayAllButton?.();});
+    audio?.addEventListener('ended',()=>{
+      wave.classList.remove('playing');
+      const composeTimeline=row.closest('.compose-timeline');
+      if(!composeTimeline?._isPlayAllRunning?.())renderPlayhead();
+      composeTimeline?._syncPlayAllButton?.();
+    });
 
     row.dataset.trimIn='0';
     row.dataset.trimOut='0';
