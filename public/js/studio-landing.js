@@ -104,8 +104,11 @@
     .compose-add-track-inline{display:block;margin:14px auto 0}
     .compose-track-editor{display:grid;grid-template-columns:180px minmax(720px,1fr);grid-template-rows:auto auto;gap:0;border:1px solid #ffffff0d;border-radius:11px;background:#07121d;overflow:hidden}
     .compose-track-editor.selected{border-color:#4f7cff66;box-shadow:inset 0 0 0 1px #4f7cff22}
-    .compose-track-identity{grid-column:1;grid-row:1 / span 2;display:grid;grid-template-columns:34px 1fr;grid-template-rows:32px 1fr;align-items:start;gap:8px;padding:12px;border-right:1px solid #ffffff0b;background:#091522;cursor:pointer}
-    .compose-track-identity .compose-track-row-main{grid-column:1 / span 2;grid-row:2;min-width:0;align-self:end;padding-bottom:1px}
+    .compose-track-identity{grid-column:1;grid-row:1 / span 2;display:grid;grid-template-columns:34px 34px 34px 1fr;grid-template-rows:32px 1fr;align-items:start;gap:8px;padding:12px;border-right:1px solid #ffffff0b;background:#091522;cursor:pointer}
+    .compose-track-identity .compose-track-row-main{grid-column:1 / span 4;grid-row:2;min-width:0;align-self:end;padding-bottom:1px}
+    .compose-track-move{width:34px;height:30px;border:1px solid #4f7cff44;border-radius:8px;background:#0d1c31;color:#6f91d9;display:grid;place-items:center;font-size:15px;line-height:1;cursor:grab;padding:0;letter-spacing:-3px}
+    .compose-track-move:hover{background:#12264a;color:#a9c2ff;border-color:#5f8cff77}
+    .compose-track-move:active{cursor:grabbing;background:#162e5a;color:#d7e2ff}
     .compose-track-lane{position:relative;grid-column:2;grid-row:1;display:flex;align-items:center;min-height:92px;padding:10px 0;background:#060d17;overflow:hidden}
     .compose-track-lane:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(to right,transparent 0,transparent calc(16.6667% - 1px),#ffffff0c calc(16.6667% - 1px),#ffffff0c 16.6667%)}
     .compose-track-region{position:relative;z-index:2;display:flex;align-items:center;width:100%;min-width:120px;cursor:grab;transition:margin-left .08s ease}
@@ -543,6 +546,7 @@
     row.innerHTML=`
       <div class="compose-track-identity">
         <button class="compose-track-play" type="button" aria-label="Play track" title="Play track">▶</button>
+        <button class="compose-track-move" type="button" aria-label="Move track" title="Drag to position track">⠿</button>
         <div class="compose-track-row-icon">◈</div>
         <div class="compose-track-row-main"><strong>${escapeHistory(asset.filename||'Untitled asset')}</strong><span>${escapeHistory(labelForComposeType(type))}${asset.soundType?' · '+escapeHistory(asset.soundType):''}${asset.format?' · '+escapeHistory(asset.format):''}</span></div>
       </div>
@@ -587,6 +591,7 @@
     const wave=row.querySelector('.compose-track-wave');
     const playhead=row.querySelector('.compose-track-playhead');
     const region=row.querySelector('.compose-track-region');
+    const moveHandle=row.querySelector('.compose-track-move');
     const trimInHandle=row.querySelector('[data-compose-trim="in"]');
     const trimOutHandle=row.querySelector('[data-compose-trim="out"]');
     const trimReadout=row.querySelector('.compose-track-trim-readout');
@@ -837,7 +842,7 @@
       dragging=false;
       row.classList.remove('dragging');
     };
-    region?.addEventListener('mousedown',beginDrag);
+    moveHandle?.addEventListener('mousedown',event=>{event.stopPropagation();beginDrag(event);});
     window.addEventListener('mousemove',moveDrag);
     window.addEventListener('mouseup',endDrag);
     region?.addEventListener('click',()=>selectTrack());
