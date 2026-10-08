@@ -579,6 +579,7 @@
       const finishPlayAllIfIdle=()=>{
         if(playAllRunning&&playAllPending===0&&playAllActive.size===0){
           playAllRunning=false;
+          stopTimelinePlayhead();
           syncPlayAllButton();
         }
       };
