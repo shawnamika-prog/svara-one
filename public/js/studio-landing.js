@@ -563,10 +563,30 @@
         if(playAllFrame)cancelAnimationFrame(playAllFrame);
         playAllFrame=0;
       };
+      const renderAllTrackPlayheads=seconds=>{
+        const masterTime=Math.max(0,Number(seconds)||0);
+        timeline.querySelectorAll('.compose-track-editor').forEach(row=>{
+          const playhead=row.querySelector('.compose-track-playhead');
+          if(!playhead)return;
+          const audio=row.querySelector('.compose-track-audio');
+          const duration=Number.isFinite(audio?.duration)&&audio.duration>0
+            ?audio.duration
+            :Math.max(0.01,Number(row.dataset.sourceDuration||30)||30);
+          const trimIn=Math.max(0,Math.min(.98,Number(row.dataset.trimIn||0)||0));
+          const trimOut=Math.max(0,Math.min(.98,Number(row.dataset.trimOut||0)||0));
+          const trimStart=trimIn*duration;
+          const effectiveDuration=Math.max(.01,duration*(1-trimIn-trimOut));
+          const startSeconds=Math.max(0,Number(row.dataset.startSeconds||0)||0);
+          const localPosition=Math.max(0,Math.min(effectiveDuration,masterTime-startSeconds));
+          const ratio=Math.max(0,Math.min(1,(trimStart+localPosition)/duration));
+          playhead.style.setProperty('--playhead',String(ratio*100)+'%');
+        });
+      };
       const animateTimelinePlayhead=()=>{
         if(!playAllRunning)return;
         const elapsed=Math.max(0,(performance.now()-playAllStartedAt)/1000);
         renderTimelinePlayhead(elapsed);
+        renderAllTrackPlayheads(elapsed);
         playAllFrame=requestAnimationFrame(animateTimelinePlayhead);
       };
       let playAllPending=0;
@@ -599,6 +619,7 @@
         playAllPending=0;
         stopTimelinePlayhead();
         renderTimelinePlayhead(0);
+        renderAllTrackPlayheads(0);
         playAllActive.clear();
         clearPlayAllTimeouts();
         const audios=[...timeline.querySelectorAll('.compose-track-audio')];
@@ -638,6 +659,7 @@
         playAllPending=rows.filter(row=>row.querySelector('.compose-track-audio')).length;
         playAllStartedAt=performance.now();
         renderTimelinePlayhead(0);
+        renderAllTrackPlayheads(0);
         animateTimelinePlayhead();
         syncPlayAllButton();
 
