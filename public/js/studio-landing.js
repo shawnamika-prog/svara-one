@@ -738,23 +738,12 @@
       play.setAttribute('title',active?'Pause track':'Play track');
       play.disabled=false;
     };
-    const pauseOtherTracks=()=>{
-      list.querySelectorAll('.compose-track-audio').forEach(other=>{
-        if(other===audio)return;
-        other.pause();
-        const otherRow=other.closest('.compose-track-editor');
-        const otherPlay=otherRow?.querySelector('.compose-track-play');
-        otherRow?.querySelector('.compose-track-wave')?.classList.remove('playing');
-        if(otherPlay){otherPlay.classList.remove('active');otherPlay.textContent='▶';otherPlay.setAttribute('aria-label','Play track');otherPlay.setAttribute('title','Play track');}
-      });
-    };
     const togglePlayback=async()=>{
       if(!audio){
         console.warn('compose_track_no_audio_url',asset);
         return;
       }
       if(audio.paused){
-        pauseOtherTracks();
         try{
           if(audio.readyState===0)audio.load();
           await audio.play();
