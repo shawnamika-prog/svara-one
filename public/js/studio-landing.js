@@ -88,6 +88,10 @@
     .compose-track-dialog{position:relative;width:min(560px,calc(100vw - 32px));padding:24px;border:1px solid #4f7cff44;border-radius:18px;background:linear-gradient(180deg,#0b1426,#080f1c);box-shadow:0 28px 90px #000b;color:#dbe7f5}
     .compose-track-subtitle{max-width:390px}
     .compose-timeline{width:min(1120px,100%);margin:0 auto;overflow-x:auto}
+    .compose-timeline-transport{display:flex;justify-content:flex-end;gap:8px;margin:0 0 10px;min-width:900px}
+    .compose-transport-button{height:32px;padding:0 14px;border:1px solid #4f7cff66;border-radius:9px;background:linear-gradient(105deg,#12265a,#12213d);color:#7ea5ff;font:800 10px Inter;cursor:pointer;box-shadow:0 8px 20px #0003}
+    .compose-transport-button:hover{background:linear-gradient(105deg,#193274,#172a4e);color:#fff}
+    .compose-transport-button.active{border-color:#31e3c855;background:#0d2930;color:#31e3c8}
     .compose-timeline-ruler{display:grid;grid-template-columns:180px minmax(720px,1fr);align-items:end;margin-bottom:8px;min-width:900px}
     .compose-timeline-label{padding:0 12px 8px;color:#5f7390;font-size:8px;font-weight:800;letter-spacing:.16em}
     .compose-timeline-scale{position:relative;height:28px;padding:0;border-left:1px solid #ffffff08;border-bottom:1px solid #ffffff12}
@@ -535,6 +539,7 @@
       timeline=document.createElement('div');
       timeline.className='compose-timeline';
       timeline.innerHTML=`
+        <div class="compose-timeline-transport"><button type="button" class="compose-transport-button" data-compose-play-all aria-label="Play all tracks" title="Play all tracks">▶ Play All</button></div>
         <div class="compose-timeline-ruler">
           <div class="compose-timeline-label">TRACKS</div>
           <div class="compose-timeline-scale"><span>0:00</span><span>0:05</span><span>0:10</span><span>0:15</span><span>0:20</span><span>0:25</span><span>0:30</span></div>
@@ -542,6 +547,34 @@
         <div class="compose-timeline-list"></div>
       `;
       canvas.appendChild(timeline);
+      const playAllButton=timeline.querySelector('[data-compose-play-all]');
+      const syncPlayAllButton=()=>{
+        const audios=[...timeline.querySelectorAll('.compose-track-audio')];
+        const playing=audios.some(item=>!item.paused);
+        if(playAllButton){
+          playAllButton.textContent=playing?'❚❚ Pause All':'▶ Play All';
+          playAllButton.setAttribute('aria-label',playing?'Pause all tracks':'Play all tracks');
+          playAllButton.setAttribute('title',playing?'Pause all tracks':'Play all tracks');
+          playAllButton.classList.toggle('active',playing);
+        }
+      };
+      const playAll=async()=>{
+        const audios=[...timeline.querySelectorAll('.compose-track-audio')];
+        if(!audios.length)return;
+        if(audios.some(item=>!item.paused)){
+          audios.forEach(item=>item.pause());
+          syncPlayAllButton();
+          return;
+        }
+        const results=await Promise.allSettled(audios.map(async item=>{
+          if(item.readyState===0)item.load();
+          await item.play();
+        }));
+        results.forEach(result=>{if(result.status==='rejected')console.warn('compose_play_all_error',result.reason);});
+        syncPlayAllButton();
+      };
+      playAllButton?.addEventListener('click',playAll);
+      timeline._syncPlayAllButton=syncPlayAllButton;
     }
     const list=timeline.querySelector('.compose-timeline-list');
     const row=document.createElement('article');
@@ -763,16 +796,16 @@
     };
     syncPlayButton();
     play?.addEventListener('click',event=>{event.stopPropagation();togglePlayback();});
-    audio?.addEventListener('play',syncPlayButton);
-    audio?.addEventListener('pause',()=>{wave.classList.remove('playing');syncPlayButton();});
-    audio?.addEventListener('error',()=>{syncPlayButton();console.warn('compose_track_audio_error',audio.currentSrc||assetUrl);});
+    audio?.addEventListener('play',()=>{syncPlayButton();row.closest('.compose-timeline')?._syncPlayAllButton?.();});
+    audio?.addEventListener('pause',()=>{wave.classList.remove('playing');syncPlayButton();row.closest('.compose-timeline')?._syncPlayAllButton?.();});
+    audio?.addEventListener('error',()=>{syncPlayButton();row.closest('.compose-timeline')?._syncPlayAllButton?.();console.warn('compose_track_audio_error',audio.currentSrc||assetUrl);});
     row.querySelector('.compose-track-identity')?.addEventListener('dblclick',event=>{if(!event.target.closest('button'))togglePlayback();});
     audio?.addEventListener('loadedmetadata',()=>{
       if(Number.isFinite(audio.duration)&&audio.duration>0)row.dataset.sourceDuration=String(audio.duration);
       renderTrim();
       renderPlayhead();
     });
-    audio?.addEventListener('ended',()=>{wave.classList.remove('playing');renderPlayhead();});
+    audio?.addEventListener('ended',()=>{wave.classList.remove('playing');renderPlayhead();row.closest('.compose-timeline')?._syncPlayAllButton?.();});
 
     row.dataset.trimIn='0';
     row.dataset.trimOut='0';
