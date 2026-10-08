@@ -547,7 +547,6 @@
       <div class="compose-track-identity">
         <button class="compose-track-play" type="button" aria-label="Play track" title="Play track">▶</button>
         <button class="compose-track-move" type="button" aria-label="Move track" title="Drag to position track">⠿</button>
-        <div class="compose-track-row-icon">◈</div>
         <div class="compose-track-row-main"><strong>${escapeHistory(asset.filename||'Untitled asset')}</strong><span>${escapeHistory(labelForComposeType(type))}${asset.soundType?' · '+escapeHistory(asset.soundType):''}${asset.format?' · '+escapeHistory(asset.format):''}</span></div>
       </div>
       <div class="compose-track-lane">
