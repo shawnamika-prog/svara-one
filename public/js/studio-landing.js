@@ -548,9 +548,24 @@
       `;
       canvas.appendChild(timeline);
       const playAllButton=timeline.querySelector('[data-compose-play-all]');
+      let playAllRunId=0;
+      let playAllRunning=false;
+      let playAllPending=0;
+      const playAllActive=new Set();
+      const playAllTimeouts=new Set();
+      const clearPlayAllTimeouts=()=>{
+        playAllTimeouts.forEach(timer=>clearTimeout(timer));
+        playAllTimeouts.clear();
+      };
+      const finishPlayAllIfIdle=()=>{
+        if(playAllRunning&&playAllPending===0&&playAllActive.size===0){
+          playAllRunning=false;
+          syncPlayAllButton();
+        }
+      };
       const syncPlayAllButton=()=>{
         const audios=[...timeline.querySelectorAll('.compose-track-audio')];
-        const playing=audios.some(item=>!item.paused);
+        const playing=playAllRunning||audios.some(item=>!item.paused);
         if(playAllButton){
           playAllButton.textContent=playing?'■ Stop All':'▶ Play All';
           playAllButton.setAttribute('aria-label',playing?'Stop all tracks':'Play all tracks');
@@ -559,6 +574,11 @@
         }
       };
       const stopAll=()=>{
+        playAllRunId+=1;
+        playAllRunning=false;
+        playAllPending=0;
+        playAllActive.clear();
+        clearPlayAllTimeouts();
         const audios=[...timeline.querySelectorAll('.compose-track-audio')];
         audios.forEach(item=>{
           item.pause();
@@ -570,19 +590,84 @@
         });
         syncPlayAllButton();
       };
+      const waitForMetadata=audio=>{
+        if(Number.isFinite(audio.duration)&&audio.duration>0)return Promise.resolve(audio.duration);
+        return new Promise(resolve=>{
+          const onMetadata=()=>{
+            audio.removeEventListener('loadedmetadata',onMetadata);
+            resolve(Number.isFinite(audio.duration)&&audio.duration>0?audio.duration:30);
+          };
+          audio.addEventListener('loadedmetadata',onMetadata,{once:true});
+          if(audio.readyState===0)audio.load();
+        });
+      };
       const playAll=async()=>{
-        const audios=[...timeline.querySelectorAll('.compose-track-audio')];
-        if(!audios.length)return;
-        if(audios.some(item=>!item.paused)){
+        const rows=[...timeline.querySelectorAll('.compose-track-editor')];
+        if(!rows.length)return;
+        if(playAllRunning||rows.some(row=>{const audio=row.querySelector('.compose-track-audio');return audio&&!audio.paused;})){
           stopAll();
           return;
         }
-        const results=await Promise.allSettled(audios.map(async item=>{
-          if(item.readyState===0)item.load();
-          await item.play();
-        }));
-        results.forEach(result=>{if(result.status==='rejected')console.warn('compose_play_all_error',result.reason);});
+
+        // Play All is the master timeline transport: every run starts at ruler 0:00.
+        stopAll();
+        const runId=++playAllRunId;
+        playAllRunning=true;
+        playAllPending=rows.filter(row=>row.querySelector('.compose-track-audio')).length;
         syncPlayAllButton();
+
+        rows.forEach(row=>{
+          const audio=row.querySelector('.compose-track-audio');
+          if(!audio){
+            playAllPending=Math.max(0,playAllPending-1);
+            return;
+          }
+          const startSeconds=Math.max(0,Number(row.dataset.startSeconds||0)||0);
+          const timer=setTimeout(async()=>{
+            playAllTimeouts.delete(timer);
+            if(runId!==playAllRunId)return;
+            playAllPending=Math.max(0,playAllPending-1);
+            try{
+              if(audio.readyState===0)audio.load();
+              const duration=await waitForMetadata(audio);
+              if(runId!==playAllRunId)return;
+              const trimIn=Math.max(0,Math.min(.98,Number(row.dataset.trimIn||0)||0));
+              const trimOut=Math.max(0,Math.min(.98,Number(row.dataset.trimOut||0)||0));
+              const trimStart=trimIn*duration;
+              const trimEnd=Math.max(trimStart+0.01,(1-trimOut)*duration);
+              audio.currentTime=trimStart;
+              await audio.play();
+              if(runId!==playAllRunId){
+                audio.pause();
+                return;
+              }
+              playAllActive.add(audio);
+              const wave=row.querySelector('.compose-track-wave');
+              wave?.classList.add('playing');
+              syncPlayAllButton();
+
+              const remainingMs=Math.max(0,(trimEnd-audio.currentTime)*1000);
+              const endTimer=setTimeout(()=>{
+                playAllTimeouts.delete(endTimer);
+                if(runId!==playAllRunId)return;
+                audio.pause();
+                try{audio.currentTime=trimStart;}catch{}
+                playAllActive.delete(audio);
+                wave?.classList.remove('playing');
+                audio.dispatchEvent(new Event('timeupdate'));
+                finishPlayAllIfIdle();
+              },remainingMs);
+              playAllTimeouts.add(endTimer);
+            }catch(error){
+              console.warn('compose_play_all_error',error);
+              playAllActive.delete(audio);
+              row.querySelector('.compose-track-wave')?.classList.remove('playing');
+              finishPlayAllIfIdle();
+            }
+          },startSeconds*1000);
+          playAllTimeouts.add(timer);
+        });
+        finishPlayAllIfIdle();
       };
       playAllButton?.addEventListener('click',playAll);
       timeline._syncPlayAllButton=syncPlayAllButton;
