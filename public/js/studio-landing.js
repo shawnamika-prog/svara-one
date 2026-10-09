@@ -92,12 +92,13 @@
     .compose-timeline::-webkit-scrollbar-track{background:#07101d;border-radius:999px}
     .compose-timeline::-webkit-scrollbar-thumb{background:linear-gradient(90deg,#365bd0,#5f8cff);border:2px solid #07101d;border-radius:999px}
     .compose-timeline::-webkit-scrollbar-thumb:hover{background:linear-gradient(90deg,#4b72e8,#7da3ff)}
-    .compose-timeline-transport{display:flex;justify-content:flex-start;gap:8px;margin:0 0 10px;min-width:900px}
     .compose-transport-button{height:32px;padding:0 14px;border:1px solid #4f7cff66;border-radius:9px;background:linear-gradient(105deg,#12265a,#12213d);color:#7ea5ff;font:800 10px Inter;cursor:pointer;box-shadow:0 8px 20px #0003}
     .compose-transport-button:hover{background:linear-gradient(105deg,#193274,#172a4e);color:#fff}
     .compose-transport-button.active{border-color:#31e3c855;background:#0d2930;color:#31e3c8}
-    .compose-timeline-ruler{display:grid;grid-template-columns:180px minmax(720px,1fr);align-items:end;margin-bottom:8px;min-width:900px}
-    .compose-timeline-label{position:sticky;left:0;z-index:13;padding:0 12px 8px;color:#5f7390;font-size:8px;font-weight:800;letter-spacing:.16em;background:#09121f;box-shadow:8px 0 18px #0005}
+    .compose-timeline-ruler{display:grid;grid-template-columns:180px minmax(720px,1fr);align-items:stretch;margin-bottom:8px;min-width:900px}
+    .compose-timeline-label{position:sticky;left:0;z-index:13;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:7px;min-height:58px;padding:8px 12px;color:#5f7390;font-size:8px;font-weight:800;letter-spacing:.16em;background:#09121f;box-shadow:8px 0 18px #0005}
+    .compose-timeline-label .compose-transport-button{flex:0 0 auto}
+    .compose-timeline-label>span{display:block}
     .compose-timeline-scale{position:relative;height:28px;padding:0;border-left:1px solid #ffffff08;border-bottom:1px solid #ffffff12;flex:0 0 auto;pointer-events:auto;cursor:ew-resize;touch-action:none}
     .compose-timeline-scale:before{content:"";position:absolute;left:0;right:0;bottom:0;height:9px;background:repeating-linear-gradient(to right,#ffffff20 0,#ffffff20 1px,transparent 1px,var(--compose-second-pitch,24px) var(--compose-second-pitch,24px))}
     .compose-timeline-scale .compose-timeline-ruler-mark{position:absolute;bottom:10px;transform:translateX(-50%);color:#7186a0;font-size:8px;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -546,9 +547,11 @@
       timeline=document.createElement('div');
       timeline.className='compose-timeline';
       timeline.innerHTML=`
-        <div class="compose-timeline-transport"><button type="button" class="compose-transport-button" data-compose-play-all aria-label="Play all tracks" title="Play all tracks">▶ Play All</button></div>
         <div class="compose-timeline-ruler">
-          <div class="compose-timeline-label">TRACKS</div>
+          <div class="compose-timeline-label">
+            <button type="button" class="compose-transport-button" data-compose-play-all aria-label="Play all tracks" title="Play all tracks">▶ Play All</button>
+            <span>TRACKS</span>
+          </div>
           <div class="compose-timeline-scale"><span class="compose-timeline-playhead" aria-hidden="true"></span></div>
         </div>
         <div class="compose-timeline-list"></div>
