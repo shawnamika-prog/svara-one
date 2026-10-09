@@ -797,7 +797,8 @@
     row.className='compose-track-editor';
     row.dataset.startSeconds='0';
     row.dataset.assetDuration=String(Number(asset.durationSeconds||asset.duration||30)||30);
-    row.dataset.trackId=`track-${timeline._composeModel?.nextTrackId++||Date.now()}`;
+    const trackId=timeline._composeModel?`track-${timeline._composeModel.nextTrackId++}`:`track-${Date.now()}`;
+    row.dataset.trackId=trackId;
     const bars=Array.from({length:84},(_,i)=>Math.max(10,Math.round(22+Math.abs(Math.sin(i*1.73))*58+Math.abs(Math.cos(i*.37))*15)));
     const waveform=bars.map(height=>`<i style="--h:${height}%"></i>`).join('');
     const assetUrl=String(asset.assetUrl||asset.audioUrl||asset.playbackUrl||asset.fileUrl||asset.downloadUrl||asset.outputUrl||asset.url||asset.r2Url||asset.storageUrl||'');
