@@ -559,19 +559,23 @@
     return 'svaraone-composition-'+date.getFullYear()+'-'+pad(date.getMonth()+1)+'-'+pad(date.getDate())+'-'+pad(date.getHours())+'-'+pad(date.getMinutes())+'.wav';
   }
 
+  function compositionMasterGain(audioBuffer){
+    const left=audioBuffer.getChannelData(0);
+    const right=audioBuffer.numberOfChannels>1?audioBuffer.getChannelData(1):left;
+    let peak=0;
+    for(let i=0;i<audioBuffer.length;i++)peak=Math.max(peak,Math.abs(left[i]||0),Math.abs(right[i]||0));
+    return peak>0.98?0.98/peak:1;
+  }
+
   function encodeCompositionWav(audioBuffer){
     const channels=2;
-    const sampleRate=44100;
+    const sampleRate=Number(audioBuffer.sampleRate)||44100;
     const frames=audioBuffer.length;
     const dataBytes=frames*channels*2;
     if(!frames||dataBytes+44>80000000)throw new Error('This export is too large for the current WAV export limit.');
     const left=audioBuffer.getChannelData(0);
     const right=audioBuffer.numberOfChannels>1?audioBuffer.getChannelData(1):left;
-    let peak=0;
-    for(let i=0;i<frames;i++){
-      peak=Math.max(peak,Math.abs(left[i]||0),Math.abs(right[i]||0));
-    }
-    const masterGain=peak>0.98?0.98/peak:1;
+    const masterGain=compositionMasterGain(audioBuffer);
     const output=new ArrayBuffer(44+dataBytes);
     const view=new DataView(output);
     const writeString=(offset,value)=>{
@@ -600,7 +604,60 @@
     return new Blob([output],{type:'audio/wav'});
   }
 
-  async function renderCompositionWav(rows,onStatus){
+  function encodeCompositionPcm(audioBuffer){
+    if(Number(audioBuffer.sampleRate)!==24000)throw new Error('PCM export must be rendered at 24 kHz.');
+    const frames=audioBuffer.length;
+    const byteLength=frames*4;
+    if(!frames||byteLength>80000000)throw new Error('This PCM export is too large.');
+    const left=audioBuffer.getChannelData(0);
+    const right=audioBuffer.numberOfChannels>1?audioBuffer.getChannelData(1):left;
+    const masterGain=compositionMasterGain(audioBuffer);
+    const output=new ArrayBuffer(byteLength);
+    const view=new DataView(output);
+    let offset=0;
+    for(let i=0;i<frames;i++){
+      const l=Math.max(-1,Math.min(1,(left[i]||0)*masterGain));
+      const r=Math.max(-1,Math.min(1,(right[i]||0)*masterGain));
+      view.setInt16(offset,l<0?l*32768:l*32767,false);offset+=2;
+      view.setInt16(offset,r<0?r*32768:r*32767,false);offset+=2;
+    }
+    return new Blob([output],{type:'audio/l16;rate=24000;channels=2'});
+  }
+
+  function encodeCompositionMp3(audioBuffer,onStatus){
+    const Mp3Encoder=window.lamejs?.Mp3Encoder;
+    if(typeof Mp3Encoder!=='function')throw new Error('MP3 encoder failed to load. Refresh Studio and try again.');
+    const sampleRate=Number(audioBuffer.sampleRate)||44100;
+    const channels=2;
+    const encoder=new Mp3Encoder(channels,sampleRate,192);
+    const left=audioBuffer.getChannelData(0);
+    const right=audioBuffer.numberOfChannels>1?audioBuffer.getChannelData(1):left;
+    const masterGain=compositionMasterGain(audioBuffer);
+    const chunks=[];
+    const frameSize=1152;
+    for(let offset=0;offset<audioBuffer.length;offset+=frameSize){
+      const length=Math.min(frameSize,audioBuffer.length-offset);
+      const leftPcm=new Int16Array(length);
+      const rightPcm=new Int16Array(length);
+      for(let i=0;i<length;i++){
+        const l=Math.max(-1,Math.min(1,(left[offset+i]||0)*masterGain));
+        const r=Math.max(-1,Math.min(1,(right[offset+i]||0)*masterGain));
+        leftPcm[i]=l<0?l*32768:l*32767;
+        rightPcm[i]=r<0?r*32768:r*32767;
+      }
+      const encoded=encoder.encodeBuffer(leftPcm,rightPcm);
+      if(encoded?.length)chunks.push(new Uint8Array(encoded));
+      if(offset%(frameSize*100)===0)onStatus('Encoding MP3… '+Math.min(100,Math.round((offset/audioBuffer.length)*100))+'%');
+    }
+    const tail=encoder.flush();
+    if(tail?.length)chunks.push(new Uint8Array(tail));
+    const blob=new Blob(chunks,{type:'audio/mpeg'});
+    if(!blob.size)throw new Error('MP3 encoding produced an empty file.');
+    if(blob.size>80000000)throw new Error('This MP3 export is too large for the current 80 MB limit.');
+    return blob;
+  }
+
+  async function renderCompositionAudio(rows,onStatus,sampleRate=44100){
     const AudioContextClass=window.AudioContext||window.webkitAudioContext;
     const OfflineContextClass=window.OfflineAudioContext||window.webkitOfflineAudioContext;
     if(!AudioContextClass||!OfflineContextClass)throw new Error('Your browser does not support offline audio rendering.');
@@ -653,10 +710,10 @@
     const timelineEnd=Math.max(0,...states.map(track=>track.start+Math.max(.01,track.declaredDuration*(1-track.trimIn-track.trimOut))));
     const renderDuration=Math.max(timelineEnd,...decoded.map(track=>track.end));
     if(!Number.isFinite(renderDuration)||renderDuration<=0)throw new Error('The composition has no renderable duration.');
-    if(renderDuration>420)throw new Error('This first export supports compositions up to 7 minutes. Shorten the composition and try again.');
-    const sampleRate=44100;
+    if(renderDuration>420)throw new Error('This export supports compositions up to 7 minutes. Shorten the composition and try again.');
     const frameCount=Math.max(1,Math.ceil(renderDuration*sampleRate));
-    if(frameCount*4+44>80000000)throw new Error('This export is too large for the current WAV export limit.');
+    const maxOutputBytes=sampleRate===24000?80000000:80000000;
+    if(frameCount*4+44>maxOutputBytes)throw new Error('This export is too large for the current 80 MB limit.');
     onStatus('Mixing '+decoded.length+' track'+(decoded.length===1?'':'s')+'…');
     const offline=new OfflineContextClass(2,frameCount,sampleRate);
     decoded.forEach(track=>{
@@ -681,11 +738,9 @@
       gain.connect(offline.destination);
       source.start(start,track.trimStart,effectiveDuration);
     });
-    onStatus('Rendering final WAV…');
-    const rendered=await offline.startRendering();
-    onStatus('Encoding WAV…');
-    const wav=encodeCompositionWav(rendered);
-    return {wav,durationSeconds:rendered.duration,trackCount:decoded.length};
+    onStatus('Rendering final mix…');
+    const audioBuffer=await offline.startRendering();
+    return {audioBuffer,durationSeconds:audioBuffer.duration,trackCount:decoded.length};
   }
 
   function openComposeExportModal(){
