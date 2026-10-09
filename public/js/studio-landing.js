@@ -609,7 +609,7 @@
       const muteButton=row.querySelector('[data-compose-mute]');
       const soloButton=row.querySelector('[data-compose-solo]');
       const volume=row.querySelector('.compose-track-volume input');
-      const duration=Number(row.dataset.sourceDuration||row.dataset.assetDuration||audio?.duration||0);
+      const duration=Number(Number.isFinite(audio?.duration)&&audio.duration>0?audio.duration:(row.dataset.sourceDuration||row.dataset.assetDuration||0));
       return {
         row,
         audio,
@@ -650,7 +650,8 @@
     }finally{
       await context.close().catch(()=>{});
     }
-    const renderDuration=Math.max(...decoded.map(track=>track.end));
+    const timelineEnd=Math.max(0,...states.map(track=>track.start+Math.max(.01,track.declaredDuration*(1-track.trimIn-track.trimOut))));
+    const renderDuration=Math.max(timelineEnd,...decoded.map(track=>track.end));
     if(!Number.isFinite(renderDuration)||renderDuration<=0)throw new Error('The composition has no renderable duration.');
     if(renderDuration>420)throw new Error('This first export supports compositions up to 7 minutes. Shorten the composition and try again.');
     const sampleRate=44100;
