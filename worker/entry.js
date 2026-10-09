@@ -615,7 +615,7 @@ export default {
             id: String(meta.compositionExportId || id),
             filename,
             format: String(meta.format || extension).toUpperCase(),
-            mimeType: String(object.httpMetadata?.contentType || meta.format === "mp3" ? "audio/mpeg" : extension === "pcm" ? "audio/l16;rate=24000;channels=2" : "audio/wav"),
+            mimeType: String(object.httpMetadata?.contentType || (extension === "mp3" ? "audio/mpeg" : extension === "pcm" ? "audio/l16;rate=24000;channels=2" : "audio/wav")),
             durationSeconds: Number(meta.durationSeconds) || 0,
             trackCount: Number(meta.trackCount) || 0,
             sizeBytes: Number(object.size) || 0,
@@ -643,57 +643,119 @@ export default {
       try { id = decodeURIComponent(url.pathname.split("/").pop() || ""); } catch {}
       if (!/^[0-9a-f-]{36}$/i.test(id)) return json({ error: "Composition asset not found." }, 404);
 
-      const key = "users/" + userId + "/compositions/" + id + ".wav";
+      const prefix = "users/" + userId + "/compositions/" + id + ".";
+      const candidates = await env.GENERATED_AUDIO.list({ prefix, limit: 5 });
+      const listed = (candidates.objects || []).find(item => /\.(wav|mp3|pcm)$/i.test(String(item.key || "")));
+      if (!listed?.key) return json({ error: "Composition asset not found." }, 404);
+      const key = String(listed.key);
       const metadata = await env.GENERATED_AUDIO.head(key);
       if (!metadata || (metadata.customMetadata?.userId && metadata.customMetadata.userId !== userId)) {
         return json({ error: "Composition asset not found." }, 404);
       }
+
+      const basename = key.split("/").pop() || ("svaraone-composition-" + id + ".wav");
+      const extension = basename.split(".").pop()?.toLowerCase() || "wav";
+      const format = String(metadata.customMetadata?.format || extension).toLowerCase();
+      const rawContentType = String(metadata.httpMetadata?.contentType || "");
+      const contentType = format === "wav" ? "audio/wav" : format === "mp3" ? "audio/mpeg" : rawContentType || "audio/l16;rate=24000;channels=2";
       const totalSize = Number(metadata.size || 0);
-      if (!Number.isFinite(totalSize) || totalSize < 44) return json({ error: "Composition WAV is unavailable." }, 404);
+      const minimumSize = format === "wav" ? 44 : format === "mp3" ? 100 : 4;
+      if (!Number.isFinite(totalSize) || totalSize < minimumSize) return json({ error: "Composition asset is unavailable." }, 404);
 
       const wantsDownload = url.searchParams.get("download") === "1";
-      const filename = String(metadata.customMetadata?.filename || ("svaraone-composition-" + id + ".wav")).replace(/["\r\n]/g, "");
+      const wantsPcmPreview = format === "pcm" && url.searchParams.get("preview") === "1" && !wantsDownload;
+      const storedFilename = String(metadata.customMetadata?.filename || basename).replace(/["\r\n]/g, "");
       const headers = new Headers({
-        "content-type": "audio/wav",
+        "content-type": wantsPcmPreview ? "audio/wav" : contentType,
         "cache-control": "private, no-store",
-        "accept-ranges": "bytes",
-        "content-disposition": (wantsDownload ? "attachment" : "inline") + '; filename="' + filename + '"',
         "x-svaraone-composition-id": id
       });
-      if (metadata.httpEtag) headers.set("etag", metadata.httpEtag);
+
+      if (wantsPcmPreview) {
+        if (totalSize % 4 !== 0) return json({ error: "PCM asset is incomplete." }, 404);
+        const pcmObject = await env.GENERATED_AUDIO.get(key);
+        if (!pcmObject) return json({ error: "Composition asset not found." }, 404);
+        const previewFilename = storedFilename.replace(/\.pcm$/i, ".wav");
+        headers.set("content-length", String(totalSize + 44));
+        headers.set("content-disposition", 'inline; filename="' + previewFilename + '"');
+        const wavHeaderBuffer = new ArrayBuffer(44);
+        const wavHeader = new DataView(wavHeaderBuffer);
+        const writeString = (offset, value) => {
+          for (let index = 0; index < value.length; index++) wavHeader.setUint8(offset + index, value.charCodeAt(index));
+        };
+        writeString(0, "RIFF");
+        wavHeader.setUint32(4, 36 + totalSize, true);
+        writeString(8, "WAVE");
+        writeString(12, "fmt ");
+        wavHeader.setUint32(16, 16, true);
+        wavHeader.setUint16(20, 1, true);
+        wavHeader.setUint16(22, 2, true);
+        wavHeader.setUint32(24, 24000, true);
+        wavHeader.setUint32(28, 24000 * 2 * 2, true);
+        wavHeader.setUint16(32, 4, true);
+        wavHeader.setUint16(34, 16, true);
+        writeString(36, "data");
+        wavHeader.setUint32(40, totalSize, true);
+        const reader = pcmObject.body.getReader();
+        const previewStream = new ReadableStream({
+          async start(controller) {
+            controller.enqueue(new Uint8Array(wavHeaderBuffer));
+            try {
+              while (true) {
+                const part = await reader.read();
+                if (part.done) break;
+                controller.enqueue(part.value);
+              }
+              controller.close();
+            } catch (error) {
+              controller.error(error);
+            } finally {
+              reader.releaseLock();
+            }
+          },
+          cancel(reason) {
+            return reader.cancel(reason);
+          }
+        });
+        return new Response(previewStream, { status: 200, headers });
+      }
 
       const rangeHeader = request.headers.get("Range");
       let object;
       let status = 200;
+      headers.set("accept-ranges", "bytes");
+      headers.set("content-disposition", (wantsDownload ? "attachment" : "inline") + '; filename="' + storedFilename + '"');
+      if (metadata.httpEtag) headers.set("etag", metadata.httpEtag);
+
       if (rangeHeader) {
         const match = /^bytes=(\d*)-(\d*)$/.exec(rangeHeader.trim());
         if (!match) {
           headers.set("content-range", "bytes */" + totalSize);
           return new Response(null, { status: 416, headers });
         }
-        let start;
-        let end;
+        let rangeStart;
+        let rangeEnd;
         if (match[1] === "") {
           const suffixLength = Number(match[2]);
           if (!Number.isInteger(suffixLength) || suffixLength <= 0) {
             headers.set("content-range", "bytes */" + totalSize);
             return new Response(null, { status: 416, headers });
           }
-          start = Math.max(0, totalSize - suffixLength);
-          end = totalSize - 1;
+          rangeStart = Math.max(0, totalSize - suffixLength);
+          rangeEnd = totalSize - 1;
         } else {
-          start = Number(match[1]);
-          end = match[2] === "" ? totalSize - 1 : Number(match[2]);
-          if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || start >= totalSize || end < start) {
+          rangeStart = Number(match[1]);
+          rangeEnd = match[2] === "" ? totalSize - 1 : Number(match[2]);
+          if (!Number.isInteger(rangeStart) || !Number.isInteger(rangeEnd) || rangeStart < 0 || rangeStart >= totalSize || rangeEnd < rangeStart) {
             headers.set("content-range", "bytes */" + totalSize);
             return new Response(null, { status: 416, headers });
           }
-          end = Math.min(end, totalSize - 1);
+          rangeEnd = Math.min(rangeEnd, totalSize - 1);
         }
-        object = await env.GENERATED_AUDIO.get(key, { range: { offset: start, length: end - start + 1 } });
+        object = await env.GENERATED_AUDIO.get(key, { range: { offset: rangeStart, length: rangeEnd - rangeStart + 1 } });
         if (!object) return json({ error: "Composition asset not found." }, 404);
-        headers.set("content-length", String(end - start + 1));
-        headers.set("content-range", "bytes " + start + "-" + end + "/" + totalSize);
+        headers.set("content-length", String(rangeEnd - rangeStart + 1));
+        headers.set("content-range", "bytes " + rangeStart + "-" + rangeEnd + "/" + totalSize);
         status = 206;
       } else {
         object = await env.GENERATED_AUDIO.get(key);
