@@ -113,7 +113,7 @@ app.fetch=async(request,env,ctx)=>{const url=new URL(request.url);
     let stored;
     let status=200;
     if(rangeHeader&&Number.isFinite(totalSize)&&totalSize>0){
-      const match=/^bytes=(\\d*)-(\\d*)$/.exec(rangeHeader.trim());
+      const match=/^bytes=(\d*)-(\d*)$/.exec(rangeHeader.trim());
       if(!match){
         headers.set('content-range',`bytes */${totalSize}`);
         return new Response(null,{status:416,headers});
