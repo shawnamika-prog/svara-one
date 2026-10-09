@@ -629,6 +629,37 @@
       let playAllRunning=false;
       let playAllStartedAt=0;
       let playAllFrame=0;
+      let masterScrubbing=false;
+      const setMasterTimeFromPointer=event=>{
+        const rect=timelineScale?.getBoundingClientRect();
+        if(!rect||!rect.width)return;
+        const duration=Math.max(composeModel.minDuration,composeModel.duration);
+        const ratio=Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width));
+        const seconds=ratio*duration;
+        renderTimelinePlayhead(seconds);
+        renderAllTrackPlayheads(seconds);
+      };
+      timelineScale?.addEventListener('pointerdown',event=>{
+        if(event.button!==0)return;
+        event.preventDefault();
+        masterScrubbing=true;
+        timelineScale.classList.add('scrubbing');
+        timelineScale.setPointerCapture?.(event.pointerId);
+        setMasterTimeFromPointer(event);
+      });
+      timelineScale?.addEventListener('pointermove',event=>{
+        if(masterScrubbing)setMasterTimeFromPointer(event);
+      });
+      timelineScale?.addEventListener('pointerup',event=>{
+        if(!masterScrubbing)return;
+        masterScrubbing=false;
+        timelineScale.classList.remove('scrubbing');
+        try{timelineScale.releasePointerCapture?.(event.pointerId);}catch{}
+      });
+      timelineScale?.addEventListener('pointercancel',()=>{
+        masterScrubbing=false;
+        timelineScale.classList.remove('scrubbing');
+      });
       const renderTimelinePlayhead=seconds=>{
         const duration=Math.max(composeModel.minDuration,composeModel.duration);
         const value=Math.max(0,Math.min(duration,Number(seconds)||0));
