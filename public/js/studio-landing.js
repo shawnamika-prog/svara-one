@@ -74,7 +74,7 @@
     aside a.active[href="#compose"]{background:linear-gradient(100deg,#162d66,#12234e);color:#5f8cff;box-shadow:inset 0 0 0 1px #4f7cff66}
     aside a.active[href="#compose"]:hover{background:linear-gradient(100deg,#1a3678,#152a5d);color:#75a0ff}
     .compose-workspace{grid-column:1/-1;min-height:calc(100vh - 124px);display:flex;flex-direction:column;gap:18px}
-    .compose-head{padding:24px 24px 20px;border:1px solid #4f7cff22;border-radius:18px;background:linear-gradient(180deg,#0a1020,#080d19);box-shadow:0 20px 60px #0004}
+    .compose-head{display:flex;align-items:center;justify-content:space-between;gap:22px;padding:24px 24px 20px;border:1px solid #4f7cff22;border-radius:18px;background:linear-gradient(180deg,#0a1020,#080d19);box-shadow:0 20px 60px #0004}.compose-head-copy{min-width:0}.compose-head-actions{display:flex;align-items:center;justify-content:flex-end;flex:0 0 auto}.compose-export-trigger{min-height:40px;padding:0 17px;border:1px solid #4f7cff77;border-radius:10px;background:linear-gradient(105deg,#233f87,#173166);color:#dce7ff;font:800 10px Inter;letter-spacing:.05em;cursor:pointer;box-shadow:0 9px 24px #0004}.compose-export-trigger:hover:not(:disabled){background:linear-gradient(105deg,#3155ad,#204184);border-color:#7da3ff}.compose-export-trigger:disabled{opacity:.42;cursor:not-allowed}
     .compose-head small{color:#5f8cff;font-size:9px;letter-spacing:.2em;font-weight:800}
     .compose-head h2{margin:7px 0 0;font-size:24px;letter-spacing:-.04em}
     .compose-head p{margin:7px 0 0;color:#8091a8;font-size:11px;line-height:1.55}
@@ -216,7 +216,8 @@
     .compose-import-track{border:1px solid #4f7cff66;border-radius:10px;background:linear-gradient(105deg,#24458f,#17336e);color:#fff;padding:11px 17px;font:800 10px Inter;cursor:pointer;box-shadow:0 8px 24px #193f8a33}
     .compose-import-track:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px)}
     .compose-import-track:disabled{opacity:.4;cursor:default}
-    @media(max-width:560px){.compose-head{padding:18px 15px}.compose-canvas{min-height:400px;padding:20px}.compose-track-dialog{padding:18px}.compose-track-options{grid-template-columns:repeat(2,minmax(0,1fr))}.compose-track-footer{align-items:stretch;flex-direction:column}.compose-import-track{width:100%}.compose-finder-controls{grid-template-columns:1fr}.compose-finder-list{height:230px}.compose-finder-date{display:none}.compose-timeline-ruler{grid-template-columns:140px minmax(720px,1fr)}.compose-track-editor{grid-template-columns:140px minmax(720px,1fr)}.compose-track-identity{padding:10px 8px}.compose-track-select{display:none}}
+    .compose-export-dialog{width:min(480px,calc(100vw - 32px))}.compose-export-form{display:grid;gap:14px;margin-top:18px}.compose-export-field{display:grid;gap:7px;color:#71869d;font-size:10px}.compose-export-field input,.compose-export-field select{width:100%;min-width:0;height:39px;padding:0 11px;border:1px solid #ffffff16;border-radius:9px;background:#07101d;color:#dbe7f5;font:11px Inter;outline:none}.compose-export-field input:focus{border-color:#5f8cff88;box-shadow:0 0 0 3px #4f7cff18}.compose-export-field select:disabled{opacity:.75}.compose-export-status{margin:0;color:#7288a1;font-size:10px;line-height:1.5;overflow-wrap:anywhere}.compose-export-status.error{color:#f0a4a4}.compose-export-actions{display:flex;justify-content:flex-end;gap:9px;padding-top:14px;border-top:1px solid #ffffff0b}.compose-export-submit,.compose-export-download{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:0 15px;border:1px solid #4f7cff66;border-radius:9px;background:linear-gradient(105deg,#24458f,#17336e);color:#fff;font:800 10px Inter;text-decoration:none;cursor:pointer}.compose-export-submit:disabled{opacity:.45;cursor:wait}.compose-export-cancel{min-height:36px;padding:0 13px;border:1px solid #ffffff14;border-radius:9px;background:#0c1728;color:#9bacbf;font:700 10px Inter;cursor:pointer}.compose-export-success{display:grid;gap:12px;padding-top:18px}.compose-export-success>strong{color:#8fdcc4;font-size:14px}.compose-export-success>p{margin:0;color:#9aacc0;font-size:10px;overflow-wrap:anywhere}.compose-export-preview{width:100%;height:40px}.compose-export-success .compose-export-download{justify-self:start}.compose-export-modal .compose-track-close:disabled{opacity:.4;cursor:wait}
+    @media(max-width:560px){.compose-head{align-items:stretch;flex-direction:column;padding:18px 15px}.compose-head-actions{justify-content:flex-start}.compose-export-trigger{width:100%}.compose-canvas{min-height:400px;padding:20px}.compose-track-dialog{padding:18px}.compose-track-options{grid-template-columns:repeat(2,minmax(0,1fr))}.compose-track-footer{align-items:stretch;flex-direction:column}.compose-import-track{width:100%}.compose-finder-controls{grid-template-columns:1fr}.compose-finder-list{height:230px}.compose-finder-date{display:none}.compose-timeline-ruler{grid-template-columns:140px minmax(720px,1fr)}.compose-track-editor{grid-template-columns:140px minmax(720px,1fr)}.compose-track-identity{padding:10px 8px}.compose-track-select{display:none}}
   `;
   document.head.appendChild(composeStyle);
 
@@ -543,6 +544,252 @@
     options[0]?.focus();
   }
 
+
+
+  function syncComposeExportButton(){
+    const button=composeWorkspace.querySelector('[data-compose-export]');
+    if(!button)return;
+    const rows=[...composeWorkspace.querySelectorAll('.compose-track-editor')];
+    button.disabled=!rows.length||rows.some(row=>!row.querySelector('.compose-track-audio')?.src);
+  }
+
+  function defaultComposeExportFilename(){
+    const date=new Date();
+    const pad=value=>String(value).padStart(2,'0');
+    return 'svaraone-composition-'+date.getFullYear()+'-'+pad(date.getMonth()+1)+'-'+pad(date.getDate())+'-'+pad(date.getHours())+'-'+pad(date.getMinutes())+'.wav';
+  }
+
+  function encodeCompositionWav(audioBuffer){
+    const channels=2;
+    const sampleRate=44100;
+    const frames=audioBuffer.length;
+    const dataBytes=frames*channels*2;
+    if(!frames||dataBytes+44>80000000)throw new Error('This export is too large for the current WAV export limit.');
+    const left=audioBuffer.getChannelData(0);
+    const right=audioBuffer.numberOfChannels>1?audioBuffer.getChannelData(1):left;
+    let peak=0;
+    for(let i=0;i<frames;i++){
+      peak=Math.max(peak,Math.abs(left[i]||0),Math.abs(right[i]||0));
+    }
+    const masterGain=peak>0.98?0.98/peak:1;
+    const output=new ArrayBuffer(44+dataBytes);
+    const view=new DataView(output);
+    const writeString=(offset,value)=>{
+      for(let i=0;i<value.length;i++)view.setUint8(offset+i,value.charCodeAt(i));
+    };
+    writeString(0,'RIFF');
+    view.setUint32(4,36+dataBytes,true);
+    writeString(8,'WAVE');
+    writeString(12,'fmt ');
+    view.setUint32(16,16,true);
+    view.setUint16(20,1,true);
+    view.setUint16(22,channels,true);
+    view.setUint32(24,sampleRate,true);
+    view.setUint32(28,sampleRate*channels*2,true);
+    view.setUint16(32,channels*2,true);
+    view.setUint16(34,16,true);
+    writeString(36,'data');
+    view.setUint32(40,dataBytes,true);
+    let offset=44;
+    for(let i=0;i<frames;i++){
+      const l=Math.max(-1,Math.min(1,(left[i]||0)*masterGain));
+      const r=Math.max(-1,Math.min(1,(right[i]||0)*masterGain));
+      view.setInt16(offset,l<0?l*32768:l*32767,true);offset+=2;
+      view.setInt16(offset,r<0?r*32768:r*32767,true);offset+=2;
+    }
+    return new Blob([output],{type:'audio/wav'});
+  }
+
+  async function renderCompositionWav(rows,onStatus){
+    const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+    const OfflineContextClass=window.OfflineAudioContext||window.webkitOfflineAudioContext;
+    if(!AudioContextClass||!OfflineContextClass)throw new Error('Your browser does not support offline audio rendering.');
+    const states=rows.map(row=>{
+      const audio=row.querySelector('.compose-track-audio');
+      const muteButton=row.querySelector('[data-compose-mute]');
+      const soloButton=row.querySelector('[data-compose-solo]');
+      const volume=row.querySelector('.compose-track-volume input');
+      const duration=Number(row.dataset.sourceDuration||row.dataset.assetDuration||audio?.duration||0);
+      return {
+        row,
+        audio,
+        url:String(audio?.currentSrc||audio?.src||''),
+        start:Math.max(0,Number(row.dataset.startSeconds||0)||0),
+        trimIn:Math.max(0,Math.min(.98,Number(row.dataset.trimIn||0)||0)),
+        trimOut:Math.max(0,Math.min(.98,Number(row.dataset.trimOut||0)||0)),
+        fadeIn:Math.max(0,Math.min(10,Number(row.dataset.fadeIn||0)||0)),
+        fadeOut:Math.max(0,Math.min(10,Number(row.dataset.fadeOut||0)||0)),
+        volume:Math.max(0,Math.min(1,Number(volume?.value||100)/100)),
+        muted:!!audio?.muted||!!muteButton?.classList.contains('active'),
+        solo:!!soloButton?.classList.contains('active'),
+        declaredDuration:duration
+      };
+    });
+    const soloActive=states.some(state=>state.solo);
+    const activeStates=states.filter(state=>soloActive?state.solo:!state.muted);
+    if(!activeStates.length)throw new Error('No audible tracks. Unmute a track or turn off Solo before exporting.');
+    if(activeStates.some(state=>!state.url))throw new Error('One or more selected tracks have no playable source asset.');
+    const context=new AudioContextClass();
+    const decoded=[];
+    try{
+      for(let index=0;index<activeStates.length;index++){
+        const state=activeStates[index];
+        onStatus('Loading audio '+(index+1)+' of '+activeStates.length+'…');
+        const assetUrl=new URL(state.url,window.location.href);
+        if(assetUrl.origin!==window.location.origin)throw new Error('Export currently supports audio assets stored in this SvaraONE account.');
+        const response=await fetch(assetUrl.href,{credentials:'same-origin',cache:'no-store'});
+        if(!response.ok)throw new Error('Could not load track '+(index+1)+' ('+response.status+').');
+        const bytes=await response.arrayBuffer();
+        const buffer=await context.decodeAudioData(bytes.slice(0));
+        if(!buffer||!buffer.length||!Number.isFinite(buffer.duration)||buffer.duration<=0)throw new Error('Track '+(index+1)+' could not be decoded.');
+        const trimStart=state.trimIn*buffer.duration;
+        const trimEnd=Math.max(trimStart+.01,(1-state.trimOut)*buffer.duration);
+        const effectiveDuration=Math.max(.01,Math.min(buffer.duration-trimStart,trimEnd-trimStart));
+        decoded.push({...state,buffer,trimStart,effectiveDuration,end:state.start+effectiveDuration});
+      }
+    }finally{
+      await context.close().catch(()=>{});
+    }
+    const renderDuration=Math.max(...decoded.map(track=>track.end));
+    if(!Number.isFinite(renderDuration)||renderDuration<=0)throw new Error('The composition has no renderable duration.');
+    if(renderDuration>420)throw new Error('This first export supports compositions up to 7 minutes. Shorten the composition and try again.');
+    const sampleRate=44100;
+    const frameCount=Math.max(1,Math.ceil(renderDuration*sampleRate));
+    if(frameCount*4+44>80000000)throw new Error('This export is too large for the current WAV export limit.');
+    onStatus('Mixing '+decoded.length+' track'+(decoded.length===1?'':'s')+'…');
+    const offline=new OfflineContextClass(2,frameCount,sampleRate);
+    decoded.forEach(track=>{
+      if(track.volume<=0)return;
+      const source=offline.createBufferSource();
+      const gain=offline.createGain();
+      source.buffer=track.buffer;
+      const start=Math.min(renderDuration,track.start);
+      const effectiveDuration=Math.min(track.effectiveDuration,Math.max(.001,renderDuration-start));
+      const curveLength=129;
+      const curve=new Float32Array(curveLength);
+      for(let i=0;i<curveLength;i++){
+        const elapsed=(i/(curveLength-1))*effectiveDuration;
+        const fadeInGain=track.fadeIn>0?Math.min(1,elapsed/track.fadeIn):1;
+        const fadeOutGain=track.fadeOut>0?Math.min(1,Math.max(0,(effectiveDuration-elapsed)/track.fadeOut)):1;
+        curve[i]=track.volume*Math.min(fadeInGain,fadeOutGain);
+      }
+      gain.gain.setValueCurveAtTime(curve,start,effectiveDuration);
+      source.connect(gain);
+      gain.connect(offline.destination);
+      source.start(start,track.trimStart,effectiveDuration);
+    });
+    onStatus('Rendering final WAV…');
+    const rendered=await offline.startRendering();
+    onStatus('Encoding WAV…');
+    const wav=encodeCompositionWav(rendered);
+    return {wav,durationSeconds:rendered.duration,trackCount:decoded.length};
+  }
+
+  function openComposeExportModal(){
+    const existing=document.getElementById('composeExportModal');
+    if(existing)existing.remove();
+    const rows=[...composeWorkspace.querySelectorAll('.compose-timeline .compose-track-editor')];
+    if(!rows.length)return;
+    const modal=document.createElement('div');
+    modal.id='composeExportModal';
+    modal.className='compose-track-modal compose-export-modal';
+    modal.innerHTML='<div class="compose-track-backdrop"></div>'+
+      '<section class="compose-track-dialog compose-export-dialog" role="dialog" aria-modal="true" aria-labelledby="composeExportTitle">'+
+        '<div class="compose-track-head"><div><p class="compose-track-eyebrow">COMPOSITION EXPORT</p><h3 id="composeExportTitle">Compose &amp; Export</h3><p class="compose-track-subtitle">Render the timeline into one WAV asset and save it to your library storage.</p></div><button class="compose-track-close" type="button" aria-label="Close">×</button></div>'+
+        '<form class="compose-export-form">'+
+          '<label class="compose-export-field"><span>Filename</span><input type="text" name="filename" maxlength="124" autocomplete="off" required></label>'+
+          '<label class="compose-export-field"><span>Format</span><select disabled aria-label="Export format"><option>WAV · 16-bit PCM · Stereo · 44.1 kHz</option></select></label>'+
+          '<p class="compose-export-status" data-export-status role="status">The original track assets will remain unchanged.</p>'+
+          '<div class="compose-export-actions"><button class="compose-export-cancel" type="button" data-export-cancel>Cancel</button><button class="compose-export-submit" type="submit" data-export-submit>Export WAV</button></div>'+
+        '</form>'+
+      '</section>';
+    composeWorkspace.appendChild(modal);
+    const form=modal.querySelector('.compose-export-form');
+    const filenameInput=form.querySelector('[name="filename"]');
+    const status=form.querySelector('[data-export-status]');
+    const submit=form.querySelector('[data-export-submit]');
+    const cancel=form.querySelector('[data-export-cancel]');
+    const closeButton=modal.querySelector('.compose-track-close');
+    filenameInput.value=defaultComposeExportFilename();
+    const close=()=>modal.remove();
+    closeButton.addEventListener('click',close);
+    cancel.addEventListener('click',close);
+    modal.querySelector('.compose-track-backdrop').addEventListener('click',close);
+    document.addEventListener('keydown',function onKeydown(event){
+      if(!document.getElementById('composeExportModal')){document.removeEventListener('keydown',onKeydown);return;}
+      if(event.key==='Escape'&&!submit.disabled){close();document.removeEventListener('keydown',onKeydown);}
+    });
+    form.addEventListener('submit',async event=>{
+      event.preventDefault();
+      if(submit.disabled)return;
+      const currentRows=[...composeWorkspace.querySelectorAll('.compose-timeline .compose-track-editor')];
+      if(!currentRows.length){status.textContent='Add at least one audio track before exporting.';return;}
+      let filename=filenameInput.value.trim();
+      if(!/\.wav$/i.test(filename))filename+='.wav';
+      if(!/^[a-z0-9][a-z0-9 _().-]{0,119}\.wav$/i.test(filename)){
+        status.textContent='Use letters, numbers, spaces, hyphens, underscores, brackets or dots in a filename (up to 120 characters before .wav).';
+        filenameInput.focus();
+        return;
+      }
+      filenameInput.value=filename;
+      submit.disabled=true;
+      cancel.disabled=true;
+      closeButton.disabled=true;
+      filenameInput.disabled=true;
+      try{
+        const result=await renderCompositionWav(currentRows,message=>{status.textContent=message;});
+        status.textContent='Saving WAV to R2…';
+        const response=await fetch('/api/compositions/export',{
+          method:'POST',
+          credentials:'same-origin',
+          cache:'no-store',
+          headers:{
+            'content-type':'audio/wav',
+            'x-svara-composition-filename':filename,
+            'x-svara-composition-duration':String(result.durationSeconds),
+            'x-svara-composition-track-count':String(result.trackCount)
+          },
+          body:result.wav
+        });
+        const data=await response.json().catch(()=>({}));
+        if(!response.ok)throw new Error(data.error||'Composition export failed ('+response.status+').');
+        const assetUrl='/api/compositions/assets/'+encodeURIComponent(String(data.id||''));
+        if(!data.id)throw new Error('The WAV was uploaded but the server did not return an asset ID.');
+        form.replaceChildren();
+        const success=document.createElement('div');
+        success.className='compose-export-success';
+        const heading=document.createElement('strong');
+        heading.textContent='Composition saved';
+        const detail=document.createElement('p');
+        detail.textContent=(data.filename||filename)+' · '+Math.floor(Number(data.durationSeconds||result.durationSeconds))+' seconds · '+Math.round(Number(data.sizeBytes||result.wav.size)/1024)+' KB';
+        const preview=document.createElement('audio');
+        preview.controls=true;
+        preview.preload='none';
+        preview.src=assetUrl;
+        preview.className='compose-export-preview';
+        const download=document.createElement('a');
+        download.className='compose-export-download';
+        download.href=assetUrl+'?download=1';
+        download.download=String(data.filename||filename);
+        download.textContent='Download WAV';
+        success.append(heading,detail,preview,download);
+        form.appendChild(success);
+        cancel.textContent='Close';
+        cancel.disabled=false;
+        cancel.onclick=close;
+        closeButton.disabled=false;
+        closeButton.onclick=close;
+      }catch(error){
+        status.textContent=error?.message||'Export failed. No saved asset was confirmed.';
+        status.classList.add('error');
+        submit.disabled=false;
+        cancel.disabled=false;
+        closeButton.disabled=false;
+        filenameInput.disabled=false;
+      }
+    });
+    filenameInput.focus();
+  }
 
   function addComposeTrack(type,asset){
     const canvas=composeWorkspace.querySelector('.compose-canvas');
@@ -1015,6 +1262,7 @@
       ${assetUrl?`<audio class="compose-track-audio" preload="metadata" src="${escapeHistory(assetUrl)}"></audio>`:''}
     `;
     list.appendChild(row);
+    syncComposeExportButton();
 
     const loadRealWaveform=async()=>{
       const waveformBars=row.querySelector('.compose-track-wave-bars');
@@ -1228,6 +1476,7 @@
       try{if(audio)audio.currentTime=0;}catch(error){console.warn('compose_delete_reset_error',error);}
       composeTimeline?._composeModel?.tracks.delete(row.dataset.trackId);
       row.remove();
+      syncComposeExportButton();
       composeTimeline?._updateCompositionGeometry?.();
       composeTimeline?._syncPlayAllButton?.();
     });
@@ -1460,8 +1709,10 @@
     placeholder.hidden=view!=='video';
 
     if(view==='compose'&&composeWorkspace.dataset.initialized!=='1'){
-      composeWorkspace.innerHTML=`<div class="compose-head"><small>COMPOSE</small><h2>Create your composition</h2><p>Combine Voice, Sound, SFX, Ambience and more into one composition.</p></div><div class="compose-canvas"><div class="compose-empty"><p>Import audio assets into your composition one track at a time.</p><button class="compose-add-track" type="button">+ Add Track</button></div></div>`;
+      composeWorkspace.innerHTML=`<div class="compose-head"><div class="compose-head-copy"><small>COMPOSE</small><h2>Create your composition</h2><p>Combine Voice, Sound, SFX, Ambience and more into one composition.</p></div><div class="compose-head-actions"><button class="compose-export-trigger" type="button" data-compose-export disabled>COMPOSE &amp; EXPORT</button></div></div><div class="compose-canvas"><div class="compose-empty"><p>Import audio assets into your composition one track at a time.</p><button class="compose-add-track" type="button">+ Add Track</button></div></div>`;
       composeWorkspace.querySelector('.compose-add-track')?.addEventListener('click',openComposeTrackModal);
+      composeWorkspace.querySelector('[data-compose-export]')?.addEventListener('click',openComposeExportModal);
+      syncComposeExportButton();
       composeWorkspace.dataset.initialized='1';
     }else if(view==='video'){
       placeholder.className='studio-domain-placeholder';
