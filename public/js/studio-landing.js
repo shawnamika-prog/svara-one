@@ -553,10 +553,10 @@
     button.disabled=!rows.length||rows.some(row=>!row.querySelector('.compose-track-audio')?.src);
   }
 
-  function defaultComposeExportFilename(){
+  function defaultComposeExportFilename(format='wav'){
     const date=new Date();
     const pad=value=>String(value).padStart(2,'0');
-    return 'svaraone-composition-'+date.getFullYear()+'-'+pad(date.getMonth()+1)+'-'+pad(date.getDate())+'-'+pad(date.getHours())+'-'+pad(date.getMinutes())+'.wav';
+    return 'svaraone-composition-'+date.getFullYear()+'-'+pad(date.getMonth()+1)+'-'+pad(date.getDate())+'-'+pad(date.getHours())+'-'+pad(date.getMinutes())+'.'+format;
   }
 
   function compositionMasterGain(audioBuffer){
@@ -753,10 +753,10 @@
     modal.className='compose-track-modal compose-export-modal';
     modal.innerHTML='<div class="compose-track-backdrop"></div>'+
       '<section class="compose-track-dialog compose-export-dialog" role="dialog" aria-modal="true" aria-labelledby="composeExportTitle">'+
-        '<div class="compose-track-head"><div><p class="compose-track-eyebrow">COMPOSITION EXPORT</p><h3 id="composeExportTitle">Compose &amp; Export</h3><p class="compose-track-subtitle">Render the timeline into one WAV asset and save it to your library storage.</p></div><button class="compose-track-close" type="button" aria-label="Close">×</button></div>'+
+        '<div class="compose-track-head"><div><p class="compose-track-eyebrow">COMPOSITION EXPORT</p><h3 id="composeExportTitle">Compose &amp; Export</h3><p class="compose-track-subtitle">Render your timeline into one finished audio asset and save it to R2.</p></div><button class="compose-track-close" type="button" aria-label="Close">×</button></div>'+
         '<form class="compose-export-form">'+
           '<label class="compose-export-field"><span>Filename</span><input type="text" name="filename" maxlength="124" autocomplete="off" required></label>'+
-          '<label class="compose-export-field"><span>Format</span><select disabled aria-label="Export format"><option>WAV · 16-bit PCM · Stereo · 44.1 kHz</option></select></label>'+
+          '<label class="compose-export-field"><span>Format</span><select name="format" aria-label="Export format"><option value="wav">WAV · 16-bit PCM · Stereo · 44.1 kHz</option><option value="mp3">MP3 · 192 kbps · Stereo · 44.1 kHz</option><option value="pcm">PCM · 16-bit signed · Stereo · 24 kHz</option></select></label>'+
           '<p class="compose-export-status" data-export-status role="status">The original track assets will remain unchanged.</p>'+
           '<div class="compose-export-actions"><button class="compose-export-cancel" type="button" data-export-cancel>Cancel</button><button class="compose-export-submit" type="submit" data-export-submit>Export WAV</button></div>'+
         '</form>'+
@@ -764,15 +764,31 @@
     composeWorkspace.appendChild(modal);
     const form=modal.querySelector('.compose-export-form');
     const filenameInput=form.querySelector('[name="filename"]');
+    const formatSelect=form.querySelector('[name="format"]');
     const status=form.querySelector('[data-export-status]');
     const submit=form.querySelector('[data-export-submit]');
     const cancel=form.querySelector('[data-export-cancel]');
     const closeButton=modal.querySelector('.compose-track-close');
-    filenameInput.value=defaultComposeExportFilename();
     const close=()=>modal.remove();
+    filenameInput.value=defaultComposeExportFilename('wav');
+    const updateFormatUi=(updateExtension=true)=>{
+      const format=formatSelect.value||'wav';
+      if(updateExtension){
+        const stem=filenameInput.value.trim().replace(/\.(wav|mp3|pcm)$/i,'');
+        if(stem)filenameInput.value=stem+'.'+format;
+      }
+      submit.textContent='Export '+format.toUpperCase();
+      status.classList.remove('error');
+      status.textContent=format==='pcm'
+        ?'Raw PCM · 16-bit big-endian stereo · 24 kHz. A WAV-wrapped preview will be available after saving.'
+        :format==='mp3'
+          ?'MP3 · 192 kbps stereo. The original track assets will remain unchanged.'
+          :'WAV · 16-bit PCM stereo · 44.1 kHz. The original track assets will remain unchanged.';
+    };
+    formatSelect.addEventListener('change',()=>updateFormatUi(true));
     closeButton.addEventListener('click',close);
     cancel.addEventListener('click',close);
-    modal.querySelector('.compose-track-backdrop').addEventListener('click',close);
+    modal.querySelector('.compose-track-backdrop').addEventListener('click',()=>{if(!submit.disabled)close();});
     document.addEventListener('keydown',function onKeydown(event){
       if(!document.getElementById('composeExportModal')){document.removeEventListener('keydown',onKeydown);return;}
       if(event.key==='Escape'&&!submit.disabled){close();document.removeEventListener('keydown',onKeydown);}
@@ -782,10 +798,17 @@
       if(submit.disabled)return;
       const currentRows=[...composeWorkspace.querySelectorAll('.compose-timeline .compose-track-editor')];
       if(!currentRows.length){status.textContent='Add at least one audio track before exporting.';return;}
-      let filename=filenameInput.value.trim();
-      if(!/\.wav$/i.test(filename))filename+='.wav';
-      if(!/^[a-z0-9][a-z0-9 _().-]{0,119}\.wav$/i.test(filename)){
-        status.textContent='Use letters, numbers, spaces, hyphens, underscores, brackets or dots in a filename (up to 120 characters before .wav).';
+      const format=formatSelect.value||'wav';
+      const details={
+        wav:{sampleRate:44100,mimeType:'audio/wav',extension:'wav',label:'WAV'},
+        mp3:{sampleRate:44100,mimeType:'audio/mpeg',extension:'mp3',label:'MP3'},
+        pcm:{sampleRate:24000,mimeType:'audio/l16;rate=24000;channels=2',extension:'pcm',label:'PCM'}
+      }[format];
+      if(!details){status.textContent='Choose a supported export format.';return;}
+      let filename=filenameInput.value.trim().replace(/\.(wav|mp3|pcm)$/i,'')+'.'+details.extension;
+      if(!/^[a-z0-9][a-z0-9 _().-]{0,119}\.(wav|mp3|pcm)$/i.test(filename)){
+        status.textContent='Use letters, numbers, spaces, hyphens, underscores, brackets or dots in a filename (up to 120 characters before the extension).';
+        status.classList.add('error');
         filenameInput.focus();
         return;
       }
@@ -794,43 +817,53 @@
       cancel.disabled=true;
       closeButton.disabled=true;
       filenameInput.disabled=true;
+      formatSelect.disabled=true;
       try{
-        const result=await renderCompositionWav(currentRows,message=>{status.textContent=message;});
-        status.textContent='Saving WAV to R2…';
+        const result=await renderCompositionAudio(currentRows,message=>{status.textContent=message;},details.sampleRate);
+        status.textContent='Encoding '+details.label+'…';
+        const blob=format==='wav'
+          ?encodeCompositionWav(result.audioBuffer)
+          :format==='mp3'
+            ?encodeCompositionMp3(result.audioBuffer,message=>{status.textContent=message;})
+            :encodeCompositionPcm(result.audioBuffer);
+        if(!blob.size||blob.size>80000000)throw new Error('The encoded file is empty or exceeds the 80 MB export limit.');
+        status.textContent='Saving '+details.label+' to R2…';
         const response=await fetch('/api/compositions/export',{
           method:'POST',
           credentials:'same-origin',
           cache:'no-store',
           headers:{
-            'content-type':'audio/wav',
+            'content-type':details.mimeType,
+            'x-svara-composition-format':format,
             'x-svara-composition-filename':filename,
             'x-svara-composition-duration':String(result.durationSeconds),
             'x-svara-composition-track-count':String(result.trackCount),
-            'x-svara-composition-size':String(result.wav.size)
+            'x-svara-composition-size':String(blob.size)
           },
-          body:result.wav
+          body:blob
         });
         const data=await response.json().catch(()=>({}));
         if(!response.ok)throw new Error(data.error||'Composition export failed ('+response.status+').');
-        const assetUrl='/api/compositions/assets/'+encodeURIComponent(String(data.id||''));
-        if(!data.id)throw new Error('The WAV was uploaded but the server did not return an asset ID.');
+        if(!data.id)throw new Error('The audio was uploaded but the server did not return an asset ID.');
+        const assetUrl='/api/compositions/assets/'+encodeURIComponent(String(data.id));
+        const previewUrl=assetUrl+(format==='pcm'?'?preview=1':'');
         form.replaceChildren();
         const success=document.createElement('div');
         success.className='compose-export-success';
         const heading=document.createElement('strong');
         heading.textContent='Composition saved';
         const detail=document.createElement('p');
-        detail.textContent=(data.filename||filename)+' · '+Math.floor(Number(data.durationSeconds||result.durationSeconds))+' seconds · '+Math.round(Number(data.sizeBytes||result.wav.size)/1024)+' KB';
+        detail.textContent=(data.filename||filename)+' · '+Math.floor(Number(data.durationSeconds||result.durationSeconds))+' seconds · '+Math.round(Number(data.sizeBytes||blob.size)/1024)+' KB';
         const preview=document.createElement('audio');
         preview.controls=true;
         preview.preload='none';
-        preview.src=assetUrl;
+        preview.src=previewUrl;
         preview.className='compose-export-preview';
         const download=document.createElement('a');
         download.className='compose-export-download';
         download.href=assetUrl+'?download=1';
         download.download=String(data.filename||filename);
-        download.textContent='Download WAV';
+        download.textContent='Download '+details.label;
         success.append(heading,detail,preview,download);
         form.appendChild(success);
         const doneButton=document.createElement('button');
@@ -840,6 +873,7 @@
         doneButton.addEventListener('click',close);
         form.appendChild(doneButton);
         closeButton.disabled=false;
+        loadCompositionLibrary();
       }catch(error){
         status.textContent=error?.message||'Export failed. No saved asset was confirmed.';
         status.classList.add('error');
@@ -847,6 +881,7 @@
         cancel.disabled=false;
         closeButton.disabled=false;
         filenameInput.disabled=false;
+        formatSelect.disabled=false;
       }
     });
     filenameInput.focus();
