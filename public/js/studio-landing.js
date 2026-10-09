@@ -116,7 +116,7 @@
     .compose-track-move:hover{background:#12264a;color:#a9c2ff;border-color:#5f8cff77}
     .compose-track-move:active{cursor:grabbing;background:#162e5a;color:#d7e2ff}
     .compose-track-lane{position:relative;grid-column:2;grid-row:1;display:flex;align-items:center;min-height:92px;width:var(--compose-timeline-width,720px);padding:10px 0;background:#060d17;overflow:hidden}
-    .compose-track-lane:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(to right,transparent 0,var(--compose-grid-line,#ffffff0c) 1px,transparent 1px,var(--compose-five-second-pitch,120px) var(--compose-five-second-pitch,120px))}
+    .compose-track-lane:before{content:"";position:absolute;inset:0;z-index:3;pointer-events:none;background:repeating-linear-gradient(to right,var(--compose-grid-line,#ffffff0c) 0 1px,transparent 1px var(--compose-five-second-pitch,120px))}
     .compose-track-region{position:relative;z-index:2;display:flex;align-items:center;width:120px;min-width:120px;flex:0 0 auto;cursor:grab;transition:margin-left .08s ease}
     .compose-track-region:hover{filter:brightness(1.05)}
     .compose-track-region:active{cursor:grabbing}
