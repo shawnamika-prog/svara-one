@@ -422,6 +422,146 @@ export default {
 
     const url = new URL(request.url);
 
+    if (request.method === "POST" && url.pathname === "/api/compositions/export") {
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return json({ error: "Authentication required." }, 401);
+      if (!env.GENERATED_AUDIO) return json({ error: "Composition storage is not configured." }, 503);
+
+      const contentType = String(request.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
+      if (contentType !== "audio/wav") return json({ error: "Composition export must be uploaded as WAV audio." }, 415);
+      if (!request.body) return json({ error: "WAV audio is required." }, 400);
+
+      const declaredSize = Number(request.headers.get("content-length") || 0);
+      if (declaredSize > 80000000) return json({ error: "WAV export exceeds the current 80 MB limit." }, 413);
+      const durationSeconds = Number(request.headers.get("x-svara-composition-duration") || 0);
+      if (!Number.isFinite(durationSeconds) || durationSeconds <= 0 || durationSeconds > 420) {
+        return json({ error: "Composition duration must be greater than zero and no longer than 7 minutes." }, 400);
+      }
+      const trackCount = Number(request.headers.get("x-svara-composition-track-count") || 0);
+      if (!Number.isInteger(trackCount) || trackCount < 1 || trackCount > 100) {
+        return json({ error: "Composition track count is invalid." }, 400);
+      }
+
+      const requestedFilename = String(request.headers.get("x-svara-composition-filename") || "")
+        .replace(/[\\/]/g, "")
+        .replace(/[^a-zA-Z0-9 _().-]/g, "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .replace(/[. ]+$/g, "");
+      const baseFilename = requestedFilename.replace(/\.wav$/i, "").trim().slice(0, 120);
+      if (!baseFilename || baseFilename === "." || baseFilename === "..") {
+        return json({ error: "A valid composition filename is required." }, 400);
+      }
+      const filename = baseFilename + ".wav";
+      const id = crypto.randomUUID();
+      const key = "users/" + userId + "/compositions/" + id + ".wav";
+      const createdAt = new Date().toISOString();
+
+      try {
+        const stored = await env.GENERATED_AUDIO.put(key, request.body, {
+          httpMetadata: {
+            contentType: "audio/wav",
+            cacheControl: "private, no-store"
+          },
+          customMetadata: {
+            compositionExportId: id,
+            userId,
+            filename,
+            format: "wav",
+            durationSeconds: String(durationSeconds),
+            trackCount: String(trackCount),
+            createdAt
+          }
+        });
+        if (!stored) throw new Error("R2 did not confirm the Composition upload.");
+        return json({
+          success: true,
+          id,
+          filename,
+          format: "WAV",
+          mimeType: "audio/wav",
+          durationSeconds,
+          trackCount,
+          sizeBytes: Number(stored.size || declaredSize || 0),
+          createdAt,
+          assetUrl: "/api/compositions/assets/" + id
+        });
+      } catch (error) {
+        console.error("composition_export_storage_error", error);
+        return json({ error: "Composition could not be saved to R2. No saved asset was confirmed." }, 502);
+      }
+    }
+
+    if (request.method === "GET" && url.pathname.startsWith("/api/compositions/assets/") && url.pathname.split("/").length === 5) {
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return json({ error: "Authentication required." }, 401);
+      if (!env.GENERATED_AUDIO) return json({ error: "Composition storage is not configured." }, 503);
+
+      let id = "";
+      try { id = decodeURIComponent(url.pathname.split("/").pop() || ""); } catch {}
+      if (!/^[0-9a-f-]{36}$/i.test(id)) return json({ error: "Composition asset not found." }, 404);
+
+      const key = "users/" + userId + "/compositions/" + id + ".wav";
+      const metadata = await env.GENERATED_AUDIO.head(key);
+      if (!metadata || (metadata.customMetadata?.userId && metadata.customMetadata.userId !== userId)) {
+        return json({ error: "Composition asset not found." }, 404);
+      }
+      const totalSize = Number(metadata.size || 0);
+      if (!Number.isFinite(totalSize) || totalSize < 44) return json({ error: "Composition WAV is unavailable." }, 404);
+
+      const wantsDownload = url.searchParams.get("download") === "1";
+      const filename = String(metadata.customMetadata?.filename || ("svaraone-composition-" + id + ".wav")).replace(/["\r\n]/g, "");
+      const headers = new Headers({
+        "content-type": "audio/wav",
+        "cache-control": "private, no-store",
+        "accept-ranges": "bytes",
+        "content-disposition": (wantsDownload ? "attachment" : "inline") + '; filename="' + filename + '"',
+        "x-svaraone-composition-id": id
+      });
+      if (metadata.httpEtag) headers.set("etag", metadata.httpEtag);
+
+      const rangeHeader = request.headers.get("Range");
+      let object;
+      let status = 200;
+      if (rangeHeader) {
+        const match = /^bytes=(\d*)-(\d*)$/.exec(rangeHeader.trim());
+        if (!match) {
+          headers.set("content-range", "bytes */" + totalSize);
+          return new Response(null, { status: 416, headers });
+        }
+        let start;
+        let end;
+        if (match[1] === "") {
+          const suffixLength = Number(match[2]);
+          if (!Number.isInteger(suffixLength) || suffixLength <= 0) {
+            headers.set("content-range", "bytes */" + totalSize);
+            return new Response(null, { status: 416, headers });
+          }
+          start = Math.max(0, totalSize - suffixLength);
+          end = totalSize - 1;
+        } else {
+          start = Number(match[1]);
+          end = match[2] === "" ? totalSize - 1 : Number(match[2]);
+          if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || start >= totalSize || end < start) {
+            headers.set("content-range", "bytes */" + totalSize);
+            return new Response(null, { status: 416, headers });
+          }
+          end = Math.min(end, totalSize - 1);
+        }
+        object = await env.GENERATED_AUDIO.get(key, { range: { offset: start, length: end - start + 1 } });
+        if (!object) return json({ error: "Composition asset not found." }, 404);
+        headers.set("content-length", String(end - start + 1));
+        headers.set("content-range", "bytes " + start + "-" + end + "/" + totalSize);
+        status = 206;
+      } else {
+        object = await env.GENERATED_AUDIO.get(key);
+        if (!object) return json({ error: "Composition asset not found." }, 404);
+        headers.set("content-length", String(totalSize));
+      }
+      if (object.httpEtag) headers.set("etag", object.httpEtag);
+      return new Response(object.body, { status, headers });
+    }
+
     if (request.method === "GET" && url.pathname === "/api/branding/svaraone-logo.png") {
       const logo = await storedBrandLogo(env);
       if (logo) return logo;
