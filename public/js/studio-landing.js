@@ -87,44 +87,39 @@
     .compose-track-backdrop{position:absolute;inset:0;background:#020611cc;backdrop-filter:blur(6px)}
     .compose-track-dialog{position:relative;width:min(560px,calc(100vw - 32px));padding:24px;border:1px solid #4f7cff44;border-radius:18px;background:linear-gradient(180deg,#0b1426,#080f1c);box-shadow:0 28px 90px #000b;color:#dbe7f5}
     .compose-track-subtitle{max-width:390px}
-    .compose-timeline{width:min(1120px,100%);margin:0 auto;overflow-x:auto}
+    .compose-timeline{width:min(1120px,100%);margin:0 auto;overflow-x:auto;overflow-y:hidden}
     .compose-timeline-transport{display:flex;justify-content:flex-end;gap:8px;margin:0 0 10px;min-width:900px}
     .compose-transport-button{height:32px;padding:0 14px;border:1px solid #4f7cff66;border-radius:9px;background:linear-gradient(105deg,#12265a,#12213d);color:#7ea5ff;font:800 10px Inter;cursor:pointer;box-shadow:0 8px 20px #0003}
     .compose-transport-button:hover{background:linear-gradient(105deg,#193274,#172a4e);color:#fff}
     .compose-transport-button.active{border-color:#31e3c855;background:#0d2930;color:#31e3c8}
     .compose-timeline-ruler{display:grid;grid-template-columns:180px minmax(720px,1fr);align-items:end;margin-bottom:8px;min-width:900px}
     .compose-timeline-label{padding:0 12px 8px;color:#5f7390;font-size:8px;font-weight:800;letter-spacing:.16em}
-    .compose-timeline-scale{position:relative;height:28px;padding:0;border-left:1px solid #ffffff08;border-bottom:1px solid #ffffff12}
-    .compose-timeline-scale:before{content:"";position:absolute;left:0;right:0;bottom:0;height:9px;background:repeating-linear-gradient(to right,#ffffff20 0,#ffffff20 1px,transparent 1px,transparent calc(100% / 30))}
-    .compose-timeline-scale span{position:absolute;bottom:10px;color:#7186a0;font-size:8px;font-variant-numeric:tabular-nums;white-space:nowrap}
-    .compose-timeline-scale span:nth-child(1){left:0}
-    .compose-timeline-scale span:nth-child(2){left:16.6667%}
-    .compose-timeline-scale span:nth-child(3){left:33.3333%}
-    .compose-timeline-scale span:nth-child(4){left:50%}
-    .compose-timeline-scale span:nth-child(5){left:66.6667%}
-    .compose-timeline-scale span:nth-child(6){left:83.3333%}
-    .compose-timeline-scale span:nth-child(7){left:100%;transform:translateX(-100%)}
+    .compose-timeline-scale{position:relative;height:28px;padding:0;border-left:1px solid #ffffff08;border-bottom:1px solid #ffffff12;flex:0 0 auto}
+    .compose-timeline-scale:before{content:"";position:absolute;left:0;right:0;bottom:0;height:9px;background:repeating-linear-gradient(to right,#ffffff20 0,#ffffff20 1px,transparent 1px,var(--compose-second-pitch,24px) var(--compose-second-pitch,24px))}
+    .compose-timeline-scale .compose-timeline-ruler-mark{position:absolute;bottom:10px;transform:translateX(-50%);color:#7186a0;font-size:8px;font-variant-numeric:tabular-nums;white-space:nowrap}
+    .compose-timeline-scale .compose-timeline-ruler-mark:first-child{transform:none}
+    .compose-timeline-scale .compose-timeline-playhead{transform:translateX(-1px)}
     .compose-timeline-playhead{position:absolute;top:0;bottom:0;left:var(--timeline-playhead,0%);z-index:6;width:2px;background:#d7e2ff;box-shadow:0 0 10px #5f8cffaa;transform:translateX(-1px);pointer-events:none;opacity:.95}
     .compose-timeline-playhead:before{content:"";position:absolute;top:-1px;left:50%;width:8px;height:8px;border-radius:50%;background:#fff;box-shadow:0 0 9px #5f8cffcc;transform:translateX(-50%)}
-    .compose-timeline-list{display:flex;flex-direction:column;gap:7px;min-width:900px}
+    .compose-timeline-list{display:flex;flex-direction:column;gap:7px;min-width:900px;width:max-content}
     .compose-add-track-inline{display:block;margin:14px auto 0}
-    .compose-track-editor{display:grid;grid-template-columns:180px minmax(720px,1fr);grid-template-rows:auto auto;gap:0;border:1px solid #ffffff0d;border-radius:11px;background:#07121d;overflow:hidden}
+    .compose-track-editor{display:grid;grid-template-columns:180px var(--compose-timeline-width,720px);grid-template-rows:auto auto;gap:0;border:1px solid #ffffff0d;border-radius:11px;background:#07121d;overflow:hidden}
     .compose-track-editor.selected{border-color:#4f7cff66;box-shadow:inset 0 0 0 1px #4f7cff22}
     .compose-track-identity{grid-column:1;grid-row:1 / span 2;display:grid;grid-template-columns:34px 34px 34px 1fr;grid-template-rows:32px 1fr;align-items:start;gap:8px;padding:12px;border-right:1px solid #ffffff0b;background:#091522;cursor:pointer}
     .compose-track-identity .compose-track-row-main{grid-column:1 / span 4;grid-row:2;min-width:0;align-self:end;padding-bottom:1px}
     .compose-track-move{width:34px;height:30px;border:1px solid #4f7cff44;border-radius:8px;background:#0d1c31;color:#6f91d9;display:grid;place-items:center;font-size:15px;line-height:1;cursor:grab;padding:0;letter-spacing:-3px}
     .compose-track-move:hover{background:#12264a;color:#a9c2ff;border-color:#5f8cff77}
     .compose-track-move:active{cursor:grabbing;background:#162e5a;color:#d7e2ff}
-    .compose-track-lane{position:relative;grid-column:2;grid-row:1;display:flex;align-items:center;min-height:92px;padding:10px 0;background:#060d17;overflow:hidden}
+    .compose-track-lane{position:relative;grid-column:2;grid-row:1;display:flex;align-items:center;min-height:92px;width:var(--compose-timeline-width,720px);padding:10px 0;background:#060d17;overflow:hidden}
     .compose-track-lane:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(to right,transparent 0,transparent calc(16.6667% - 1px),#ffffff0c calc(16.6667% - 1px),#ffffff0c 16.6667%)}
-    .compose-track-region{position:relative;z-index:2;display:flex;align-items:center;width:100%;min-width:120px;cursor:grab;transition:margin-left .08s ease}
+    .compose-track-region{position:relative;z-index:2;display:flex;align-items:center;width:120px;min-width:120px;flex:0 0 auto;cursor:grab;transition:margin-left .08s ease}
     .compose-track-region:hover{filter:brightness(1.05)}
     .compose-track-region:active{cursor:grabbing}
     .compose-track-editor.dragging .compose-track-region{cursor:grabbing;transition:none;filter:brightness(1.08)}
     .compose-track-editor.dragging .compose-track-wave{filter:drop-shadow(0 0 7px #4f7cff66)}
     .compose-track-time-guide{position:absolute;top:2px;left:0;z-index:4;padding:3px 6px;border:1px solid #4f7cff66;border-radius:5px;background:#071426ee;color:#a9c2ff;font:700 8px Inter;opacity:0;pointer-events:none;white-space:nowrap;transform:translateY(-100%)}
     .compose-track-editor.dragging .compose-track-time-guide{opacity:1}
-    .compose-track-wave{position:relative;z-index:1;height:68px;display:flex;align-items:center;gap:2px;flex:1;overflow:hidden;padding:0 8px;border:1px solid #4f7cff33;border-radius:8px;background:#0b1a2b}
+    .compose-track-wave{position:relative;z-index:1;height:68px;display:flex;align-items:center;gap:2px;width:100%;flex:0 0 auto;overflow:hidden;padding:0 8px;border:1px solid #4f7cff33;border-radius:8px;background:#0b1a2b}
     .compose-track-wave:before,.compose-track-wave:after{content:"";position:absolute;top:0;bottom:0;z-index:2;background:#06101dcc;pointer-events:none}
     .compose-track-wave:before{left:0;width:var(--trim-left,0%);border-right:1px solid #4f7cff55}
     .compose-track-wave:after{right:0;width:var(--trim-right,0%);border-left:1px solid #4f7cff55}
@@ -544,20 +539,90 @@
         <div class="compose-timeline-transport"><button type="button" class="compose-transport-button" data-compose-play-all aria-label="Play all tracks" title="Play all tracks">▶ Play All</button></div>
         <div class="compose-timeline-ruler">
           <div class="compose-timeline-label">TRACKS</div>
-          <div class="compose-timeline-scale"><span>0:00</span><span>0:05</span><span>0:10</span><span>0:15</span><span>0:20</span><span>0:25</span><span>0:30</span><span class="compose-timeline-playhead" aria-hidden="true"></span></div>
+          <div class="compose-timeline-scale"><span class="compose-timeline-playhead" aria-hidden="true"></span></div>
         </div>
         <div class="compose-timeline-list"></div>
       `;
       canvas.appendChild(timeline);
       const playAllButton=timeline.querySelector('[data-compose-play-all]');
       const timelineScale=timeline.querySelector('.compose-timeline-scale');
+      const composeModel={
+        duration:30,
+        currentTime:0,
+        pixelsPerSecond:24,
+        minDuration:30,
+        tracks:new Map(),
+        nextTrackId:1
+      };
+      const trackSourceDuration=row=>{
+        const audio=row?.querySelector('.compose-track-audio');
+        const value=Number(row?.dataset.sourceDuration||0);
+        const assetValue=Number(row?.dataset.assetDuration||0);
+        return Math.max(0.01,
+          Number.isFinite(audio?.duration)&&audio.duration>0?audio.duration:
+          value>0?value:
+          assetValue>0?assetValue:30
+        );
+      };
+      const trackEffectiveDuration=row=>{
+        const duration=trackSourceDuration(row);
+        const trimIn=Math.max(0,Math.min(.98,Number(row?.dataset.trimIn||0)||0));
+        const trimOut=Math.max(0,Math.min(.98,Number(row?.dataset.trimOut||0)||0));
+        return Math.max(.01,duration*(1-trimIn-trimOut));
+      };
+      const renderTimelineRuler=()=>{
+        if(!timelineScale)return;
+        const duration=Math.max(composeModel.minDuration,composeModel.duration);
+        const width=Math.max(720,duration*composeModel.pixelsPerSecond);
+        const step=duration<=60?5:duration<=180?10:duration<=600?30:60;
+        const marks=[];
+        for(let seconds=0;seconds<=duration+.001;seconds+=step){
+          const clamped=Math.min(duration,seconds);
+          marks.push(`<span class="compose-timeline-ruler-mark" style="left:${(clamped/duration)*100}%">${formatComposeTime(clamped).replace('.00','')}</span>`);
+        }
+        timelineScale.innerHTML=marks.join('')+`<span class="compose-timeline-playhead" aria-hidden="true"></span>`;
+        timelineScale.style.width=`${width}px`;
+        timelineScale.style.setProperty('--compose-second-pitch',`${composeModel.pixelsPerSecond}px`);
+        timelineScale.style.setProperty('--timeline-duration',String(duration));
+        timelineScale.closest('.compose-timeline-ruler')?.style.setProperty('grid-template-columns',`180px ${width}px`);
+        timeline.querySelector('.compose-timeline-list')?.style.setProperty('width',`${width+180}px`);
+        timeline.querySelector('.compose-timeline-transport')?.style.setProperty('width',`${width+180}px`);
+      };
+      const updateCompositionGeometry=()=>{
+        const rows=[...timeline.querySelectorAll('.compose-track-editor')];
+        let duration=composeModel.minDuration;
+        rows.forEach(row=>{
+          const start=Math.max(0,Number(row.dataset.startSeconds||0)||0);
+          duration=Math.max(duration,start+trackEffectiveDuration(row));
+        });
+        composeModel.duration=Math.max(composeModel.minDuration,duration);
+        const width=Math.max(720,composeModel.duration*composeModel.pixelsPerSecond);
+        renderTimelineRuler();
+        rows.forEach(row=>{
+          row.style.gridTemplateColumns=`180px ${width}px`;
+          const region=row.querySelector('.compose-track-region');
+          if(region){
+            const start=Math.max(0,Number(row.dataset.startSeconds||0)||0);
+            const trackWidth=Math.max(120,trackSourceDuration(row)*composeModel.pixelsPerSecond);
+            region.style.marginLeft=`${start*composeModel.pixelsPerSecond}px`;
+            region.style.width=`${trackWidth}px`;
+            region.style.maxWidth='none';
+          }
+        });
+        timeline.style.setProperty('--compose-timeline-width',`${width}px`);
+        timeline.style.setProperty('--compose-pixels-per-second',String(composeModel.pixelsPerSecond));
+      };
+      timeline._composeModel=composeModel;
+      timeline._updateCompositionGeometry=updateCompositionGeometry;
       let playAllRunId=0;
       let playAllRunning=false;
       let playAllStartedAt=0;
       let playAllFrame=0;
       const renderTimelinePlayhead=seconds=>{
-        const value=Math.max(0,Math.min(30,Number(seconds)||0));
-        timelineScale?.style.setProperty('--timeline-playhead',String((value/30)*100)+'%');
+        const duration=Math.max(composeModel.minDuration,composeModel.duration);
+        const value=Math.max(0,Math.min(duration,Number(seconds)||0));
+        composeModel.currentTime=value;
+        timelineScale?.style.setProperty('--timeline-playhead',String((value/duration)*100)+'%');
       };
       const stopTimelinePlayhead=()=>{
         if(playAllFrame)cancelAnimationFrame(playAllFrame);
@@ -731,8 +796,9 @@
     const row=document.createElement('article');
     row.className='compose-track-editor';
     row.dataset.startSeconds='0';
-    const seed=String(asset.id||asset.filename||'track').split('').reduce((sum,char)=>((sum*31)+char.charCodeAt(0))%997,17);
-    const bars=Array.from({length:84},(_,i)=>Math.max(10,Math.round(22+Math.abs(Math.sin(seed+i*1.73))*58+Math.abs(Math.cos(seed/7+i*.37))*15)));
+    row.dataset.assetDuration=String(Number(asset.durationSeconds||asset.duration||30)||30);
+    row.dataset.trackId=`track-${timeline._composeModel?.nextTrackId++||Date.now()}`;
+    const bars=Array.from({length:84},(_,i)=>Math.max(10,Math.round(22+Math.abs(Math.sin(i*1.73))*58+Math.abs(Math.cos(i*.37))*15)));
     const waveform=bars.map(height=>`<i style="--h:${height}%"></i>`).join('');
     const assetUrl=String(asset.assetUrl||asset.audioUrl||asset.playbackUrl||asset.fileUrl||asset.downloadUrl||asset.outputUrl||asset.url||asset.r2Url||asset.storageUrl||'');
     const capabilityList=Array.isArray(asset.capabilities)?asset.capabilities:Array.isArray(asset.tools)?asset.tools:[];
@@ -769,6 +835,18 @@
       ${assetUrl?`<audio class="compose-track-audio" preload="metadata" src="${escapeHistory(assetUrl)}"></audio>`:''}
     `;
     list.appendChild(row);
+    const composeTimeline=row.closest('.compose-timeline');
+    composeTimeline?._composeModel?.tracks.set(row.dataset.trackId,{
+      id:row.dataset.trackId,
+      type,
+      assetId:asset.id||null,
+      startSeconds:0,
+      sourceDuration:Number(row.dataset.assetDuration||30)||30,
+      trimIn:0,
+      trimOut:0,
+      row
+    });
+    composeTimeline?._updateCompositionGeometry?.();
 
     let addButton=canvas.querySelector('.compose-add-track-inline');
     if(!addButton){
@@ -956,7 +1034,13 @@
     audio?.addEventListener('error',()=>{syncPlayButton();row.closest('.compose-timeline')?._syncPlayAllButton?.();console.warn('compose_track_audio_error',audio.currentSrc||assetUrl);});
     row.querySelector('.compose-track-identity')?.addEventListener('dblclick',event=>{if(!event.target.closest('button'))togglePlayback();});
     audio?.addEventListener('loadedmetadata',()=>{
-      if(Number.isFinite(audio.duration)&&audio.duration>0)row.dataset.sourceDuration=String(audio.duration);
+      if(Number.isFinite(audio.duration)&&audio.duration>0){
+        row.dataset.sourceDuration=String(audio.duration);
+        const composeTimeline=row.closest('.compose-timeline');
+        const trackModel=composeTimeline?._composeModel?.tracks.get(row.dataset.trackId);
+        if(trackModel)trackModel.sourceDuration=audio.duration;
+        composeTimeline?._updateCompositionGeometry?.();
+      }
       renderTrim();
       const composeTimeline=row.closest('.compose-timeline');
       if(!composeTimeline?._isPlayAllRunning?.())renderPlayhead();
@@ -1025,23 +1109,31 @@
     trimInHandle?.addEventListener('mousedown',event=>beginTrim('in',event));
     trimOutHandle?.addEventListener('mousedown',event=>beginTrim('out',event));
     const timelineGeometry=()=>{
-      const timeline=row.closest('.compose-timeline');
-      const scale=timeline?.querySelector('.compose-timeline-scale');
-      if(!scale)return {left:0,width:720,maxSeconds:30};
-      const rect=scale.getBoundingClientRect();
-      return {left:rect.left,width:Math.max(1,rect.width),maxSeconds:30};
+      const composeTimeline=row.closest('.compose-timeline');
+      const model=composeTimeline?._composeModel;
+      const scale=composeTimeline?.querySelector('.compose-timeline-scale');
+      const pixelsPerSecond=Math.max(1,Number(model?.pixelsPerSecond)||24);
+      const maxSeconds=Math.max(Number(model?.duration)||30,Number(model?.minDuration)||30);
+      const width=Math.max(720,maxSeconds*pixelsPerSecond);
+      const rect=scale?.getBoundingClientRect();
+      return {left:rect?.left||0,width,maxSeconds,pixelsPerSecond};
     };
     const applyStart=seconds=>{
-      const geometry=timelineGeometry();
+      const composeTimeline=row.closest('.compose-timeline');
+      const model=composeTimeline?._composeModel;
       const grid=0.25;
-      const clamped=Math.max(0,Math.min(geometry.maxSeconds,Number(seconds)||0));
-      const snapped=Math.round(clamped/grid)*grid;
+      const requested=Math.max(0,Number(seconds)||0);
+      const snapped=Math.round(requested/grid)*grid;
       row.dataset.startSeconds=String(snapped);
-      const offsetPx=(snapped/geometry.maxSeconds)*geometry.width;
-      region.style.marginLeft=`${offsetPx}px`;
-      region.style.maxWidth=`calc(100% - ${offsetPx}px)`;
+      const geometry=timelineGeometry();
+      const trackWidth=Math.max(120,sourceDuration()*geometry.pixelsPerSecond);
+      region.style.marginLeft=`${snapped*geometry.pixelsPerSecond}px`;
+      region.style.width=`${trackWidth}px`;
+      region.style.maxWidth='none';
       const guide=row.querySelector('.compose-track-time-guide');
       if(guide)guide.textContent=`Start ${formatComposeTime(snapped)}`;
+      model?.tracks.get(row.dataset.trackId)?.startSeconds=snapped;
+      composeTimeline?._updateCompositionGeometry?.();
     };
     let dragStartX=0;
     let dragStartSeconds=0;
@@ -1059,8 +1151,8 @@
       const geometry=timelineGeometry();
       const dx=event.clientX-dragStartX;
       const startPx=(dragStartSeconds/geometry.maxSeconds)*geometry.width;
-      const targetPx=Math.max(0,Math.min(geometry.width,startPx+dx));
-      const targetSeconds=(targetPx/geometry.width)*geometry.maxSeconds;
+      const targetPx=Math.max(0,startPx+dx);
+      const targetSeconds=targetPx/geometry.pixelsPerSecond;
       applyStart(targetSeconds);
     };
     const endDrag=()=>{
