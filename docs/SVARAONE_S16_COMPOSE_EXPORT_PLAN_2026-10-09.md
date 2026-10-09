@@ -13,13 +13,13 @@
 - The export panel defaults to `svaraone-composition-YYYY-MM-DD-HH-MM.wav`; WAV is the only active format.
 - The browser fetches and decodes selected source assets, then uses `OfflineAudioContext` to render one stereo mix with track start positions, trim boundaries, fade in/out, volume, mute and solo state applied. Source assets and live editor state are not modified.
 - The result is encoded as standard RIFF/WAVE, 16-bit PCM, stereo, 44.1 kHz. A master peak adjustment is applied only when needed to keep the output below clipping.
-- `POST /api/compositions/export` authenticates the user, streams and validates the WAV header/length, enforces an 80 MB upload cap, and writes to `users/{userId}/compositions/{uuid}.wav` in the existing `GENERATED_AUDIO` R2 bucket. Minimal asset metadata is stored on the R2 object; no D1 schema migration or S15 composition-state persistence was added.
+- `POST /api/compositions/export` authenticates the user, streams and validates the WAV header/length, enforces an 80 MB upload cap, and writes to `users/{userId}/compositions/{uuid}.wav` in the existing `GENERATED_AUDIO` R2 bucket. Follow-up fix after the first deployed 502: include the exact WAV byte count and bridge the validating stream through Cloudflare `FixedLengthStream`, because R2 requires a readable stream with a known length. Minimal asset metadata is stored on the R2 object; no D1 schema migration or S15 composition-state persistence was added.
 - `GET /api/compositions/assets/{id}` authenticates and scopes retrieval to the signed-in user's key, supports byte ranges for audio playback/scrubbing, and supports `?download=1` for attachment download.
 - Current safety limit: 7 minutes / 80 MB. MP3/PCM and the Composition mini-library remain deferred.
 
 ## Verification status
 
-- JavaScript syntax checks: passed for `public/js/studio-landing.js` and `worker/entry.js`.
+- JavaScript syntax checks: passed for `public/js/studio-landing.js` and `worker/entry.js`, including the R2 stream-length fix.
 - WAV encoder check: passed for RIFF/WAVE identifiers, stereo channel count, 44.1 kHz sample rate, 16-bit PCM and consistent data/RIFF lengths.
 - **Not yet confirmed:** a signed-in browser export against the deployed Cloudflare Worker and live R2, followed by playback and download of that saved object. Treat this as pending until that real round trip is exercised.
 
