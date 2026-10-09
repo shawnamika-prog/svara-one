@@ -882,14 +882,9 @@
         });
         finishPlayAllIfIdle();
       };
-      seekPlayAllTo=seconds=>{
-        if(!playAllRunning)return;
-        const target=Math.max(0,Math.min(Math.max(composeModel.minDuration,composeModel.duration),Number(seconds)||0));
-        renderTimelinePlayhead(target);
-        renderAllTrackPlayheads(target);
-        timeline.querySelectorAll('.compose-track-editor').forEach(row=>{
-          const audio=row.querySelector('.compose-track-audio');
-          if(!audio)return;
+      const seekTrackAudioToCompositionTime=(row,audio,target)=>{
+        if(!audio)return;
+        const applySeek=()=>{
           const duration=Number.isFinite(audio.duration)&&audio.duration>0
             ?audio.duration
             :Math.max(0.01,Number(row.dataset.sourceDuration||30)||30);
@@ -899,12 +894,42 @@
           const trimEnd=Math.max(trimStart+0.01,(1-trimOut)*duration);
           const startSeconds=Math.max(0,Number(row.dataset.startSeconds||0)||0);
           const localOffset=target-startSeconds;
+          const targetTime=localOffset<=0
+            ?trimStart
+            :localOffset>=trimEnd-trimStart
+              ?trimEnd
+              :Math.min(trimEnd-.001,trimStart+localOffset);
           try{
-            if(localOffset<=0)audio.currentTime=trimStart;
-            else if(localOffset>=trimEnd-trimStart)audio.currentTime=trimEnd;
-            else audio.currentTime=Math.min(trimEnd-.001,trimStart+localOffset);
-          }catch{}
+            audio.currentTime=targetTime;
+          }catch(error){
+            console.warn('compose_track_seek_error',error);
+          }
           audio.dispatchEvent(new Event('timeupdate'));
+        };
+        if(Number.isFinite(audio.duration)&&audio.duration>0){
+          applySeek();
+          return;
+        }
+        row._composePendingSeek=target;
+        if(row._composeSeekWaiting)return;
+        row._composeSeekWaiting=true;
+        const onMetadata=()=>{
+          row._composeSeekWaiting=false;
+          audio.removeEventListener('loadedmetadata',onMetadata);
+          const pending=Number(row._composePendingSeek);
+          row._composePendingSeek=null;
+          applySeek(Number.isFinite(pending)?pending:target);
+        };
+        audio.addEventListener('loadedmetadata',onMetadata,{once:true});
+        if(audio.readyState===0)audio.load();
+      };
+      seekPlayAllTo=seconds=>{
+        if(!playAllRunning)return;
+        const target=Math.max(0,Math.min(Math.max(composeModel.minDuration,composeModel.duration),Number(seconds)||0));
+        renderTimelinePlayhead(target);
+        renderAllTrackPlayheads(target);
+        timeline.querySelectorAll('.compose-track-editor').forEach(row=>{
+          seekTrackAudioToCompositionTime(row,row.querySelector('.compose-track-audio'),target);
         });
       };
       playAllButton?.addEventListener('click',playAll);
