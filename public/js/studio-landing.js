@@ -800,7 +800,11 @@
     const trackId=timeline._composeModel?`track-${timeline._composeModel.nextTrackId++}`:`track-${Date.now()}`;
     row.dataset.trackId=trackId;
     const waveformForDuration=duration=>{
-      const count=Math.max(32,Math.min(2400,Math.round(Math.max(0.01,Number(duration)||30)*4)));
+      const pixelsPerSecond=Math.max(1,Number(timeline?._composeModel?.pixelsPerSecond)||24);
+      const barWidth=3;
+      const barGap=2;
+      const pitch=barWidth+barGap;
+      const count=Math.max(32,Math.min(10000,Math.ceil(Math.max(0.01,Number(duration)||30)*pixelsPerSecond/pitch)));
       const bars=Array.from({length:count},(_,i)=>Math.max(10,Math.round(22+Math.abs(Math.sin(i*1.73))*58+Math.abs(Math.cos(i*.37))*15)));
       return bars.map(height=>`<i style="--h:${height}%"></i>`).join('');
     };
