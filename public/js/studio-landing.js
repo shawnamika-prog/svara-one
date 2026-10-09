@@ -993,6 +993,8 @@
       if(!composeTimeline?._isPlayAllRunning?.())renderPlayhead();
     });
     const seekFromPointer=event=>{
+      const composeTimeline=row.closest('.compose-timeline');
+      if(composeTimeline?._isPlayAllRunning?.())return;
       if(!audio||event.target.closest('.compose-track-trim-handle'))return;
       const rect=wave.getBoundingClientRect();
       if(!rect.width)return;
@@ -1008,6 +1010,8 @@
     };
     let scrubbing=false;
     wave?.addEventListener('pointerdown',event=>{
+      const composeTimeline=row.closest('.compose-timeline');
+      if(composeTimeline?._isPlayAllRunning?.())return;
       if(event.target.closest('.compose-track-trim-handle'))return;
       scrubbing=true;
       wave.classList.add('scrubbing');
@@ -1162,6 +1166,8 @@
       if(trimOutHandle)trimOutHandle.title='Trim end: '+formatTrimTime((1-trimOut)*duration);
     };
     const beginTrim=(side,event)=>{
+      const composeTimeline=row.closest('.compose-timeline');
+      if(composeTimeline?._isPlayAllRunning?.())return;
       if(event.button!==0)return;
       event.preventDefault();
       event.stopPropagation();
@@ -1213,6 +1219,7 @@
     };
     const applyStart=seconds=>{
       const composeTimeline=row.closest('.compose-timeline');
+      if(composeTimeline?._isPlayAllRunning?.())return;
       const model=composeTimeline?._composeModel;
       const grid=0.25;
       const requested=Math.max(0,Number(seconds)||0);
