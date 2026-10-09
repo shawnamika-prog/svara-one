@@ -137,7 +137,7 @@
     .compose-track-fade-indicator.in:after,.compose-track-fade-indicator.out:after{display:none}
     .compose-track-trim-readout{position:absolute;left:50%;top:-8px;z-index:6;transform:translate(-50%,-100%);padding:4px 7px;border:1px solid #4f7cff66;border-radius:5px;background:#071426ee;color:#b9ccff;font:700 8px Inter;white-space:nowrap;opacity:0;pointer-events:none}
     .compose-track-editor.trimming .compose-track-trim-readout{opacity:1}
-    .compose-track-wave i{width:auto;flex:1 1 0;min-width:1px;height:var(--h);min-height:4px;border-radius:99px;background:#7da3ff;opacity:.86;transform-origin:center}
+    .compose-track-wave-bars{display:flex;align-items:center;gap:2px;width:100%;height:100%;flex:0 0 auto;overflow:hidden;pointer-events:none}.compose-track-wave i{width:3px;flex:0 0 3px;min-width:3px;height:var(--h);min-height:4px;border-radius:99px;background:#7da3ff;opacity:.86;transform-origin:center}
     .compose-track-playhead{position:absolute;top:0;bottom:0;left:var(--playhead,0%);z-index:5;width:2px;background:#b8caff;box-shadow:0 0 9px #5f8cff99;transform:translateX(-1px);pointer-events:none;opacity:.95}
     .compose-track-playhead:before{content:"";position:absolute;top:-1px;left:50%;width:7px;height:7px;border-radius:50%;background:#d7e2ff;box-shadow:0 0 8px #5f8cffaa;transform:translateX(-50%)}
     .compose-track-wave.scrubbing{cursor:ew-resize}
@@ -799,8 +799,12 @@
     row.dataset.assetDuration=String(Number(asset.durationSeconds||asset.duration||30)||30);
     const trackId=timeline._composeModel?`track-${timeline._composeModel.nextTrackId++}`:`track-${Date.now()}`;
     row.dataset.trackId=trackId;
-    const bars=Array.from({length:84},(_,i)=>Math.max(10,Math.round(22+Math.abs(Math.sin(i*1.73))*58+Math.abs(Math.cos(i*.37))*15)));
-    const waveform=bars.map(height=>`<i style="--h:${height}%"></i>`).join('');
+    const waveformForDuration=duration=>{
+      const count=Math.max(32,Math.min(2400,Math.round(Math.max(0.01,Number(duration)||30)*4)));
+      const bars=Array.from({length:count},(_,i)=>Math.max(10,Math.round(22+Math.abs(Math.sin(i*1.73))*58+Math.abs(Math.cos(i*.37))*15)));
+      return bars.map(height=>`<i style="--h:${height}%"></i>`).join('');
+    };
+    const waveform=waveformForDuration(Number(row.dataset.assetDuration||30)||30);
     const assetUrl=String(asset.assetUrl||asset.audioUrl||asset.playbackUrl||asset.fileUrl||asset.downloadUrl||asset.outputUrl||asset.url||asset.r2Url||asset.storageUrl||'');
     const capabilityList=Array.isArray(asset.capabilities)?asset.capabilities:Array.isArray(asset.tools)?asset.tools:[];
     const capabilities=capabilityList.map(value=>String(value||'').trim()).filter(Boolean);
@@ -815,7 +819,7 @@
         <div class="compose-track-region" title="Drag to position track">
           <span class="compose-track-time-guide">Start 0:00</span>
           <div class="compose-track-wave" aria-label="Track waveform">
-            ${waveform}
+            <span class="compose-track-wave-bars">${waveform}</span>
             <span class="compose-track-playhead" aria-hidden="true"></span>
             <span class="compose-track-fade-indicator in" aria-hidden="true"></span>
             <span class="compose-track-fade-indicator out" aria-hidden="true"></span>
@@ -1037,6 +1041,8 @@
     audio?.addEventListener('loadedmetadata',()=>{
       if(Number.isFinite(audio.duration)&&audio.duration>0){
         row.dataset.sourceDuration=String(audio.duration);
+        const waveformBars=row.querySelector('.compose-track-wave-bars');
+        if(waveformBars)waveformBars.innerHTML=waveformForDuration(audio.duration);
         const composeTimeline=row.closest('.compose-timeline');
         const trackModel=composeTimeline?._composeModel?.tracks.get(row.dataset.trackId);
         if(trackModel)trackModel.sourceDuration=audio.duration;
