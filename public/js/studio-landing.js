@@ -630,12 +630,17 @@
       let playAllStartedAt=0;
       let playAllFrame=0;
       let masterScrubbing=false;
+      let seekPlayAllTo=null;
       const setMasterTimeFromPointer=event=>{
         const rect=timelineScale?.getBoundingClientRect();
         if(!rect||!rect.width)return;
         const duration=Math.max(composeModel.minDuration,composeModel.duration);
         const ratio=Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width));
         const seconds=ratio*duration;
+        if(playAllRunning&&seekPlayAllTo){
+          seekPlayAllTo(seconds);
+          return;
+        }
         renderTimelinePlayhead(seconds);
         renderAllTrackPlayheads(seconds);
       };
@@ -766,7 +771,7 @@
           if(audio.readyState===0)audio.load();
         });
       };
-      const playAll=async()=>{
+      const playAll=async(startAt=0)=>{
         const rows=[...timeline.querySelectorAll('.compose-track-editor')];
         if(!rows.length)return;
         if(playAllRunning||rows.some(row=>{const audio=row.querySelector('.compose-track-audio');return audio&&!audio.paused;})){
@@ -774,14 +779,15 @@
           return;
         }
 
-        // Play All is the master timeline transport: every run starts at ruler 0:00.
         stopAll();
+        const duration=Math.max(composeModel.minDuration,composeModel.duration);
+        const startTime=Math.max(0,Math.min(duration,Number(startAt)||0));
         const runId=++playAllRunId;
         playAllRunning=true;
         playAllPending=rows.filter(row=>row.querySelector('.compose-track-audio')).length;
-        playAllStartedAt=performance.now();
-        renderTimelinePlayhead(0);
-        renderAllTrackPlayheads(0);
+        playAllStartedAt=performance.now()-startTime*1000;
+        renderTimelinePlayhead(startTime);
+        renderAllTrackPlayheads(startTime);
         animateTimelinePlayhead();
         syncPlayAllButton();
 
@@ -804,7 +810,18 @@
               const trimOut=Math.max(0,Math.min(.98,Number(row.dataset.trimOut||0)||0));
               const trimStart=trimIn*duration;
               const trimEnd=Math.max(trimStart+0.01,(1-trimOut)*duration);
-              audio.currentTime=trimStart;
+              const localOffset=Math.max(0,startTime-startSeconds);
+              if(startTime>=startSeconds){
+                if(localOffset>=trimEnd-trimStart){
+                  try{audio.currentTime=trimEnd;}catch{}
+                  audio.dispatchEvent(new Event('timeupdate'));
+                  finishPlayAllIfIdle();
+                  return;
+                }
+                audio.currentTime=Math.min(trimEnd-.001,trimStart+localOffset);
+              }else{
+                audio.currentTime=trimStart;
+              }
               await audio.play();
               if(runId!==playAllRunId){
                 audio.pause();
@@ -833,10 +850,26 @@
               row.querySelector('.compose-track-wave')?.classList.remove('playing');
               finishPlayAllIfIdle();
             }
-          },startSeconds*1000);
+          },Math.max(0,(startSeconds-startTime)*1000));
           playAllTimeouts.add(timer);
         });
         finishPlayAllIfIdle();
+      };
+      seekPlayAllTo=seconds=>{
+        if(!playAllRunning)return;
+        const target=Math.max(0,Math.min(Math.max(composeModel.minDuration,composeModel.duration),Number(seconds)||0));
+        const rows=[...timeline.querySelectorAll('.compose-track-editor')];
+        playAllRunId+=1;
+        clearPlayAllTimeouts();
+        playAllPending=0;
+        playAllActive.clear();
+        rows.forEach(row=>{
+          const audio=row.querySelector('.compose-track-audio');
+          audio?.pause();
+          row.querySelector('.compose-track-wave')?.classList.remove('playing');
+        });
+        playAllRunning=false;
+        playAll(target);
       };
       playAllButton?.addEventListener('click',playAll);
       timeline._syncPlayAllButton=syncPlayAllButton;
