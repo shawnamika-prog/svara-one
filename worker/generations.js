@@ -90,7 +90,68 @@ async function listUserGenerationObjects(env,userId,requestedLimit){if(!env.GENE
 function safeRenameFilename(value,originalFilename){const original=String(originalFilename||''),dot=original.lastIndexOf('.'),extension=dot>0?original.slice(dot).toLowerCase():'';let valueName=String(value||'').trim().replace(/[\\/]/g,'');if(!valueName||valueName==='.'||valueName==='..')throw new Error('A valid filename is required.');if(extension&&!valueName.toLowerCase().endsWith(extension))valueName+=extension;const suppliedDot=valueName.lastIndexOf('.'),suppliedExtension=suppliedDot>0?valueName.slice(suppliedDot).toLowerCase():'';if(extension&&suppliedExtension!==extension)throw new Error(`The file must keep its ${extension.slice(1).toUpperCase()} format.`);if(valueName.length>180)throw new Error('Filename is too long.');return valueName;}
 const originalAppFetch=app.fetch.bind(app);
 app.fetch=async(request,env,ctx)=>{const url=new URL(request.url);
-  if(request.method==='GET'&&url.pathname==='/api/generations/media'){const userId=await authenticatedUserId(request,env);if(!userId)return new Response('Authentication required.',{status:401,headers:{'cache-control':'no-store'}});if(!env.GENERATED_AUDIO)return new Response('Generation storage is not configured.',{status:503});const filename=String(url.searchParams.get('filename')||'').trim().replace(/[\\/]/g,'');if(!filename||filename==='.'||filename==='..')return new Response('Invalid filename.',{status:400});const objects=await listUserGenerationObjects(env,userId,500);const object=objects.find(candidate=>String(candidate.key||'').split('/').pop()===filename);if(!object?.key)return new Response('Generation not found.',{status:404,headers:{'cache-control':'no-store'}});const stored=await env.GENERATED_AUDIO.get(object.key);if(!stored)return new Response('Generation not found.',{status:404,headers:{'cache-control':'no-store'}});const extension=filename.split('.').pop()?.toLowerCase()||'mp3';const contentType=extension==='mp4'?'video/mp4':extension==='webm'?'video/webm':extension==='mov'?'video/quicktime':mimeTypeForFormat(extension);const headers=new Headers();headers.set('content-type',contentType);headers.set('cache-control','private, no-store');const download=url.searchParams.get('download')==='1';headers.set('content-disposition',`${download?'attachment':'inline'}; filename="${filename.replace(/"/g,'')}"`);return new Response(stored.body,{status:200,headers});}
+  if(request.method==='GET'&&url.pathname==='/api/generations/media'){
+    const userId=await authenticatedUserId(request,env);
+    if(!userId)return new Response('Authentication required.',{status:401,headers:{'cache-control':'no-store'}});
+    if(!env.GENERATED_AUDIO)return new Response('Generation storage is not configured.',{status:503});
+    const filename=String(url.searchParams.get('filename')||'').trim().replace(/[\\/]/g,'');
+    if(!filename||filename==='.'||filename==='..')return new Response('Invalid filename.',{status:400});
+    const objects=await listUserGenerationObjects(env,userId,500);
+    const object=objects.find(candidate=>String(candidate.key||'').split('/').pop()===filename);
+    if(!object?.key)return new Response('Generation not found.',{status:404,headers:{'cache-control':'no-store'}});
+    const storedMeta=await env.GENERATED_AUDIO.head?.(object.key);
+    const totalSize=Number(storedMeta?.size??object.size);
+    const extension=filename.split('.').pop()?.toLowerCase()||'mp3';
+    const contentType=extension==='mp4'?'video/mp4':extension==='webm'?'video/webm':extension==='mov'?'video/quicktime':mimeTypeForFormat(extension);
+    const headers=new Headers({
+      'content-type':contentType,
+      'cache-control':'private, no-store',
+      'accept-ranges':'bytes',
+      'content-disposition':`inline; filename="${filename.replace(/"/g,'')}"`
+    });
+    const rangeHeader=request.headers.get('Range');
+    let stored;
+    let status=200;
+    if(rangeHeader&&Number.isFinite(totalSize)&&totalSize>0){
+      const match=/^bytes=(\\d*)-(\\d*)$/.exec(rangeHeader.trim());
+      if(!match){
+        headers.set('content-range',`bytes */${totalSize}`);
+        return new Response(null,{status:416,headers});
+      }
+      let startByte;
+      let endByte;
+      if(match[1]===''){
+        const suffixLength=Number(match[2]);
+        if(!Number.isInteger(suffixLength)||suffixLength<=0){
+          headers.set('content-range',`bytes */${totalSize}`);
+          return new Response(null,{status:416,headers});
+        }
+        startByte=Math.max(0,totalSize-suffixLength);
+        endByte=totalSize-1;
+      }else{
+        startByte=Number(match[1]);
+        endByte=match[2]===''?totalSize-1:Number(match[2]);
+        if(!Number.isInteger(startByte)||!Number.isInteger(endByte)||startByte<0||startByte>=totalSize||endByte<startByte){
+          headers.set('content-range',`bytes */${totalSize}`);
+          return new Response(null,{status:416,headers});
+        }
+        endByte=Math.min(endByte,totalSize-1);
+      }
+      stored=await env.GENERATED_AUDIO.get(object.key,{range:{offset:startByte,length:endByte-startByte+1}});
+      if(!stored)return new Response('Generation not found.',{status:404,headers:{'cache-control':'no-store'}});
+      headers.set('content-length',String(endByte-startByte+1));
+      headers.set('content-range',`bytes ${startByte}-${endByte}/${totalSize}`);
+      status=206;
+    }else{
+      stored=await env.GENERATED_AUDIO.get(object.key);
+      if(!stored)return new Response('Generation not found.',{status:404,headers:{'cache-control':'no-store'}});
+      if(stored.size!==undefined)headers.set('content-length',String(stored.size));
+    }
+    if(stored.httpEtag)headers.set('etag',stored.httpEtag);
+    const download=url.searchParams.get('download')==='1';
+    if(download)headers.set('content-disposition',`attachment; filename="${filename.replace(/"/g,'')}"`);
+    return new Response(stored.body,{status,headers});
+  }
   if(request.method==='GET'&&url.pathname==='/api/generations'){const userId=await authenticatedUserId(request,env);if(!userId)return json({error:'Authentication required.'},401);if(!env.DB||!env.GENERATED_AUDIO)return json({error:'Generation storage is not configured.'},503);try{const requestedLimit=Number(url.searchParams.get('limit')||250),limit=Math.max(1,Math.min(500,Number.isFinite(requestedLimit)?requestedLimit:250));const includeScript=url.searchParams.get('includeScript')==='1';const voiceObjects=await listUserGenerationObjects(env,userId,limit);const soundObjects=await listUserSoundObjects(env,userId,limit);const voiceRows=await env.DB.prepare(`SELECT g.id,g.voice_name,g.format,g.size_bytes,g.character_count,g.credits_charged,g.is_free_take,g.take_number,g.status,g.created_at,g.completed_at,g.expires_at,g.r2_key,g.folder_id,g.script,f.name AS folder_name FROM generations g LEFT JOIN library_folders f ON f.id=g.folder_id AND f.user_id=g.user_id WHERE g.user_id=?`).bind(userId).all();const soundRows=await env.DB.prepare(`SELECT sg.id,sg.type,sg.format,sg.mime_type,sg.size_bytes,sg.status,sg.created_at,sg.completed_at,sg.expires_at,sg.r2_key,sg.folder_id,f.name AS folder_name FROM sound_generations sg LEFT JOIN library_folders f ON f.id=sg.folder_id AND f.user_id=sg.user_id WHERE sg.user_id=?`).bind(userId).all();const voiceByKey=new Map((voiceRows.results||[]).map(row=>[String(row.r2_key||''),row]));const soundByKey=new Map((soundRows.results||[]).map(row=>[String(row.r2_key||''),row]));const voice=voiceObjects.map(object=>{const key=String(object.key||''),row=voiceByKey.get(key),filename=key.split('/').pop()||'generation',extension=filename.split('.').pop()?.toLowerCase()||String(row?.format||'mp3').toLowerCase();return {id:String(row?.id||object.etag||key),filename,assetType:'voice',voiceName:String(row?.voice_name||'Voice'),format:extensionForFormat(extension).toUpperCase(),sizeBytes:Number(object.size)||Number(row?.size_bytes)||0,characterCount:Number(row?.character_count)||0,creditsCharged:Number(row?.credits_charged)||0,isFreeTake:Number(row?.is_free_take)===1,takeNumber:Number(row?.take_number)||1,status:'ready',createdAt:row?.created_at||object.uploaded||null,completedAt:row?.completed_at||object.uploaded||null,expiresAt:row?.expires_at||null,folderId:row?.folder_id||null,folderName:row?.folder_name||null,...(includeScript?{script:String(row?.script||'')}:{})};});const sound=soundObjects.map(object=>{const key=String(object.key||''),row=soundByKey.get(key),filename=key.split('/').pop()||'sound',extension=filename.split('.').pop()?.toLowerCase()||String(row?.format||'mp3').toLowerCase();return {id:String(row?.id||object.etag||key),filename,assetType:'sound',voiceName:'Sound',soundType:String(row?.type||'Sound'),format:extensionForFormat(extension).toUpperCase(),sizeBytes:Number(object.size)||Number(row?.size_bytes)||0,characterCount:0,creditsCharged:0,status:String(row?.status||'ready'),createdAt:row?.created_at||object.uploaded||null,completedAt:row?.completed_at||object.uploaded||null,expiresAt:row?.expires_at||(row?.created_at?new Date(Date.parse(row.created_at)+SOUND_RETENTION_DAYS*86400000).toISOString():null),folderId:row?.folder_id||null,folderName:row?.folder_name||null};});const generations=[...voice,...sound].sort((a,b)=>(Date.parse(b.createdAt||'')||0)-(Date.parse(a.createdAt||'')||0)).slice(0,limit);return json({generations,count:generations.length,limit});}catch(error){console.error('generation_list_error',error);return json({error:'Could not load your library assets.'},500);}}
   if(request.method==='POST'&&url.pathname==='/api/generations/rename'){const userId=await authenticatedUserId(request,env);if(!userId)return json({error:'Authentication required.'},401);if(!env.DB||!env.GENERATED_AUDIO)return json({error:'Generation storage is not configured.'},503);try{const body=await request.json(),currentFilename=String(body?.currentFilename||'').trim(),requestedFilename=String(body?.filename||'').trim();if(!currentFilename)return json({error:'Current filename is required.'},400);const objects=await listUserGenerationObjects(env,userId,500);const object=objects.find(candidate=>String(candidate.key||'').split('/').pop()===currentFilename);if(!object?.key)return json({error:'Generation not found.'},404);const oldKey=String(object.key),originalFilename=oldKey.split('/').pop()||'';const newFilename=safeRenameFilename(requestedFilename,originalFilename);if(newFilename===originalFilename)return json({filename:originalFilename});const newKey=`users/${userId}/generations/${newFilename}`;if(await env.GENERATED_AUDIO.head(newKey))return json({error:'A generation with that filename already exists.'},409);const source=await env.GENERATED_AUDIO.get(oldKey);if(!source||!source.body)return json({error:'Generation file could not be read.'},404);await env.GENERATED_AUDIO.put(newKey,source.body,{httpMetadata:source.httpMetadata,customMetadata:source.customMetadata,storageClass:source.storageClass});const update=await env.DB.prepare(`UPDATE generations SET r2_key=? WHERE user_id=? AND r2_key=?`).bind(newKey,userId,oldKey).run();if(!update.meta?.changes){await env.GENERATED_AUDIO.delete(newKey);return json({error:'Generation metadata could not be updated.'},500);}await env.GENERATED_AUDIO.delete(oldKey);return json({success:true,filename:newFilename});}catch(error){console.error('generation_rename_error',error);return json({error:error?.message||'Could not rename generation.'},500);}}
   if(request.method==='POST'&&url.pathname==='/api/generations/delete'){const userId=await authenticatedUserId(request,env);if(!userId)return json({error:'Authentication required.'},401);if(!env.DB||!env.GENERATED_AUDIO)return json({error:'Generation storage is not configured.'},503);try{const body=await request.json(),filename=String(body?.filename||'').trim().replace(/[\\/]/g,'');if(!filename||filename==='.'||filename==='..')return json({error:'A valid filename is required.'},400);const objects=await listUserGenerationObjects(env,userId,500);const object=objects.find(candidate=>String(candidate.key||'').split('/').pop()===filename);if(!object?.key)return json({error:'Generation not found.'},404);const r2Key=String(object.key);await env.GENERATED_AUDIO.delete(r2Key);const result=await env.DB.prepare('DELETE FROM generations WHERE user_id=? AND r2_key=?').bind(userId,r2Key).run();if(!result.meta?.changes)return json({error:'Generation metadata could not be removed.'},500);return json({success:true,filename});}catch(error){console.error('generation_delete_error',error);return json({error:error?.message||'Could not delete generation.'},500);}}
