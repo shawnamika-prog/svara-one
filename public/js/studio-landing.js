@@ -115,8 +115,7 @@
     .compose-track-move{width:34px;height:30px;border:1px solid #4f7cff44;border-radius:8px;background:#0d1c31;color:#6f91d9;display:grid;place-items:center;font-size:15px;line-height:1;cursor:grab;padding:0;letter-spacing:-3px}
     .compose-track-move:hover{background:#12264a;color:#a9c2ff;border-color:#5f8cff77}
     .compose-track-move:active{cursor:grabbing;background:#162e5a;color:#d7e2ff}
-    .compose-track-lane{position:relative;grid-column:2;grid-row:1;display:flex;align-items:center;min-height:92px;width:var(--compose-timeline-width,720px);padding:10px 0;background:#060d17;overflow:hidden}
-    .compose-track-lane:before{content:"";position:absolute;inset:0;z-index:3;pointer-events:none;background:repeating-linear-gradient(to right,var(--compose-grid-line,#ffffff0c) 0 1px,transparent 1px var(--compose-five-second-pitch,120px))}
+    .compose-track-lane{position:relative;grid-column:2;grid-row:1;display:flex;align-items:center;min-height:92px;width:var(--compose-timeline-width,720px);padding:10px 0;background-color:#060d17;background-image:repeating-linear-gradient(to right,#ffffff18 0 1px,transparent 1px var(--compose-five-second-pitch,120px));overflow:hidden}
     .compose-track-region{position:relative;z-index:2;display:flex;align-items:center;width:120px;min-width:120px;flex:0 0 auto;cursor:grab;transition:margin-left .08s ease}
     .compose-track-region:hover{filter:brightness(1.05)}
     .compose-track-region:active{cursor:grabbing}
@@ -154,6 +153,8 @@
     .compose-track-control{height:30px;padding:0 12px;border:1px solid #4f7cff44;border-radius:8px;background:#0d1c31;color:#91a9d6;font:700 9px Inter;cursor:pointer;transition:.15s ease}
     .compose-track-control:hover{background:#12264a;color:#cbd9f4;border-color:#5f8cff66}
     .compose-track-control.active{background:#162e5a;border-color:#5f8cff88;color:#cbd9ff;box-shadow:inset 0 0 14px #4f7cff18}
+    .compose-track-delete{color:#b98a8a;border-color:#7a3d3d55}
+    .compose-track-delete:hover{background:#3a1717;color:#f0b0b0;border-color:#a85b5b88}
     .compose-track-toggle-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
     .compose-track-editor.muted .compose-track-volume{color:#4f6279}
     .compose-track-editor.muted .compose-track-volume input{opacity:.42;filter:grayscale(.45)}
@@ -798,6 +799,7 @@
       playAllButton?.addEventListener('click',playAll);
       timeline._syncPlayAllButton=syncPlayAllButton;
       timeline._isPlayAllRunning=()=>playAllRunning;
+      timeline._stopAll=stopAll;
     }
     const list=timeline.querySelector('.compose-timeline-list');
     const row=document.createElement('article');
@@ -834,6 +836,7 @@
           <div class="compose-track-toggle-row">
             <button type="button" class="compose-track-control" data-compose-mute>Mute</button>
             <button type="button" class="compose-track-control" data-compose-solo>Solo</button>
+            <button type="button" class="compose-track-control compose-track-delete" data-compose-delete>Delete</button>
             ${dynamicTools}
           </div>
         </div>
@@ -896,6 +899,7 @@
     const fadeOutValue=row.querySelector('[data-compose-fade-value="out"]');
     const mute=row.querySelector('[data-compose-mute]');
     const solo=row.querySelector('[data-compose-solo]');
+    const deleteTrackButton=row.querySelector('[data-compose-delete]');
     const selectTrack=()=>{
       list.querySelectorAll('.compose-track-editor').forEach(item=>item.classList.toggle('selected',item===row));
     };
@@ -1011,6 +1015,18 @@
         }
       });
     };
+    deleteTrackButton?.addEventListener('click',event=>{
+      event.preventDefault();
+      event.stopPropagation();
+      const composeTimeline=row.closest('.compose-timeline');
+      composeTimeline?._stopAll?.();
+      audio?.pause();
+      try{if(audio)audio.currentTime=0;}catch(error){console.warn('compose_delete_reset_error',error);}
+      composeTimeline?._composeModel?.tracks.delete(row.dataset.trackId);
+      row.remove();
+      composeTimeline?._updateCompositionGeometry?.();
+      composeTimeline?._syncPlayAllButton?.();
+    });
     solo?.addEventListener('click',()=>{
       const wasActive=solo.classList.contains('active');
       list.querySelectorAll('[data-compose-solo]').forEach(other=>other.classList.remove('active'));
