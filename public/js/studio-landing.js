@@ -1091,12 +1091,21 @@
         const ratio=Math.max(0,Math.min(1,(moveEvent.clientX-rect.left)/width));
         if(side==='in'){
           const next=Math.min(1-startOut-minGap,ratio);
-          row.dataset.trimIn=String(Math.max(0,next));
+          const value=Math.max(0,next);
+          row.dataset.trimIn=String(value);
+          const composeTimeline=row.closest('.compose-timeline');
+          const trackModel=composeTimeline?._composeModel?.tracks.get(row.dataset.trackId);
+          if(trackModel)trackModel.trimIn=value;
         }else{
           const next=Math.min(1-startIn-minGap,1-ratio);
-          row.dataset.trimOut=String(Math.max(0,next));
+          const value=Math.max(0,next);
+          row.dataset.trimOut=String(value);
+          const composeTimeline=row.closest('.compose-timeline');
+          const trackModel=composeTimeline?._composeModel?.tracks.get(row.dataset.trackId);
+          if(trackModel)trackModel.trimOut=value;
         }
         renderTrim();
+        row.closest('.compose-timeline')?._updateCompositionGeometry?.();
       };
       const endTrim=()=>{
         row.classList.remove('trimming');
@@ -1132,7 +1141,8 @@
       region.style.maxWidth='none';
       const guide=row.querySelector('.compose-track-time-guide');
       if(guide)guide.textContent=`Start ${formatComposeTime(snapped)}`;
-      model?.tracks.get(row.dataset.trackId)?.startSeconds=snapped;
+      const trackModel=model?.tracks.get(row.dataset.trackId);
+      if(trackModel)trackModel.startSeconds=snapped;
       composeTimeline?._updateCompositionGeometry?.();
     };
     let dragStartX=0;
