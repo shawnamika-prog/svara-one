@@ -352,6 +352,14 @@
   placeholder.hidden=true;
   workspace.appendChild(placeholder);
 
+  // Compose is a session workspace: keep its DOM/model alive while the user visits other workspaces.
+  const composeWorkspace=document.createElement('section');
+  composeWorkspace.id='studioComposeWorkspace';
+  composeWorkspace.className='compose-workspace';
+  composeWorkspace.hidden=true;
+  composeWorkspace.dataset.initialized='0';
+  workspace.appendChild(composeWorkspace);
+
   function closeComposeTrackModal(){
     const modal=document.getElementById('composeTrackModal');
     if(modal)modal.remove();
@@ -537,7 +545,7 @@
 
 
   function addComposeTrack(type,asset){
-    const canvas=placeholder.querySelector('.compose-canvas');
+    const canvas=composeWorkspace.querySelector('.compose-canvas');
     if(!canvas||!asset)return;
     const empty=canvas.querySelector('.compose-empty');
     if(empty)empty.remove();
@@ -1391,12 +1399,16 @@
     soundView.hidden=view!=='sound';
     soundHistory.hidden=view!=='sound';
     libraryView.hidden=view!=='library';
-    placeholder.hidden=!['video','compose'].includes(view);
-    if(view==='compose'){
-      placeholder.className='compose-workspace';
-      placeholder.innerHTML=`<div class="compose-head"><small>COMPOSE</small><h2>Create your composition</h2><p>Combine Voice, Sound, SFX, Ambience and more into one composition.</p></div><div class="compose-canvas"><div class="compose-empty"><p>Import audio assets into your composition one track at a time.</p><button class="compose-add-track" type="button">+ Add Track</button></div></div>`;
-      placeholder.querySelector('.compose-add-track')?.addEventListener('click',openComposeTrackModal);
 
+    // Compose is mounted once and then only hidden/shown. Its tracks, audio elements,
+    // composition model, scroll position and editing state therefore survive workspace navigation.
+    composeWorkspace.hidden=view!=='compose';
+    placeholder.hidden=view!=='video';
+
+    if(view==='compose'&&composeWorkspace.dataset.initialized!=='1'){
+      composeWorkspace.innerHTML=`<div class="compose-head"><small>COMPOSE</small><h2>Create your composition</h2><p>Combine Voice, Sound, SFX, Ambience and more into one composition.</p></div><div class="compose-canvas"><div class="compose-empty"><p>Import audio assets into your composition one track at a time.</p><button class="compose-add-track" type="button">+ Add Track</button></div></div>`;
+      composeWorkspace.querySelector('.compose-add-track')?.addEventListener('click',openComposeTrackModal);
+      composeWorkspace.dataset.initialized='1';
     }else if(view==='video'){
       placeholder.className='studio-domain-placeholder';
       placeholder.innerHTML=`<div class="placeholder-panel"><small>VIDEO</small><h2>Video workspace</h2><p>This workspace is being built as an independent SvaraONE domain. The Studio landing page is ready for it.</p></div>`;
