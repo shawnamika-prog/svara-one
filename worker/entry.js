@@ -474,6 +474,7 @@ export default {
                 const header = new DataView(wavHeader.buffer);
                 const textAt = (offset, length) => String.fromCharCode(...wavHeader.subarray(offset, offset + length));
                 const dataLength = header.getUint32(40, true);
+                const wavDurationSeconds = dataLength / (44100 * 4);
                 if (
                   textAt(0, 4) !== "RIFF" ||
                   textAt(8, 4) !== "WAVE" ||
@@ -484,7 +485,9 @@ export default {
                   header.getUint32(24, true) !== 44100 ||
                   header.getUint16(34, true) !== 16 ||
                   textAt(36, 4) !== "data" ||
-                  dataLength % 4 !== 0
+                  dataLength < 4 ||
+                  dataLength % 4 !== 0 ||
+                  Math.abs(durationSeconds - wavDurationSeconds) > 0.02
                 ) throw new Error("INVALID_COMPOSITION_WAV");
                 wavHeaderChecked = true;
               }
