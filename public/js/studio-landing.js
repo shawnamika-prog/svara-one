@@ -92,7 +92,7 @@
     .compose-timeline::-webkit-scrollbar-track{background:#07101d;border-radius:999px}
     .compose-timeline::-webkit-scrollbar-thumb{background:linear-gradient(90deg,#365bd0,#5f8cff);border:2px solid #07101d;border-radius:999px}
     .compose-timeline::-webkit-scrollbar-thumb:hover{background:linear-gradient(90deg,#4b72e8,#7da3ff)}
-    .compose-timeline-transport{display:flex;justify-content:flex-end;gap:8px;margin:0 0 10px;min-width:900px}
+    .compose-timeline-transport{display:flex;justify-content:flex-start;gap:8px;margin:0 0 10px;min-width:900px}
     .compose-transport-button{height:32px;padding:0 14px;border:1px solid #4f7cff66;border-radius:9px;background:linear-gradient(105deg,#12265a,#12213d);color:#7ea5ff;font:800 10px Inter;cursor:pointer;box-shadow:0 8px 20px #0003}
     .compose-transport-button:hover{background:linear-gradient(105deg,#193274,#172a4e);color:#fff}
     .compose-transport-button.active{border-color:#31e3c855;background:#0d2930;color:#31e3c8}
