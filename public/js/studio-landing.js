@@ -115,6 +115,9 @@
     .compose-track-move{width:34px;height:30px;border:1px solid #4f7cff44;border-radius:8px;background:#0d1c31;color:#6f91d9;display:grid;place-items:center;font-size:15px;line-height:1;cursor:grab;padding:0;letter-spacing:-3px}
     .compose-track-move:hover{background:#12264a;color:#a9c2ff;border-color:#5f8cff77}
     .compose-track-move:active{cursor:grabbing;background:#162e5a;color:#d7e2ff}
+    .compose-track-delete-icon{width:34px;height:30px;border:1px solid #7a3d3d55;border-radius:8px;background:#0d1c31;color:#b98a8a;display:grid;place-items:center;cursor:pointer;padding:0}
+    .compose-track-delete-icon svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    .compose-track-delete-icon:hover{background:#3a1717;color:#f0b0b0;border-color:#a85b5b88}
     .compose-track-lane{position:relative;grid-column:2;grid-row:1;display:flex;align-items:center;min-height:92px;width:var(--compose-timeline-width,720px);padding:10px 0;background-color:#060d17;background-image:repeating-linear-gradient(to right,#ffffff18 0 1px,transparent 1px var(--compose-five-second-pitch,120px));overflow:hidden}
     .compose-track-region{position:relative;z-index:2;display:flex;align-items:center;width:120px;min-width:120px;flex:0 0 auto;cursor:grab;transition:margin-left .08s ease}
     .compose-track-region:hover{filter:brightness(1.05)}
@@ -827,6 +830,9 @@
         <div class="compose-track-identity-actions">
           <button class="compose-track-play" type="button" aria-label="Play track" title="Play track">▶</button>
           <button class="compose-track-move" type="button" aria-label="Move track" title="Drag to position track">⠿</button>
+          <button class="compose-track-delete-icon" type="button" data-compose-delete aria-label="Delete track" title="Delete track">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M10 11v6M14 11v6M6 7l1 13h10l1-13"/></svg>
+          </button>
         </div>
         <div class="compose-track-row-main"><strong>${escapeHistory(asset.filename||'Untitled asset')}</strong><span>${escapeHistory(labelForComposeType(type))}${asset.soundType?' · '+escapeHistory(asset.soundType):''}${asset.format?' · '+escapeHistory(asset.format):''}</span></div>
         <div class="compose-track-controls">
@@ -836,7 +842,6 @@
           <div class="compose-track-toggle-row">
             <button type="button" class="compose-track-control" data-compose-mute>Mute</button>
             <button type="button" class="compose-track-control" data-compose-solo>Solo</button>
-            <button type="button" class="compose-track-control compose-track-delete" data-compose-delete>Delete</button>
             ${dynamicTools}
           </div>
         </div>
