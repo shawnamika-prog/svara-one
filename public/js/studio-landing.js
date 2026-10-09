@@ -425,10 +425,11 @@
     const normalized=asset=>{
       const id=String(asset?.id||'');
       const assetType=String(asset?.assetType||'').toLowerCase();
+      const format=String(asset?.format||'').toUpperCase();
       const existingUrl=String(asset?.assetUrl||asset?.audioUrl||asset?.playbackUrl||asset?.fileUrl||asset?.downloadUrl||asset?.outputUrl||asset?.url||asset?.r2Url||asset?.storageUrl||'');
-      const assetUrl=existingUrl
-        ||(assetType==='sound'&&id?'/api/sound/assets/'+encodeURIComponent(id):'')
-        ||(assetType==='voice'&&asset?.filename?'/api/generations/media?filename='+encodeURIComponent(String(asset.filename)):'');
+      const assetUrl=assetType==='composition'&&id
+        ?'/api/compositions/assets/'+encodeURIComponent(id)+(format==='PCM'?'?preview=1':'')
+        :existingUrl||(assetType==='sound'&&id?'/api/sound/assets/'+encodeURIComponent(id):'')||(assetType==='voice'&&asset?.filename?'/api/generations/media?filename='+encodeURIComponent(String(asset.filename)):'');
       return {
         ...asset,
         id,
@@ -495,11 +496,15 @@
     const loadAssets=async()=>{
       finderList.innerHTML='<div class="compose-finder-state">Loading your assets…</div>';
       try{
-        const response=await fetch('/api/generations?limit=500',{credentials:'same-origin',cache:'no-store',headers:{accept:'application/json'}});
+        const endpoint=selectedType==='composition'?'/api/compositions?limit=100':'/api/generations?limit=500';
+        const response=await fetch(endpoint,{credentials:'same-origin',cache:'no-store',headers:{accept:'application/json'}});
         const data=await response.json().catch(()=>({}));
         if(response.status===401){window.location.replace('/login.html?next=/studio');return;}
         if(!response.ok)throw new Error(data.error||`Generation service unavailable (${response.status})`);
-        generations=(Array.isArray(data.generations)?data.generations:[]).map(normalized);
+        const sourceAssets=selectedType==='composition'
+          ?(Array.isArray(data.compositions)?data.compositions:[]).map(item=>({...item,assetType:'composition'}))
+          :(Array.isArray(data.generations)?data.generations:[]);
+        generations=sourceAssets.map(normalized);
         renderSoundTypes();
         renderList();
       }catch(error){
@@ -545,6 +550,61 @@
   }
 
 
+
+  let compositionLibraryRequestId=0;
+  async function loadCompositionLibrary(){
+    const list=composeWorkspace.querySelector('[data-compose-library-list]');
+    if(!list)return;
+    const requestId=++compositionLibraryRequestId;
+    const searchControl=composeWorkspace.querySelector('[data-compose-library-search]');
+    const query=String(searchControl?.value||'').trim();
+    list.innerHTML='<div class="compose-library-state">Loading saved compositions…</div>';
+    try{
+      const params=new URLSearchParams({limit:'100'});
+      if(query)params.set('search',query);
+      const response=await fetch('/api/compositions?'+params.toString(),{credentials:'same-origin',cache:'no-store',headers:{accept:'application/json'}});
+      const data=await response.json().catch(()=>({}));
+      if(response.status===401){window.location.replace('/login.html?next=/studio%23compose');return;}
+      if(!response.ok)throw new Error(data.error||'Composition library unavailable ('+response.status+').');
+      if(requestId!==compositionLibraryRequestId)return;
+      const items=Array.isArray(data.compositions)?data.compositions:[];
+      if(!items.length){
+        list.innerHTML='<div class="compose-library-state"><strong>'+(query?'No matching compositions':'No saved compositions yet')+'</strong><span>Use COMPOSE &amp; EXPORT to render a finished timeline. Saved files will appear here.</span></div>';
+        return;
+      }
+      list.innerHTML=items.map(item=>{
+        const id=String(item.id||'');
+        const filename=String(item.filename||('svaraone-composition.'+String(item.format||'wav').toLowerCase()));
+        const format=String(item.format||'WAV').toUpperCase();
+        const assetUrl='/api/compositions/assets/'+encodeURIComponent(id);
+        const previewUrl=assetUrl+(format==='PCM'?'?preview=1':'');
+        const size=Math.max(0,Number(item.sizeBytes)||0);
+        const duration=Math.max(0,Number(item.durationSeconds)||0);
+        const date=item.createdAt?formatHistoryDate(item.createdAt):'Recently saved';
+        return '<article class="compose-library-item" data-library-composition-id="'+escapeHistory(id)+'">'+
+          '<div class="compose-library-item-main"><strong>'+escapeHistory(filename)+'</strong><small>'+escapeHistory(format)+' · '+(duration?formatComposeTime(duration).replace('.00',''):'Unknown duration')+' · '+Math.max(1,Math.round(size/1024))+' KB · '+escapeHistory(date)+'</small></div>'+
+          '<audio controls preload="none" src="'+escapeHistory(previewUrl)+'" aria-label="Preview '+escapeHistory(filename)+'"></audio>'+
+          '<div class="compose-library-actions"><a href="'+escapeHistory(assetUrl+'?download=1')+'" download="'+escapeHistory(filename)+'">Download</a><button type="button" data-compose-library-use="'+escapeHistory(id)+'">Use in Compose</button></div>'+
+        '</article>';
+      }).join('');
+      list.querySelectorAll('[data-compose-library-use]').forEach(button=>button.addEventListener('click',()=>{
+        const item=items.find(value=>String(value.id)===button.dataset.composeLibraryUse);
+        if(!item)return;
+        addComposeTrack('composition',{
+          id:String(item.id),
+          assetType:'composition',
+          filename:String(item.filename||'Saved composition'),
+          format:String(item.format||'WAV'),
+          durationSeconds:Number(item.durationSeconds)||30,
+          assetUrl:'/api/compositions/assets/'+encodeURIComponent(String(item.id))+(String(item.format||'').toUpperCase()==='PCM'?'?preview=1':'')
+        });
+        composeWorkspace.querySelector('.compose-canvas')?.scrollIntoView({behavior:'smooth',block:'start'});
+      }));
+    }catch(error){
+      if(requestId!==compositionLibraryRequestId)return;
+      list.innerHTML='<div class="compose-library-state"><strong>Could not load saved compositions</strong><span>'+escapeHistory(error?.message||'Please refresh and try again.')+'</span></div>';
+    }
+  }
 
   function syncComposeExportButton(){
     const button=composeWorkspace.querySelector('[data-compose-export]');
@@ -1817,6 +1877,7 @@
       placeholder.className='studio-domain-placeholder';
       placeholder.innerHTML=`<div class="placeholder-panel"><small>VIDEO</small><h2>Video workspace</h2><p>This workspace is being built as an independent SvaraONE domain. The Studio landing page is ready for it.</p></div>`;
     }
+    if(view==='compose')loadCompositionLibrary();
     setActive(view);
     if(view==='library')window.SvaraLibrary?.refresh?.();
     if(view==='sound')loadSoundHistory();
