@@ -955,16 +955,24 @@
     row.dataset.assetDuration=String(Number(asset.durationSeconds||asset.duration||30)||30);
     const trackId=timeline._composeModel?`track-${timeline._composeModel.nextTrackId++}`:`track-${Date.now()}`;
     row.dataset.trackId=trackId;
-    const waveformForDuration=duration=>{
+    const waveformForPeaks=(peaks,duration)=>{
       const pixelsPerSecond=Math.max(1,Number(timeline?._composeModel?.pixelsPerSecond)||24);
       const barWidth=3;
       const barGap=2;
       const pitch=barWidth+barGap;
       const count=Math.max(32,Math.min(10000,Math.ceil(Math.max(0.01,Number(duration)||30)*pixelsPerSecond/pitch)));
-      const bars=Array.from({length:count},(_,i)=>Math.max(10,Math.round(22+Math.abs(Math.sin(i*1.73))*58+Math.abs(Math.cos(i*.37))*15)));
+      if(!Array.isArray(peaks)||!peaks.length)return '';
+      const bars=Array.from({length:count},(_,i)=>{
+        const position=(i/(count-1||1))*(peaks.length-1);
+        const left=Math.floor(position);
+        const right=Math.min(peaks.length-1,left+1);
+        const mix=position-left;
+        const amplitude=(Number(peaks[left])||0)*(1-mix)+(Number(peaks[right])||0)*mix;
+        return Math.max(8,Math.round(amplitude*92));
+      });
       return bars.map(height=>`<i style="--h:${height}%"></i>`).join('');
     };
-    const waveform=waveformForDuration(Number(row.dataset.assetDuration||30)||30);
+    const waveform='';
     const assetUrl=String(asset.assetUrl||asset.audioUrl||asset.playbackUrl||asset.fileUrl||asset.downloadUrl||asset.outputUrl||asset.url||asset.r2Url||asset.storageUrl||'');
     const capabilityList=Array.isArray(asset.capabilities)?asset.capabilities:Array.isArray(asset.tools)?asset.tools:[];
     const capabilities=capabilityList.map(value=>String(value||'').trim()).filter(Boolean);
@@ -1007,6 +1015,49 @@
       ${assetUrl?`<audio class="compose-track-audio" preload="metadata" src="${escapeHistory(assetUrl)}"></audio>`:''}
     `;
     list.appendChild(row);
+
+    const loadRealWaveform=async()=>{
+      const waveformBars=row.querySelector('.compose-track-wave-bars');
+      if(!waveformBars||!assetUrl)return;
+      try{
+        waveformBars.innerHTML='<span class="compose-track-wave-loading">Loading waveform…</span>';
+        const response=await fetch(assetUrl,{credentials:'same-origin',cache:'force-cache'});
+        if(!response.ok)throw new Error(`waveform fetch failed (${response.status})`);
+        const bytes=await response.arrayBuffer();
+        const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+        if(!AudioContextClass)throw new Error('Web Audio unavailable');
+        const context=new AudioContextClass();
+        try{
+          const buffer=await context.decodeAudioData(bytes.slice(0));
+          const samples=Math.max(1024,Math.min(8192,Math.ceil(buffer.duration*48)));
+          const peaks=new Float32Array(samples);
+          for(let i=0;i<samples;i++){
+            const start=Math.floor(i*buffer.length/samples);
+            const end=Math.max(start+1,Math.floor((i+1)*buffer.length/samples));
+            let peak=0;
+            for(let channel=0;channel<buffer.numberOfChannels;channel++){
+              const data=buffer.getChannelData(channel);
+              for(let j=start;j<end;j++)peak=Math.max(peak,Math.abs(data[j]||0));
+            }
+            peaks[i]=peak;
+          }
+          row._composeWaveformPeaks=Array.from(peaks);
+          waveformBars.innerHTML=waveformForPeaks(row._composeWaveformPeaks,buffer.duration);
+          row.dataset.sourceDuration=String(buffer.duration);
+          const composeTimeline=row.closest('.compose-timeline');
+          const trackModel=composeTimeline?._composeModel?.tracks.get(row.dataset.trackId);
+          if(trackModel)trackModel.sourceDuration=buffer.duration;
+          composeTimeline?._updateCompositionGeometry?.();
+        }finally{
+          await context.close().catch(()=>{});
+        }
+      }catch(error){
+        waveformBars.innerHTML='';
+        console.warn('compose_real_waveform_error',error);
+      }
+    };
+    loadRealWaveform();
+
     const composeTimeline=row.closest('.compose-timeline');
     composeTimeline?._composeModel?.tracks.set(row.dataset.trackId,{
       id:row.dataset.trackId,
@@ -1228,7 +1279,6 @@
       if(Number.isFinite(audio.duration)&&audio.duration>0){
         row.dataset.sourceDuration=String(audio.duration);
         const waveformBars=row.querySelector('.compose-track-wave-bars');
-        if(waveformBars)waveformBars.innerHTML=waveformForDuration(audio.duration);
         const composeTimeline=row.closest('.compose-timeline');
         const trackModel=composeTimeline?._composeModel?.tracks.get(row.dataset.trackId);
         if(trackModel)trackModel.sourceDuration=audio.duration;
