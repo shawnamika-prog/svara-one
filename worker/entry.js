@@ -696,7 +696,33 @@ export default {
         wavHeader.setUint16(34, 16, true);
         writeString(36, "data");
         wavHeader.setUint32(40, totalSize, true);
-        const reader = pcmObject.body.getReader();
+        // L16 PCM is big-endian; WAV PCM samples are little-endian. Swap each
+        // sample's bytes without assuming R2 chunks align to sample boundaries.
+        let carryByte = null;
+        const wavOrderBody = pcmObject.body.pipeThrough(new TransformStream({
+          transform(chunk, controller) {
+            const bytes = new Uint8Array(chunk.byteLength + (carryByte === null ? 0 : 1));
+            let offset = 0;
+            if (carryByte !== null) {
+              bytes[0] = carryByte;
+              offset = 1;
+              carryByte = null;
+            }
+            bytes.set(chunk, offset);
+            const completeLength = bytes.length - (bytes.length % 2);
+            for (let index = 0; index < completeLength; index += 2) {
+              const value = bytes[index];
+              bytes[index] = bytes[index + 1];
+              bytes[index + 1] = value;
+            }
+            if (completeLength < bytes.length) carryByte = bytes[bytes.length - 1];
+            if (completeLength) controller.enqueue(bytes.slice(0, completeLength));
+          },
+          flush() {
+            if (carryByte !== null) throw new Error("Incomplete PCM sample while creating preview WAV.");
+          }
+        }));
+        const reader = wavOrderBody.getReader();
         const previewStream = new ReadableStream({
           async start(controller) {
             controller.enqueue(new Uint8Array(wavHeaderBuffer));
