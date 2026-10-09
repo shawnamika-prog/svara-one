@@ -1395,7 +1395,7 @@
   let activeWorkspaceView='studio';
 
   function show(view,updateHash=true){
-    if(activeWorkspaceView==='compose'&&view!=='compose')stopAll();
+    if(activeWorkspaceView==='compose'&&view!=='compose')composeWorkspace.querySelector('.compose-timeline')?._stopAll?.();
     activeWorkspaceView=view;
     if(updateHash)history.replaceState(null,'',view==='studio'?'#studio':`#${view}`);
     landing.hidden=view!=='studio';
