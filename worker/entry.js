@@ -428,14 +428,19 @@ export default {
       if (!env.GENERATED_AUDIO) return json({ error: "Composition storage is not configured." }, 503);
 
       const contentType = String(request.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
-      if (contentType !== "audio/wav") return json({ error: "Composition export must be uploaded as WAV audio." }, 415);
-      if (!request.body) return json({ error: "WAV audio is required." }, 400);
+      const format = String(request.headers.get("x-svara-composition-format") || "").trim().toLowerCase();
+      const expectedTypes = { wav: "audio/wav", mp3: "audio/mpeg", pcm: "audio/l16" };
+      const extensionByFormat = { wav: "wav", mp3: "mp3", pcm: "pcm" };
+      if (!expectedTypes[format] || contentType !== expectedTypes[format]) {
+        return json({ error: "Select a supported matching export format: WAV, MP3 or PCM." }, 415);
+      }
+      if (!request.body) return json({ error: "Composition audio is required." }, 400);
 
       const declaredSize = Number(request.headers.get("x-svara-composition-size") || request.headers.get("content-length") || 0);
       const contentLength = Number(request.headers.get("content-length") || 0);
-      if (!Number.isInteger(declaredSize) || declaredSize < 44) return json({ error: "A valid WAV content length is required." }, 400);
-      if (contentLength > 0 && contentLength !== declaredSize) return json({ error: "WAV content length does not match the declared export size." }, 400);
-      if (declaredSize > 80000000) return json({ error: "WAV export exceeds the current 80 MB limit." }, 413);
+      if (!Number.isInteger(declaredSize) || declaredSize < 4) return json({ error: "A valid audio byte length is required." }, 400);
+      if (contentLength > 0 && contentLength !== declaredSize) return json({ error: "Audio content length does not match the declared export size." }, 400);
+      if (declaredSize > 80000000) return json({ error: "Composition export exceeds the current 80 MB limit." }, 413);
       const durationSeconds = Number(request.headers.get("x-svara-composition-duration") || 0);
       if (!Number.isFinite(durationSeconds) || durationSeconds <= 0 || durationSeconds > 420) {
         return json({ error: "Composition duration must be greater than zero and no longer than 7 minutes." }, 400);
@@ -451,112 +456,181 @@ export default {
         .replace(/\s+/g, " ")
         .trim()
         .replace(/[. ]+$/g, "");
-      const baseFilename = requestedFilename.replace(/\.wav$/i, "").trim().slice(0, 120);
+      const baseFilename = requestedFilename.replace(/\.(wav|mp3|pcm)$/i, "").trim().slice(0, 120);
       if (!baseFilename || baseFilename === "." || baseFilename === "..") {
         return json({ error: "A valid composition filename is required." }, 400);
       }
-      const filename = baseFilename + ".wav";
+      const extension = extensionByFormat[format];
+      const filename = baseFilename + "." + extension;
       const id = crypto.randomUUID();
-      const key = "users/" + userId + "/compositions/" + id + ".wav";
+      const key = "users/" + userId + "/compositions/" + id + "." + extension;
       const createdAt = new Date().toISOString();
+      if (format === "pcm" && (declaredSize % 4 !== 0 || Math.abs(durationSeconds - declaredSize / 96000) > 0.02)) {
+        return json({ error: "PCM byte length does not match 24 kHz, 16-bit stereo audio duration." }, 400);
+      }
 
       try {
         let receivedBytes = 0;
-        const wavHeader = new Uint8Array(44);
-        let wavHeaderBytes = 0;
-        let wavHeaderChecked = false;
-        const boundedWavBody = request.body.pipeThrough(new TransformStream({
+        const firstBytes = new Uint8Array(44);
+        let firstBytesLength = 0;
+        let formatChecked = format === "pcm";
+        const validatedAudioBody = request.body.pipeThrough(new TransformStream({
           transform(chunk, controller) {
             receivedBytes += chunk.byteLength;
             if (receivedBytes > 80000000) throw new Error("COMPOSITION_EXPORT_TOO_LARGE");
-            if (wavHeaderBytes < 44) {
-              const take = Math.min(44 - wavHeaderBytes, chunk.byteLength);
-              wavHeader.set(chunk.subarray(0, take), wavHeaderBytes);
-              wavHeaderBytes += take;
-              if (wavHeaderBytes === 44) {
-                const header = new DataView(wavHeader.buffer);
-                const textAt = (offset, length) => String.fromCharCode(...wavHeader.subarray(offset, offset + length));
-                const dataLength = header.getUint32(40, true);
-                const wavDurationSeconds = dataLength / (44100 * 4);
-                if (
-                  textAt(0, 4) !== "RIFF" ||
-                  textAt(8, 4) !== "WAVE" ||
-                  textAt(12, 4) !== "fmt " ||
-                  header.getUint32(16, true) !== 16 ||
-                  header.getUint16(20, true) !== 1 ||
-                  header.getUint16(22, true) !== 2 ||
-                  header.getUint32(24, true) !== 44100 ||
-                  header.getUint16(34, true) !== 16 ||
-                  textAt(36, 4) !== "data" ||
-                  dataLength < 4 ||
-                  dataLength % 4 !== 0 ||
-                  Math.abs(durationSeconds - wavDurationSeconds) > 0.02
-                ) throw new Error("INVALID_COMPOSITION_WAV");
-                wavHeaderChecked = true;
-              }
+            if (firstBytesLength < firstBytes.length) {
+              const take = Math.min(firstBytes.length - firstBytesLength, chunk.byteLength);
+              firstBytes.set(chunk.subarray(0, take), firstBytesLength);
+              firstBytesLength += take;
+            }
+            if (!formatChecked && format === "wav" && firstBytesLength >= 44) {
+              const header = new DataView(firstBytes.buffer);
+              const textAt = (offset, length) => String.fromCharCode(...firstBytes.subarray(offset, offset + length));
+              const dataLength = header.getUint32(40, true);
+              const wavDurationSeconds = dataLength / (44100 * 4);
+              if (
+                textAt(0, 4) !== "RIFF" ||
+                textAt(8, 4) !== "WAVE" ||
+                textAt(12, 4) !== "fmt " ||
+                header.getUint32(16, true) !== 16 ||
+                header.getUint16(20, true) !== 1 ||
+                header.getUint16(22, true) !== 2 ||
+                header.getUint32(24, true) !== 44100 ||
+                header.getUint16(34, true) !== 16 ||
+                textAt(36, 4) !== "data" ||
+                dataLength < 4 ||
+                dataLength % 4 !== 0 ||
+                Math.abs(durationSeconds - wavDurationSeconds) > 0.02
+              ) throw new Error("INVALID_COMPOSITION_WAV");
+              formatChecked = true;
+            }
+            if (!formatChecked && format === "mp3" && firstBytesLength >= 3) {
+              const isId3 = firstBytes[0] === 0x49 && firstBytes[1] === 0x44 && firstBytes[2] === 0x33;
+              const isMpegFrame = firstBytes[0] === 0xff && (firstBytes[1] & 0xe0) === 0xe0;
+              if (!isId3 && !isMpegFrame) throw new Error("INVALID_COMPOSITION_MP3");
+              formatChecked = true;
             }
             controller.enqueue(chunk);
           },
           flush() {
-            const header = new DataView(wavHeader.buffer);
-            if (
-              !wavHeaderChecked ||
-              receivedBytes !== declaredSize ||
-              receivedBytes !== 44 + header.getUint32(40, true) ||
-              receivedBytes !== 8 + header.getUint32(4, true)
-            ) throw new Error("INVALID_COMPOSITION_WAV");
+            if (receivedBytes !== declaredSize) throw new Error("INVALID_COMPOSITION_LENGTH");
+            if (format === "wav") {
+              const header = new DataView(firstBytes.buffer);
+              if (
+                !formatChecked ||
+                receivedBytes !== 44 + header.getUint32(40, true) ||
+                receivedBytes !== 8 + header.getUint32(4, true)
+              ) throw new Error("INVALID_COMPOSITION_WAV");
+            } else if (format === "mp3") {
+              if (!formatChecked || receivedBytes < 100) throw new Error("INVALID_COMPOSITION_MP3");
+            } else if (format === "pcm") {
+              if (receivedBytes % 4 !== 0 || Math.abs(durationSeconds - receivedBytes / 96000) > 0.02) {
+                throw new Error("INVALID_COMPOSITION_PCM");
+              }
+            }
           }
         }));
-        // R2 requires a readable stream with a known byte length. Keep the WAV
-        // validation streaming, then pass its output through FixedLengthStream.
-        const fixedLengthWav = new FixedLengthStream(declaredSize);
-        const storedPromise = env.GENERATED_AUDIO.put(key, fixedLengthWav.readable, {
+        const fixedLengthAudio = new FixedLengthStream(declaredSize);
+        const storedPromise = env.GENERATED_AUDIO.put(key, fixedLengthAudio.readable, {
           httpMetadata: {
-            contentType: "audio/wav",
+            contentType: format === "wav" ? "audio/wav" : format === "mp3" ? "audio/mpeg" : "audio/l16;rate=24000;channels=2",
             cacheControl: "private, no-store"
           },
           customMetadata: {
             compositionExportId: id,
             userId,
             filename,
-            format: "wav",
+            format,
             durationSeconds: String(durationSeconds),
             trackCount: String(trackCount),
+            sampleRate: format === "pcm" ? "24000" : "44100",
+            channels: "2",
             createdAt
           }
         });
-        const validationPromise = boundedWavBody.pipeTo(fixedLengthWav.writable);
-        const [stored] = await Promise.all([
-          storedPromise,
-          validationPromise.then(() => null)
-        ]);
+        const validationPromise = validatedAudioBody.pipeTo(fixedLengthAudio.writable);
+        const [stored] = await Promise.all([storedPromise, validationPromise.then(() => null)]);
         if (!stored) throw new Error("R2 did not confirm the Composition upload.");
-        if (declaredSize > 0 && Number(stored.size) !== declaredSize) {
+        if (Number(stored.size) !== declaredSize) {
           await env.GENERATED_AUDIO.delete(key);
-          return json({ error: "Uploaded WAV size did not match the declared content length." }, 400);
+          return json({ error: "Uploaded audio size did not match the declared content length." }, 400);
         }
         return json({
           success: true,
           id,
           filename,
-          format: "WAV",
-          mimeType: "audio/wav",
+          format: format.toUpperCase(),
+          mimeType: format === "wav" ? "audio/wav" : format === "mp3" ? "audio/mpeg" : "audio/l16;rate=24000;channels=2",
           durationSeconds,
           trackCount,
-          sizeBytes: Number(stored.size || receivedBytes || 0),
+          sizeBytes: Number(stored.size),
           createdAt,
           assetUrl: "/api/compositions/assets/" + id
         });
       } catch (error) {
         try { await env.GENERATED_AUDIO.delete(key); } catch (cleanupError) { console.error("composition_export_cleanup_error", cleanupError); }
-        if (error?.message === "COMPOSITION_EXPORT_TOO_LARGE") {
-          return json({ error: "WAV export exceeds the current 80 MB limit." }, 413);
-        }
-        if (error?.message === "INVALID_COMPOSITION_WAV") {
-          return json({ error: "The uploaded file is not a complete supported PCM WAV." }, 400);
-        }
+        if (error?.message === "COMPOSITION_EXPORT_TOO_LARGE") return json({ error: "Composition export exceeds the current 80 MB limit." }, 413);
+        if (error?.message === "INVALID_COMPOSITION_WAV") return json({ error: "The uploaded file is not a complete supported PCM WAV." }, 400);
+        if (error?.message === "INVALID_COMPOSITION_MP3") return json({ error: "The uploaded file is not a valid MP3 stream." }, 400);
+        if (error?.message === "INVALID_COMPOSITION_PCM") return json({ error: "The uploaded file is not a complete supported PCM stream." }, 400);
+        if (error?.message === "INVALID_COMPOSITION_LENGTH") return json({ error: "Uploaded audio size did not match the declared content length." }, 400);
         console.error("composition_export_storage_error", error);
         return json({ error: "Composition could not be saved to R2. No saved asset was confirmed." }, 502);
+      }
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/compositions") {
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return json({ error: "Authentication required." }, 401);
+      if (!env.GENERATED_AUDIO) return json({ error: "Composition storage is not configured." }, 503);
+      try {
+        const requestedLimit = Number(url.searchParams.get("limit") || 100);
+        const limit = Number.isInteger(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 100) : 100;
+        const search = String(url.searchParams.get("search") || "").trim().toLowerCase();
+        const prefix = "users/" + userId + "/compositions/";
+        const candidates = [];
+        let cursor;
+        let scanned = 0;
+        do {
+          const page = await env.GENERATED_AUDIO.list({
+            prefix,
+            limit: Math.min(1000, Math.max(1, 1000 - scanned)),
+            include: ["httpMetadata", "customMetadata"],
+            ...(cursor ? { cursor } : {})
+          });
+          candidates.push(...(page.objects || []).filter(object => /\.(wav|mp3|pcm)$/i.test(String(object.key || ""))));
+          scanned += (page.objects || []).length;
+          if (!page.truncated || !page.cursor || scanned >= 1000) break;
+          cursor = page.cursor;
+        } while (scanned < 1000);
+
+        const compositions = candidates.map(object => {
+          const key = String(object.key || "");
+          const filenameFromKey = key.split("/").pop() || "";
+          const extension = filenameFromKey.split(".").pop()?.toLowerCase() || "wav";
+          const id = filenameFromKey.slice(0, -(extension.length + 1));
+          const meta = object.customMetadata || {};
+          const filename = String(meta.filename || filenameFromKey);
+          return {
+            id: String(meta.compositionExportId || id),
+            filename,
+            format: String(meta.format || extension).toUpperCase(),
+            mimeType: String(object.httpMetadata?.contentType || meta.format === "mp3" ? "audio/mpeg" : extension === "pcm" ? "audio/l16;rate=24000;channels=2" : "audio/wav"),
+            durationSeconds: Number(meta.durationSeconds) || 0,
+            trackCount: Number(meta.trackCount) || 0,
+            sizeBytes: Number(object.size) || 0,
+            createdAt: String(meta.createdAt || object.uploaded?.toISOString?.() || ""),
+            assetUrl: "/api/compositions/assets/" + id
+          };
+        }).filter(item => {
+          if (!search) return true;
+          return (item.filename + " " + item.format).toLowerCase().includes(search);
+        }).sort((a, b) => (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0)).slice(0, limit);
+
+        return json({ compositions, count: compositions.length, limit });
+      } catch (error) {
+        console.error("composition_list_error", error);
+        return json({ error: "Could not load saved compositions." }, 500);
       }
     }
 
