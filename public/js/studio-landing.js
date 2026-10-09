@@ -87,13 +87,17 @@
     .compose-track-backdrop{position:absolute;inset:0;background:#020611cc;backdrop-filter:blur(6px)}
     .compose-track-dialog{position:relative;width:min(560px,calc(100vw - 32px));padding:24px;border:1px solid #4f7cff44;border-radius:18px;background:linear-gradient(180deg,#0b1426,#080f1c);box-shadow:0 28px 90px #000b;color:#dbe7f5}
     .compose-track-subtitle{max-width:390px}
-    .compose-timeline{width:min(1120px,100%);margin:0 auto;overflow-x:auto;overflow-y:hidden}
+    .compose-timeline{width:min(1120px,100%);margin:0 auto;overflow-x:auto;overflow-y:hidden;scrollbar-color:#4f7cff #07101d;scrollbar-width:auto;overscroll-behavior-x:contain}
+    .compose-timeline::-webkit-scrollbar{height:10px}
+    .compose-timeline::-webkit-scrollbar-track{background:#07101d;border-radius:999px}
+    .compose-timeline::-webkit-scrollbar-thumb{background:linear-gradient(90deg,#365bd0,#5f8cff);border:2px solid #07101d;border-radius:999px}
+    .compose-timeline::-webkit-scrollbar-thumb:hover{background:linear-gradient(90deg,#4b72e8,#7da3ff)}
     .compose-timeline-transport{display:flex;justify-content:flex-end;gap:8px;margin:0 0 10px;min-width:900px}
     .compose-transport-button{height:32px;padding:0 14px;border:1px solid #4f7cff66;border-radius:9px;background:linear-gradient(105deg,#12265a,#12213d);color:#7ea5ff;font:800 10px Inter;cursor:pointer;box-shadow:0 8px 20px #0003}
     .compose-transport-button:hover{background:linear-gradient(105deg,#193274,#172a4e);color:#fff}
     .compose-transport-button.active{border-color:#31e3c855;background:#0d2930;color:#31e3c8}
     .compose-timeline-ruler{display:grid;grid-template-columns:180px minmax(720px,1fr);align-items:end;margin-bottom:8px;min-width:900px}
-    .compose-timeline-label{padding:0 12px 8px;color:#5f7390;font-size:8px;font-weight:800;letter-spacing:.16em}
+    .compose-timeline-label{position:sticky;left:0;z-index:13;padding:0 12px 8px;color:#5f7390;font-size:8px;font-weight:800;letter-spacing:.16em;background:#09121f;box-shadow:8px 0 18px #0005}
     .compose-timeline-scale{position:relative;height:28px;padding:0;border-left:1px solid #ffffff08;border-bottom:1px solid #ffffff12;flex:0 0 auto}
     .compose-timeline-scale:before{content:"";position:absolute;left:0;right:0;bottom:0;height:9px;background:repeating-linear-gradient(to right,#ffffff20 0,#ffffff20 1px,transparent 1px,var(--compose-second-pitch,24px) var(--compose-second-pitch,24px))}
     .compose-timeline-scale .compose-timeline-ruler-mark{position:absolute;bottom:10px;transform:translateX(-50%);color:#7186a0;font-size:8px;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -103,10 +107,11 @@
     .compose-timeline-playhead:before{content:"";position:absolute;top:-1px;left:50%;width:8px;height:8px;border-radius:50%;background:#fff;box-shadow:0 0 9px #5f8cffcc;transform:translateX(-50%)}
     .compose-timeline-list{display:flex;flex-direction:column;gap:7px;min-width:900px;width:max-content}
     .compose-add-track-inline{display:block;margin:14px auto 0}
-    .compose-track-editor{display:grid;grid-template-columns:180px var(--compose-timeline-width,720px);grid-template-rows:auto auto;gap:0;border:1px solid #ffffff0d;border-radius:11px;background:#07121d;overflow:hidden}
+    .compose-track-editor{display:grid;grid-template-columns:180px var(--compose-timeline-width,720px);grid-template-rows:auto;gap:0;border:1px solid #ffffff0d;border-radius:11px;background:#07121d;overflow:visible}
     .compose-track-editor.selected{border-color:#4f7cff66;box-shadow:inset 0 0 0 1px #4f7cff22}
-    .compose-track-identity{grid-column:1;grid-row:1 / span 2;display:grid;grid-template-columns:34px 34px 34px 1fr;grid-template-rows:32px 1fr;align-items:start;gap:8px;padding:12px;border-right:1px solid #ffffff0b;background:#091522;cursor:pointer}
-    .compose-track-identity .compose-track-row-main{grid-column:1 / span 4;grid-row:2;min-width:0;align-self:end;padding-bottom:1px}
+    .compose-track-identity{grid-column:1;grid-row:1;position:sticky;left:0;z-index:12;display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:0;min-height:100%;padding:12px;border-right:1px solid #ffffff0b;background:#091522;box-shadow:8px 0 18px #0005;cursor:pointer}
+    .compose-track-identity .compose-track-row-main{min-width:0;display:flex;flex-direction:column;gap:4px;padding:0;margin:2px 0 4px}
+    .compose-track-identity-actions{display:flex;align-items:center;gap:8px;min-height:30px}
     .compose-track-move{width:34px;height:30px;border:1px solid #4f7cff44;border-radius:8px;background:#0d1c31;color:#6f91d9;display:grid;place-items:center;font-size:15px;line-height:1;cursor:grab;padding:0;letter-spacing:-3px}
     .compose-track-move:hover{background:#12264a;color:#a9c2ff;border-color:#5f8cff77}
     .compose-track-move:active{cursor:grabbing;background:#162e5a;color:#d7e2ff}
@@ -143,12 +148,13 @@
     .compose-track-wave.scrubbing{cursor:ew-resize}
     .compose-track-play{width:30px;height:30px;border:1px solid #4f7cff55;border-radius:8px;background:#102554;color:#8eb0ff;display:grid;place-items:center;font-size:11px;cursor:pointer;padding:0}
     .compose-track-play:disabled{opacity:.45;cursor:not-allowed}
-    .compose-track-controls{grid-column:2;grid-row:2;display:flex;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid #ffffff08;flex-wrap:wrap}
-    .compose-track-volume,.compose-track-fade{display:flex;align-items:center;gap:8px;min-width:150px;flex:1;color:#6f849b;font-size:9px}
-    .compose-track-volume input,.compose-track-fade input{width:100%;accent-color:#5f8cff}
+    .compose-track-controls{display:flex;flex-direction:column;align-items:stretch;gap:8px;margin-top:auto;padding-top:8px;border-top:1px solid #ffffff08;flex-wrap:nowrap}
+    .compose-track-volume,.compose-track-fade{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:7px;min-width:0;color:#6f849b;font-size:9px}
+    .compose-track-volume input,.compose-track-fade input{width:100%;min-width:0;accent-color:#5f8cff}
     .compose-track-control{height:30px;padding:0 12px;border:1px solid #4f7cff44;border-radius:8px;background:#0d1c31;color:#91a9d6;font:700 9px Inter;cursor:pointer;transition:.15s ease}
     .compose-track-control:hover{background:#12264a;color:#cbd9f4;border-color:#5f8cff66}
     .compose-track-control.active{background:#162e5a;border-color:#5f8cff88;color:#cbd9ff;box-shadow:inset 0 0 14px #4f7cff18}
+    .compose-track-toggle-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
     .compose-track-editor.muted .compose-track-volume{color:#4f6279}
     .compose-track-editor.muted .compose-track-volume input{opacity:.42;filter:grayscale(.45)}
     .compose-track-editor.muted .compose-track-volume span{color:#61758d}
@@ -815,9 +821,21 @@
     const dynamicTools=capabilities.length?capabilities.map(value=>`<span class="compose-track-tool dynamic">${escapeHistory(value)}</span>`).join(''):'';
     row.innerHTML=`
       <div class="compose-track-identity">
-        <button class="compose-track-play" type="button" aria-label="Play track" title="Play track">▶</button>
-        <button class="compose-track-move" type="button" aria-label="Move track" title="Drag to position track">⠿</button>
+        <div class="compose-track-identity-actions">
+          <button class="compose-track-play" type="button" aria-label="Play track" title="Play track">▶</button>
+          <button class="compose-track-move" type="button" aria-label="Move track" title="Drag to position track">⠿</button>
+        </div>
         <div class="compose-track-row-main"><strong>${escapeHistory(asset.filename||'Untitled asset')}</strong><span>${escapeHistory(labelForComposeType(type))}${asset.soundType?' · '+escapeHistory(asset.soundType):''}${asset.format?' · '+escapeHistory(asset.format):''}</span></div>
+        <div class="compose-track-controls">
+          <label class="compose-track-volume"><span>Volume</span><input type="range" min="0" max="100" value="100" aria-label="Track volume"></label>
+          <label class="compose-track-fade"><span>Fade in</span><input type="range" min="0" max="10" step="0.1" value="0" data-compose-fade="in" aria-label="Fade in duration"><strong class="compose-track-fade-value" data-compose-fade-value="in">0.0s</strong></label>
+          <label class="compose-track-fade"><span>Fade out</span><input type="range" min="0" max="10" step="0.1" value="0" data-compose-fade="out" aria-label="Fade out duration"><strong class="compose-track-fade-value" data-compose-fade-value="out">0.0s</strong></label>
+          <div class="compose-track-toggle-row">
+            <button type="button" class="compose-track-control" data-compose-mute>Mute</button>
+            <button type="button" class="compose-track-control" data-compose-solo>Solo</button>
+            ${dynamicTools}
+          </div>
+        </div>
       </div>
       <div class="compose-track-lane">
         <div class="compose-track-region" title="Drag to position track">
@@ -832,14 +850,6 @@
             <span class="compose-track-trim-readout">Trim 0:00.00 – 0:00.00</span>
           </div>
         </div>
-      </div>
-      <div class="compose-track-controls">
-        <label class="compose-track-volume"><span>Volume</span><input type="range" min="0" max="100" value="100" aria-label="Track volume"></label>
-        <label class="compose-track-fade"><span>Fade in</span><input type="range" min="0" max="10" step="0.1" value="0" data-compose-fade="in" aria-label="Fade in duration"><strong class="compose-track-fade-value" data-compose-fade-value="in">0.0s</strong></label>
-        <label class="compose-track-fade"><span>Fade out</span><input type="range" min="0" max="10" step="0.1" value="0" data-compose-fade="out" aria-label="Fade out duration"><strong class="compose-track-fade-value" data-compose-fade-value="out">0.0s</strong></label>
-        <button type="button" class="compose-track-control" data-compose-mute>Mute</button>
-        <button type="button" class="compose-track-control" data-compose-solo>Solo</button>
-        ${dynamicTools}
       </div>
       ${assetUrl?`<audio class="compose-track-audio" preload="metadata" src="${escapeHistory(assetUrl)}"></audio>`:''}
     `;
