@@ -668,10 +668,12 @@
       const effectiveDuration=Math.min(track.effectiveDuration,Math.max(.001,renderDuration-start));
       const curveLength=129;
       const curve=new Float32Array(curveLength);
+      const fadeInDuration=Math.min(track.fadeIn,effectiveDuration);
+      const fadeOutDuration=Math.min(track.fadeOut,effectiveDuration);
       for(let i=0;i<curveLength;i++){
         const elapsed=(i/(curveLength-1))*effectiveDuration;
-        const fadeInGain=track.fadeIn>0?Math.min(1,elapsed/track.fadeIn):1;
-        const fadeOutGain=track.fadeOut>0?Math.min(1,Math.max(0,(effectiveDuration-elapsed)/track.fadeOut)):1;
+        const fadeInGain=fadeInDuration>0?Math.min(1,elapsed/fadeInDuration):1;
+        const fadeOutGain=fadeOutDuration>0?Math.min(1,Math.max(0,(effectiveDuration-elapsed)/fadeOutDuration)):1;
         curve[i]=track.volume*Math.min(fadeInGain,fadeOutGain);
       }
       gain.gain.setValueCurveAtTime(curve,start,effectiveDuration);
