@@ -137,7 +137,7 @@
     .compose-track-fade-indicator.in:after,.compose-track-fade-indicator.out:after{display:none}
     .compose-track-trim-readout{position:absolute;left:50%;top:-8px;z-index:6;transform:translate(-50%,-100%);padding:4px 7px;border:1px solid #4f7cff66;border-radius:5px;background:#071426ee;color:#b9ccff;font:700 8px Inter;white-space:nowrap;opacity:0;pointer-events:none}
     .compose-track-editor.trimming .compose-track-trim-readout{opacity:1}
-    .compose-track-wave i{width:3px;height:var(--h);min-height:4px;border-radius:99px;background:#7da3ff;opacity:.86;transform-origin:center}
+    .compose-track-wave i{width:auto;flex:1 1 0;min-width:1px;height:var(--h);min-height:4px;border-radius:99px;background:#7da3ff;opacity:.86;transform-origin:center}
     .compose-track-playhead{position:absolute;top:0;bottom:0;left:var(--playhead,0%);z-index:5;width:2px;background:#b8caff;box-shadow:0 0 9px #5f8cff99;transform:translateX(-1px);pointer-events:none;opacity:.95}
     .compose-track-playhead:before{content:"";position:absolute;top:-1px;left:50%;width:7px;height:7px;border-radius:50%;background:#d7e2ff;box-shadow:0 0 8px #5f8cffaa;transform:translateX(-50%)}
     .compose-track-wave.scrubbing{cursor:ew-resize}
@@ -603,7 +603,7 @@
           const region=row.querySelector('.compose-track-region');
           if(region){
             const start=Math.max(0,Number(row.dataset.startSeconds||0)||0);
-            const trackWidth=Math.max(120,trackSourceDuration(row)*composeModel.pixelsPerSecond);
+            const trackWidth=Math.max(24,trackSourceDuration(row)*composeModel.pixelsPerSecond);
             region.style.marginLeft=`${start*composeModel.pixelsPerSecond}px`;
             region.style.width=`${trackWidth}px`;
             region.style.maxWidth='none';
@@ -1126,7 +1126,7 @@
       const snapped=Math.round(requested/grid)*grid;
       row.dataset.startSeconds=String(snapped);
       const geometry=timelineGeometry();
-      const trackWidth=Math.max(120,sourceDuration()*geometry.pixelsPerSecond);
+      const trackWidth=Math.max(24,sourceDuration()*geometry.pixelsPerSecond);
       region.style.marginLeft=`${snapped*geometry.pixelsPerSecond}px`;
       region.style.width=`${trackWidth}px`;
       region.style.maxWidth='none';
@@ -1150,9 +1150,7 @@
       if(!dragging)return;
       const geometry=timelineGeometry();
       const dx=event.clientX-dragStartX;
-      const startPx=(dragStartSeconds/geometry.maxSeconds)*geometry.width;
-      const targetPx=Math.max(0,startPx+dx);
-      const targetSeconds=targetPx/geometry.pixelsPerSecond;
+      const targetSeconds=dragStartSeconds+(dx/geometry.pixelsPerSecond);
       applyStart(targetSeconds);
     };
     const endDrag=()=>{
