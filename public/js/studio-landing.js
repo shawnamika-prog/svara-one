@@ -775,11 +775,13 @@
         download.textContent='Download WAV';
         success.append(heading,detail,preview,download);
         form.appendChild(success);
-        cancel.textContent='Close';
-        cancel.disabled=false;
-        cancel.onclick=close;
+        const doneButton=document.createElement('button');
+        doneButton.type='button';
+        doneButton.className='compose-export-cancel';
+        doneButton.textContent='Close';
+        doneButton.addEventListener('click',close);
+        form.appendChild(doneButton);
         closeButton.disabled=false;
-        closeButton.onclick=close;
       }catch(error){
         status.textContent=error?.message||'Export failed. No saved asset was confirmed.';
         status.classList.add('error');
