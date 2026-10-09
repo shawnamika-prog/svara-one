@@ -431,7 +431,10 @@ export default {
       if (contentType !== "audio/wav") return json({ error: "Composition export must be uploaded as WAV audio." }, 415);
       if (!request.body) return json({ error: "WAV audio is required." }, 400);
 
-      const declaredSize = Number(request.headers.get("content-length") || 0);
+      const declaredSize = Number(request.headers.get("x-svara-composition-size") || request.headers.get("content-length") || 0);
+      const contentLength = Number(request.headers.get("content-length") || 0);
+      if (!Number.isInteger(declaredSize) || declaredSize < 44) return json({ error: "A valid WAV content length is required." }, 400);
+      if (contentLength > 0 && contentLength !== declaredSize) return json({ error: "WAV content length does not match the declared export size." }, 400);
       if (declaredSize > 80000000) return json({ error: "WAV export exceeds the current 80 MB limit." }, 413);
       const durationSeconds = Number(request.headers.get("x-svara-composition-duration") || 0);
       if (!Number.isFinite(durationSeconds) || durationSeconds <= 0 || durationSeconds > 420) {
@@ -498,12 +501,16 @@ export default {
             const header = new DataView(wavHeader.buffer);
             if (
               !wavHeaderChecked ||
+              receivedBytes !== declaredSize ||
               receivedBytes !== 44 + header.getUint32(40, true) ||
               receivedBytes !== 8 + header.getUint32(4, true)
             ) throw new Error("INVALID_COMPOSITION_WAV");
           }
         }));
-        const stored = await env.GENERATED_AUDIO.put(key, boundedWavBody, {
+        // R2 requires a readable stream with a known byte length. Keep the WAV
+        // validation streaming, then pass its output through FixedLengthStream.
+        const fixedLengthWav = new FixedLengthStream(declaredSize);
+        const storedPromise = env.GENERATED_AUDIO.put(key, fixedLengthWav.readable, {
           httpMetadata: {
             contentType: "audio/wav",
             cacheControl: "private, no-store"
@@ -518,6 +525,11 @@ export default {
             createdAt
           }
         });
+        const validationPromise = boundedWavBody.pipeTo(fixedLengthWav.writable);
+        const [stored] = await Promise.all([
+          storedPromise,
+          validationPromise.then(() => null)
+        ]);
         if (!stored) throw new Error("R2 did not confirm the Composition upload.");
         if (declaredSize > 0 && Number(stored.size) !== declaredSize) {
           await env.GENERATED_AUDIO.delete(key);
