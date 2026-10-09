@@ -1,0 +1,11 @@
+Third-party component: lamejs
+
+The Studio bundles the separate script `public/js/vendor/lame.min.js` for in-browser MP3 composition export.
+
+- Project: https://github.com/zhuker/lamejs
+- Version declared by upstream package metadata: 1.2.1
+- License declared by upstream package metadata: GNU LGPL version 3.0 (LGPL-3.0)
+- Upstream license information: https://github.com/zhuker/lamejs/blob/master/LICENSE
+- Full LGPL-3.0 license text: https://www.gnu.org/licenses/lgpl-3.0.html
+
+The vendored encoder is included as a separate browser script. Review the linked LGPL terms when redistributing the Studio, and consult the upstream source when modifying the encoder.
