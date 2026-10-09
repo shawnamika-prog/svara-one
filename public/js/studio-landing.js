@@ -98,7 +98,7 @@
     .compose-transport-button.active{border-color:#31e3c855;background:#0d2930;color:#31e3c8}
     .compose-timeline-ruler{display:grid;grid-template-columns:180px minmax(720px,1fr);align-items:end;margin-bottom:8px;min-width:900px}
     .compose-timeline-label{position:sticky;left:0;z-index:13;padding:0 12px 8px;color:#5f7390;font-size:8px;font-weight:800;letter-spacing:.16em;background:#09121f;box-shadow:8px 0 18px #0005}
-    .compose-timeline-scale{position:relative;height:28px;padding:0;border-left:1px solid #ffffff08;border-bottom:1px solid #ffffff12;flex:0 0 auto}
+    .compose-timeline-scale{position:relative;height:28px;padding:0;border-left:1px solid #ffffff08;border-bottom:1px solid #ffffff12;flex:0 0 auto;pointer-events:auto;cursor:ew-resize;touch-action:none}
     .compose-timeline-scale:before{content:"";position:absolute;left:0;right:0;bottom:0;height:9px;background:repeating-linear-gradient(to right,#ffffff20 0,#ffffff20 1px,transparent 1px,var(--compose-second-pitch,24px) var(--compose-second-pitch,24px))}
     .compose-timeline-scale .compose-timeline-ruler-mark{position:absolute;bottom:10px;transform:translateX(-50%);color:#7186a0;font-size:8px;font-variant-numeric:tabular-nums;white-space:nowrap}
     .compose-timeline-scale .compose-timeline-ruler-mark:first-child{transform:none}
@@ -660,6 +660,10 @@
         masterScrubbing=false;
         timelineScale.classList.remove('scrubbing');
       });
+      timelineScale?.addEventListener('click',event=>{
+        if(masterScrubbing)return;
+        setMasterTimeFromPointer(event);
+      });
       const renderTimelinePlayhead=seconds=>{
         const duration=Math.max(composeModel.minDuration,composeModel.duration);
         const value=Math.max(0,Math.min(duration,Number(seconds)||0));
@@ -726,6 +730,10 @@
           playAllButton.setAttribute('title',playing?'Stop all tracks':'Play all tracks');
           playAllButton.classList.toggle('active',playing);
         }
+        timeline.querySelectorAll('.compose-track-play').forEach(button=>{
+          button.disabled=playAllRunning;
+          button.title=playAllRunning?'Individual playback is controlled by Stop All':'Play/Pause track';
+        });
       };
       const stopAll=()=>{
         playAllRunId+=1;
@@ -1079,6 +1087,8 @@
       play.disabled=false;
     };
     const togglePlayback=async()=>{
+      const composeTimeline=row.closest('.compose-timeline');
+      if(composeTimeline?._isPlayAllRunning?.())return;
       if(!audio){
         console.warn('compose_track_no_audio_url',asset);
         return;
