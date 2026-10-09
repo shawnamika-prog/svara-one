@@ -750,7 +750,8 @@
             'content-type':'audio/wav',
             'x-svara-composition-filename':filename,
             'x-svara-composition-duration':String(result.durationSeconds),
-            'x-svara-composition-track-count':String(result.trackCount)
+            'x-svara-composition-track-count':String(result.trackCount),
+            'x-svara-composition-size':String(result.wav.size)
           },
           body:result.wav
         });
