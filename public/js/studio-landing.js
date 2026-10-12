@@ -1883,19 +1883,17 @@
     const togglePlayback=async()=>{
       const composeTimeline=row.closest('.compose-timeline');
       if(composeTimeline?._isPlayAllRunning?.())return;
-      if(!audio){
-        console.warn('compose_track_no_audio_url',asset);
-        return;
-      }
+      if(!audio){console.warn('compose_track_no_audio_url',asset);return;}
       if(audio.paused){
         try{
           if(audio.readyState===0)audio.load();
-          const duration=Number.isFinite(audio.duration)&&audio.duration>0?audio.duration:sourceDuration();
-          const trimStart=Math.max(0,Number(row.dataset.trimIn||0))*duration;
-          const trimEnd=Math.max(trimStart+.01,(1-Math.max(0,Number(row.dataset.trimOut||0)))*duration);
-          if(audio.currentTime<trimStart||audio.currentTime>=trimEnd-.025)audio.currentTime=trimStart;
+          const metrics=row._composeClips.map(clip=>metricsForClip(clip)).sort((a,b)=>a.startSeconds-b.startSeconds);
+          const currentTime=Number(audio.currentTime)||0;
+          const active=metrics.find(metric=>currentTime>=metric.effectiveStart-.02&&currentTime<metric.effectiveEnd-.025);
+          const next=active||metrics.find(metric=>metric.effectiveStart>=currentTime-.02)||metrics[0];
+          if(next)audio.currentTime=next.effectiveStart;
           await audio.play();
-          wave.classList.add('playing');
+          row.querySelectorAll('.compose-track-wave').forEach(item=>item.classList.add('playing'));
           syncPlayButton();
         }catch(error){
           console.warn('compose_track_play_error',error);
@@ -1903,23 +1901,28 @@
         }
       }else{
         audio.pause();
-        wave.classList.remove('playing');
+        row.querySelectorAll('.compose-track-wave').forEach(item=>item.classList.remove('playing'));
         syncPlayButton();
       }
     };
     syncPlayButton();
     play?.addEventListener('click',event=>{event.stopPropagation();togglePlayback();});
-    audio?.addEventListener('play',()=>{syncPlayButton();row.closest('.compose-timeline')?._syncPlayAllButton?.();});
-    audio?.addEventListener('pause',()=>{wave.classList.remove('playing');syncPlayButton();row.closest('.compose-timeline')?._syncPlayAllButton?.();});
+    audio?.addEventListener('play',()=>{row.querySelectorAll('.compose-track-wave').forEach(item=>item.classList.add('playing'));syncPlayButton();row.closest('.compose-timeline')?._syncPlayAllButton?.();});
+    audio?.addEventListener('pause',()=>{row.querySelectorAll('.compose-track-wave').forEach(item=>item.classList.remove('playing'));syncPlayButton();row.closest('.compose-timeline')?._syncPlayAllButton?.();});
     audio?.addEventListener('error',()=>{syncPlayButton();row.closest('.compose-timeline')?._syncPlayAllButton?.();console.warn('compose_track_audio_error',audio.currentSrc||assetUrl);});
     row.querySelector('.compose-track-identity')?.addEventListener('dblclick',event=>{if(!event.target.closest('button'))togglePlayback();});
     audio?.addEventListener('loadedmetadata',()=>{
       if(Number.isFinite(audio.duration)&&audio.duration>0){
+        const oldDuration=Number(row.dataset.sourceDuration||0);
         row.dataset.sourceDuration=String(audio.duration);
-        const waveformBars=row.querySelector('.compose-track-wave-bars');
+        const clips=row._composeClips||[];
+        if(clips.length===1&&clips[0].sourceStart===0&&(Math.abs(clips[0].sourceEnd-oldDuration)<.1||clips[0].sourceEnd<=0)){
+          clips[0].sourceEnd=audio.duration;
+          renderClipWaveform(clips[0]);
+        }
         const composeTimeline=row.closest('.compose-timeline');
         const trackModel=composeTimeline?._composeModel?.tracks.get(row.dataset.trackId);
-        if(trackModel)trackModel.sourceDuration=audio.duration;
+        if(trackModel){trackModel.sourceDuration=audio.duration;trackModel.clips=clips;}
         composeTimeline?._updateCompositionGeometry?.();
       }
       renderTrim();
@@ -1927,7 +1930,9 @@
       if(!composeTimeline?._isPlayAllRunning?.())renderPlayhead();
     });
     audio?.addEventListener('ended',()=>{
-      wave.classList.remove('playing');
+      row.querySelectorAll('.compose-track-wave').forEach(item=>item.classList.remove('playing'));
+      const metrics=row._composeClips.map(clip=>metricsForClip(clip));
+      try{if(metrics[0])audio.currentTime=metrics[0].effectiveStart;}catch{}
       const composeTimeline=row.closest('.compose-timeline');
       if(!composeTimeline?._isPlayAllRunning?.())renderPlayhead();
       composeTimeline?._syncPlayAllButton?.();
