@@ -151,8 +151,9 @@
     .compose-track-trim-readout{position:absolute;left:50%;top:-8px;z-index:6;transform:translate(-50%,-100%);padding:4px 7px;border:1px solid #4f7cff66;border-radius:5px;background:#071426ee;color:#b9ccff;font:700 8px Inter;white-space:nowrap;opacity:0;pointer-events:none}
     .compose-track-editor.trimming .compose-track-trim-readout{opacity:1}
     .compose-track-wave-bars{display:flex;align-items:center;gap:2px;width:100%;height:100%;flex:0 0 auto;overflow:hidden;pointer-events:none}.compose-track-wave i{width:3px;flex:0 0 3px;min-width:3px;height:var(--h);min-height:4px;border-radius:99px;background:#7da3ff;opacity:.86;transform-origin:center}
-    .compose-track-playhead{position:absolute;top:0;bottom:0;left:var(--playhead,0%);z-index:5;width:2px;background:#b8caff;box-shadow:0 0 9px #5f8cff99;transform:translateX(-1px);pointer-events:none;opacity:.95}
-    .compose-track-playhead:before{content:"";position:absolute;top:-1px;left:50%;width:7px;height:7px;border-radius:50%;background:#d7e2ff;box-shadow:0 0 8px #5f8cffaa;transform:translateX(-50%)}
+    .compose-track-playhead{display:none}
+    .compose-track-shared-playhead{position:absolute;top:12px;bottom:12px;left:0;z-index:8;width:2px;background:#b8caff;box-shadow:0 0 9px #5f8cff99;transform:translateX(-1px);pointer-events:none;opacity:.98;visibility:hidden}
+    .compose-track-shared-playhead:before{content:"";position:absolute;top:-1px;left:50%;width:7px;height:7px;border-radius:50%;background:#d7e2ff;box-shadow:0 0 8px #5f8cffaa;transform:translateX(-50%)}
     .compose-track-wave.scrubbing{cursor:ew-resize}
     .compose-track-play{width:30px;height:30px;border:1px solid #4f7cff55;border-radius:8px;background:#102554;color:#8eb0ff;display:grid;place-items:center;font-size:11px;cursor:pointer;padding:0}
     .compose-track-play:disabled{opacity:.45;cursor:not-allowed}
@@ -1316,22 +1317,25 @@
       };
       const renderAllTrackPlayheads=seconds=>{
         const masterTime=Math.max(0,Number(seconds)||0);
+        const pixelsPerSecond=Number(composeModel.pixelsPerSecond)||24;
         timeline.querySelectorAll('.compose-track-editor').forEach(row=>{
-          const clips=composeClipsForRow(row);
-          const metrics=clips.map(clip=>composeClipMetrics(row,clip));
+          const lane=row.querySelector('.compose-track-lane');
+          let marker=lane?.querySelector('.compose-track-shared-playhead');
+          if(!marker&&lane){
+            marker=document.createElement('span');
+            marker.className='compose-track-shared-playhead';
+            marker.setAttribute('aria-hidden','true');
+            lane.appendChild(marker);
+          }
+          if(!marker)return;
+          const metrics=composeClipsForRow(row).map(clip=>composeClipMetrics(row,clip));
           const active=metrics.find(metric=>masterTime>=metric.startSeconds&&masterTime<metric.endSeconds);
-          metrics.forEach((metric,index)=>{
-            const playhead=metric.clip.playhead||metric.clip.region?.querySelector('.compose-track-playhead');
-            if(!playhead)return;
-            if(metric!==active){
-              playhead.style.visibility='hidden';
-              return;
-            }
-            const sourceTime=metric.effectiveStart+Math.max(0,Math.min(metric.effectiveDuration,masterTime-metric.startSeconds));
-            const ratio=Math.max(0,Math.min(1,(sourceTime-metric.sourceStart)/Math.max(.01,metric.span)));
-            playhead.style.visibility='visible';
-            playhead.style.setProperty('--playhead',String(ratio*100)+'%');
-          });
+          if(!active){
+            marker.style.visibility='hidden';
+            return;
+          }
+          marker.style.left=(masterTime*pixelsPerSecond)+'px';
+          marker.style.visibility='visible';
         });
       };
       const animateTimelinePlayhead=()=>{
@@ -1663,6 +1667,13 @@
     const playhead=row.querySelector('.compose-track-playhead');
     const region=row.querySelector('.compose-track-region');
     const lane=row.querySelector('.compose-track-lane');
+    let sharedPlayhead=lane?.querySelector('.compose-track-shared-playhead');
+    if(lane&&!sharedPlayhead){
+      sharedPlayhead=document.createElement('span');
+      sharedPlayhead.className='compose-track-shared-playhead';
+      sharedPlayhead.setAttribute('aria-hidden','true');
+      lane.appendChild(sharedPlayhead);
+    }
     let selectedClip=null;
     const moveHandle=row.querySelector('.compose-track-move');
     const trimInHandle=row.querySelector('[data-compose-trim="in"]');
@@ -1714,43 +1725,34 @@
     fadeIn?.addEventListener('input',()=>{row.dataset.fadeIn=String(Number(fadeIn.value)||0);renderFadeValues();renderTrim();applyPlaybackGain();});
     fadeOut?.addEventListener('input',()=>{row.dataset.fadeOut=String(Number(fadeOut.value)||0);renderFadeValues();renderTrim();applyPlaybackGain();});
     const renderPlayhead=()=>{
-      if(!row._composeClips?.length)return;
+      if(!row._composeClips?.length||!sharedPlayhead)return;
       const sourceTime=Number(audio?.currentTime||0);
-      const metrics=row._composeClips.map(clip=>metricsForClip(clip)).sort((a,b)=>a.effectiveStart-b.effectiveStart);
-      // Use exact, shared segment boundaries. Epsilon offsets on both ends created
-      // a dead zone at every cut, causing the playhead to blink/jump at split points.
-      const active=metrics.find(metric=>sourceTime>=metric.effectiveStart&&sourceTime<metric.effectiveEnd);
-      metrics.forEach(metric=>{
-        const marker=metric.clip.playhead||metric.clip.region?.querySelector('.compose-track-playhead');
-        if(!marker)return;
-        if(metric!==active){marker.style.visibility='hidden';return;}
-        const ratio=Math.max(0,Math.min(1,(sourceTime-metric.sourceStart)/Math.max(.01,metric.span)));
-        marker.style.visibility='visible';
-        marker.style.setProperty('--playhead',String(ratio*100)+'%');
-      });
+      const metrics=row._composeClips.map(clip=>metricsForClip(clip)).sort((a,b)=>a.startSeconds-b.startSeconds);
+      const preferred=row._composePlaybackClip||selectedClip||row._composeSelectedClip;
+      const preferredMetric=metrics.find(metric=>metric.clip===preferred&&sourceTime>=metric.effectiveStart&&sourceTime<metric.effectiveEnd);
+      const active=preferredMetric||metrics.find(metric=>sourceTime>=metric.effectiveStart&&sourceTime<metric.effectiveEnd);
+      if(!active){
+        sharedPlayhead.style.visibility='hidden';
+        return;
+      }
+      const timeline=row.closest('.compose-timeline');
+      const pixelsPerSecond=Number(timeline?._composeModel?.pixelsPerSecond)||24;
+      const timelineSeconds=active.startSeconds+Math.max(0,Math.min(active.effectiveDuration,sourceTime-active.effectiveStart));
+      sharedPlayhead.style.left=(timelineSeconds*pixelsPerSecond)+'px';
+      sharedPlayhead.style.visibility='visible';
     };
     const advanceTrackPlayback=()=>{
       const composeTimeline=row.closest('.compose-timeline');
       if(!audio||audio.paused||composeTimeline?._isPlayAllRunning?.()||row._composeAdvancing)return;
-      const metrics=row._composeClips.map(clip=>metricsForClip(clip)).sort((a,b)=>a.effectiveStart-b.effectiveStart);
+      const target=row._composePlaybackClip||selectedClip||row._composeSelectedClip;
+      if(!target)return;
+      const metric=metricsForClip(target);
       const time=Number(audio.currentTime)||0;
-      // Adjacent cut segments meet at the same source time. Don't jump the media
-      // element at those boundaries; only seek when there is a real deleted gap.
-      const active=metrics.find(metric=>time>=metric.effectiveStart&&time<metric.effectiveEnd);
-      if(active)return;
-      const next=metrics.find(metric=>metric.effectiveStart>time);
-      if(next&&next.effectiveStart-time>.03){
-        row._composeAdvancing=true;
-        try{audio.currentTime=next.effectiveStart;}catch(error){console.warn('compose_clip_advance_error',error);}
-        queueMicrotask(()=>{row._composeAdvancing=false;});
-        return;
-      }
-      const last=metrics[metrics.length-1];
-      if(last&&time>=last.effectiveEnd-.005){
-        const first=metrics[0];
-        audio.pause();
-        try{audio.currentTime=first.effectiveStart;}catch(error){console.warn('compose_clip_end_reset_error',error);}
-      }
+      if(time<metric.effectiveEnd-.005)return;
+      audio.pause();
+      try{audio.currentTime=metric.effectiveStart;}catch(error){console.warn('compose_clip_end_reset_error',error);}
+      row._composePlaybackClip=null;
+      renderPlayhead();
     };
     const updateTrackPlayhead=()=>{
       advanceTrackPlayback();
@@ -1923,22 +1925,29 @@
       if(audio.paused){
         try{
           if(audio.readyState===0)audio.load();
-          const metrics=row._composeClips.map(clip=>metricsForClip(clip)).sort((a,b)=>a.startSeconds-b.startSeconds);
+          const target=row._composeSelectedClip||selectedClip||row._composeClips?.[0];
+          if(!target)return;
+          const metric=metricsForClip(target);
           const currentTime=Number(audio.currentTime)||0;
-          const active=metrics.find(metric=>currentTime>=metric.effectiveStart-.02&&currentTime<metric.effectiveEnd-.025);
-          const next=active||metrics.find(metric=>metric.effectiveStart>=currentTime-.02)||metrics[0];
-          if(next)audio.currentTime=next.effectiveStart;
+          if(currentTime<metric.effectiveStart||currentTime>=metric.effectiveEnd){
+            audio.currentTime=metric.effectiveStart;
+          }
+          row._composePlaybackClip=target;
           await audio.play();
           row.querySelectorAll('.compose-track-wave').forEach(item=>item.classList.add('playing'));
           syncPlayButton();
+          renderPlayhead();
         }catch(error){
+          row._composePlaybackClip=null;
           console.warn('compose_track_play_error',error);
           syncPlayButton();
         }
       }else{
         audio.pause();
+        row._composePlaybackClip=null;
         row.querySelectorAll('.compose-track-wave').forEach(item=>item.classList.remove('playing'));
         syncPlayButton();
+        renderPlayhead();
       }
     };
     syncPlayButton();
@@ -2099,26 +2108,21 @@
       const rect=scale?.getBoundingClientRect();
       return {left:rect?.left||0,width,maxSeconds,pixelsPerSecond};
     };
-    const applyStart=seconds=>{
+    const applyStart=(seconds,targetClip=selectedClip)=>{
       const composeTimeline=row.closest('.compose-timeline');
       if(composeTimeline?._isPlayAllRunning?.())return;
       const model=composeTimeline?._composeModel;
-      const grid=.25;
-      const oldStart=Math.max(0,Number(row.dataset.startSeconds||0)||0);
-      const requested=Math.max(0,Number(seconds)||0);
-      const snapped=Math.round(requested/grid)*grid;
-      const delta=snapped-oldStart;
-      row.dataset.startSeconds=String(snapped);
       const clips=row._composeClips||[];
-      clips.forEach(clip=>{
-        clip.startSeconds=Math.max(0,Number(clip.startSeconds||0)+delta);
-        const guide=clip.region?.querySelector('.compose-track-time-guide');
-        if(guide)guide.textContent='Start '+formatComposeTime(clip.startSeconds);
-      });
-      if(clips.length){
-        clips.sort((a,b)=>a.startSeconds-b.startSeconds);
-        row.dataset.startSeconds=String(clips[0].startSeconds);
-      }
+      const clip=clips.includes(targetClip)?targetClip:(clips.length===1?clips[0]:null);
+      if(!clip)return;
+      const grid=.25;
+      const oldStart=Math.max(0,Number(clip.startSeconds)||0);
+      const requested=Math.max(0,Number(seconds)||0);
+      clip.startSeconds=Math.round(requested/grid)*grid;
+      const guide=clip.region?.querySelector('.compose-track-time-guide');
+      if(guide)guide.textContent='Start '+formatComposeTime(clip.startSeconds);
+      clips.sort((a,b)=>a.startSeconds-b.startSeconds);
+      row.dataset.startSeconds=String(clips.length?clips[0].startSeconds:0);
       const trackModel=model?.tracks.get(row.dataset.trackId);
       if(trackModel){trackModel.startSeconds=Number(row.dataset.startSeconds||0);trackModel.clips=clips;}
       composeTimeline?._updateCompositionGeometry?.();
@@ -2159,9 +2163,9 @@
       if(!audio||composeTimeline?._isPlayAllRunning?.())return;
       const cutTime=Number(audio.currentTime)||0;
       const clips=row._composeClips||[];
-      const metrics=clips.map(clip=>metricsForClip(clip));
-      const metric=metrics.find(item=>cutTime>=item.effectiveStart+.04&&cutTime<=item.effectiveEnd-.04);
-      if(!metric){
+      const target=row._composeSelectedClip||selectedClip||clips[0];
+      const metric=clips.includes(target)?metricsForClip(target):null;
+      if(!metric||cutTime<metric.effectiveStart+.04||cutTime>metric.effectiveEnd-.04){
         cutTrackButton.title='Move the track playhead inside a clip before cutting.';
         cutTrackButton.classList.add('needs-cut-position');
         return;
@@ -2215,7 +2219,7 @@
       if(event.button!==0)return;
       dragging=true;
       dragStartX=event.clientX;
-      dragStartSeconds=Number(row.dataset.startSeconds||0);
+      dragStartSeconds=Number((selectedClip||row._composeSelectedClip||row._composeClips?.[0])?.startSeconds||0);
       row.classList.add('dragging');
       event.preventDefault();
     };
@@ -2224,7 +2228,7 @@
       const geometry=timelineGeometry();
       const dx=event.clientX-dragStartX;
       const targetSeconds=dragStartSeconds+(dx/geometry.pixelsPerSecond);
-      applyStart(targetSeconds);
+      applyStart(targetSeconds,selectedClip||row._composeSelectedClip||row._composeClips?.[0]);
     };
     const endDrag=()=>{
       if(!dragging)return;
