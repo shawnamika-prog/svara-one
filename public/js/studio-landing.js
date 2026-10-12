@@ -1831,6 +1831,33 @@
       event.preventDefault();
       event.stopPropagation();
       const composeTimeline=row.closest('.compose-timeline');
+      const clips=row._composeClips||[];
+      if(clips.length>1){
+        composeTimeline?._stopAll?.();
+        audio?.pause();
+        const selected=row._composeSelectedClip||selectedClip||clips[0];
+        const selectedIndex=Math.max(0,clips.indexOf(selected));
+        const nextCandidates=clips.filter(item=>item!==selected);
+        selected?.region?.remove();
+        row._composeClips=nextCandidates;
+        const nextClip=nextCandidates[Math.min(selectedIndex,nextCandidates.length-1)]||nextCandidates[0];
+        if(nextClip){
+          row._composeSelectedClip=nextClip;
+          selectedClip=nextClip;
+          row.dataset.startSeconds=String(nextCandidates[0].startSeconds);
+          const model=composeTimeline?._composeModel?.tracks.get(row.dataset.trackId);
+          if(model){model.clips=nextCandidates;model.startSeconds=Number(row.dataset.startSeconds)||0;}
+          selectClip(nextClip);
+          const nextMetric=metricsForClip(nextClip);
+          try{audio.currentTime=nextMetric.effectiveStart;}catch(error){console.warn('compose_delete_clip_seek_error',error);}
+          renderTrim(nextClip);
+          renderPlayhead();
+          applyPlaybackGain();
+          composeTimeline?._updateCompositionGeometry?.();
+          composeTimeline?._syncPlayAllButton?.();
+          return;
+        }
+      }
       const canvas=composeWorkspace.querySelector('.compose-canvas');
       composeTimeline?._stopAll?.();
       audio?.pause();
@@ -1977,6 +2004,11 @@
       selectedClip=clip;
       row._composeSelectedClip=clip;
       row._composeClips.forEach(item=>item.region?.classList.toggle('selected-clip',item===clip));
+      if(deleteTrackButton){
+        const canDeleteClip=row._composeClips.length>1;
+        deleteTrackButton.title=canDeleteClip?'Delete selected clip':'Delete track';
+        deleteTrackButton.setAttribute('aria-label',canDeleteClip?'Delete selected clip':'Delete track');
+      }
       renderTrim(clip);
       renderPlayhead();
     };
@@ -2192,7 +2224,13 @@
     moveHandle?.addEventListener('mousedown',event=>{event.stopPropagation();beginDrag(event);});
     window.addEventListener('mousemove',moveDrag);
     window.addEventListener('mouseup',endDrag);
-    region?.addEventListener('click',()=>selectTrack());
+    lane?.addEventListener('click',event=>{
+      const selectedRegion=event.target.closest('.compose-track-region');
+      const clip=row._composeClips?.find(item=>item.region===selectedRegion);
+      if(!clip)return;
+      selectTrack();
+      selectClip(clip);
+    });
 
     row._composeApplyStart=applyStart;
     row._composeRenderTrim=renderTrim;
