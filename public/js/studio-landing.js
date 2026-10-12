@@ -1699,7 +1699,7 @@
       if(!audio)return;
       const metrics=(row._composeClips||[]).map(clip=>metricsForClip(clip)).sort((a,b)=>a.startSeconds-b.startSeconds);
       const time=Number(audio.currentTime)||0;
-      const active=metrics.find(metric=>time>=metric.effectiveStart-.015&&time<metric.effectiveEnd-.025);
+      const active=metrics.find(metric=>time>=metric.effectiveStart&&time<metric.effectiveEnd);
       if(!active){audio.volume=baseVolume();return;}
       const index=metrics.indexOf(active);
       const position=Math.max(0,time-active.effectiveStart);
@@ -1716,8 +1716,10 @@
     const renderPlayhead=()=>{
       if(!row._composeClips?.length)return;
       const sourceTime=Number(audio?.currentTime||0);
-      const metrics=row._composeClips.map(clip=>metricsForClip(clip));
-      const active=metrics.find(metric=>sourceTime>=metric.effectiveStart-.015&&sourceTime<metric.effectiveEnd-.025);
+      const metrics=row._composeClips.map(clip=>metricsForClip(clip)).sort((a,b)=>a.effectiveStart-b.effectiveStart);
+      // Use exact, shared segment boundaries. Epsilon offsets on both ends created
+      // a dead zone at every cut, causing the playhead to blink/jump at split points.
+      const active=metrics.find(metric=>sourceTime>=metric.effectiveStart&&sourceTime<metric.effectiveEnd);
       metrics.forEach(metric=>{
         const marker=metric.clip.playhead||metric.clip.region?.querySelector('.compose-track-playhead');
         if(!marker)return;
@@ -1730,28 +1732,34 @@
     const advanceTrackPlayback=()=>{
       const composeTimeline=row.closest('.compose-timeline');
       if(!audio||audio.paused||composeTimeline?._isPlayAllRunning?.()||row._composeAdvancing)return;
-      const metrics=row._composeClips.map(clip=>metricsForClip(clip)).sort((a,b)=>a.startSeconds-b.startSeconds);
+      const metrics=row._composeClips.map(clip=>metricsForClip(clip)).sort((a,b)=>a.effectiveStart-b.effectiveStart);
       const time=Number(audio.currentTime)||0;
-      const active=metrics.find(metric=>time>=metric.effectiveStart-.015&&time<metric.effectiveEnd-.025);
-      if(!active){
-        const next=metrics.find(metric=>metric.effectiveStart>time+.015);
-        if(next){
-          row._composeAdvancing=true;
-          try{audio.currentTime=next.effectiveStart;}catch(error){console.warn('compose_clip_advance_error',error);}
-          queueMicrotask(()=>{row._composeAdvancing=false;});
-        }else if(metrics.length&&time>=metrics[metrics.length-1].effectiveEnd-.03){
-          const first=metrics[0];
-          audio.pause();
-          try{audio.currentTime=first.effectiveStart;}catch(error){console.warn('compose_clip_end_reset_error',error);}
-        }
+      // Adjacent cut segments meet at the same source time. Don't jump the media
+      // element at those boundaries; only seek when there is a real deleted gap.
+      const active=metrics.find(metric=>time>=metric.effectiveStart&&time<metric.effectiveEnd);
+      if(active)return;
+      const next=metrics.find(metric=>metric.effectiveStart>time);
+      if(next&&next.effectiveStart-time>.03){
+        row._composeAdvancing=true;
+        try{audio.currentTime=next.effectiveStart;}catch(error){console.warn('compose_clip_advance_error',error);}
+        queueMicrotask(()=>{row._composeAdvancing=false;});
+        return;
+      }
+      const last=metrics[metrics.length-1];
+      if(last&&time>=last.effectiveEnd-.005){
+        const first=metrics[0];
+        audio.pause();
+        try{audio.currentTime=first.effectiveStart;}catch(error){console.warn('compose_clip_end_reset_error',error);}
       }
     };
-    audio?.addEventListener('timeupdate',()=>{
+    const updateTrackPlayhead=()=>{
       advanceTrackPlayback();
       applyPlaybackGain();
       const composeTimeline=row.closest('.compose-timeline');
       if(!composeTimeline?._isPlayAllRunning?.())renderPlayhead();
-    });
+    };
+    audio?.addEventListener('timeupdate',updateTrackPlayhead);
+    audio?.addEventListener('seeked',updateTrackPlayhead);
     const seekFromPointer=(event,clip)=>{
       const composeTimeline=row.closest('.compose-timeline');
       if(composeTimeline?._isPlayAllRunning?.()||!audio||!clip||event.target.closest('.compose-track-trim-handle'))return;
@@ -2160,18 +2168,25 @@
       }
 
       const clip=metric.clip;
+      const originalSourceStart=clip.sourceStart;
       const originalSourceEnd=clip.sourceEnd;
-      const oldTrimOut=clip.trimOut;
       const splitOffset=cutTime-metric.effectiveStart;
+      // Trim values are percentages of each clip's own source span. Recalculate
+      // them after splitting so existing outer trims keep the same absolute times.
+      const leftSpan=Math.max(.01,cutTime-originalSourceStart);
+      const rightSpan=Math.max(.01,originalSourceEnd-cutTime);
+      const leftTrimIn=Math.max(0,Math.min(.98,(metric.effectiveStart-originalSourceStart)/leftSpan));
+      const rightTrimOut=Math.max(0,Math.min(.98,(originalSourceEnd-metric.effectiveEnd)/rightSpan));
       const rightClip={
         id:'clip-'+row.dataset.trackId+'-'+Date.now(),
         sourceStart:cutTime,
         sourceEnd:originalSourceEnd,
         trimIn:0,
-        trimOut:oldTrimOut,
+        trimOut:rightTrimOut,
         startSeconds:metric.startSeconds+splitOffset
       };
       clip.sourceEnd=cutTime;
+      clip.trimIn=leftTrimIn;
       clip.trimOut=0;
       const visual=createClipVisual(rightClip);
       Object.assign(rightClip,visual);
