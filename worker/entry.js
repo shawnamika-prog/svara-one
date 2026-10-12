@@ -1,4 +1,5 @@
 import app from "./index.js";
+import "./generation-folders.js";
 import { handleAuth } from "./auth.js";
 import { handlePayfast, runBillingCron } from "./payfast.js";
 import { getVoiceById, getVoiceByProviderId, syncVoiceRegistry, seedMissingVoiceSamples } from "./voice-registry.js";
@@ -604,6 +605,16 @@ export default {
           cursor = page.cursor;
         } while (scanned < 1000);
 
+        const assignmentRows = await env.DB.prepare("SELECT composition_id,folder_id FROM composition_folder_assignments WHERE user_id=?").bind(userId).all();
+        const folderAssignments = new Map((assignmentRows.results || []).map(row => [String(row.composition_id), String(row.folder_id || "")]));
+        const folderIds = [...new Set([...folderAssignments.values()].filter(Boolean))];
+        const folderNames = new Map();
+        if (folderIds.length) {
+          const placeholders = folderIds.map(() => "?").join(",");
+          const folderRows = await env.DB.prepare("SELECT id,name FROM library_folders WHERE user_id=? AND id IN (" + placeholders + ")").bind(userId, ...folderIds).all();
+          for (const row of folderRows.results || []) folderNames.set(String(row.id), String(row.name));
+        }
+
         const compositions = candidates.map(object => {
           const key = String(object.key || "");
           const filenameFromKey = key.split("/").pop() || "";
@@ -620,6 +631,8 @@ export default {
             trackCount: Number(meta.trackCount) || 0,
             sizeBytes: Number(object.size) || 0,
             createdAt: String(meta.createdAt || object.uploaded?.toISOString?.() || ""),
+            folderId: folderAssignments.get(String(meta.compositionExportId || id)) || null,
+            folderName: folderNames.get(folderAssignments.get(String(meta.compositionExportId || id)) || "") || null,
             assetUrl: "/api/compositions/assets/" + id
           };
         }).filter(item => {

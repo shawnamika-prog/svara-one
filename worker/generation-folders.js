@@ -56,7 +56,8 @@ app.fetch = async (request, env, ctx) => {
             f.name,
             f.created_at,
             (SELECT COUNT(*) FROM generations g WHERE g.folder_id=f.id AND g.user_id=f.user_id)
-            + (SELECT COUNT(*) FROM sound_generations sg WHERE sg.folder_id=f.id AND sg.user_id=f.user_id) AS item_count
+            + (SELECT COUNT(*) FROM sound_generations sg WHERE sg.folder_id=f.id AND sg.user_id=f.user_id)
+            + (SELECT COUNT(*) FROM composition_folder_assignments cfa WHERE cfa.folder_id=f.id AND cfa.user_id=f.user_id) AS item_count
           FROM library_folders f
           WHERE f.user_id=?
           ORDER BY f.created_at ASC
@@ -84,6 +85,33 @@ app.fetch = async (request, env, ctx) => {
     }
   }
 
+  if (request.method === "POST" && url.pathname === "/api/compositions/move") {
+    const userId = await authenticatedUserId(request, env);
+    if (!userId) return json({ error: "Authentication required." }, 401);
+    if (!env.DB || !env.GENERATED_AUDIO) return json({ error: "Composition library storage is not configured." }, 503);
+    try {
+      const body = await request.json().catch(() => ({}));
+      const compositionId = String(body?.compositionId || "").trim();
+      const folderId = body?.folderId == null || body?.folderId === "" ? null : String(body.folderId).trim();
+      if (!/^[0-9a-f-]{36}$/i.test(compositionId)) return json({ error: "Composition not found." }, 404);
+      const prefix = "users/" + userId + "/compositions/" + compositionId + ".";
+      const objects = await env.GENERATED_AUDIO.list({ prefix, limit: 5 });
+      const asset = (objects.objects || []).find(object => /\.(wav|mp3|pcm)$/i.test(String(object.key || "")));
+      if (!asset?.key) return json({ error: "Composition not found." }, 404);
+      const metadata = await env.GENERATED_AUDIO.head(asset.key);
+      if (!metadata || (metadata.customMetadata?.userId && metadata.customMetadata.userId !== userId)) return json({ error: "Composition not found." }, 404);
+      let folder = null;
+      if (folderId) {
+        folder = await env.DB.prepare("SELECT id,name FROM library_folders WHERE id=? AND user_id=? LIMIT 1").bind(folderId, userId).first();
+        if (!folder) return json({ error: "Folder not found." }, 404);
+      }
+      await env.DB.prepare("INSERT INTO composition_folder_assignments (composition_id,user_id,folder_id,updated_at) VALUES (?,?,?,strftime('%Y-%m-%dT%H:%M:%fZ','now')) ON CONFLICT(composition_id) DO UPDATE SET user_id=excluded.user_id,folder_id=excluded.folder_id,updated_at=excluded.updated_at").bind(compositionId, userId, folderId).run();
+      return json({ success: true, compositionId, folderId, folderName: folder?.name || null });
+    } catch (error) {
+      console.error("composition_move_error", error);
+      return json({ error: error?.message || "Could not move composition." }, 500);
+    }
+  }
   if (request.method === "POST" && url.pathname === "/api/sound/generations/move") {
     const userId = await authenticatedUserId(request, env);
     if (!userId) return json({ error: "Authentication required." }, 401);
