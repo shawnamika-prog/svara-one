@@ -112,13 +112,14 @@
     .compose-track-editor.selected{border-color:#4f7cff66;box-shadow:inset 0 0 0 1px #4f7cff22}
     .compose-track-identity{grid-column:1;grid-row:1;position:sticky;left:0;z-index:12;display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:0;min-height:100%;padding:12px;border-right:1px solid #ffffff0b;background:#091522;box-shadow:8px 0 18px #0005;cursor:pointer}
     .compose-track-identity .compose-track-row-main{min-width:0;display:flex;flex-direction:column;gap:4px;padding:0;margin:2px 0 4px}
-    .compose-track-identity-actions{display:flex;align-items:center;gap:8px;min-height:30px}
+    .compose-track-identity-actions{display:flex;align-items:center;gap:6px;min-height:30px}
     .compose-track-move{width:34px;height:30px;border:1px solid #4f7cff44;border-radius:8px;background:#0d1c31;color:#6f91d9;display:grid;place-items:center;font-size:15px;line-height:1;cursor:grab;padding:0;letter-spacing:-3px}
     .compose-track-move:hover{background:#12264a;color:#a9c2ff;border-color:#5f8cff77}
     .compose-track-move:active{cursor:grabbing;background:#162e5a;color:#d7e2ff}
     .compose-track-cut-icon{width:34px;height:30px;border:1px solid #4f7cff55;border-radius:8px;background:#0d1c31;color:#8eafff;display:grid;place-items:center;cursor:pointer;padding:0}
     .compose-track-cut-icon:hover:not(:disabled){background:#142952;color:#c7d8ff;border-color:#668cff99}
     .compose-track-cut-icon:disabled{opacity:.38;cursor:not-allowed}
+    .compose-track-cut-icon.needs-cut-position{border-color:#cda45d;color:#f0c27a}
     .compose-track-cut-icon svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
     .compose-track-delete-icon{width:34px;height:30px;border:1px solid #7a3d3d55;border-radius:8px;background:#0d1c31;color:#b98a8a;display:grid;place-items:center;cursor:pointer;padding:0}
     .compose-track-delete-icon svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
