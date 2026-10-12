@@ -833,7 +833,6 @@
     const download=root.querySelector('[data-preview-download]');
     const closeButtons=root.querySelectorAll('.compose-preview-close,.compose-preview-cancel');
     const heights=[.22,.55,.88,.58,.42,.72,.9,.48,.76,.9,.5,.68,.34,.62,.82,.46,.7,.92,.54,.78,.38,.66,.86,.5,.74,.94,.44,.69,.83,.57,.77,.35,.63,.9,.48,.71,.87,.53,.75,.41,.68,.88,.51,.73,.93,.46,.64,.8];
-    const barEls=[...bars.querySelectorAll('span')];
     let audioContext=null,sourceNode=null,analyser=null,animationFrame=null;
     heights.forEach((height,index)=>{const bar=document.createElement('span');bar.style.height=(height*100)+'%';bar.dataset.index=String(index);bars.appendChild(bar);});
     const waveBars=[...bars.querySelectorAll('span')];
