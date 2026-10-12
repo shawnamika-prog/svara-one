@@ -74,7 +74,7 @@
     aside a.active[href="#compose"]{background:linear-gradient(100deg,#162d66,#12234e);color:#5f8cff;box-shadow:inset 0 0 0 1px #4f7cff66}
     aside a.active[href="#compose"]:hover{background:linear-gradient(100deg,#1a3678,#152a5d);color:#75a0ff}
     .compose-workspace{grid-column:1/-1;min-height:calc(100vh - 124px);display:flex;flex-direction:column;gap:18px}
-    .compose-head{display:flex;align-items:center;justify-content:space-between;gap:22px;padding:24px 24px 20px;border:1px solid #4f7cff22;border-radius:18px;background:linear-gradient(180deg,#0a1020,#080d19);box-shadow:0 20px 60px #0004}.compose-head-copy{min-width:0}.compose-head-actions{display:flex;align-items:center;justify-content:flex-end;flex:0 0 auto}.compose-library{grid-column:1/-1;border:1px solid #4f7cff22;border-radius:16px;background:linear-gradient(180deg,#0a1020,#080d19);overflow:hidden;box-shadow:0 20px 60px #0004}.compose-library-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:20px 22px;border-bottom:1px solid #ffffff0b}.compose-library-head small{color:#5f8cff;font-size:9px;letter-spacing:.18em;font-weight:800}.compose-library-head h3{margin:6px 0 0;font-size:17px;letter-spacing:-.03em;color:#dbe7f5}.compose-library-head p{margin:6px 0 0;color:#71869d;font-size:10px;line-height:1.45}.compose-library-refresh{height:34px;padding:0 12px;border:1px solid #4f7cff44;border-radius:9px;background:#0c1728;color:#91a9d6;font:700 9px Inter;cursor:pointer}.compose-library-refresh:hover{border-color:#5f8cff88;color:#dbe7f5}.compose-library-toolbar{display:flex;padding:12px 20px;border-bottom:1px solid #ffffff0b}.compose-library-toolbar input{width:min(420px,100%);height:35px;padding:0 12px;border:1px solid #ffffff12;border-radius:9px;background:#07101d;color:#dbe7f5;font:10px Inter;outline:none}.compose-library-toolbar input:focus{border-color:#5f8cff88}.compose-library-list{display:grid;gap:8px;padding:14px 20px 20px}.compose-library-item{display:grid;grid-template-columns:minmax(150px,1fr) minmax(160px,260px) auto;align-items:center;gap:14px;padding:12px;border:1px solid #ffffff0d;border-radius:11px;background:#091522}.compose-library-item:hover{border-color:#4f7cff33}.compose-library-item-main{min-width:0;display:grid;gap:6px}.compose-library-item-main strong{overflow-wrap:anywhere;color:#dbe7f5;font-size:11px}.compose-library-item-main small{color:#71869d;font-size:9px}.compose-library-item audio{width:100%;height:34px;min-width:0}.compose-library-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap}.compose-library-actions a,.compose-library-actions button{min-height:30px;padding:0 10px;border:1px solid #4f7cff44;border-radius:8px;background:#0d1c31;color:#9ab8ff;font:700 9px Inter;text-decoration:none;cursor:pointer;white-space:nowrap}.compose-library-actions a:hover,.compose-library-actions button:hover{background:#13264a;color:#fff}.compose-library-state{padding:32px 12px;text-align:center;color:#71869d;font-size:10px}.compose-library-state strong{display:block;color:#9aadc3;margin-bottom:6px}.compose-library-state span{display:block;line-height:1.5}.compose-export-trigger{min-height:40px;padding:0 17px;border:1px solid #4f7cff77;border-radius:10px;background:linear-gradient(105deg,#233f87,#173166);color:#dce7ff;font:800 10px Inter;letter-spacing:.05em;cursor:pointer;box-shadow:0 9px 24px #0004}.compose-export-trigger:hover:not(:disabled){background:linear-gradient(105deg,#3155ad,#204184);border-color:#7da3ff}.compose-export-trigger:disabled{opacity:.42;cursor:not-allowed}
+    .compose-head{display:flex;align-items:center;justify-content:space-between;gap:22px;padding:24px 24px 20px;border:1px solid #4f7cff22;border-radius:18px;background:linear-gradient(180deg,#0a1020,#080d19);box-shadow:0 20px 60px #0004}.compose-head-copy{min-width:0}.compose-head-actions{display:flex;align-items:center;justify-content:flex-end;flex:0 0 auto}.compose-library{grid-column:1/-1;border:1px solid #4f7cff22;border-radius:16px;background:linear-gradient(180deg,#0a1020,#080d19);overflow:hidden;box-shadow:0 20px 60px #0004}.compose-library-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:20px 22px;border-bottom:1px solid #ffffff0b}.compose-library-head small{color:#5f8cff;font-size:9px;letter-spacing:.18em;font-weight:800}.compose-library-head h3{margin:6px 0 0;font-size:17px;letter-spacing:-.03em;color:#dbe7f5}.compose-library-head p{margin:6px 0 0;color:#71869d;font-size:10px;line-height:1.45}.compose-library-refresh{height:34px;padding:0 12px;border:1px solid #4f7cff44;border-radius:9px;background:#0c1728;color:#91a9d6;font:700 9px Inter;cursor:pointer}.compose-library-refresh:hover{border-color:#5f8cff88;color:#dbe7f5}.compose-library-toolbar{display:flex;gap:8px;align-items:center;padding:12px 20px;border-bottom:1px solid #ffffff0b;flex-wrap:wrap}.compose-library-toolbar input,.compose-library-toolbar select{border:1px solid #ffffff10;border-radius:9px;background:#091522;color:#b9c8d6;padding:9px 10px;font:600 9px Inter;outline:none}.compose-library-toolbar input{flex:1 1 220px;min-width:180px}.compose-library-toolbar select{min-width:110px}.compose-library-toolbar input:focus,.compose-library-toolbar select:focus{border-color:#5f8cff88}.compose-library-table-head,.compose-library-item{display:grid;grid-template-columns:minmax(0,2.5fr) 90px 70px 80px 125px minmax(280px,2fr);gap:12px;align-items:center}.compose-library-table-head{padding:10px 34px;color:#62768b;font-size:8px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;border-bottom:1px solid #ffffff0b}.compose-library-list{padding:14px 20px 20px;display:grid;gap:8px}.compose-library-item{padding:13px 14px;border:1px solid #ffffff0b;border-radius:11px;background:#09111e}.compose-library-item:hover{border-color:#4f7cff33;background:#0b1523}.compose-library-item-main{min-width:0}.compose-library-item-main strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#dbe7f5;font-size:11px}.compose-library-meta{color:#91a3b7;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.compose-library-actions{display:flex;align-items:center;justify-content:flex-start;gap:7px;min-width:0;flex-wrap:wrap}.compose-library-actions audio{width:115px;height:32px;min-width:80px}.compose-library-actions a,.compose-library-actions button{min-height:30px;padding:0 10px;border:1px solid #4f7cff44;border-radius:8px;background:#0d1c31;color:#9ab8ff;font:700 9px Inter;text-decoration:none;cursor:pointer;white-space:nowrap}.compose-library-actions a:hover,.compose-library-actions button:hover{background:#13264a;color:#fff}.compose-library-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px 16px;border-top:1px solid #ffffff0b;color:#65798e;font-size:9px}.compose-library-page-button{border:1px solid #ffffff10;border-radius:8px;background:#091522;color:#aebdcb;padding:8px 10px;font:700 9px Inter;cursor:pointer}.compose-library-page-button:disabled{opacity:.3;cursor:default}.compose-library-state{padding:32px 12px;text-align:center;color:#71869d;font-size:10px}.compose-library-state strong{display:block;color:#9aadc3;margin-bottom:6px}.compose-library-state span{display:block;line-height:1.5}@media(max-width:1000px){.compose-library-table-head{display:none}.compose-library-item{grid-template-columns:minmax(0,1fr) 75px 60px}.compose-library-meta:nth-of-type(n+3){display:none}.compose-library-actions{grid-column:1/-1}}@media(max-width:560px){.compose-library-head{padding:16px}.compose-library-list{padding:12px}.compose-library-item{grid-template-columns:minmax(0,1fr) 75px}.compose-library-meta:nth-of-type(n+2){display:none}.compose-library-actions{grid-column:1/-1}.compose-library-actions audio{flex:1}}.compose-export-trigger{min-height:40px;padding:0 17px;border:1px solid #4f7cff77;border-radius:10px;background:linear-gradient(105deg,#233f87,#173166);color:#dce7ff;font:800 10px Inter;letter-spacing:.05em;cursor:pointer;box-shadow:0 9px 24px #0004}.compose-export-trigger:hover:not(:disabled){background:linear-gradient(105deg,#3155ad,#204184);border-color:#7da3ff}.compose-export-trigger:disabled{opacity:.42;cursor:not-allowed}
     .compose-head small{color:#5f8cff;font-size:9px;letter-spacing:.2em;font-weight:800}
     .compose-head h2{margin:7px 0 0;font-size:24px;letter-spacing:-.04em}
     .compose-head p{margin:7px 0 0;color:#8091a8;font-size:11px;line-height:1.55}
@@ -558,6 +558,64 @@
 
 
   let compositionLibraryRequestId=0;
+  let compositionLibraryItems=[];
+  let compositionLibraryPage=1;
+  const compositionLibraryPageSize=10;
+
+  function renderCompositionLibrary(){
+    const list=composeWorkspace.querySelector('[data-compose-library-list]');
+    if(!list)return;
+    const formatControl=composeWorkspace.querySelector('[data-compose-library-format]');
+    const formatFilter=String(formatControl?.value||'').toUpperCase();
+    const filtered=compositionLibraryItems.filter(item=>!formatFilter||String(item.format||'WAV').toUpperCase()===formatFilter);
+    const pageCount=Math.max(1,Math.ceil(filtered.length/compositionLibraryPageSize));
+    compositionLibraryPage=Math.min(Math.max(1,compositionLibraryPage),pageCount);
+    const start=(compositionLibraryPage-1)*compositionLibraryPageSize;
+    const visible=filtered.slice(start,start+compositionLibraryPageSize);
+    const pageInfo=composeWorkspace.querySelector('[data-compose-library-page-info]');
+    const previous=composeWorkspace.querySelector('[data-compose-library-prev]');
+    const next=composeWorkspace.querySelector('[data-compose-library-next]');
+    if(pageInfo)pageInfo.textContent='Page '+compositionLibraryPage+' of '+pageCount+' · '+filtered.length+' compositions';
+    if(previous)previous.disabled=compositionLibraryPage<=1;
+    if(next)next.disabled=compositionLibraryPage>=pageCount;
+    if(!filtered.length){
+      const hasItems=compositionLibraryItems.length>0;
+      list.innerHTML='<div class="compose-library-state"><strong>'+(hasItems?'No compositions in this format':'No saved compositions yet')+'</strong><span>'+(hasItems?'Choose another format or select All formats.':'Use COMPOSE &amp; EXPORT to render a finished timeline. Saved compositions will appear here.')+'</span></div>';
+      return;
+    }
+    list.innerHTML=visible.map(item=>{
+      const id=String(item.id||'');
+      const filename=String(item.filename||('svaraone-composition.'+String(item.format||'wav').toLowerCase()));
+      const format=String(item.format||'WAV').toUpperCase();
+      const assetUrl='/api/compositions/assets/'+encodeURIComponent(id);
+      const previewUrl=assetUrl+(format==='PCM'?'?preview=1':'');
+      const size=Math.max(0,Number(item.sizeBytes)||0);
+      const duration=Math.max(0,Number(item.durationSeconds)||0);
+      const date=item.createdAt?formatHistoryDate(item.createdAt):'Recently saved';
+      return '<article class="compose-library-item" data-library-composition-id="'+escapeHistory(id)+'">'+
+        '<div class="compose-library-item-main"><strong>'+escapeHistory(filename)+'</strong></div>'+
+        '<span class="compose-library-meta">'+(duration?escapeHistory(formatComposeTime(duration).replace('.00','')):'Unknown')+'</span>'+
+        '<span class="compose-library-meta">'+escapeHistory(format)+'</span>'+
+        '<span class="compose-library-meta">'+Math.max(1,Math.round(size/1024))+' KB</span>'+
+        '<span class="compose-library-meta">'+escapeHistory(date)+'</span>'+
+        '<div class="compose-library-actions"><audio controls preload="none" src="'+escapeHistory(previewUrl)+'" aria-label="Preview '+escapeHistory(filename)+'"></audio><a href="'+escapeHistory(assetUrl+'?download=1')+'" download="'+escapeHistory(filename)+'">Download</a><button type="button" data-compose-library-use="'+escapeHistory(id)+'">Use in Compose</button></div>'+
+      '</article>';
+    }).join('');
+    list.querySelectorAll('[data-compose-library-use]').forEach(button=>button.addEventListener('click',()=>{
+      const item=visible.find(value=>String(value.id)===button.dataset.composeLibraryUse);
+      if(!item)return;
+      addComposeTrack('composition',{
+        id:String(item.id),
+        assetType:'composition',
+        filename:String(item.filename||'Saved composition'),
+        format:String(item.format||'WAV'),
+        durationSeconds:Number(item.durationSeconds)||30,
+        assetUrl:'/api/compositions/assets/'+encodeURIComponent(String(item.id))+(String(item.format||'').toUpperCase()==='PCM'?'?preview=1':'')
+      });
+      composeWorkspace.querySelector('.compose-canvas')?.scrollIntoView({behavior:'smooth',block:'start'});
+    }));
+  }
+
   async function loadCompositionLibrary(){
     const list=composeWorkspace.querySelector('[data-compose-library-list]');
     if(!list)return;
@@ -573,45 +631,20 @@
       if(response.status===401){window.location.replace('/login.html?next=/studio%23compose');return;}
       if(!response.ok)throw new Error(data.error||'Composition library unavailable ('+response.status+').');
       if(requestId!==compositionLibraryRequestId)return;
-      const items=Array.isArray(data.compositions)?data.compositions:[];
-      if(!items.length){
-        list.innerHTML='<div class="compose-library-state"><strong>'+(query?'No matching compositions':'No saved compositions yet')+'</strong><span>Use COMPOSE &amp; EXPORT to render a finished timeline. Saved files will appear here.</span></div>';
-        return;
-      }
-      list.innerHTML=items.map(item=>{
-        const id=String(item.id||'');
-        const filename=String(item.filename||('svaraone-composition.'+String(item.format||'wav').toLowerCase()));
-        const format=String(item.format||'WAV').toUpperCase();
-        const assetUrl='/api/compositions/assets/'+encodeURIComponent(id);
-        const previewUrl=assetUrl+(format==='PCM'?'?preview=1':'');
-        const size=Math.max(0,Number(item.sizeBytes)||0);
-        const duration=Math.max(0,Number(item.durationSeconds)||0);
-        const date=item.createdAt?formatHistoryDate(item.createdAt):'Recently saved';
-        return '<article class="compose-library-item" data-library-composition-id="'+escapeHistory(id)+'">'+
-          '<div class="compose-library-item-main"><strong>'+escapeHistory(filename)+'</strong><small>'+escapeHistory(format)+' · '+(duration?formatComposeTime(duration).replace('.00',''):'Unknown duration')+' · '+Math.max(1,Math.round(size/1024))+' KB · '+escapeHistory(date)+'</small></div>'+
-          '<audio controls preload="none" src="'+escapeHistory(previewUrl)+'" aria-label="Preview '+escapeHistory(filename)+'"></audio>'+
-          '<div class="compose-library-actions"><a href="'+escapeHistory(assetUrl+'?download=1')+'" download="'+escapeHistory(filename)+'">Download</a><button type="button" data-compose-library-use="'+escapeHistory(id)+'">Use in Compose</button></div>'+
-        '</article>';
-      }).join('');
-      list.querySelectorAll('[data-compose-library-use]').forEach(button=>button.addEventListener('click',()=>{
-        const item=items.find(value=>String(value.id)===button.dataset.composeLibraryUse);
-        if(!item)return;
-        addComposeTrack('composition',{
-          id:String(item.id),
-          assetType:'composition',
-          filename:String(item.filename||'Saved composition'),
-          format:String(item.format||'WAV'),
-          durationSeconds:Number(item.durationSeconds)||30,
-          assetUrl:'/api/compositions/assets/'+encodeURIComponent(String(item.id))+(String(item.format||'').toUpperCase()==='PCM'?'?preview=1':'')
-        });
-        composeWorkspace.querySelector('.compose-canvas')?.scrollIntoView({behavior:'smooth',block:'start'});
-      }));
+      compositionLibraryItems=Array.isArray(data.compositions)?data.compositions:[];
+      compositionLibraryPage=1;
+      renderCompositionLibrary();
     }catch(error){
       if(requestId!==compositionLibraryRequestId)return;
       list.innerHTML='<div class="compose-library-state"><strong>Could not load saved compositions</strong><span>'+escapeHistory(error?.message||'Please refresh and try again.')+'</span></div>';
+      const pageInfo=composeWorkspace.querySelector('[data-compose-library-page-info]');
+      if(pageInfo)pageInfo.textContent='Page 1';
+      const previous=composeWorkspace.querySelector('[data-compose-library-prev]');
+      const next=composeWorkspace.querySelector('[data-compose-library-next]');
+      if(previous)previous.disabled=true;
+      if(next)next.disabled=true;
     }
   }
-
   function syncComposeExportButton(){
     const button=composeWorkspace.querySelector('[data-compose-export]');
     if(!button)return;
@@ -2234,11 +2267,14 @@
     placeholder.hidden=view!=='video';
 
     if(view==='compose'&&composeWorkspace.dataset.initialized!=='1'){
-      composeWorkspace.innerHTML=`<div class="compose-head"><div class="compose-head-copy"><small>COMPOSE</small><h2>Create your composition</h2><p>Combine Voice, Sound, SFX, Ambience and more into one composition.</p></div><div class="compose-head-actions"><button class="compose-export-trigger" type="button" data-compose-export disabled>COMPOSE &amp; EXPORT</button></div></div><div class="compose-canvas"><div class="compose-empty"><p>Import audio assets into your composition one track at a time.</p><button class="compose-add-track" type="button">+ Add Track</button></div></div><section class="compose-library" aria-labelledby="composeLibraryTitle"><div class="compose-library-head"><div><small>COMPOSITION MINI-LIBRARY</small><h3 id="composeLibraryTitle">Your saved compositions</h3><p>Preview, download or reuse audio you have exported.</p></div><button class="compose-library-refresh" type="button" data-compose-library-refresh>Refresh</button></div><div class="compose-library-toolbar"><input type="search" data-compose-library-search placeholder="Search saved compositions…" aria-label="Search saved compositions"></div><div class="compose-library-list" data-compose-library-list><div class="compose-library-state">Loading saved compositions…</div></div></section>`;
+      composeWorkspace.innerHTML=`<div class="compose-head"><div class="compose-head-copy"><small>COMPOSE</small><h2>Create your composition</h2><p>Combine Voice, Sound, SFX, Ambience and more into one composition.</p></div><div class="compose-head-actions"><button class="compose-export-trigger" type="button" data-compose-export disabled>COMPOSE &amp; EXPORT</button></div></div><div class="compose-canvas"><div class="compose-empty"><p>Import audio assets into your composition one track at a time.</p><button class="compose-add-track" type="button">+ Add Track</button></div></div><section class="compose-library" aria-labelledby="composeLibraryTitle"><div class="compose-library-head"><div><small>COMPOSITION MINI-LIBRARY</small><h3 id="composeLibraryTitle">Your saved compositions</h3><p>Preview, download or reuse audio you have exported.</p></div><button class="compose-library-refresh" type="button" data-compose-library-refresh>Refresh</button></div><div class="compose-library-toolbar"><input type="search" data-compose-library-search placeholder="Search saved compositions…" aria-label="Search saved compositions"><select data-compose-library-format aria-label="Filter by composition format"><option value="">All formats</option><option value="WAV">WAV</option><option value="MP3">MP3</option><option value="PCM">PCM</option></select></div><div class="compose-library-table-head"><span>Composition</span><span>Duration</span><span>Format</span><span>Size</span><span>Date</span><span>Actions</span></div><div class="compose-library-list" data-compose-library-list><div class="compose-library-state">Loading saved compositions…</div></div><div class="compose-library-pagination"><span data-compose-library-page-info>Page 1</span><div><button class="compose-library-page-button" type="button" data-compose-library-prev disabled>Previous</button><button class="compose-library-page-button" type="button" data-compose-library-next disabled>Next</button></div></div></section>`;
       composeWorkspace.querySelector('.compose-add-track')?.addEventListener('click',openComposeTrackModal);
       composeWorkspace.querySelector('[data-compose-export]')?.addEventListener('click',openComposeExportModal);
       composeWorkspace.querySelector('[data-compose-library-refresh]')?.addEventListener('click',()=>loadCompositionLibrary());
       composeWorkspace.querySelector('[data-compose-library-search]')?.addEventListener('input',()=>loadCompositionLibrary());
+      composeWorkspace.querySelector('[data-compose-library-format]')?.addEventListener('change',()=>{compositionLibraryPage=1;renderCompositionLibrary();});
+      composeWorkspace.querySelector('[data-compose-library-prev]')?.addEventListener('click',()=>{compositionLibraryPage=Math.max(1,compositionLibraryPage-1);renderCompositionLibrary();});
+      composeWorkspace.querySelector('[data-compose-library-next]')?.addEventListener('click',()=>{compositionLibraryPage++;renderCompositionLibrary();});
       syncComposeExportButton();
       loadCompositionLibrary();
       composeWorkspace.dataset.initialized='1';
