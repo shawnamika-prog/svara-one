@@ -116,6 +116,10 @@
     .compose-track-move{width:34px;height:30px;border:1px solid #4f7cff44;border-radius:8px;background:#0d1c31;color:#6f91d9;display:grid;place-items:center;font-size:15px;line-height:1;cursor:grab;padding:0;letter-spacing:-3px}
     .compose-track-move:hover{background:#12264a;color:#a9c2ff;border-color:#5f8cff77}
     .compose-track-move:active{cursor:grabbing;background:#162e5a;color:#d7e2ff}
+    .compose-track-cut-icon{width:34px;height:30px;border:1px solid #4f7cff55;border-radius:8px;background:#0d1c31;color:#8eafff;display:grid;place-items:center;cursor:pointer;padding:0}
+    .compose-track-cut-icon:hover:not(:disabled){background:#142952;color:#c7d8ff;border-color:#668cff99}
+    .compose-track-cut-icon:disabled{opacity:.38;cursor:not-allowed}
+    .compose-track-cut-icon svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
     .compose-track-delete-icon{width:34px;height:30px;border:1px solid #7a3d3d55;border-radius:8px;background:#0d1c31;color:#b98a8a;display:grid;place-items:center;cursor:pointer;padding:0}
     .compose-track-delete-icon svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
     .compose-track-delete-icon:hover{background:#3a1717;color:#f0b0b0;border-color:#a85b5b88}
@@ -1302,6 +1306,10 @@
           button.disabled=playAllRunning;
           button.title=playAllRunning?'Individual playback is controlled by Stop All':'Play/Pause track';
         });
+        timeline.querySelectorAll('[data-compose-cut]').forEach(button=>{
+          button.disabled=playAllRunning;
+          button.title=playAllRunning?'Stop All before cutting a track':'Split track at its playhead position';
+        });
       };
       const stopAll=()=>{
         playAllRunId+=1;
@@ -1500,6 +1508,12 @@
     };
     const waveform='';
     const assetUrl=String(asset.assetUrl||asset.audioUrl||asset.playbackUrl||asset.fileUrl||asset.downloadUrl||asset.outputUrl||asset.url||asset.r2Url||asset.storageUrl||'');
+    row.dataset.composeAssetId=String(asset.id||'');
+    row.dataset.composeAssetType=String(type||'');
+    row.dataset.composeAssetFilename=String(asset.filename||'Untitled asset');
+    row.dataset.composeAssetFormat=String(asset.format||'');
+    row.dataset.composeAssetSoundType=String(asset.soundType||'');
+    row.dataset.composeAssetUrl=assetUrl;
     const capabilityList=Array.isArray(asset.capabilities)?asset.capabilities:Array.isArray(asset.tools)?asset.tools:[];
     const capabilities=capabilityList.map(value=>String(value||'').trim()).filter(Boolean);
     const dynamicTools=capabilities.length?capabilities.map(value=>`<span class="compose-track-tool dynamic">${escapeHistory(value)}</span>`).join(''):'';
@@ -1508,6 +1522,7 @@
         <div class="compose-track-identity-actions">
           <button class="compose-track-play" type="button" aria-label="Play track" title="Play track">▶</button>
           <button class="compose-track-move" type="button" aria-label="Move track" title="Drag to position track">⠿</button>
+          <button class="compose-track-cut-icon" type="button" data-compose-cut aria-label="Cut track at playhead" title="Split track at its playhead position"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="m8.2 7.2 12.3 12.3M8.2 16.8 20.5 4.5M13 12l-2.1 2.1"/></svg></button>
           <button class="compose-track-delete-icon" type="button" data-compose-delete aria-label="Delete track" title="Delete track">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M10 11v6M14 11v6M6 7l1 13h10l1-13"/></svg>
           </button>
@@ -1627,6 +1642,7 @@
     const mute=row.querySelector('[data-compose-mute]');
     const solo=row.querySelector('[data-compose-solo]');
     const deleteTrackButton=row.querySelector('[data-compose-delete]');
+    const cutTrackButton=row.querySelector('[data-compose-cut]');
     const selectTrack=()=>{
       list.querySelectorAll('.compose-track-editor').forEach(item=>item.classList.toggle('selected',item===row));
     };
@@ -1673,7 +1689,17 @@
     audio?.addEventListener('timeupdate',()=>{
       applyPlaybackGain();
       const composeTimeline=row.closest('.compose-timeline');
-      if(!composeTimeline?._isPlayAllRunning?.())renderPlayhead();
+      if(!composeTimeline?._isPlayAllRunning?.()){
+        const duration=Number.isFinite(audio.duration)&&audio.duration>0?audio.duration:sourceDuration();
+        const trimStart=Math.max(0,Number(row.dataset.trimIn||0))*duration;
+        const trimEnd=Math.max(trimStart+.01,(1-Math.max(0,Number(row.dataset.trimOut||0)))*duration);
+        if(!audio.paused&&audio.currentTime>=trimEnd-.025){
+          audio.pause();
+          try{audio.currentTime=trimStart;}catch(error){console.warn('compose_trim_playback_reset_error',error);}
+          applyPlaybackGain();
+        }
+        renderPlayhead();
+      }
     });
     const seekFromPointer=event=>{
       const composeTimeline=row.closest('.compose-timeline');
@@ -1721,18 +1747,19 @@
     });
     const syncSoloState=()=>{
       const soloRows=[...list.querySelectorAll('.compose-track-editor')].filter(item=>item.querySelector('[data-compose-solo]')?.classList.contains('active'));
-      const soloRow=soloRows[0]||null;
+      const soloGroups=new Set(soloRows.map(item=>item.dataset.composeCutGroup||item.dataset.trackId));
+      const hasSolo=soloRows.length>0;
       list.querySelectorAll('.compose-track-editor').forEach(item=>{
         const itemSolo=item.querySelector('[data-compose-solo]');
         const itemAudio=item.querySelector('.compose-track-audio');
         if(!itemSolo)return;
-        const isSolo=item===soloRow;
+        const isSolo=soloGroups.has(item.dataset.composeCutGroup||item.dataset.trackId);
         itemSolo.setAttribute('aria-pressed',String(isSolo));
         itemSolo.title=isSolo?'Disable solo':'Solo track';
-        if(soloRow){
+        if(hasSolo){
           if(isSolo){
             item.classList.remove('solo-muted');
-            if(itemAudio)itemAudio.muted=false;
+            if(itemAudio)itemAudio.muted=!!item.querySelector('[data-compose-mute]')?.classList.contains('active');
           }else{
             item.classList.add('solo-muted');
             if(itemAudio)itemAudio.muted=true;
@@ -1746,6 +1773,7 @@
         }
       });
     };
+    composeTimeline._syncSoloState=syncSoloState;
     deleteTrackButton?.addEventListener('click',event=>{
       event.preventDefault();
       event.stopPropagation();
@@ -1780,8 +1808,15 @@
     });
     solo?.addEventListener('click',()=>{
       const wasActive=solo.classList.contains('active');
+      const cutGroup=row.dataset.composeCutGroup||'';
       list.querySelectorAll('[data-compose-solo]').forEach(other=>other.classList.remove('active'));
-      solo.classList.toggle('active',!wasActive);
+      if(!wasActive){
+        if(cutGroup){
+          list.querySelectorAll('.compose-track-editor').forEach(item=>{
+            if(item.dataset.composeCutGroup===cutGroup)item.querySelector('[data-compose-solo]')?.classList.add('active');
+          });
+        }else solo.classList.add('active');
+      }
       syncSoloState();
     });
     const syncPlayButton=()=>{
@@ -1803,6 +1838,10 @@
       if(audio.paused){
         try{
           if(audio.readyState===0)audio.load();
+          const duration=Number.isFinite(audio.duration)&&audio.duration>0?audio.duration:sourceDuration();
+          const trimStart=Math.max(0,Number(row.dataset.trimIn||0))*duration;
+          const trimEnd=Math.max(trimStart+.01,(1-Math.max(0,Number(row.dataset.trimOut||0)))*duration);
+          if(audio.currentTime<trimStart||audio.currentTime>=trimEnd-.025)audio.currentTime=trimStart;
           await audio.play();
           wave.classList.add('playing');
           syncPlayButton();
@@ -1938,6 +1977,100 @@
       if(trackModel)trackModel.startSeconds=snapped;
       composeTimeline?._updateCompositionGeometry?.();
     };
+    const cutAtPlayhead=()=>{
+      const composeTimeline=row.closest('.compose-timeline');
+      if(!audio||composeTimeline?._isPlayAllRunning?.())return;
+      const duration=Number.isFinite(audio.duration)&&audio.duration>0?audio.duration:sourceDuration();
+      if(!Number.isFinite(duration)||duration<=0){
+        cutTrackButton.title='Audio duration is not ready yet. Try again shortly.';
+        return;
+      }
+      const cutTime=Number(audio.currentTime)||0;
+      const oldTrimIn=Math.max(0,Math.min(.98,Number(row.dataset.trimIn||0)||0));
+      const oldTrimOut=Math.max(0,Math.min(.98,Number(row.dataset.trimOut||0)||0));
+      const trimStart=oldTrimIn*duration;
+      const trimEnd=Math.max(trimStart+.01,(1-oldTrimOut)*duration);
+      const minimumSegment=.04;
+      if(cutTime<=trimStart+minimumSegment||cutTime>=trimEnd-minimumSegment){
+        cutTrackButton.title='Move the playhead inside the clip before cutting.';
+        cutTrackButton.classList.add('needs-cut-position');
+        return;
+      }
+
+      const trackModel=composeTimeline?._composeModel?.tracks.get(row.dataset.trackId);
+      const type=String(row.dataset.composeAssetType||trackModel?.type||'sound');
+      const originalStart=Math.max(0,Number(row.dataset.startSeconds||0)||0);
+      const oldFadeIn=Math.max(0,Number(fadeIn?.value||row.dataset.fadeIn||0)||0);
+      const oldFadeOut=Math.max(0,Number(fadeOut?.value||row.dataset.fadeOut||0)||0);
+      const wasSolo=!!solo?.classList.contains('active');
+      const wasMuted=!!mute?.classList.contains('active');
+      const wasGroup=row.dataset.composeCutGroup||('cut-'+row.dataset.trackId);
+      const asset={
+        id:row.dataset.composeAssetId||trackModel?.assetId||null,
+        assetType:type,
+        filename:row.dataset.composeAssetFilename||row.querySelector('.compose-track-row-main strong')?.textContent||'Audio clip',
+        format:row.dataset.composeAssetFormat||'',
+        soundType:row.dataset.composeAssetSoundType||'',
+        durationSeconds:duration,
+        assetUrl:row.dataset.composeAssetUrl||audio.getAttribute('src')||audio.currentSrc||audio.src
+      };
+
+      // Create the right-hand clip from the same source, then restrict both rows
+      // to complementary trim ranges so rendering remains non-destructive.
+      const splitRow=addComposeTrack(type,asset);
+      if(!splitRow)return;
+      row.dataset.composeCutGroup=wasGroup;
+      splitRow.dataset.composeCutGroup=wasGroup;
+      row.after(splitRow);
+      audio.pause();
+
+      const cutRatio=Math.max(oldTrimIn+0.001,Math.min(1-oldTrimOut-0.001,cutTime/duration));
+      const leftTrimOut=Math.max(0,1-cutRatio);
+      row.dataset.trimOut=String(leftTrimOut);
+      if(trackModel)trackModel.trimOut=leftTrimOut;
+
+      splitRow.dataset.trimIn=String(cutRatio);
+      splitRow.dataset.trimOut=String(oldTrimOut);
+      const splitModel=composeTimeline?._composeModel?.tracks.get(splitRow.dataset.trackId);
+      if(splitModel){
+        splitModel.trimIn=cutRatio;
+        splitModel.trimOut=oldTrimOut;
+      }
+
+      // Preserve fades at the outside edges of the original clip.
+      row.dataset.fadeOut='0';
+      if(fadeOut){fadeOut.value='0';fadeOut.dispatchEvent(new Event('input'));}
+      splitRow.dataset.fadeIn='0';
+      splitRow.dataset.fadeOut=String(oldFadeOut);
+      const splitFadeIn=splitRow.querySelector('[data-compose-fade="in"]');
+      const splitFadeOut=splitRow.querySelector('[data-compose-fade="out"]');
+      if(splitFadeIn){splitFadeIn.value='0';splitFadeIn.dispatchEvent(new Event('input'));}
+      if(splitFadeOut){splitFadeOut.value=String(oldFadeOut);splitFadeOut.dispatchEvent(new Event('input'));}
+      const splitVolume=splitRow.querySelector('.compose-track-volume input');
+      if(splitVolume){splitVolume.value=String(volume?.value||100);splitVolume.dispatchEvent(new Event('input'));}
+      const splitMute=splitRow.querySelector('[data-compose-mute]');
+      if(wasMuted)splitMute?.click();
+      if(wasSolo)splitRow.querySelector('[data-compose-solo]')?.classList.add('active');
+
+      const cutOffset=Math.max(0,cutTime-trimStart);
+      splitRow._composeApplyStart?.(originalStart+cutOffset);
+      splitRow._composeRenderTrim?.();
+      splitRow._composeRenderPlayhead?.();
+      renderTrim();
+      renderPlayhead();
+      applyPlaybackGain();
+      composeTimeline?._syncSoloState?.();
+      composeTimeline?._updateCompositionGeometry?.();
+      composeTimeline?._syncPlayAllButton?.();
+      cutTrackButton.classList.remove('needs-cut-position');
+      cutTrackButton.title='Split track at its playhead position';
+    };
+    cutTrackButton?.addEventListener('click',event=>{
+      event.preventDefault();
+      event.stopPropagation();
+      cutAtPlayhead();
+    });
+
     let dragStartX=0;
     let dragStartSeconds=0;
     let dragging=false;
@@ -1966,10 +2099,15 @@
     window.addEventListener('mouseup',endDrag);
     region?.addEventListener('click',()=>selectTrack());
 
+    row._composeApplyStart=applyStart;
+    row._composeRenderTrim=renderTrim;
+    row._composeRenderPlayhead=renderPlayhead;
+    row._composeApplyPlaybackGain=applyPlaybackGain;
     applyStart(Number(row.dataset.startSeconds||0));
     renderTrim();
     renderFadeValues();
     applyPlaybackGain();
+    return row;
   }
 
   function formatComposeTime(seconds){
