@@ -136,7 +136,7 @@
     .compose-track-wave:before,.compose-track-wave:after{content:"";position:absolute;top:0;bottom:0;z-index:2;background:#06101dcc;pointer-events:none}
     .compose-track-wave:before{left:0;width:var(--trim-left,0%);border-right:1px solid #4f7cff55}
     .compose-track-wave:after{right:0;width:var(--trim-right,0%);border-left:1px solid #4f7cff55}
-    .compose-track-volume-watermark{position:absolute;left:50%;top:50%;z-index:3;transform:translate(-50%,-50%);padding:3px 7px;border:1px solid #8eb0ff33;border-radius:5px;background:#07142688;color:#c8d8ff;font:700 11px Inter,system-ui,sans-serif;letter-spacing:.02em;text-shadow:0 1px 4px #0009;white-space:nowrap;pointer-events:none;user-select:none}
+    .compose-track-volume-watermark{position:absolute;left:12px;top:50%;z-index:3;transform:translateY(-50%);padding:3px 7px;border:1px solid #8eb0ff33;border-radius:5px;background:#071426dd;color:#c8d8ff;font:700 11px Inter,system-ui,sans-serif;letter-spacing:.02em;text-shadow:0 1px 4px #0009;white-space:nowrap;pointer-events:none;user-select:none}
     .compose-track-trim-handle{position:absolute;top:4px;bottom:4px;z-index:4;width:8px;border:1px solid #9ab8ff;border-radius:4px;background:#5f8cff;box-shadow:0 0 12px #4f7cff66;cursor:ew-resize;opacity:.9}
     .compose-track-trim-handle:hover,.compose-track-editor.trimming .compose-track-trim-handle{background:#8eb0ff;opacity:1;box-shadow:0 0 15px #4f7cff99}
     .compose-track-trim-handle.left{left:var(--trim-left,0%);transform:translateX(-50%)}
