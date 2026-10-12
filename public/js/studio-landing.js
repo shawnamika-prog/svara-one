@@ -722,64 +722,123 @@
     return blob;
   }
 
+  function composeClipMetrics(row,clip){
+    const audio=row?.querySelector('.compose-track-audio');
+    const fallbackDuration=Math.max(.01,Number(audio?.duration||row?.dataset.sourceDuration||row?.dataset.assetDuration||30)||30);
+    const sourceStart=Math.max(0,Number(clip?.sourceStart)||0);
+    const sourceEnd=Math.max(sourceStart+.01,Number(clip?.sourceEnd)||fallbackDuration);
+    const span=Math.max(.01,sourceEnd-sourceStart);
+    const trimIn=Math.max(0,Math.min(.98,Number(clip?.trimIn)||0));
+    const trimOut=Math.max(0,Math.min(.98,Number(clip?.trimOut)||0));
+    const effectiveStart=Math.min(sourceEnd-.01,sourceStart+span*trimIn);
+    const effectiveEnd=Math.max(effectiveStart+.01,sourceEnd-span*trimOut);
+    const startSeconds=Math.max(0,Number(clip?.startSeconds??row?.dataset.startSeconds)||0);
+    return {row,clip,audio,duration:fallbackDuration,sourceStart,sourceEnd,span,trimIn,trimOut,effectiveStart,effectiveEnd,effectiveDuration:Math.max(.01,effectiveEnd-effectiveStart),startSeconds,endSeconds:startSeconds+Math.max(.01,effectiveEnd-effectiveStart)};
+  }
+
+  function composeClipsForRow(row){
+    if(Array.isArray(row?._composeClips)&&row._composeClips.length)return [...row._composeClips].sort((a,b)=>(a.startSeconds-b.startSeconds)||(a.sourceStart-b.sourceStart));
+    const audio=row?.querySelector('.compose-track-audio');
+    const duration=Math.max(.01,Number(audio?.duration||row?.dataset.sourceDuration||row?.dataset.assetDuration||30)||30);
+    const trimIn=Math.max(0,Math.min(.98,Number(row?.dataset.trimIn)||0));
+    const trimOut=Math.max(0,Math.min(.98,Number(row?.dataset.trimOut)||0));
+    return [{id:'legacy-'+(row?.dataset.trackId||''),sourceStart:0,sourceEnd:duration,trimIn,trimOut,startSeconds:Math.max(0,Number(row?.dataset.startSeconds)||0)}];
+  }
+
+  function composePlaybackGroupsForRow(row){
+    const clips=composeClipsForRow(row);
+    const groups=[];
+    clips.forEach(clip=>{
+      const metric=composeClipMetrics(row,clip);
+      if(!metric.audio||metric.effectiveDuration<=.01)return;
+      const current={
+        row,audio:metric.audio,clip,
+        sourceStart:metric.effectiveStart,sourceEnd:metric.effectiveEnd,
+        startSeconds:metric.startSeconds,
+        endSeconds:metric.endSeconds,
+        duration:metric.effectiveDuration
+      };
+      const last=groups[groups.length-1];
+      if(last&&Math.abs(last.sourceEnd-current.sourceStart)<.03&&Math.abs(last.endSeconds-current.startSeconds)<.03){
+        last.sourceEnd=current.sourceEnd;
+        last.endSeconds=current.endSeconds;
+        last.duration=last.endSeconds-last.startSeconds;
+      }else groups.push(current);
+    });
+    return groups;
+  }
+
   async function renderCompositionAudio(rows,onStatus,sampleRate=44100){
     const AudioContextClass=window.AudioContext||window.webkitAudioContext;
     const OfflineContextClass=window.OfflineAudioContext||window.webkitOfflineAudioContext;
     if(!AudioContextClass||!OfflineContextClass)throw new Error('Your browser does not support offline audio rendering.');
-    const states=rows.map(row=>{
+
+    const trackStates=rows.map(row=>{
       const audio=row.querySelector('.compose-track-audio');
       const muteButton=row.querySelector('[data-compose-mute]');
       const soloButton=row.querySelector('[data-compose-solo]');
       const volume=row.querySelector('.compose-track-volume input');
-      const duration=Number(Number.isFinite(audio?.duration)&&audio.duration>0?audio.duration:(row.dataset.sourceDuration||row.dataset.assetDuration||0));
       return {
-        row,
-        audio,
+        row,audio,
         url:String(audio?.currentSrc||audio?.src||''),
-        start:Math.max(0,Number(row.dataset.startSeconds||0)||0),
-        trimIn:Math.max(0,Math.min(.98,Number(row.dataset.trimIn||0)||0)),
-        trimOut:Math.max(0,Math.min(.98,Number(row.dataset.trimOut||0)||0)),
         fadeIn:Math.max(0,Math.min(10,Number(row.dataset.fadeIn||0)||0)),
         fadeOut:Math.max(0,Math.min(10,Number(row.dataset.fadeOut||0)||0)),
         volume:Math.max(0,Math.min(1,Number(volume?.value||100)/100)),
         muted:!!audio?.muted||!!muteButton?.classList.contains('active'),
         solo:!!soloButton?.classList.contains('active'),
-        declaredDuration:duration
+        clips:composeClipsForRow(row)
       };
     });
-    const soloActive=states.some(state=>state.solo);
-    const activeStates=states.filter(state=>soloActive?state.solo:!state.muted);
-    if(!activeStates.length)throw new Error('No audible tracks. Unmute a track or turn off Solo before exporting.');
-    if(activeStates.some(state=>!state.url))throw new Error('One or more selected tracks have no playable source asset.');
+    const soloActive=trackStates.some(state=>state.solo);
+    const activeTracks=trackStates.filter(state=>soloActive?state.solo:!state.muted);
+    if(!activeTracks.length)throw new Error('No audible tracks. Unmute a track or turn off Solo before exporting.');
+    if(activeTracks.some(state=>!state.url))throw new Error('One or more selected tracks have no playable source asset.');
+
     const context=new AudioContextClass();
     const decoded=[];
+    const bufferCache=new Map();
     try{
-      for(let index=0;index<activeStates.length;index++){
-        const state=activeStates[index];
-        onStatus('Loading audio '+(index+1)+' of '+activeStates.length+'…');
+      let clipIndex=0;
+      for(const state of activeTracks){
         const assetUrl=new URL(state.url,window.location.href);
         if(assetUrl.origin!==window.location.origin)throw new Error('Export currently supports audio assets stored in this SvaraONE account.');
-        const response=await fetch(assetUrl.href,{credentials:'same-origin',cache:'no-store'});
-        if(!response.ok)throw new Error('Could not load track '+(index+1)+' ('+response.status+').');
-        const bytes=await response.arrayBuffer();
-        const buffer=await context.decodeAudioData(bytes.slice(0));
-        if(!buffer||!buffer.length||!Number.isFinite(buffer.duration)||buffer.duration<=0)throw new Error('Track '+(index+1)+' could not be decoded.');
-        const trimStart=state.trimIn*buffer.duration;
-        const trimEnd=Math.max(trimStart+.01,(1-state.trimOut)*buffer.duration);
-        const effectiveDuration=Math.max(.01,Math.min(buffer.duration-trimStart,trimEnd-trimStart));
-        decoded.push({...state,buffer,trimStart,effectiveDuration,end:state.start+effectiveDuration});
+        let buffer=bufferCache.get(assetUrl.href);
+        if(!buffer){
+          onStatus('Loading audio source '+(bufferCache.size+1)+' of '+new Set(activeTracks.map(item=>item.url)).size+'…');
+          const response=await fetch(assetUrl.href,{credentials:'same-origin',cache:'no-store'});
+          if(!response.ok)throw new Error('Could not load an audio source ('+response.status+').');
+          const bytes=await response.arrayBuffer();
+          buffer=await context.decodeAudioData(bytes.slice(0));
+          if(!buffer||!buffer.length||!Number.isFinite(buffer.duration)||buffer.duration<=0)throw new Error('An audio source could not be decoded.');
+          bufferCache.set(assetUrl.href,buffer);
+        }
+        state.clips.sort((a,b)=>(a.startSeconds-b.startSeconds)||(a.sourceStart-b.sourceStart));
+        state.clips.forEach((clip,index)=>{
+          const metric=composeClipMetrics(state.row,clip);
+          const sourceStart=Math.max(0,Math.min(buffer.duration-.01,metric.effectiveStart));
+          const sourceEnd=Math.max(sourceStart+.01,Math.min(buffer.duration,metric.effectiveEnd));
+          const effectiveDuration=Math.max(.01,sourceEnd-sourceStart);
+          decoded.push({
+            ...state,clip,buffer,
+            start:metric.startSeconds,
+            trimStart:sourceStart,
+            effectiveDuration,
+            end:metric.startSeconds+effectiveDuration,
+            fadeIn:index===0?state.fadeIn:0,
+            fadeOut:index===state.clips.length-1?state.fadeOut:0
+          });
+          clipIndex++;
+        });
       }
     }finally{
       await context.close().catch(()=>{});
     }
-    const timelineEnd=Math.max(0,...states.map(track=>track.start+Math.max(.01,track.declaredDuration*(1-track.trimIn-track.trimOut))));
-    const renderDuration=Math.max(timelineEnd,...decoded.map(track=>track.end));
+    const renderDuration=Math.max(0,...decoded.map(track=>track.end));
     if(!Number.isFinite(renderDuration)||renderDuration<=0)throw new Error('The composition has no renderable duration.');
     if(renderDuration>420)throw new Error('This export supports compositions up to 7 minutes. Shorten the composition and try again.');
     const frameCount=Math.max(1,Math.ceil(renderDuration*sampleRate));
-    const maxOutputBytes=sampleRate===24000?80000000:80000000;
-    if(frameCount*4+44>maxOutputBytes)throw new Error('This export is too large for the current 80 MB limit.');
-    onStatus('Mixing '+decoded.length+' track'+(decoded.length===1?'':'s')+'…');
+    if(frameCount*4+44>80000000)throw new Error('This export is too large for the current 80 MB limit.');
+    onStatus('Mixing '+decoded.length+' clip'+(decoded.length===1?'':'s')+'…');
     const offline=new OfflineContextClass(2,frameCount,sampleRate);
     decoded.forEach(track=>{
       if(track.volume<=0)return;
@@ -805,7 +864,7 @@
     });
     onStatus('Rendering final mix…');
     const audioBuffer=await offline.startRendering();
-    return {audioBuffer,durationSeconds:audioBuffer.duration,trackCount:decoded.length};
+    return {audioBuffer,durationSeconds:audioBuffer.duration,trackCount:activeTracks.length};
   }
 
   function openComposeSavedPreview({url,downloadUrl,filename,format,sizeBytes,durationSeconds}){
