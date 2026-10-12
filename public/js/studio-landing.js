@@ -813,7 +813,7 @@
     modal.className='compose-track-modal compose-export-modal';
     modal.innerHTML='<div class="compose-track-backdrop"></div>'+
       '<section class="compose-track-dialog compose-export-dialog" role="dialog" aria-modal="true" aria-labelledby="composeExportTitle">'+
-        '<div class="compose-track-head"><div><p class="compose-track-eyebrow">COMPOSITION EXPORT</p><h3 id="composeExportTitle">Compose &amp; Export</h3><p class="compose-track-subtitle">Render your timeline into one finished audio asset and save it to R2.</p></div><button class="compose-track-close" type="button" aria-label="Close">×</button></div>'+
+        '<div class="compose-track-head"><div><p class="compose-track-eyebrow">COMPOSITION EXPORT</p><h3 id="composeExportTitle">Compose &amp; Export</h3><p class="compose-track-subtitle">Render your timeline into one finished audio asset.</p></div><button class="compose-track-close" type="button" aria-label="Close">×</button></div>'+
         '<form class="compose-export-form">'+
           '<label class="compose-export-field"><span>Filename</span><input type="text" name="filename" maxlength="124" autocomplete="off" required></label>'+
           '<label class="compose-export-field"><span>Format</span><select name="format" aria-label="Export format"><option value="wav">WAV · 16-bit PCM · Stereo · 44.1 kHz</option><option value="mp3">MP3 · 192 kbps · Stereo · 44.1 kHz</option><option value="pcm">PCM · 16-bit signed · Stereo · 24 kHz</option></select></label>'+
@@ -887,7 +887,7 @@
             ?encodeCompositionMp3(result.audioBuffer,message=>{status.textContent=message;})
             :encodeCompositionPcm(result.audioBuffer);
         if(!blob.size||blob.size>80000000)throw new Error('The encoded file is empty or exceeds the 80 MB export limit.');
-        status.textContent='Saving '+details.label+' to R2…';
+        status.textContent='Saving composition…';
         const response=await fetch('/api/compositions/export',{
           method:'POST',
           credentials:'same-origin',
@@ -907,32 +907,20 @@
         if(!data.id)throw new Error('The audio was uploaded but the server did not return an asset ID.');
         const assetUrl='/api/compositions/assets/'+encodeURIComponent(String(data.id));
         const previewUrl=assetUrl+(format==='pcm'?'?preview=1':'');
-        form.replaceChildren();
-        const success=document.createElement('div');
-        success.className='compose-export-success';
-        const heading=document.createElement('strong');
-        heading.textContent='Composition saved';
-        const detail=document.createElement('p');
-        detail.textContent=(data.filename||filename)+' · '+Math.floor(Number(data.durationSeconds||result.durationSeconds))+' seconds · '+Math.round(Number(data.sizeBytes||blob.size)/1024)+' KB';
-        const preview=document.createElement('audio');
-        preview.controls=true;
-        preview.preload='none';
-        preview.src=previewUrl;
-        preview.className='compose-export-preview';
-        const download=document.createElement('a');
-        download.className='compose-export-download';
-        download.href=assetUrl+'?download=1';
-        download.download=String(data.filename||filename);
-        download.textContent='Download '+details.label;
-        success.append(heading,detail,preview,download);
-        form.appendChild(success);
-        const doneButton=document.createElement('button');
-        doneButton.type='button';
-        doneButton.className='compose-export-cancel';
-        doneButton.textContent='Close';
-        doneButton.addEventListener('click',close);
-        form.appendChild(doneButton);
-        closeButton.disabled=false;
+        modal.remove();
+        if(window.SvaraModal?.preview){
+          window.SvaraModal.preview(previewUrl,{
+            filename:String(data.filename||filename),
+            mediaType:'audio',
+            format:details.label,
+            voiceName:'Composition',
+            sizeBytes:Number(data.sizeBytes||blob.size),
+            title:'Compose & Export',
+            eyebrow:'COMPOSITION EXPORT',
+            hideDelete:true,
+            downloadUrl:assetUrl+'?download=1'
+          });
+        }
         loadCompositionLibrary();
       }catch(error){
         status.textContent=error?.message||'Export failed. No saved asset was confirmed.';
