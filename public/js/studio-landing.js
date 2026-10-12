@@ -1268,9 +1268,17 @@
           }
           playhead.style.visibility='visible';
           const localPosition=Math.max(0,Math.min(effectiveDuration,masterTime-startSeconds));
-          const ratio=Math.max(0,Math.min(1,(trimStart+localPosition)/duration));
+          // Cut clips render only their visible source interval, so their lane
+          // playhead must use segment-local progress rather than full-source time.
+          const isCutClip=row.dataset.composeCutClip==='1';
+          const ratio=isCutClip
+            ?Math.max(0,Math.min(1,localPosition/effectiveDuration))
+            :Math.max(0,Math.min(1,(trimStart+localPosition)/duration));
           playhead.style.setProperty('--playhead',String(ratio*100)+'%');
-          if(masterTime>=endSeconds)playhead.style.setProperty('--playhead',String(((trimStart+effectiveDuration)/duration)*100)+'%');
+          if(masterTime>=endSeconds){
+            const endRatio=isCutClip?1:(trimStart+effectiveDuration)/duration;
+            playhead.style.setProperty('--playhead',String(Math.max(0,Math.min(1,endRatio))*100)+'%');
+          }
         });
       };
       const animateTimelinePlayhead=()=>{
