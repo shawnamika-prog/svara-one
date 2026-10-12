@@ -101,6 +101,8 @@ Individual track playback remains supported as a separate local playback mode an
 
 Trim, fade, gain, mute, solo and positioning remain track properties. They modify playback/rendering state without modifying the source asset.
 
+**Cut at playhead amendment (pre-S15):** a Cut control sits before Delete. With Play All stopped, Cut uses the selected row's local audio playhead and creates a second adjacent clip over the same source asset. The first and second clips receive complementary trim ranges and contiguous timeline start positions; neither source media nor the other tracks are altered. Preserve outer fade-in/fade-out, volume and mute state. If a cut clip belongs to a solo group, both halves remain part of that solo group. A cut must be strictly inside the currently visible trim range; cutting at or near either edge is rejected.
+
 ## Implementation order
 
 1. Composition state/model
@@ -140,6 +142,7 @@ S15 will persist the composition model after S14 has established and tested it.
 | Individual playback | Local track playback works independently of master transport |
 | Stop All | Master returns to 0 and all tracks reset |
 | Trim | Source waveform remains intact; effective playback range changes |
+| Cut at playhead | Track splits into two adjacent clips sharing the source asset; each clip uses the correct trim range and playback/export remains sequential |
 | Long composition | Timeline scrolls rather than squeezing content |
 | Zoom | Same seconds remain aligned across ruler and every track |
 
