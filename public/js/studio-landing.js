@@ -1661,6 +1661,8 @@
     const wave=row.querySelector('.compose-track-wave');
     const playhead=row.querySelector('.compose-track-playhead');
     const region=row.querySelector('.compose-track-region');
+    const lane=row.querySelector('.compose-track-lane');
+    let selectedClip=null;
     const moveHandle=row.querySelector('.compose-track-move');
     const trimInHandle=row.querySelector('[data-compose-trim="in"]');
     const trimOutHandle=row.querySelector('[data-compose-trim="out"]');
@@ -1918,6 +1920,43 @@
     row.dataset.trimOut='0';
     const formatTrimTime=seconds=>formatComposeTime(seconds);
     const sourceDuration=()=>Math.max(0.01,Number(row.dataset.sourceDuration||asset.durationSeconds||asset.duration||30)||30);
+    const initialClip={
+      id:'clip-'+row.dataset.trackId+'-1',
+      sourceStart:0,
+      sourceEnd:sourceDuration(),
+      startSeconds:Math.max(0,Number(row.dataset.startSeconds||0)||0),
+      trimIn:0,
+      trimOut:0,
+      region,
+      wave,
+      playhead,
+      trimInHandle,
+      trimOutHandle,
+      trimReadout
+    };
+    region.dataset.clipId=initialClip.id;
+    row._composeClips=[initialClip];
+    row._composeSelectedClip=initialClip;
+    selectedClip=initialClip;
+    const metricsForClip=clip=>composeClipMetrics(row,clip);
+    const renderClipWaveform=clip=>{
+      const bars=clip?.wave?.querySelector('.compose-track-wave-bars');
+      if(!bars)return;
+      const peaks=row._composeWaveformPeaks;
+      if(!Array.isArray(peaks)||!peaks.length)return;
+      const totalDuration=sourceDuration();
+      const start=Math.max(0,Math.min(peaks.length-1,Math.floor((clip.sourceStart/totalDuration)*peaks.length)));
+      const end=Math.max(start+1,Math.min(peaks.length,Math.ceil((clip.sourceEnd/totalDuration)*peaks.length)));
+      bars.innerHTML=waveformForPeaks(peaks.slice(start,end),Math.max(.01,clip.sourceEnd-clip.sourceStart));
+    };
+    const selectClip=clip=>{
+      if(!clip||!row._composeClips?.includes(clip))return;
+      selectedClip=clip;
+      row._composeSelectedClip=clip;
+      row._composeClips.forEach(item=>item.region?.classList.toggle('selected-clip',item===clip));
+      renderTrim(clip);
+      renderPlayhead();
+    };
     const renderTrim=()=>{
       const trimIn=Math.max(0,Math.min(.98,Number(row.dataset.trimIn||0)));
       const trimOut=Math.max(0,Math.min(.98,Number(row.dataset.trimOut||0)));
