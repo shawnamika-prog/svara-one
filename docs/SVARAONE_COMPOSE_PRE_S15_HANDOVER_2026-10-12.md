@@ -3,7 +3,7 @@
 **Date:** 2026-10-12  
 **Repository:** `shawnamika-prog/svara-one`  
 **Branch:** `main`  
-**Current frontend file:** `public/js/studio-landing.js` (current main blob: `0f6511e492d083e3016512c714c447fbffb8232a`)  
+**Current frontend file:** `public/js/studio-landing.js` (current main blob: `5c1a43eea9f8ca70e14d9f7960ac378afcd51ed7`)  
 **Current tracker:** `docs/SVARAONE_SOUND_MASTER_TRACKER.md`  
 **Current status:** Hold S15 until the pre-S15 Compose amendments are tested and finished.
 
@@ -29,6 +29,7 @@ Recent relevant commits:
 - `af89194363e449ed8f76bb4cc479fa2d12c7b6dc` and `555225025e30d949841b08a5e4cc2b43f363f82a` — clarify audible-range cut/source-boundary semantics in the architecture notes.
 - `2f1051ce2d8edf393ae91988231fcabe876471f6` — one lane-level shared playhead; Play, Move and Cut target the selected clip, and individual playback stops at the selected clip boundary.
 - `23799d2e2cc01880b6296938ed71eb794614a3c1` — fix selected-clip object identity and make trim waveform, region width and timeline duration use the same effective audible interval.
+- `d69640d9eca345a4ce142d7825bf170eee2c8e01` — move the timeline start with trim-in edits so the left edge and audible range stay aligned.
 
 The latest source fix addresses two reported regressions: selected clip identity/visible selection, and inconsistent trim-aware waveform width versus timeline duration. JavaScript syntax passes, but deployed browser behavior remains unverified. Ask the user to retest with an original asset longer than 30 seconds and trim/cut several clips before making further changes.
 
@@ -39,7 +40,7 @@ The latest source fix addresses two reported regressions: selected clip identity
 - Both clips reference the same original source; source media is not duplicated or modified.
 - Clip regions have per-clip waveform/trim handles and selection. Play, Move, Cut, Delete and Trim target the selected clip; Delete removes only the selected region when more than one remains.
 - Each track lane has one shared visible playhead marker, not one marker per clip. The marker is positioned on the lane timeline and crosses clip boundaries without blinking.
-- Trimmed waveforms display the effective audible source interval; visible region width, gap placement and timeline duration all use effective clip duration. Trim drag is delta-based so the handle movement remains stable as the region resizes.
+- Trimmed waveforms display the effective audible source interval; visible region width, gap placement and timeline duration all use effective clip duration. Trim drag is delta-based so the handle movement remains stable as the region resizes; trim-in also shifts the clip's timeline start to keep the left edge and audible range aligned.
 - Selected clips receive a visible outline, and cloned clip visuals retain the exact object identity used by selection, movement, playback and deletion.
 - Individual Play is limited to the selected clip; Play All continues to use the master composition timeline. Track-wide volume, fades, mute and solo remain track properties.
 - Playback and export use per-clip source ranges and timeline positions; exact clip boundaries should avoid playhead jumps and trim-percentage drift.
