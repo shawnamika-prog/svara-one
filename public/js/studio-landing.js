@@ -1587,6 +1587,7 @@
           row._composeWaveformPeaks=Array.from(peaks);
           waveformBars.innerHTML=waveformForPeaks(row._composeWaveformPeaks,buffer.duration);
           row.dataset.sourceDuration=String(buffer.duration);
+          row._composeRenderCutGeometry?.();
           const composeTimeline=row.closest('.compose-timeline');
           const trackModel=composeTimeline?._composeModel?.tracks.get(row.dataset.trackId);
           if(trackModel)trackModel.sourceDuration=buffer.duration;
@@ -1684,7 +1685,9 @@
       const trimOut=Number(row.dataset.trimOut||0);
       const effectiveDuration=Math.max(0.01,duration*(1-trimIn-trimOut));
       const position=Math.max(0,Math.min(effectiveDuration,(Number(audio?.currentTime||0)-trimIn*duration)));
-      const ratio=Math.max(0,Math.min(1,(trimIn*duration+position)/duration));
+      const ratio=row.dataset.composeCutClip==='1'
+        ?Math.max(0,Math.min(1,(Number(audio?.currentTime||0)/duration-trimIn)/Math.max(.02,1-trimIn-trimOut)))
+        :Math.max(0,Math.min(1,(trimIn*duration+position)/duration));
       playhead.style.setProperty('--playhead',String(ratio*100)+'%');
     };
     audio?.addEventListener('timeupdate',()=>{
@@ -1886,6 +1889,28 @@
     row.dataset.trimOut='0';
     const formatTrimTime=seconds=>formatComposeTime(seconds);
     const sourceDuration=()=>Math.max(0.01,Number(row.dataset.sourceDuration||asset.durationSeconds||asset.duration||30)||30);
+    const renderCutGeometry=()=>{
+      if(row.dataset.composeCutClip!=='1')return;
+      const duration=sourceDuration();
+      const trimIn=Math.max(0,Math.min(.98,Number(row.dataset.trimIn||0)||0));
+      const trimOut=Math.max(0,Math.min(.98,Number(row.dataset.trimOut||0)||0));
+      const visibleRatio=Math.max(.02,1-trimIn-trimOut);
+      const visibleDuration=duration*visibleRatio;
+      const geometry=timelineGeometry();
+      const waveformBars=row.querySelector('.compose-track-wave-bars');
+      const peaks=row._composeWaveformPeaks;
+      if(waveformBars&&Array.isArray(peaks)&&peaks.length){
+        const first=Math.max(0,Math.min(peaks.length-1,Math.floor(trimIn*peaks.length)));
+        const last=Math.max(first+1,Math.min(peaks.length,Math.ceil((1-trimOut)*peaks.length)));
+        waveformBars.innerHTML=waveformForPeaks(peaks.slice(first,last),visibleDuration);
+      }
+      wave?.style.setProperty('--trim-left','0%');
+      wave?.style.setProperty('--trim-right','0%');
+      region.style.width=Math.max(24,visibleDuration*geometry.pixelsPerSecond)+'px';
+      region.style.marginLeft=(Math.max(0,Number(row.dataset.startSeconds)||0)*geometry.pixelsPerSecond)+'px';
+      region.style.maxWidth='none';
+    };
+    row._composeRenderCutGeometry=renderCutGeometry;
     const renderTrim=()=>{
       const trimIn=Math.max(0,Math.min(.98,Number(row.dataset.trimIn||0)));
       const trimOut=Math.max(0,Math.min(.98,Number(row.dataset.trimOut||0)));
@@ -1903,6 +1928,15 @@
       wave?.style.setProperty('--fade-in-width',String(fadeInRatio*100)+'%');
       wave?.style.setProperty('--fade-out-right',String(fadeOutRight)+'%');
       wave?.style.setProperty('--fade-out-width',String(fadeOutRatio*100)+'%');
+      if(row.dataset.composeCutClip==='1'){
+        const cutFadeInRatio=Math.min(1,fadeInSeconds/Math.max(.01,duration*visibleRatio));
+        const cutFadeOutRatio=Math.min(1,fadeOutSeconds/Math.max(.01,duration*visibleRatio));
+        wave?.style.setProperty('--fade-in-left','0%');
+        wave?.style.setProperty('--fade-in-width',String(cutFadeInRatio*100)+'%');
+        wave?.style.setProperty('--fade-out-right','0%');
+        wave?.style.setProperty('--fade-out-width',String(cutFadeOutRatio*100)+'%');
+        renderCutGeometry();
+      }
       if(trimReadout)trimReadout.textContent='Trim '+formatTrimTime(trimIn*duration)+' – '+formatTrimTime((1-trimOut)*duration);
       if(trimInHandle)trimInHandle.title='Trim start: '+formatTrimTime(trimIn*duration);
       if(trimOutHandle)trimOutHandle.title='Trim end: '+formatTrimTime((1-trimOut)*duration);
@@ -1920,7 +1954,10 @@
       row.classList.add('trimming');
       const moveTrim=moveEvent=>{
         const width=Math.max(1,rect.width);
-        const ratio=Math.max(0,Math.min(1,(moveEvent.clientX-rect.left)/width));
+        const pointerRatio=Math.max(0,Math.min(1,(moveEvent.clientX-rect.left)/width));
+        const ratio=row.dataset.composeCutClip==='1'
+          ?startIn+pointerRatio*Math.max(.02,1-startIn-startOut)
+          :pointerRatio;
         if(side==='in'){
           const next=Math.min(1-startOut-minGap,ratio);
           const value=Math.max(0,next);
@@ -1968,11 +2005,15 @@
       const snapped=Math.round(requested/grid)*grid;
       row.dataset.startSeconds=String(snapped);
       const geometry=timelineGeometry();
-      const trackWidth=Math.max(24,sourceDuration()*geometry.pixelsPerSecond);
-      const visualTrimOffset=row.dataset.composeCutClip==='1'?Math.max(0,Number(row.dataset.trimIn||0)||0)*sourceDuration():0;
+      const isCutClip=row.dataset.composeCutClip==='1';
+      const trimIn=Math.max(0,Number(row.dataset.trimIn||0)||0);
+      const trimOut=Math.max(0,Number(row.dataset.trimOut||0)||0);
+      const trackWidth=Math.max(24,sourceDuration()*(isCutClip?Math.max(.02,1-trimIn-trimOut):1)*geometry.pixelsPerSecond);
+      const visualTrimOffset=isCutClip?0:Math.max(0,trimIn)*sourceDuration();
       region.style.marginLeft=`${(snapped-visualTrimOffset)*geometry.pixelsPerSecond}px`;
       region.style.width=`${trackWidth}px`;
       region.style.maxWidth='none';
+      if(isCutClip)renderCutGeometry();
       const guide=row.querySelector('.compose-track-time-guide');
       if(guide)guide.textContent=`Start ${formatComposeTime(snapped)}`;
       const trackModel=model?.tracks.get(row.dataset.trackId);
@@ -2061,6 +2102,8 @@
       // clip begins exactly at its composition start instead of at source time 0.
       applyStart(originalStart);
       splitRow._composeApplyStart?.(originalStart+cutOffset);
+      row._composeRenderCutGeometry?.();
+      splitRow._composeRenderCutGeometry?.();
       splitRow._composeRenderTrim?.();
       splitRow._composeRenderPlayhead?.();
       renderTrim();
@@ -2109,6 +2152,7 @@
     row._composeApplyStart=applyStart;
     row._composeRenderTrim=renderTrim;
     row._composeRenderPlayhead=renderPlayhead;
+    row._composeRenderCutGeometry=renderCutGeometry;
     row._composeApplyPlaybackGain=applyPlaybackGain;
     applyStart(Number(row.dataset.startSeconds||0));
     renderTrim();
