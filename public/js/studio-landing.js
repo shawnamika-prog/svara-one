@@ -584,8 +584,21 @@
     const list=composeWorkspace.querySelector('[data-compose-library-list]');
     if(!list)return;
     const formatControl=composeWorkspace.querySelector('[data-compose-library-format]');
+    const dateControl=composeWorkspace.querySelector('[data-compose-library-date]');
+    const folderControl=composeWorkspace.querySelector('[data-compose-library-folder]');
     const formatFilter=String(formatControl?.value||'').toUpperCase();
-    const filtered=compositionLibraryItems.filter(item=>!formatFilter||String(item.format||'WAV').toUpperCase()===formatFilter);
+    const dateFilter=String(dateControl?.value||'');
+    const folderFilter=String(folderControl?.value||'');
+    const now=Date.now();
+    const dayStart=new Date();dayStart.setHours(0,0,0,0);
+    const cutoff=dateFilter==='today'?dayStart.getTime():dateFilter==='7d'?now-7*86400000:dateFilter==='30d'?now-30*86400000:0;
+    const filtered=compositionLibraryItems.filter(item=>{
+      if(formatFilter&&String(item.format||'WAV').toUpperCase()!==formatFilter)return false;
+      if(folderFilter==='__unfiled__'&&item.folderId)return false;
+      if(folderFilter&&folderFilter!=='__unfiled__'&&String(item.folderId||'')!==folderFilter)return false;
+      if(dateFilter){const timestamp=Date.parse(item.createdAt||'');if(!Number.isFinite(timestamp)||timestamp<cutoff||(dateFilter==='today'&&timestamp>=now+1))return false;}
+      return true;
+    });
     const pageCount=Math.max(1,Math.ceil(filtered.length/compositionLibraryPageSize));
     compositionLibraryPage=Math.min(Math.max(1,compositionLibraryPage),pageCount);
     const start=(compositionLibraryPage-1)*compositionLibraryPageSize;
@@ -598,7 +611,7 @@
     if(next)next.disabled=compositionLibraryPage>=pageCount;
     if(!filtered.length){
       const hasItems=compositionLibraryItems.length>0;
-      list.innerHTML='<div class="compose-library-state"><strong>'+(hasItems?'No compositions in this format':'No saved compositions yet')+'</strong><span>'+(hasItems?'Choose another format or select All formats.':'Use COMPOSE &amp; EXPORT to render a finished timeline. Saved compositions will appear here.')+'</span></div>';
+      list.innerHTML='<div class="compose-library-state"><strong>'+(hasItems?'No compositions match these filters':'No saved compositions yet')+'</strong><span>'+(hasItems?'Adjust the date, folder, or format filters to see more compositions.':'Use COMPOSE &amp; EXPORT to render a finished timeline. Saved compositions will appear here.')+'</span></div>';
       return;
     }
     list.innerHTML=visible.map(item=>{
@@ -743,6 +756,13 @@
       if(!response.ok)throw new Error(data.error||'Composition library unavailable ('+response.status+').');
       if(requestId!==compositionLibraryRequestId)return;
       compositionLibraryItems=Array.isArray(data.compositions)?data.compositions:[];
+      const folderControl=composeWorkspace.querySelector('[data-compose-library-folder]');
+      if(folderControl){
+        const selected=folderControl.value;
+        const folders=[...new Map(compositionLibraryItems.filter(item=>item.folderId&&item.folderName).map(item=>[String(item.folderId),String(item.folderName)])).entries()].sort((a,b)=>a[1].localeCompare(b[1]));
+        folderControl.innerHTML='<option value="">All folders</option><option value="__unfiled__">Unfiled</option>'+folders.map(([id,name])=>'<option value="'+escapeHistory(id)+'">'+escapeHistory(name)+'</option>').join('');
+        if([...folderControl.options].some(option=>option.value===selected))folderControl.value=selected;
+      }
       compositionLibraryPage=1;
       renderCompositionLibrary();
     }catch(error){
@@ -2378,12 +2398,14 @@
     placeholder.hidden=view!=='video';
 
     if(view==='compose'&&composeWorkspace.dataset.initialized!=='1'){
-      composeWorkspace.innerHTML=`<div class="compose-head"><div class="compose-head-copy"><small>COMPOSE</small><h2>Create your composition</h2><p>Combine Voice, Sound, SFX, Ambience and more into one composition.</p></div><div class="compose-head-actions"><button class="compose-export-trigger" type="button" data-compose-export disabled>COMPOSE &amp; EXPORT</button></div></div><div class="compose-canvas"><div class="compose-empty"><p>Import audio assets into your composition one track at a time.</p><button class="compose-add-track" type="button">+ Add Track</button></div></div><section class="compose-library" aria-labelledby="composeLibraryTitle"><div class="compose-library-head"><div><small>COMPOSITION HISTORY</small><h3 id="composeLibraryTitle">Your saved compositions</h3><p>Preview, download or reuse audio you have exported.</p></div><button class="compose-library-refresh" type="button" data-compose-library-refresh>Refresh</button></div><div class="compose-library-toolbar"><input type="search" data-compose-library-search placeholder="Search saved compositions…" aria-label="Search saved compositions"><select data-compose-library-format aria-label="Filter by composition format"><option value="">All formats</option><option value="WAV">WAV</option><option value="MP3">MP3</option><option value="PCM">PCM</option></select></div><div class="compose-library-table-head"><span>Composition</span><span>Duration</span><span>Format</span><span>Size</span><span>Folder</span><span>Date</span><span>Actions</span></div><div class="compose-library-list" data-compose-library-list><div class="compose-library-state">Loading saved compositions…</div></div><div class="compose-library-pagination"><span data-compose-library-page-info>Page 1</span><div><button class="compose-library-page-button" type="button" data-compose-library-prev disabled>Previous</button><button class="compose-library-page-button" type="button" data-compose-library-next disabled>Next</button></div></div></section>`;
+      composeWorkspace.innerHTML=`<div class="compose-head"><div class="compose-head-copy"><small>COMPOSE</small><h2>Create your composition</h2><p>Combine Voice, Sound, SFX, Ambience and more into one composition.</p></div><div class="compose-head-actions"><button class="compose-export-trigger" type="button" data-compose-export disabled>COMPOSE &amp; EXPORT</button></div></div><div class="compose-canvas"><div class="compose-empty"><p>Import audio assets into your composition one track at a time.</p><button class="compose-add-track" type="button">+ Add Track</button></div></div><section class="compose-library" aria-labelledby="composeLibraryTitle"><div class="compose-library-head"><div><small>COMPOSITION HISTORY</small><h3 id="composeLibraryTitle">Your saved compositions</h3><p>Preview, download or reuse audio you have exported.</p></div><button class="compose-library-refresh" type="button" data-compose-library-refresh>Refresh</button></div><div class="compose-library-toolbar"><input type="search" data-compose-library-search placeholder="Search saved compositions…" aria-label="Search saved compositions"><select data-compose-library-format aria-label="Filter by composition format"><option value="">All formats</option><option value="WAV">WAV</option><option value="MP3">MP3</option><option value="PCM">PCM</option></select><select data-compose-library-date aria-label="Filter by date"><option value="">All dates</option><option value="today">Today</option><option value="7d">Last 7 days</option><option value="30d">Last 30 days</option></select><select data-compose-library-folder aria-label="Filter by folder"><option value="">All folders</option><option value="__unfiled__">Unfiled</option></select></div><div class="compose-library-table-head"><span>Composition</span><span>Duration</span><span>Format</span><span>Size</span><span>Folder</span><span>Date</span><span>Actions</span></div><div class="compose-library-list" data-compose-library-list><div class="compose-library-state">Loading saved compositions…</div></div><div class="compose-library-pagination"><span data-compose-library-page-info>Page 1</span><div><button class="compose-library-page-button" type="button" data-compose-library-prev disabled>Previous</button><button class="compose-library-page-button" type="button" data-compose-library-next disabled>Next</button></div></div></section>`;
       composeWorkspace.querySelector('.compose-add-track')?.addEventListener('click',openComposeTrackModal);
       composeWorkspace.querySelector('[data-compose-export]')?.addEventListener('click',openComposeExportModal);
       composeWorkspace.querySelector('[data-compose-library-refresh]')?.addEventListener('click',()=>loadCompositionLibrary());
       composeWorkspace.querySelector('[data-compose-library-search]')?.addEventListener('input',()=>loadCompositionLibrary());
       composeWorkspace.querySelector('[data-compose-library-format]')?.addEventListener('change',()=>{compositionLibraryPage=1;renderCompositionLibrary();});
+      composeWorkspace.querySelector('[data-compose-library-date]')?.addEventListener('change',()=>{compositionLibraryPage=1;renderCompositionLibrary();});
+      composeWorkspace.querySelector('[data-compose-library-folder]')?.addEventListener('change',()=>{compositionLibraryPage=1;renderCompositionLibrary();});
       composeWorkspace.querySelector('[data-compose-library-prev]')?.addEventListener('click',()=>{compositionLibraryPage=Math.max(1,compositionLibraryPage-1);renderCompositionLibrary();});
       composeWorkspace.querySelector('[data-compose-library-next]')?.addEventListener('click',()=>{compositionLibraryPage++;renderCompositionLibrary();});
       syncComposeExportButton();
