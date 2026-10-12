@@ -1411,68 +1411,50 @@
           stopAll();
           return;
         }
-
         if(resetBeforeStart)stopAll();
         const duration=Math.max(composeModel.minDuration,composeModel.duration);
         const startTime=Math.max(0,Math.min(duration,Number(startAt)||0));
+        const scheduled=rows.flatMap(row=>composePlaybackGroupsForRow(row).map(group=>({...group,row})));
         const runId=++playAllRunId;
         playAllRunning=true;
-        playAllPending=rows.filter(row=>row.querySelector('.compose-track-audio')).length;
+        playAllPending=scheduled.length;
         playAllStartedAt=performance.now()-startTime*1000;
         renderTimelinePlayhead(startTime);
         renderAllTrackPlayheads(startTime);
         animateTimelinePlayhead();
         syncPlayAllButton();
 
-        rows.forEach(row=>{
-          const audio=row.querySelector('.compose-track-audio');
-          if(!audio){
-            playAllPending=Math.max(0,playAllPending-1);
-            return;
-          }
-          const startSeconds=Math.max(0,Number(row.dataset.startSeconds||0)||0);
+        scheduled.forEach(group=>{
+          const audio=group.audio;
           const timer=setTimeout(async()=>{
             playAllTimeouts.delete(timer);
             if(runId!==playAllRunId)return;
             playAllPending=Math.max(0,playAllPending-1);
             try{
               if(audio.readyState===0)audio.load();
-              const duration=await waitForMetadata(audio);
+              await waitForMetadata(audio);
               if(runId!==playAllRunId)return;
-              const trimIn=Math.max(0,Math.min(.98,Number(row.dataset.trimIn||0)||0));
-              const trimOut=Math.max(0,Math.min(.98,Number(row.dataset.trimOut||0)||0));
-              const trimStart=trimIn*duration;
-              const trimEnd=Math.max(trimStart+0.01,(1-trimOut)*duration);
-              const localOffset=Math.max(0,startTime-startSeconds);
-              if(startTime>=startSeconds){
-                if(localOffset>=trimEnd-trimStart){
-                  try{audio.currentTime=trimEnd;}catch{}
-                  audio.dispatchEvent(new Event('timeupdate'));
-                  finishPlayAllIfIdle();
-                  return;
-                }
-                audio.currentTime=Math.min(trimEnd-.001,trimStart+localOffset);
-              }else{
-                audio.currentTime=trimStart;
-              }
-              await audio.play();
-              if(runId!==playAllRunId){
-                audio.pause();
+              const offset=Math.max(0,startTime-group.startSeconds);
+              if(offset>=group.duration-.01){
+                try{audio.currentTime=group.sourceEnd;}catch{}
+                audio.dispatchEvent(new Event('timeupdate'));
+                finishPlayAllIfIdle();
                 return;
               }
+              audio.currentTime=Math.min(group.sourceEnd-.001,group.sourceStart+offset);
+              await audio.play();
+              if(runId!==playAllRunId){audio.pause();return;}
               playAllActive.add(audio);
-              const wave=row.querySelector('.compose-track-wave');
-              wave?.classList.add('playing');
+              group.row.querySelectorAll('.compose-track-wave').forEach(wave=>wave.classList.add('playing'));
               syncPlayAllButton();
-
-              const remainingMs=Math.max(0,(trimEnd-audio.currentTime)*1000);
+              const remainingMs=Math.max(0,(group.sourceEnd-audio.currentTime)*1000);
               const endTimer=setTimeout(()=>{
                 playAllTimeouts.delete(endTimer);
                 if(runId!==playAllRunId)return;
                 audio.pause();
-                try{audio.currentTime=trimStart;}catch{}
+                try{audio.currentTime=group.sourceEnd;}catch{}
                 playAllActive.delete(audio);
-                wave?.classList.remove('playing');
+                group.row.querySelectorAll('.compose-track-wave').forEach(wave=>wave.classList.remove('playing'));
                 audio.dispatchEvent(new Event('timeupdate'));
                 finishPlayAllIfIdle();
               },remainingMs);
@@ -1481,42 +1463,31 @@
               if(runId!==playAllRunId)return;
               console.warn('compose_play_all_error',error);
               playAllActive.delete(audio);
-              row.querySelector('.compose-track-wave')?.classList.remove('playing');
+              group.row.querySelectorAll('.compose-track-wave').forEach(wave=>wave.classList.remove('playing'));
               finishPlayAllIfIdle();
             }
-          },Math.max(0,(startSeconds-startTime)*1000));
+          },Math.max(0,(group.startSeconds-startTime)*1000));
           playAllTimeouts.add(timer);
         });
         finishPlayAllIfIdle();
       };
       const seekTrackAudioToCompositionTime=(row,audio,target)=>{
         if(!audio)return;
+        const metrics=composeClipsForRow(row).map(clip=>composeClipMetrics(row,clip));
+        let metric=metrics.find(item=>target>=item.startSeconds&&target<item.endSeconds);
+        if(!metric)metric=metrics.find(item=>item.startSeconds>target)||metrics[metrics.length-1];
+        if(!metric)return;
+        const sourceTime=target<metric.startSeconds
+          ?metric.effectiveStart
+          :target>=metric.endSeconds
+            ?metric.effectiveEnd
+            :metric.effectiveStart+(target-metric.startSeconds);
         const applySeek=()=>{
-          const duration=Number.isFinite(audio.duration)&&audio.duration>0
-            ?audio.duration
-            :Math.max(0.01,Number(row.dataset.sourceDuration||30)||30);
-          const trimIn=Math.max(0,Math.min(.98,Number(row.dataset.trimIn||0)||0));
-          const trimOut=Math.max(0,Math.min(.98,Number(row.dataset.trimOut||0)||0));
-          const trimStart=trimIn*duration;
-          const trimEnd=Math.max(trimStart+0.01,(1-trimOut)*duration);
-          const startSeconds=Math.max(0,Number(row.dataset.startSeconds||0)||0);
-          const localOffset=target-startSeconds;
-          const targetTime=localOffset<=0
-            ?trimStart
-            :localOffset>=trimEnd-trimStart
-              ?trimEnd
-              :Math.min(trimEnd-.001,trimStart+localOffset);
-          try{
-            audio.currentTime=targetTime;
-          }catch(error){
-            console.warn('compose_track_seek_error',error);
-          }
+          try{audio.currentTime=Math.max(metric.effectiveStart,Math.min(metric.effectiveEnd-.001,sourceTime));}
+          catch(error){console.warn('compose_track_seek_error',error);}
           audio.dispatchEvent(new Event('timeupdate'));
         };
-        if(Number.isFinite(audio.duration)&&audio.duration>0){
-          applySeek();
-          return;
-        }
+        if(Number.isFinite(audio.duration)&&audio.duration>0){applySeek();return;}
         row._composePendingSeek=target;
         if(row._composeSeekWaiting)return;
         row._composeSeekWaiting=true;
@@ -1525,7 +1496,7 @@
           audio.removeEventListener('loadedmetadata',onMetadata);
           const pending=Number(row._composePendingSeek);
           row._composePendingSeek=null;
-          applySeek(Number.isFinite(pending)?pending:target);
+          seekTrackAudioToCompositionTime(row,audio,Number.isFinite(pending)?pending:target);
         };
         audio.addEventListener('loadedmetadata',onMetadata,{once:true});
         if(audio.readyState===0)audio.load();
