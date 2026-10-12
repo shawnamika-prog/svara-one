@@ -1969,7 +1969,8 @@
       row.dataset.startSeconds=String(snapped);
       const geometry=timelineGeometry();
       const trackWidth=Math.max(24,sourceDuration()*geometry.pixelsPerSecond);
-      region.style.marginLeft=`${snapped*geometry.pixelsPerSecond}px`;
+      const visualTrimOffset=row.dataset.composeCutClip==='1'?Math.max(0,Number(row.dataset.trimIn||0)||0)*sourceDuration():0;
+      region.style.marginLeft=`${(snapped-visualTrimOffset)*geometry.pixelsPerSecond}px`;
       region.style.width=`${trackWidth}px`;
       region.style.maxWidth='none';
       const guide=row.querySelector('.compose-track-time-guide');
@@ -2022,6 +2023,8 @@
       if(!splitRow)return;
       row.dataset.composeCutGroup=wasGroup;
       splitRow.dataset.composeCutGroup=wasGroup;
+      row.dataset.composeCutClip='1';
+      splitRow.dataset.composeCutClip='1';
       row.after(splitRow);
       audio.pause();
 
@@ -2054,6 +2057,9 @@
       if(wasSolo)splitRow.querySelector('[data-compose-solo]')?.classList.add('active');
 
       const cutOffset=Math.max(0,cutTime-trimStart);
+      // Offset the full source waveform behind its left trim mask so the visible
+      // clip begins exactly at its composition start instead of at source time 0.
+      applyStart(originalStart);
       splitRow._composeApplyStart?.(originalStart+cutOffset);
       splitRow._composeRenderTrim?.();
       splitRow._composeRenderPlayhead?.();
