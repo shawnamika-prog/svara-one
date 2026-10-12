@@ -803,6 +803,96 @@
     return {audioBuffer,durationSeconds:audioBuffer.duration,trackCount:decoded.length};
   }
 
+  function openComposeSavedPreview({url,downloadUrl,filename,format,sizeBytes,durationSeconds}){
+    document.getElementById('composeSavedPreviewModal')?.remove();
+    if(!document.getElementById('compose-saved-preview-styles')){
+      const style=document.createElement('style');
+      style.id='compose-saved-preview-styles';
+      style.textContent='.compose-preview-root{position:fixed;inset:0;z-index:2100;display:grid;place-items:center;padding:24px;background:rgba(0,4,12,.78);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}.compose-preview-dialog{width:min(920px,calc(100vw - 32px));max-height:calc(100vh - 48px);overflow:auto;border:1px solid rgba(79,124,255,.24);border-radius:18px;background:linear-gradient(180deg,#101b2a 0%,#07111e 100%);box-shadow:0 28px 80px rgba(0,0,0,.64),0 0 0 1px rgba(255,255,255,.025) inset}.compose-preview-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:22px 24px 12px}.compose-preview-eyebrow{margin:0 0 6px;color:#7da4ff;font-size:9px;font-weight:800;letter-spacing:.18em;text-transform:uppercase}.compose-preview-title{margin:0;color:#edf4ff;font-size:24px;font-weight:750;line-height:1.25;letter-spacing:-.035em}.compose-preview-close{flex:0 0 36px;width:36px;height:36px;border:1px solid rgba(255,255,255,.09);border-radius:11px;background:#0b1625;color:#8da2bd;font-size:21px;line-height:1;cursor:pointer}.compose-preview-close:hover{color:#fff;border-color:#4f7cff66;background:#10203a}.compose-preview-body{padding:12px 24px 24px}.compose-preview-player{padding:18px 18px 14px;border:1px solid rgba(79,124,255,.18);border-radius:15px;background:#06111e}.compose-preview-player-main{display:flex;align-items:center;gap:14px}.compose-preview-play{flex:0 0 46px;width:46px;height:46px;border:1px solid #4f7cff77;border-radius:50%;background:linear-gradient(135deg,#315fe0,#2450b9);color:#fff;display:grid;place-items:center;font-size:16px;font-weight:800;cursor:pointer}.compose-preview-play:hover{filter:brightness(1.12);transform:translateY(-1px)}.compose-preview-wave{position:relative;flex:1;min-width:0;height:94px;display:flex;align-items:center;justify-content:center;cursor:pointer;outline:none;border-radius:8px}.compose-preview-wave:focus-visible{box-shadow:0 0 0 3px #4f7cff2b}.compose-preview-bars{position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;gap:5px;overflow:hidden}.compose-preview-bars span{display:block;flex:1 1 3px;min-width:2px;max-width:7px;border-radius:5px;background:linear-gradient(180deg,#4bceca 0%,#4f7cff 55%,#2c5ec4 100%);opacity:.83;transition:opacity .08s ease,filter .08s ease}.compose-preview-bars span.is-played{opacity:1;filter:brightness(1.28)}.compose-preview-time{display:flex;justify-content:space-between;margin:8px 0 0 60px;color:#8095b3;font-size:11px;font-variant-numeric:tabular-nums}.compose-preview-meta{display:flex;flex-direction:column;gap:5px;margin:16px 2px 0}.compose-preview-meta strong{color:#edf4ff;font-size:15px;font-weight:700;line-height:1.4;overflow-wrap:anywhere}.compose-preview-meta span{color:#8b9fba;font-size:12px;line-height:1.5}.compose-preview-actions{display:flex;justify-content:center;gap:10px;margin:20px 0 2px}.compose-preview-download{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-width:148px;padding:11px 17px;border:1px solid #4f7cff55;border-radius:11px;background:#101e31;color:#c4d5ee;font:600 12px Inter,sans-serif;cursor:pointer;text-decoration:none}.compose-preview-download:hover{background:#14294a;border-color:#668cff;color:#fff}.compose-preview-foot{display:flex;justify-content:flex-end;padding:14px 24px 20px;border-top:1px solid rgba(255,255,255,.055)}.compose-preview-cancel{min-width:112px;padding:11px 16px;border:1px solid rgba(79,124,255,.2);border-radius:11px;background:#101e2b;color:#afbed2;font:600 12px Inter,sans-serif;cursor:pointer}.compose-preview-cancel:hover{background:#172b42;color:#f0f6ff;border-color:#4f7cff55}@media(max-width:560px){.compose-preview-root{padding:16px}.compose-preview-dialog{width:100%;border-radius:15px}.compose-preview-head{padding:18px 18px 10px}.compose-preview-body{padding:10px 18px 18px}.compose-preview-foot{padding:12px 18px 18px}.compose-preview-player{padding:14px 11px 11px}.compose-preview-player-main{gap:10px}.compose-preview-wave{height:72px}.compose-preview-bars{gap:3px}.compose-preview-time{margin-left:54px}}';
+      document.head.appendChild(style);
+    }
+    const root=document.createElement('div');
+    root.id='composeSavedPreviewModal';
+    root.className='compose-preview-root';
+    root.innerHTML='<section class="compose-preview-dialog" role="dialog" aria-modal="true" aria-labelledby="composePreviewTitle">'+
+      '<header class="compose-preview-head"><div><p class="compose-preview-eyebrow">COMPOSITION EXPORT</p><h2 class="compose-preview-title" id="composePreviewTitle">Preview</h2></div><button type="button" class="compose-preview-close" aria-label="Close">×</button></header>'+
+      '<div class="compose-preview-body"><div class="compose-preview-player"><div class="compose-preview-player-main"><button type="button" class="compose-preview-play" aria-label="Play preview">▶</button><div class="compose-preview-wave" role="slider" tabindex="0" aria-label="Audio progress" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0"><div class="compose-preview-bars"></div></div></div><div class="compose-preview-time"><span data-preview-current>0:00</span><span data-preview-duration>0:00</span></div></div><div class="compose-preview-meta"><strong data-preview-filename></strong><span data-preview-details></span></div><div class="compose-preview-actions"><a class="compose-preview-download" data-preview-download><span aria-hidden="true">↓</span><span>Download</span></a></div></div>'+
+      '<footer class="compose-preview-foot"><button type="button" class="compose-preview-cancel">Close</button></footer></section>';
+    document.body.appendChild(root);
+    const audio=document.createElement('audio');
+    audio.preload='metadata';
+    audio.src=String(url||'');
+    audio.setAttribute('aria-label','Composition audio preview');
+    const play=root.querySelector('.compose-preview-play');
+    const wave=root.querySelector('.compose-preview-wave');
+    const bars=root.querySelector('.compose-preview-bars');
+    const current=root.querySelector('[data-preview-current]');
+    const duration=root.querySelector('[data-preview-duration]');
+    const name=root.querySelector('[data-preview-filename]');
+    const details=root.querySelector('[data-preview-details]');
+    const download=root.querySelector('[data-preview-download]');
+    const closeButtons=root.querySelectorAll('.compose-preview-close,.compose-preview-cancel');
+    const heights=[.22,.55,.88,.58,.42,.72,.9,.48,.76,.9,.5,.68,.34,.62,.82,.46,.7,.92,.54,.78,.38,.66,.86,.5,.74,.94,.44,.69,.83,.57,.77,.35,.63,.9,.48,.71,.87,.53,.75,.41,.68,.88,.51,.73,.93,.46,.64,.8,.33,.59,.85,.43,.74,.91];
+    heights.forEach((height,index)=>{const bar=document.createElement('span');bar.style.height=(height*100)+'%';bar.dataset.index=String(index);bars.appendChild(bar);});
+    const formatTime=seconds=>{const value=Math.max(0,Number(seconds)||0);return Math.floor(value/60)+':'+String(Math.floor(value%60)).padStart(2,'0');};
+    const renderProgress=()=>{
+      const d=Number.isFinite(audio.duration)?audio.duration:Math.max(0,Number(durationSeconds)||0);
+      const t=Number(audio.currentTime)||0;
+      const p=d?Math.max(0,Math.min(1,t/d)):0;
+      current.textContent=formatTime(t);
+      duration.textContent=formatTime(d);
+      wave.setAttribute('aria-valuemax',String(d||0));
+      wave.setAttribute('aria-valuenow',String(t));
+      bars.querySelectorAll('span').forEach((bar,index)=>bar.classList.toggle('is-played',index/Math.max(1,heights.length-1)<=p));
+    };
+    const togglePlayback=async()=>{
+      if(audio.paused){try{await audio.play();}catch(error){console.warn('compose_preview_play_error',error);}}
+      else audio.pause();
+    };
+    const seek=event=>{
+      const d=Number.isFinite(audio.duration)?audio.duration:Number(durationSeconds)||0;
+      const rect=wave.getBoundingClientRect();
+      if(!d||!rect.width)return;
+      audio.currentTime=Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width))*d;
+      renderProgress();
+    };
+    const close=()=>{
+      document.removeEventListener('keydown',onKeydown,true);
+      try{audio.pause();audio.removeAttribute('src');audio.load();}catch{}
+      root.remove();
+    };
+    const onKeydown=event=>{if(event.key==='Escape'){event.preventDefault();close();}};
+    play.addEventListener('click',togglePlayback);
+    audio.addEventListener('play',()=>{play.textContent='Ⅱ';play.setAttribute('aria-label','Pause preview');play.classList.add('is-playing');});
+    audio.addEventListener('pause',()=>{play.textContent='▶';play.setAttribute('aria-label','Play preview');play.classList.remove('is-playing');});
+    audio.addEventListener('timeupdate',renderProgress);
+    audio.addEventListener('loadedmetadata',renderProgress);
+    audio.addEventListener('durationchange',renderProgress);
+    audio.addEventListener('ended',()=>{audio.currentTime=0;renderProgress();});
+    wave.addEventListener('click',seek);
+    wave.addEventListener('keydown',event=>{if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();const d=Number.isFinite(audio.duration)?audio.duration:Number(durationSeconds)||0;audio.currentTime=Math.max(0,Math.min(d,(Number(audio.currentTime)||0)+(event.key==='ArrowRight'?5:-5)));renderProgress();}});
+    closeButtons.forEach(button=>button.addEventListener('click',close));
+    root.addEventListener('click',event=>{if(event.target===root)close();});
+    document.addEventListener('keydown',onKeydown,true);
+    name.textContent=String(filename||'Composition');
+    const bytes=Math.max(0,Number(sizeBytes)||0);
+    const sizeLabel=bytes>=1048576?(bytes/1048576).toFixed(1)+' MB':bytes>=1024?(bytes/1024).toFixed(1)+' KB':bytes+' B';
+    details.textContent=['Composition',String(format||'Audio'),sizeLabel].filter(Boolean).join(' · ');
+    download.href=String(downloadUrl||url||'');
+    download.download=String(filename||'composition');
+    download.addEventListener('click',event=>{
+      event.preventDefault();
+      const anchor=document.createElement('a');
+      anchor.href=String(downloadUrl||url||'');
+      anchor.download=String(filename||'composition');
+      anchor.style.display='none';
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+    });
+    renderProgress();
+  }
+
   function openComposeExportModal(){
     const existing=document.getElementById('composeExportModal');
     if(existing)existing.remove();
@@ -908,19 +998,7 @@
         const assetUrl='/api/compositions/assets/'+encodeURIComponent(String(data.id));
         const previewUrl=assetUrl+(format==='pcm'?'?preview=1':'');
         modal.remove();
-        if(window.SvaraModal?.preview){
-          window.SvaraModal.preview(previewUrl,{
-            filename:String(data.filename||filename),
-            mediaType:'audio',
-            format:details.label,
-            voiceName:'Composition',
-            sizeBytes:Number(data.sizeBytes||blob.size),
-            title:'Compose & Export',
-            eyebrow:'COMPOSITION EXPORT',
-            hideDelete:true,
-            downloadUrl:assetUrl+'?download=1'
-          });
-        }
+        openComposeSavedPreview({url:previewUrl,downloadUrl:assetUrl+'?download=1',filename:String(data.filename||filename),format:details.label,sizeBytes:Number(data.sizeBytes||blob.size),durationSeconds:Number(data.durationSeconds||result.durationSeconds)});
         loadCompositionLibrary();
       }catch(error){
         status.textContent=error?.message||'Export failed. No saved asset was confirmed.';
