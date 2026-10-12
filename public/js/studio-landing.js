@@ -2168,25 +2168,20 @@
       }
 
       const clip=metric.clip;
-      const originalSourceStart=clip.sourceStart;
-      const originalSourceEnd=clip.sourceEnd;
+      // Cut the currently audible source range, not its previously hidden trim
+      // margins. This keeps exact source boundaries after cuts of trimmed clips.
       const splitOffset=cutTime-metric.effectiveStart;
-      // Trim values are percentages of each clip's own source span. Recalculate
-      // them after splitting so existing outer trims keep the same absolute times.
-      const leftSpan=Math.max(.01,cutTime-originalSourceStart);
-      const rightSpan=Math.max(.01,originalSourceEnd-cutTime);
-      const leftTrimIn=Math.max(0,Math.min(.98,(metric.effectiveStart-originalSourceStart)/leftSpan));
-      const rightTrimOut=Math.max(0,Math.min(.98,(originalSourceEnd-metric.effectiveEnd)/rightSpan));
       const rightClip={
         id:'clip-'+row.dataset.trackId+'-'+Date.now(),
         sourceStart:cutTime,
-        sourceEnd:originalSourceEnd,
+        sourceEnd:metric.effectiveEnd,
         trimIn:0,
-        trimOut:rightTrimOut,
+        trimOut:0,
         startSeconds:metric.startSeconds+splitOffset
       };
+      clip.sourceStart=metric.effectiveStart;
       clip.sourceEnd=cutTime;
-      clip.trimIn=leftTrimIn;
+      clip.trimIn=0;
       clip.trimOut=0;
       const visual=createClipVisual(rightClip);
       Object.assign(rightClip,visual);
