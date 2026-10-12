@@ -2077,14 +2077,23 @@
       const startX=event.clientX;
       const startIn=Number(clip.trimIn||0);
       const startOut=Number(clip.trimOut||0);
+      const startSeconds=Math.max(0,Number(clip.startSeconds)||0);
       const span=Math.max(.01,Number(clip.sourceEnd)-Number(clip.sourceStart));
       const pixelsPerSecond=Math.max(1,Number(composeTimeline?._composeModel?.pixelsPerSecond)||24);
       const minGap=.02;
       row.classList.add('trimming');
       const moveTrim=moveEvent=>{
-        const delta=(moveEvent.clientX-startX)/(span*pixelsPerSecond);
-        if(side==='in')clip.trimIn=Math.max(0,Math.min(1-startOut-minGap,startIn+delta));
-        else clip.trimOut=Math.max(0,Math.min(1-startIn-minGap,startOut-delta));
+        const deltaSeconds=(moveEvent.clientX-startX)/pixelsPerSecond;
+        const delta=deltaSeconds/span;
+        if(side==='in'){
+          clip.trimIn=Math.max(0,Math.min(1-startOut-minGap,startIn+delta));
+          clip.startSeconds=Math.max(0,startSeconds+deltaSeconds);
+        }else clip.trimOut=Math.max(0,Math.min(1-startIn-minGap,startOut-delta));
+        const clips=row._composeClips||[];
+        clips.sort((a,b)=>a.startSeconds-b.startSeconds);
+        row.dataset.startSeconds=String(clips.length?clips[0].startSeconds:0);
+        const trackModel=composeTimeline?._composeModel?.tracks.get(row.dataset.trackId);
+        if(trackModel){trackModel.startSeconds=Number(row.dataset.startSeconds)||0;trackModel.clips=clips;}
         renderClipWaveform(clip);
         renderTrim(clip);
         applyPlaybackGain();
