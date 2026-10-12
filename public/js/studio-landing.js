@@ -1617,11 +1617,12 @@
             peaks[i]=peak;
           }
           row._composeWaveformPeaks=Array.from(peaks);
-          waveformBars.innerHTML=waveformForPeaks(row._composeWaveformPeaks,buffer.duration);
           row.dataset.sourceDuration=String(buffer.duration);
+          if(row._composeClips?.length===1&&row._composeClips[0].sourceStart===0)row._composeClips[0].sourceEnd=buffer.duration;
+          (row._composeClips||[]).forEach(renderClipWaveform);
           const composeTimeline=row.closest('.compose-timeline');
           const trackModel=composeTimeline?._composeModel?.tracks.get(row.dataset.trackId);
-          if(trackModel)trackModel.sourceDuration=buffer.duration;
+          if(trackModel){trackModel.sourceDuration=buffer.duration;trackModel.clips=row._composeClips||[];}
           composeTimeline?._updateCompositionGeometry?.();
         }finally{
           await context.close().catch(()=>{});
@@ -2209,6 +2210,10 @@
     row._composeRenderTrim=renderTrim;
     row._composeRenderPlayhead=renderPlayhead;
     row._composeApplyPlaybackGain=applyPlaybackGain;
+    row._composeSelectClip=selectClip;
+    const registeredTrack=composeTimeline?._composeModel?.tracks.get(row.dataset.trackId);
+    if(registeredTrack){registeredTrack.clips=row._composeClips;registeredTrack.startSeconds=Number(row.dataset.startSeconds||0);}
+    composeTimeline?._updateCompositionGeometry?.();
     applyStart(Number(row.dataset.startSeconds||0));
     renderTrim();
     renderFadeValues();
