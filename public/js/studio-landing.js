@@ -1979,57 +1979,58 @@
       renderTrim(clip);
       renderPlayhead();
     };
-    const renderTrim=()=>{
-      const trimIn=Math.max(0,Math.min(.98,Number(row.dataset.trimIn||0)));
-      const trimOut=Math.max(0,Math.min(.98,Number(row.dataset.trimOut||0)));
-      wave?.style.setProperty('--trim-left',String(trimIn*100)+'%');
-      wave?.style.setProperty('--trim-right',String(trimOut*100)+'%');
-      const duration=sourceDuration();
-      const visibleRatio=Math.max(.02,1-trimIn-trimOut);
-      const fadeInSeconds=Math.min(Number(row.dataset.fadeIn||0),duration*visibleRatio);
-      const fadeOutSeconds=Math.min(Number(row.dataset.fadeOut||0),duration*visibleRatio);
-      const fadeInRatio=Math.min(visibleRatio,fadeInSeconds/duration);
-      const fadeOutRatio=Math.min(visibleRatio,fadeOutSeconds/duration);
-      const fadeInLeft=trimIn*100;
-      const fadeOutRight=trimOut*100;
-      wave?.style.setProperty('--fade-in-left',String(fadeInLeft)+'%');
-      wave?.style.setProperty('--fade-in-width',String(fadeInRatio*100)+'%');
-      wave?.style.setProperty('--fade-out-right',String(fadeOutRight)+'%');
-      wave?.style.setProperty('--fade-out-width',String(fadeOutRatio*100)+'%');
-      if(trimReadout)trimReadout.textContent='Trim '+formatTrimTime(trimIn*duration)+' – '+formatTrimTime((1-trimOut)*duration);
-      if(trimInHandle)trimInHandle.title='Trim start: '+formatTrimTime(trimIn*duration);
-      if(trimOutHandle)trimOutHandle.title='Trim end: '+formatTrimTime((1-trimOut)*duration);
+    const renderTrim=(targetClip=selectedClip)=>{
+      if(targetClip&&row._composeClips?.includes(targetClip))selectClipNoRender(targetClip);
+      const clips=row._composeClips||[];
+      const model=composeTimeline?._composeModel?.tracks.get(row.dataset.trackId);
+      clips.forEach((clip,index)=>{
+        const metric=metricsForClip(clip);
+        const targetWave=clip.wave;
+        if(!targetWave)return;
+        targetWave.style.setProperty('--trim-left',String(clip.trimIn*100)+'%');
+        targetWave.style.setProperty('--trim-right',String(clip.trimOut*100)+'%');
+        const inSeconds=index===0?Math.min(Number(row.dataset.fadeIn||0),metric.effectiveDuration):0;
+        const outSeconds=index===clips.length-1?Math.min(Number(row.dataset.fadeOut||0),metric.effectiveDuration):0;
+        targetWave.style.setProperty('--fade-in-left',String(clip.trimIn*100)+'%');
+        targetWave.style.setProperty('--fade-in-width',String((inSeconds/Math.max(.01,metric.span))*100)+'%');
+        targetWave.style.setProperty('--fade-out-right',String(clip.trimOut*100)+'%');
+        targetWave.style.setProperty('--fade-out-width',String((outSeconds/Math.max(.01,metric.span))*100)+'%');
+        if(clip.trimReadout)clip.trimReadout.textContent='Trim '+formatTrimTime(metric.effectiveStart)+' – '+formatTrimTime(metric.effectiveEnd);
+        if(clip.trimInHandle)clip.trimInHandle.title='Trim start: '+formatTrimTime(metric.effectiveStart);
+        if(clip.trimOutHandle)clip.trimOutHandle.title='Trim end: '+formatTrimTime(metric.effectiveEnd);
+        clip.region?.classList.toggle('selected-clip',clip===selectedClip);
+      });
+      if(selectedClip){
+        row.dataset.trimIn=String(selectedClip.trimIn);
+        row.dataset.trimOut=String(selectedClip.trimOut);
+        if(model){model.trimIn=selectedClip.trimIn;model.trimOut=selectedClip.trimOut;model.clips=clips;}
+      }
     };
-    const beginTrim=(side,event)=>{
+    const selectClipNoRender=clip=>{
+      selectedClip=clip;
+      row._composeSelectedClip=clip;
+      row._composeClips?.forEach(item=>item.region?.classList.toggle('selected-clip',item===clip));
+    };
+    const beginTrim=(side,event,clip)=>{
       const composeTimeline=row.closest('.compose-timeline');
-      if(composeTimeline?._isPlayAllRunning?.())return;
+      if(composeTimeline?._isPlayAllRunning?.()||!clip)return;
       if(event.button!==0)return;
       event.preventDefault();
       event.stopPropagation();
-      const rect=wave.getBoundingClientRect();
-      const startIn=Number(row.dataset.trimIn||0);
-      const startOut=Number(row.dataset.trimOut||0);
+      selectClip(clip);
+      const rect=clip.wave.getBoundingClientRect();
+      const startIn=Number(clip.trimIn||0);
+      const startOut=Number(clip.trimOut||0);
       const minGap=.02;
       row.classList.add('trimming');
       const moveTrim=moveEvent=>{
         const width=Math.max(1,rect.width);
         const ratio=Math.max(0,Math.min(1,(moveEvent.clientX-rect.left)/width));
-        if(side==='in'){
-          const next=Math.min(1-startOut-minGap,ratio);
-          const value=Math.max(0,next);
-          row.dataset.trimIn=String(value);
-          const composeTimeline=row.closest('.compose-timeline');
-          const trackModel=composeTimeline?._composeModel?.tracks.get(row.dataset.trackId);
-          if(trackModel)trackModel.trimIn=value;
-        }else{
-          const next=Math.min(1-startIn-minGap,1-ratio);
-          const value=Math.max(0,next);
-          row.dataset.trimOut=String(value);
-          const composeTimeline=row.closest('.compose-timeline');
-          const trackModel=composeTimeline?._composeModel?.tracks.get(row.dataset.trackId);
-          if(trackModel)trackModel.trimOut=value;
-        }
-        renderTrim();
+        if(side==='in')clip.trimIn=Math.max(0,Math.min(1-startOut-minGap,ratio));
+        else clip.trimOut=Math.max(0,Math.min(1-startIn-minGap,1-ratio));
+        renderTrim(clip);
+        applyPlaybackGain();
+        renderPlayhead();
         row.closest('.compose-timeline')?._updateCompositionGeometry?.();
       };
       const endTrim=()=>{
@@ -2040,8 +2041,13 @@
       window.addEventListener('mousemove',moveTrim);
       window.addEventListener('mouseup',endTrim);
     };
-    trimInHandle?.addEventListener('mousedown',event=>beginTrim('in',event));
-    trimOutHandle?.addEventListener('mousedown',event=>beginTrim('out',event));
+    lane?.addEventListener('mousedown',event=>{
+      const handle=event.target.closest('[data-compose-trim]');
+      if(!handle)return;
+      const targetWave=handle.closest('.compose-track-wave');
+      const clip=row._composeClips?.find(item=>item.wave===targetWave);
+      if(clip)beginTrim(handle.dataset.composeTrim,event,clip);
+    });
     const timelineGeometry=()=>{
       const composeTimeline=row.closest('.compose-timeline');
       const model=composeTimeline?._composeModel;
