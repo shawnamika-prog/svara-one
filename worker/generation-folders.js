@@ -105,7 +105,7 @@ app.fetch = async (request, env, ctx) => {
         folder = await env.DB.prepare("SELECT id,name FROM library_folders WHERE id=? AND user_id=? LIMIT 1").bind(folderId, userId).first();
         if (!folder) return json({ error: "Folder not found." }, 404);
       }
-      await env.DB.prepare("INSERT INTO composition_folder_assignments (composition_id,user_id,folder_id,updated_at) VALUES (?,?,?,strftime('%Y-%m-%dT%H:%M:%fZ','now')) ON CONFLICT(composition_id) DO UPDATE SET user_id=excluded.user_id,folder_id=excluded.folder_id,updated_at=excluded.updated_at").bind(compositionId, userId, folderId).run();
+      await env.DB.prepare("INSERT INTO composition_folder_assignments (composition_id,user_id,folder_id,updated_at) VALUES (?,?,?,strftime('%Y-%m-%dT%H:%M:%fZ','now')) ON CONFLICT(composition_id,user_id) DO UPDATE SET folder_id=excluded.folder_id,updated_at=excluded.updated_at").bind(compositionId, userId, folderId).run();
       return json({ success: true, compositionId, folderId, folderName: folder?.name || null });
     } catch (error) {
       console.error("composition_move_error", error);
