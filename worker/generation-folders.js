@@ -85,6 +85,40 @@ app.fetch = async (request, env, ctx) => {
     }
   }
 
+  if (request.method === "DELETE" && url.pathname.startsWith("/api/compositions/") && url.pathname.split("/").length === 4) {
+    const userId = await authenticatedUserId(request, env);
+    if (!userId) return json({ error: "Authentication required." }, 401);
+    if (!env.DB || !env.GENERATED_AUDIO) return json({ error: "Composition storage is not configured." }, 503);
+    try {
+      const compositionId = String(url.pathname.split("/").pop() || "").trim();
+      if (!/^[0-9a-f-]{36}$/i.test(compositionId)) return json({ error: "Composition not found." }, 404);
+
+      // Composition exports live in a user-scoped prefix. Delete only the exact
+      // rendered audio object; source Voice/Sound assets are stored elsewhere.
+      const prefix = "users/" + userId + "/compositions/" + compositionId + ".";
+      const listed = await env.GENERATED_AUDIO.list({ prefix, limit: 5 });
+      const asset = (listed.objects || []).find(object => {
+        const key = String(object.key || "");
+        return key.startsWith(prefix) && /\.(wav|mp3|pcm)$/i.test(key);
+      });
+      if (!asset?.key) return json({ error: "Composition not found." }, 404);
+
+      const metadata = await env.GENERATED_AUDIO.head(asset.key);
+      if (!metadata || (metadata.customMetadata?.userId && metadata.customMetadata.userId !== userId)) {
+        return json({ error: "Composition not found." }, 404);
+      }
+
+      await env.GENERATED_AUDIO.delete(asset.key);
+      await env.DB.prepare("DELETE FROM composition_folder_assignments WHERE composition_id=? AND user_id=?")
+        .bind(compositionId, userId).run();
+
+      return json({ success: true, compositionId });
+    } catch (error) {
+      console.error("composition_delete_error", error);
+      return json({ error: "Could not delete the exported composition. Please try again." }, 500);
+    }
+  }
+
   if (request.method === "POST" && url.pathname === "/api/compositions/move") {
     const userId = await authenticatedUserId(request, env);
     if (!userId) return json({ error: "Authentication required." }, 401);
