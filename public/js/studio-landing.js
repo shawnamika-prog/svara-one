@@ -1627,11 +1627,30 @@
       event.preventDefault();
       event.stopPropagation();
       const composeTimeline=row.closest('.compose-timeline');
+      const canvas=composeWorkspace.querySelector('.compose-canvas');
       composeTimeline?._stopAll?.();
       audio?.pause();
       try{if(audio)audio.currentTime=0;}catch(error){console.warn('compose_delete_reset_error',error);}
       composeTimeline?._composeModel?.tracks.delete(row.dataset.trackId);
       row.remove();
+
+      // When the final track is removed, reset Compose to its original empty state.
+      // The ruler and transport belong to the timeline, so remove that entire UI
+      // instead of leaving an empty timeline shell behind.
+      if(!list.querySelector('.compose-track-editor')){
+        composeTimeline?.remove();
+        canvas?.querySelector('.compose-add-track-inline')?.remove();
+        if(canvas&&!canvas.querySelector('.compose-empty')){
+          const empty=document.createElement('div');
+          empty.className='compose-empty';
+          empty.innerHTML='<p>Import audio assets into your composition one track at a time.</p><button class="compose-add-track" type="button">+ Add Track</button>';
+          empty.querySelector('.compose-add-track')?.addEventListener('click',openComposeTrackModal);
+          canvas.appendChild(empty);
+        }
+        syncComposeExportButton();
+        return;
+      }
+
       syncComposeExportButton();
       composeTimeline?._updateCompositionGeometry?.();
       composeTimeline?._syncPlayAllButton?.();
