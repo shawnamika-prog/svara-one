@@ -136,6 +136,7 @@
     .compose-track-wave:before,.compose-track-wave:after{content:"";position:absolute;top:0;bottom:0;z-index:2;background:#06101dcc;pointer-events:none}
     .compose-track-wave:before{left:0;width:var(--trim-left,0%);border-right:1px solid #4f7cff55}
     .compose-track-wave:after{right:0;width:var(--trim-right,0%);border-left:1px solid #4f7cff55}
+    .compose-track-volume-watermark{position:absolute;left:50%;top:50%;z-index:3;transform:translate(-50%,-50%);padding:3px 7px;border:1px solid #8eb0ff33;border-radius:5px;background:#07142688;color:#c8d8ff;font:700 11px Inter,system-ui,sans-serif;letter-spacing:.02em;text-shadow:0 1px 4px #0009;white-space:nowrap;pointer-events:none;user-select:none}
     .compose-track-trim-handle{position:absolute;top:4px;bottom:4px;z-index:4;width:8px;border:1px solid #9ab8ff;border-radius:4px;background:#5f8cff;box-shadow:0 0 12px #4f7cff66;cursor:ew-resize;opacity:.9}
     .compose-track-trim-handle:hover,.compose-track-editor.trimming .compose-track-trim-handle{background:#8eb0ff;opacity:1;box-shadow:0 0 15px #4f7cff99}
     .compose-track-trim-handle.left{left:var(--trim-left,0%);transform:translateX(-50%)}
@@ -1553,6 +1554,7 @@
           <span class="compose-track-time-guide">Start 0:00</span>
           <div class="compose-track-wave" aria-label="Track waveform">
             <span class="compose-track-wave-bars">${waveform}</span>
+            <span class="compose-track-volume-watermark" aria-label="Track volume 100%">100%</span>
             <span class="compose-track-playhead" aria-hidden="true"></span>
             <span class="compose-track-fade-indicator in" aria-hidden="true"></span>
             <span class="compose-track-fade-indicator out" aria-hidden="true"></span>
@@ -1645,6 +1647,7 @@
     const fadeInIndicator=row.querySelector('.compose-track-fade-indicator.in');
     const fadeOutIndicator=row.querySelector('.compose-track-fade-indicator.out');
     const volume=row.querySelector('.compose-track-volume input');
+    const volumeWatermark=row.querySelector('.compose-track-volume-watermark');
     const fadeIn=row.querySelector('[data-compose-fade="in"]');
     const fadeOut=row.querySelector('[data-compose-fade="out"]');
     const fadeInValue=row.querySelector('[data-compose-fade-value="in"]');
@@ -1663,6 +1666,14 @@
     row.dataset.fadeIn='0';
     row.dataset.fadeOut='0';
     const baseVolume=()=>Math.max(0,Math.min(1,Number(volume?.value||100)/100));
+    const renderVolumeWatermark=()=>{
+      const percent=Math.round(baseVolume()*100);
+      if(volumeWatermark){
+        volumeWatermark.textContent=percent+'%';
+        volumeWatermark.setAttribute('aria-label','Track volume '+percent+'%');
+        volumeWatermark.title='Track volume: '+percent+'%';
+      }
+    };
     const renderFadeValues=()=>{
       const fadeInSeconds=Math.min(10,Math.max(0,Number(row.dataset.fadeIn||0)));
       const fadeOutSeconds=Math.min(10,Math.max(0,Number(row.dataset.fadeOut||0)));
@@ -1683,7 +1694,10 @@
       if(outSeconds>0&&position>effectiveDuration-outSeconds)gain=Math.min(gain,Math.max(0,(effectiveDuration-position)/outSeconds));
       audio.volume=baseVolume()*gain;
     };
-    volume?.addEventListener('input',()=>applyPlaybackGain());
+    volume?.addEventListener('input',()=>{
+      renderVolumeWatermark();
+      applyPlaybackGain();
+    });
     fadeIn?.addEventListener('input',()=>{row.dataset.fadeIn=String(Number(fadeIn.value)||0);renderFadeValues();renderTrim();applyPlaybackGain();});
     fadeOut?.addEventListener('input',()=>{row.dataset.fadeOut=String(Number(fadeOut.value)||0);renderFadeValues();renderTrim();applyPlaybackGain();});
     const renderPlayhead=()=>{
@@ -2180,6 +2194,7 @@
     applyStart(Number(row.dataset.startSeconds||0));
     renderTrim();
     renderFadeValues();
+    renderVolumeWatermark();
     applyPlaybackGain();
     return row;
   }
