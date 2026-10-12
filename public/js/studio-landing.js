@@ -1712,64 +1712,80 @@
     fadeIn?.addEventListener('input',()=>{row.dataset.fadeIn=String(Number(fadeIn.value)||0);renderFadeValues();renderTrim();applyPlaybackGain();});
     fadeOut?.addEventListener('input',()=>{row.dataset.fadeOut=String(Number(fadeOut.value)||0);renderFadeValues();renderTrim();applyPlaybackGain();});
     const renderPlayhead=()=>{
-      if(!playhead)return;
-      const duration=Number.isFinite(audio?.duration)&&audio.duration>0?audio.duration:sourceDuration();
-      const trimIn=Number(row.dataset.trimIn||0);
-      const trimOut=Number(row.dataset.trimOut||0);
-      const effectiveDuration=Math.max(0.01,duration*(1-trimIn-trimOut));
-      const position=Math.max(0,Math.min(effectiveDuration,(Number(audio?.currentTime||0)-trimIn*duration)));
-      const ratio=Math.max(0,Math.min(1,(trimIn*duration+position)/duration));
-      playhead.style.setProperty('--playhead',String(ratio*100)+'%');
+      if(!row._composeClips?.length)return;
+      const sourceTime=Number(audio?.currentTime||0);
+      const metrics=row._composeClips.map(clip=>metricsForClip(clip));
+      const active=metrics.find(metric=>sourceTime>=metric.effectiveStart-.015&&sourceTime<metric.effectiveEnd-.025);
+      metrics.forEach(metric=>{
+        const marker=metric.clip.playhead||metric.clip.region?.querySelector('.compose-track-playhead');
+        if(!marker)return;
+        if(metric!==active){marker.style.visibility='hidden';return;}
+        const ratio=Math.max(0,Math.min(1,(sourceTime-metric.sourceStart)/Math.max(.01,metric.span)));
+        marker.style.visibility='visible';
+        marker.style.setProperty('--playhead',String(ratio*100)+'%');
+      });
+    };
+    const advanceTrackPlayback=()=>{
+      const composeTimeline=row.closest('.compose-timeline');
+      if(!audio||audio.paused||composeTimeline?._isPlayAllRunning?.()||row._composeAdvancing)return;
+      const metrics=row._composeClips.map(clip=>metricsForClip(clip)).sort((a,b)=>a.startSeconds-b.startSeconds);
+      const time=Number(audio.currentTime)||0;
+      const active=metrics.find(metric=>time>=metric.effectiveStart-.015&&time<metric.effectiveEnd-.025);
+      if(!active){
+        const next=metrics.find(metric=>metric.effectiveStart>time+.015);
+        if(next){
+          row._composeAdvancing=true;
+          try{audio.currentTime=next.effectiveStart;}catch(error){console.warn('compose_clip_advance_error',error);}
+          queueMicrotask(()=>{row._composeAdvancing=false;});
+        }else if(metrics.length&&time>=metrics[metrics.length-1].effectiveEnd-.03){
+          const first=metrics[0];
+          audio.pause();
+          try{audio.currentTime=first.effectiveStart;}catch(error){console.warn('compose_clip_end_reset_error',error);}
+        }
+      }
     };
     audio?.addEventListener('timeupdate',()=>{
+      advanceTrackPlayback();
       applyPlaybackGain();
       const composeTimeline=row.closest('.compose-timeline');
-      if(!composeTimeline?._isPlayAllRunning?.()){
-        const duration=Number.isFinite(audio.duration)&&audio.duration>0?audio.duration:sourceDuration();
-        const trimStart=Math.max(0,Number(row.dataset.trimIn||0))*duration;
-        const trimEnd=Math.max(trimStart+.01,(1-Math.max(0,Number(row.dataset.trimOut||0)))*duration);
-        if(!audio.paused&&audio.currentTime>=trimEnd-.025){
-          audio.pause();
-          try{audio.currentTime=trimStart;}catch(error){console.warn('compose_trim_playback_reset_error',error);}
-          applyPlaybackGain();
-        }
-        renderPlayhead();
-      }
+      if(!composeTimeline?._isPlayAllRunning?.())renderPlayhead();
     });
-    const seekFromPointer=event=>{
+    const seekFromPointer=(event,clip)=>{
       const composeTimeline=row.closest('.compose-timeline');
-      if(composeTimeline?._isPlayAllRunning?.())return;
-      if(!audio||event.target.closest('.compose-track-trim-handle'))return;
-      const rect=wave.getBoundingClientRect();
+      if(composeTimeline?._isPlayAllRunning?.()||!audio||!clip||event.target.closest('.compose-track-trim-handle'))return;
+      const rect=clip.wave.getBoundingClientRect();
       if(!rect.width)return;
       const ratio=Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width));
-      const duration=Number.isFinite(audio.duration)&&audio.duration>0?audio.duration:sourceDuration();
-      const trimIn=Number(row.dataset.trimIn||0);
-      const trimOut=Number(row.dataset.trimOut||0);
-      const start=trimIn*duration;
-      const end=Math.max(start+0.01,(1-trimOut)*duration);
-      audio.currentTime=start+(end-start)*ratio;
+      const metric=metricsForClip(clip);
+      audio.currentTime=metric.effectiveStart+(metric.effectiveDuration*ratio);
+      selectClip(clip);
       renderPlayhead();
       applyPlaybackGain();
     };
     let scrubbing=false;
-    wave?.addEventListener('pointerdown',event=>{
+    let scrubClip=null;
+    lane?.addEventListener('pointerdown',event=>{
+      const targetWave=event.target.closest('.compose-track-wave');
+      const clip=row._composeClips?.find(item=>item.wave===targetWave);
+      if(!clip)return;
       const composeTimeline=row.closest('.compose-timeline');
-      if(composeTimeline?._isPlayAllRunning?.())return;
-      if(event.target.closest('.compose-track-trim-handle'))return;
+      if(composeTimeline?._isPlayAllRunning?.()||event.target.closest('.compose-track-trim-handle'))return;
       scrubbing=true;
-      wave.classList.add('scrubbing');
-      wave.setPointerCapture?.(event.pointerId);
-      seekFromPointer(event);
+      scrubClip=clip;
+      clip.wave.classList.add('scrubbing');
+      clip.wave.setPointerCapture?.(event.pointerId);
+      selectClip(clip);
+      seekFromPointer(event,clip);
     });
-    wave?.addEventListener('pointermove',event=>{if(scrubbing)seekFromPointer(event);});
-    wave?.addEventListener('pointerup',event=>{
+    lane?.addEventListener('pointermove',event=>{if(scrubbing&&scrubClip)seekFromPointer(event,scrubClip);});
+    lane?.addEventListener('pointerup',event=>{
       if(!scrubbing)return;
       scrubbing=false;
-      wave.classList.remove('scrubbing');
-      try{wave.releasePointerCapture?.(event.pointerId);}catch{}
+      scrubClip?.wave?.classList.remove('scrubbing');
+      try{scrubClip?.wave?.releasePointerCapture?.(event.pointerId);}catch{}
+      scrubClip=null;
     });
-    wave?.addEventListener('pointercancel',()=>{scrubbing=false;wave.classList.remove('scrubbing');});
+    lane?.addEventListener('pointercancel',()=>{scrubbing=false;scrubClip?.wave?.classList.remove('scrubbing');scrubClip=null;});
     mute?.addEventListener('click',()=>{
       if(!audio)return;
       audio.muted=!audio.muted;
