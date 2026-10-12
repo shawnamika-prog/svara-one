@@ -618,7 +618,7 @@
         '<span class="compose-library-meta">'+Math.max(1,Math.round(size/1024))+' KB</span>'+
         '<span class="compose-library-meta compose-library-folder" title="'+escapeHistory(folderName)+'">'+escapeHistory(folderName)+'</span>'+
         '<span class="compose-library-meta">'+escapeHistory(date)+'</span>'+
-        '<div class="compose-library-actions"><button class="compose-library-play" type="button" data-compose-library-play="'+escapeHistory(id)+'" data-compose-library-url="'+escapeHistory(previewUrl)+'" aria-label="Play composition" title="Play">▶</button><button class="compose-library-download" type="button" data-compose-library-download="'+escapeHistory(id)+'" data-compose-library-url="'+escapeHistory(assetUrl+'?download=1')+'" data-compose-library-filename="'+escapeHistory(filename)+'" aria-label="Download composition" title="Download">↓</button><button class="compose-library-move" type="button" data-compose-library-move="'+escapeHistory(id)+'" aria-label="Move composition" title="Move composition">↗</button><button class="compose-library-use" type="button" data-compose-library-use="'+escapeHistory(id)+'" aria-label="Use composition in Compose" title="Use in Compose">＋</button><button class="compose-library-delete" type="button" data-compose-library-delete="'+escapeHistory(id)+'" aria-label="Delete composition" title="Delete — coming later">⌫</button></div>'+
+        '<div class="compose-library-actions"><button class="compose-library-play" type="button" data-compose-library-play="'+escapeHistory(id)+'" data-compose-library-url="'+escapeHistory(previewUrl)+'" aria-label="Play composition" title="Play">▶</button><button class="compose-library-download" type="button" data-compose-library-download="'+escapeHistory(id)+'" data-compose-library-url="'+escapeHistory(assetUrl+'?download=1')+'" data-compose-library-filename="'+escapeHistory(filename)+'" aria-label="Download composition" title="Download">↓</button><button class="compose-library-move" type="button" data-compose-library-move="'+escapeHistory(id)+'" aria-label="Move composition" title="Move composition">↗</button><button class="compose-library-use" type="button" data-compose-library-use="'+escapeHistory(id)+'" aria-label="Use composition in Compose" title="Use in Compose">＋</button><button class="compose-library-delete" type="button" data-compose-library-delete="'+escapeHistory(id)+'" aria-label="Delete composition" title="Delete composition">⌫</button></div>'+
       '</article>';
     }).join('');
     list.querySelectorAll('[data-compose-library-play]').forEach(button=>button.addEventListener('click',()=>{
@@ -664,6 +664,11 @@
       });
       composeWorkspace.querySelector('.compose-canvas')?.scrollIntoView({behavior:'smooth',block:'start'});
     }));
+    list.querySelectorAll('[data-compose-library-delete]').forEach(button=>button.addEventListener('click',()=>{
+      const item=visible.find(value=>String(value.id)===button.dataset.composeLibraryDelete);
+      if(!item)return;
+      openCompositionDeleteModal(item).catch(error=>console.error('Composition delete confirmation failed',error));
+    }));
   }
 
   const openCompositionMoveModal=async(compositionId)=>{
@@ -681,6 +686,47 @@
     const move=async()=>{const button=modal.querySelector('[data-move-confirm]');button.disabled=true;try{const res=await fetch('/api/compositions/move',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json',accept:'application/json'},body:JSON.stringify({compositionId,folderId:body.querySelector('#composeMoveFolder')?.value||null})});const result=await res.json().catch(()=>({}));if(!res.ok)throw new Error(result.error||'Could not move composition.');close();await loadCompositionLibrary();}catch(err){button.disabled=false;showError(err.message||'Could not move composition.');}};
     document.body.appendChild(modal);modal.querySelector('[data-move-close]').addEventListener('click',close);modal.querySelector('[data-move-cancel]').addEventListener('click',close);modal.querySelector('.compose-move-backdrop').addEventListener('click',close);modal.querySelector('[data-move-confirm]').addEventListener('click',move);render();
   };
+  const openCompositionDeleteModal=async(item)=>{
+    const compositionId=String(item?.id||'').trim();
+    if(!/^[0-9a-f-]{36}$/i.test(compositionId))throw new Error('Composition not found.');
+    const filename=String(item.filename||'Saved composition');
+    const modal=document.createElement('div');
+    modal.className='compose-delete-modal';
+    modal.innerHTML='<div class="compose-delete-backdrop"></div><section class="compose-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="composeDeleteTitle"><header class="compose-delete-head"><div><small>COMPOSITION HISTORY</small><h3 id="composeDeleteTitle">Delete composition?</h3></div><button type="button" class="compose-delete-close" data-compose-delete-close aria-label="Close">×</button></header><div class="compose-delete-content"><p class="compose-delete-filename"></p><p class="compose-delete-warning">This will permanently remove this exported composition from your SvaraONE library. The Voice and Sound tracks used to create it will not be deleted.</p><p class="compose-delete-error" role="alert" hidden></p></div><footer class="compose-delete-actions"><button type="button" data-compose-delete-cancel>Cancel</button><button type="button" data-compose-delete-confirm>Delete</button></footer></section>';
+    const style=document.createElement('style');
+    style.textContent='.compose-delete-modal{position:fixed;inset:0;z-index:1220;display:flex;align-items:center;justify-content:center;padding:24px}.compose-delete-backdrop{position:absolute;inset:0;background:#000b;backdrop-filter:blur(5px)}.compose-delete-dialog{position:relative;box-sizing:border-box;width:min(930px,calc(100vw - 32px));padding:30px 36px 0;background:linear-gradient(145deg,#101d2b,#081321 72%);border:1px solid #397bff55;border-radius:25px;box-shadow:0 24px 70px #000c;color:#dbe7f5;overflow:hidden}.compose-delete-head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}.compose-delete-head small{display:block;color:#6fa4ff;font-size:12px;font-weight:700;letter-spacing:.15em}.compose-delete-head h3{margin:10px 0 0;color:#e4edfa;font-size:30px;line-height:1.2;font-weight:750}.compose-delete-close{flex:0 0 50px;width:50px;height:50px;border:1px solid #ffffff16;border-radius:16px;background:#091625;color:#9eb2c9;font:inherit;font-size:24px;cursor:pointer}.compose-delete-close:hover{background:#10233a;color:#e4edfa;border-color:#528bff66}.compose-delete-content{padding:54px 0 36px}.compose-delete-filename{margin:0 0 18px;color:#e4edfa;font-size:19px;line-height:1.5;overflow-wrap:anywhere}.compose-delete-warning{margin:0;color:#7188a2;font-size:14px;line-height:1.6}.compose-delete-error{margin:14px 0 0;color:#ff9999;font-size:13px;line-height:1.5}.compose-delete-actions{display:flex;justify-content:flex-end;gap:14px;margin:0 -36px;padding:22px 36px 25px;border-top:1px solid #ffffff0d}.compose-delete-actions button{min-width:128px;padding:14px 22px;border:1px solid #ffffff18;border-radius:15px;background:#101e2c;color:#b1c1d2;font:inherit;font-size:14px;font-weight:650;cursor:pointer}.compose-delete-actions [data-compose-delete-confirm]{border-color:#a33b4a66;background:#30171e;color:#ff9da5}.compose-delete-actions button:hover:not(:disabled){filter:brightness(1.18)}.compose-delete-actions button:disabled{opacity:.55;cursor:default}@media(max-width:600px){.compose-delete-dialog{padding:22px 20px 0;border-radius:18px}.compose-delete-head h3{font-size:23px}.compose-delete-close{flex-basis:40px;width:40px;height:40px;border-radius:12px}.compose-delete-content{padding:34px 0 28px}.compose-delete-filename{font-size:15px}.compose-delete-warning{font-size:12px}.compose-delete-actions{margin:0 -20px;padding:16px 20px 20px;gap:9px}.compose-delete-actions button{min-width:0;flex:1;padding:12px 14px;border-radius:11px}}';
+    document.head.appendChild(style);
+    modal.querySelector('.compose-delete-filename').textContent=filename;
+    const close=()=>{modal.remove();style.remove();};
+    const showError=message=>{const error=modal.querySelector('.compose-delete-error');error.textContent=message;error.hidden=false;};
+    document.body.appendChild(modal);
+    modal.querySelector('[data-compose-delete-close]').addEventListener('click',close);
+    modal.querySelector('[data-compose-delete-cancel]').addEventListener('click',close);
+    modal.querySelector('.compose-delete-backdrop').addEventListener('click',close);
+    modal.querySelector('[data-compose-delete-confirm]').addEventListener('click',async()=>{
+      const confirmButton=modal.querySelector('[data-compose-delete-confirm]');
+      confirmButton.disabled=true;
+      confirmButton.textContent='Deleting…';
+      modal.querySelector('[data-compose-delete-cancel]').disabled=true;
+      modal.querySelector('[data-compose-delete-close]').disabled=true;
+      try{
+        const response=await fetch('/api/compositions/'+encodeURIComponent(compositionId),{method:'DELETE',credentials:'same-origin',cache:'no-store',headers:{accept:'application/json'}});
+        const result=await response.json().catch(()=>({}));
+        if(!response.ok)throw new Error(result.error||'Could not delete composition.');
+        if(compositionHistoryPlayingButton?.dataset.composeLibraryPlay===compositionId)stopCompositionHistoryPlayback();
+        close();
+        await loadCompositionLibrary();
+      }catch(error){
+        confirmButton.disabled=false;
+        confirmButton.textContent='Delete';
+        modal.querySelector('[data-compose-delete-cancel]').disabled=false;
+        modal.querySelector('[data-compose-delete-close]').disabled=false;
+        showError(error?.message||'Could not delete composition. Please try again.');
+      }
+    });
+    modal.querySelector('[data-compose-delete-close]').focus();
+  };
+
   async function loadCompositionLibrary(){
     const list=composeWorkspace.querySelector('[data-compose-library-list]');
     if(!list)return;
