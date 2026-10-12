@@ -2063,114 +2063,102 @@
       const composeTimeline=row.closest('.compose-timeline');
       if(composeTimeline?._isPlayAllRunning?.())return;
       const model=composeTimeline?._composeModel;
-      const grid=0.25;
+      const grid=.25;
+      const oldStart=Math.max(0,Number(row.dataset.startSeconds||0)||0);
       const requested=Math.max(0,Number(seconds)||0);
       const snapped=Math.round(requested/grid)*grid;
+      const delta=snapped-oldStart;
       row.dataset.startSeconds=String(snapped);
-      const geometry=timelineGeometry();
-      const trackWidth=Math.max(24,sourceDuration()*geometry.pixelsPerSecond);
-      const visualTrimOffset=row.dataset.composeCutClip==='1'?Math.max(0,Number(row.dataset.trimIn||0)||0)*sourceDuration():0;
-      region.style.marginLeft=`${(snapped-visualTrimOffset)*geometry.pixelsPerSecond}px`;
-      region.style.width=`${trackWidth}px`;
-      region.style.maxWidth='none';
-      const guide=row.querySelector('.compose-track-time-guide');
-      if(guide)guide.textContent=`Start ${formatComposeTime(snapped)}`;
+      const clips=row._composeClips||[];
+      clips.forEach(clip=>{
+        clip.startSeconds=Math.max(0,Number(clip.startSeconds||0)+delta);
+        const guide=clip.region?.querySelector('.compose-track-time-guide');
+        if(guide)guide.textContent='Start '+formatComposeTime(clip.startSeconds);
+      });
+      if(clips.length){
+        clips.sort((a,b)=>a.startSeconds-b.startSeconds);
+        row.dataset.startSeconds=String(clips[0].startSeconds);
+      }
       const trackModel=model?.tracks.get(row.dataset.trackId);
-      if(trackModel)trackModel.startSeconds=snapped;
+      if(trackModel){trackModel.startSeconds=Number(row.dataset.startSeconds||0);trackModel.clips=clips;}
       composeTimeline?._updateCompositionGeometry?.();
+      renderPlayhead();
+    };
+    const createClipVisual=clip=>{
+      const clipRegion=region.cloneNode(true);
+      clipRegion.classList.remove('selected-clip','dragging','trimming');
+      clipRegion.dataset.clipId=clip.id;
+      clipRegion.style.marginLeft='';
+      clipRegion.style.width='';
+      clipRegion.style.maxWidth='';
+      const clipWave=clipRegion.querySelector('.compose-track-wave');
+      clipWave?.classList.remove('playing','scrubbing','trimming');
+      const clipPlayhead=clipRegion.querySelector('.compose-track-playhead');
+      const clipTrimIn=clipRegion.querySelector('[data-compose-trim="in"]');
+      const clipTrimOut=clipRegion.querySelector('[data-compose-trim="out"]');
+      const clipReadout=clipRegion.querySelector('.compose-track-trim-readout');
+      const newClip={
+        ...clip,
+        region:clipRegion,
+        wave:clipWave,
+        playhead:clipPlayhead,
+        trimInHandle:clipTrimIn,
+        trimOutHandle:clipTrimOut,
+        trimReadout:clipReadout
+      };
+      clipRegion.addEventListener('click',event=>{
+        if(event.target.closest('[data-compose-trim]'))return;
+        selectTrack();
+        selectClip(newClip);
+      });
+      lane.appendChild(clipRegion);
+      return newClip;
     };
     const cutAtPlayhead=()=>{
       const composeTimeline=row.closest('.compose-timeline');
       if(!audio||composeTimeline?._isPlayAllRunning?.())return;
-      const duration=Number.isFinite(audio.duration)&&audio.duration>0?audio.duration:sourceDuration();
-      if(!Number.isFinite(duration)||duration<=0){
-        cutTrackButton.title='Audio duration is not ready yet. Try again shortly.';
-        return;
-      }
       const cutTime=Number(audio.currentTime)||0;
-      const oldTrimIn=Math.max(0,Math.min(.98,Number(row.dataset.trimIn||0)||0));
-      const oldTrimOut=Math.max(0,Math.min(.98,Number(row.dataset.trimOut||0)||0));
-      const trimStart=oldTrimIn*duration;
-      const trimEnd=Math.max(trimStart+.01,(1-oldTrimOut)*duration);
-      const minimumSegment=.04;
-      if(cutTime<=trimStart+minimumSegment||cutTime>=trimEnd-minimumSegment){
-        cutTrackButton.title='Move the playhead inside the clip before cutting.';
+      const clips=row._composeClips||[];
+      const metrics=clips.map(clip=>metricsForClip(clip));
+      const metric=metrics.find(item=>cutTime>=item.effectiveStart+.04&&cutTime<=item.effectiveEnd-.04);
+      if(!metric){
+        cutTrackButton.title='Move the track playhead inside a clip before cutting.';
         cutTrackButton.classList.add('needs-cut-position');
         return;
       }
 
-      const trackModel=composeTimeline?._composeModel?.tracks.get(row.dataset.trackId);
-      const type=String(row.dataset.composeAssetType||trackModel?.type||'sound');
-      const originalStart=Math.max(0,Number(row.dataset.startSeconds||0)||0);
-      const oldFadeIn=Math.max(0,Number(fadeIn?.value||row.dataset.fadeIn||0)||0);
-      const oldFadeOut=Math.max(0,Number(fadeOut?.value||row.dataset.fadeOut||0)||0);
-      const wasSolo=!!solo?.classList.contains('active');
-      const wasMuted=!!mute?.classList.contains('active');
-      const wasGroup=row.dataset.composeCutGroup||('cut-'+row.dataset.trackId);
-      const asset={
-        id:row.dataset.composeAssetId||trackModel?.assetId||null,
-        assetType:type,
-        filename:row.dataset.composeAssetFilename||row.querySelector('.compose-track-row-main strong')?.textContent||'Audio clip',
-        format:row.dataset.composeAssetFormat||'',
-        soundType:row.dataset.composeAssetSoundType||'',
-        durationSeconds:duration,
-        assetUrl:row.dataset.composeAssetUrl||audio.getAttribute('src')||audio.currentSrc||audio.src
+      const clip=metric.clip;
+      const originalSourceEnd=clip.sourceEnd;
+      const oldTrimOut=clip.trimOut;
+      const splitOffset=cutTime-metric.effectiveStart;
+      const rightClip={
+        id:'clip-'+row.dataset.trackId+'-'+Date.now(),
+        sourceStart:cutTime,
+        sourceEnd:originalSourceEnd,
+        trimIn:0,
+        trimOut:oldTrimOut,
+        startSeconds:metric.startSeconds+splitOffset
       };
-
-      // Create the right-hand clip from the same source, then restrict both rows
-      // to complementary trim ranges so rendering remains non-destructive.
-      const splitRow=addComposeTrack(type,asset);
-      if(!splitRow)return;
-      row.dataset.composeCutGroup=wasGroup;
-      splitRow.dataset.composeCutGroup=wasGroup;
-      row.dataset.composeCutClip='1';
-      splitRow.dataset.composeCutClip='1';
-      row.after(splitRow);
+      clip.sourceEnd=cutTime;
+      clip.trimOut=0;
+      const visual=createClipVisual(rightClip);
+      Object.assign(rightClip,visual);
+      row._composeClips.sort((a,b)=>a.startSeconds-b.startSeconds);
+      row._composeClips.forEach(item=>lane.appendChild(item.region));
+      renderClipWaveform(clip);
+      renderClipWaveform(rightClip);
+      selectClip(rightClip);
       audio.pause();
-
-      const cutRatio=Math.max(oldTrimIn+0.001,Math.min(1-oldTrimOut-0.001,cutTime/duration));
-      const leftTrimOut=Math.max(0,1-cutRatio);
-      row.dataset.trimOut=String(leftTrimOut);
-      if(trackModel)trackModel.trimOut=leftTrimOut;
-
-      splitRow.dataset.trimIn=String(cutRatio);
-      splitRow.dataset.trimOut=String(oldTrimOut);
-      const splitModel=composeTimeline?._composeModel?.tracks.get(splitRow.dataset.trackId);
-      if(splitModel){
-        splitModel.trimIn=cutRatio;
-        splitModel.trimOut=oldTrimOut;
-      }
-
-      // Preserve fades at the outside edges of the original clip.
-      row.dataset.fadeOut='0';
-      if(fadeOut){fadeOut.value='0';fadeOut.dispatchEvent(new Event('input'));}
-      splitRow.dataset.fadeIn='0';
-      splitRow.dataset.fadeOut=String(oldFadeOut);
-      const splitFadeIn=splitRow.querySelector('[data-compose-fade="in"]');
-      const splitFadeOut=splitRow.querySelector('[data-compose-fade="out"]');
-      if(splitFadeIn){splitFadeIn.value='0';splitFadeIn.dispatchEvent(new Event('input'));}
-      if(splitFadeOut){splitFadeOut.value=String(oldFadeOut);splitFadeOut.dispatchEvent(new Event('input'));}
-      const splitVolume=splitRow.querySelector('.compose-track-volume input');
-      if(splitVolume){splitVolume.value=String(volume?.value||100);splitVolume.dispatchEvent(new Event('input'));}
-      const splitMute=splitRow.querySelector('[data-compose-mute]');
-      if(wasMuted)splitMute?.click();
-      if(wasSolo)splitRow.querySelector('[data-compose-solo]')?.classList.add('active');
-
-      const cutOffset=Math.max(0,cutTime-trimStart);
-      // Offset the full source waveform behind its left trim mask so the visible
-      // clip begins exactly at its composition start instead of at source time 0.
-      applyStart(originalStart);
-      splitRow._composeApplyStart?.(originalStart+cutOffset);
-      splitRow._composeRenderTrim?.();
-      splitRow._composeRenderPlayhead?.();
-      renderTrim();
+      try{audio.currentTime=cutTime;}catch(error){console.warn('compose_cut_playhead_reset_error',error);}
+      renderTrim(rightClip);
       renderPlayhead();
       applyPlaybackGain();
-      composeTimeline?._syncSoloState?.();
+      const trackModel=composeTimeline?._composeModel?.tracks.get(row.dataset.trackId);
+      if(trackModel)trackModel.clips=row._composeClips;
       composeTimeline?._updateCompositionGeometry?.();
       composeTimeline?._syncPlayAllButton?.();
       cutTrackButton.classList.remove('needs-cut-position');
-      cutTrackButton.title='Split track at its playhead position';
+      cutTrackButton.title='Split selected clip at its playhead position';
     };
     cutTrackButton?.addEventListener('click',event=>{
       event.preventDefault();
