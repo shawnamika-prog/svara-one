@@ -1203,22 +1203,30 @@
         const rows=[...timeline.querySelectorAll('.compose-track-editor')];
         let duration=composeModel.minDuration;
         rows.forEach(row=>{
-          const start=Math.max(0,Number(row.dataset.startSeconds||0)||0);
-          duration=Math.max(duration,start+trackEffectiveDuration(row));
+          const clips=composeClipsForRow(row);
+          clips.forEach(clip=>{
+            const metric=composeClipMetrics(row,clip);
+            duration=Math.max(duration,metric.endSeconds);
+          });
         });
         composeModel.duration=Math.max(composeModel.minDuration,duration);
         const width=Math.max(720,composeModel.duration*composeModel.pixelsPerSecond);
         renderTimelineRuler();
         rows.forEach(row=>{
           row.style.gridTemplateColumns=`180px ${width}px`;
-          const region=row.querySelector('.compose-track-region');
-          if(region){
-            const start=Math.max(0,Number(row.dataset.startSeconds||0)||0);
-            const trackWidth=Math.max(24,trackSourceDuration(row)*composeModel.pixelsPerSecond);
-            region.style.marginLeft=`${start*composeModel.pixelsPerSecond}px`;
-            region.style.width=`${trackWidth}px`;
+          const clips=composeClipsForRow(row);
+          let previousVisualEnd=0;
+          clips.forEach((clip,index)=>{
+            const region=clip.region||row.querySelector('.compose-track-region');
+            if(!region)return;
+            const start=Math.max(0,Number(clip.startSeconds)||0);
+            const sourceSpan=Math.max(.01,Number(clip.sourceEnd)-Number(clip.sourceStart));
+            const gap=index===0?start:Math.max(0,start-previousVisualEnd);
+            region.style.marginLeft=`${gap*composeModel.pixelsPerSecond}px`;
+            region.style.width=`${Math.max(12,sourceSpan*composeModel.pixelsPerSecond)}px`;
             region.style.maxWidth='none';
-          }
+            previousVisualEnd=start+sourceSpan;
+          });
         });
         timeline.style.setProperty('--compose-timeline-width',`${width}px`);
         timeline.style.setProperty('--compose-pixels-per-second',String(composeModel.pixelsPerSecond));
@@ -1309,27 +1317,21 @@
       const renderAllTrackPlayheads=seconds=>{
         const masterTime=Math.max(0,Number(seconds)||0);
         timeline.querySelectorAll('.compose-track-editor').forEach(row=>{
-          const playhead=row.querySelector('.compose-track-playhead');
-          if(!playhead)return;
-          const audio=row.querySelector('.compose-track-audio');
-          const duration=Number.isFinite(audio?.duration)&&audio.duration>0
-            ?audio.duration
-            :Math.max(0.01,Number(row.dataset.sourceDuration||30)||30);
-          const trimIn=Math.max(0,Math.min(.98,Number(row.dataset.trimIn||0)||0));
-          const trimOut=Math.max(0,Math.min(.98,Number(row.dataset.trimOut||0)||0));
-          const trimStart=trimIn*duration;
-          const effectiveDuration=Math.max(.01,duration*(1-trimIn-trimOut));
-          const startSeconds=Math.max(0,Number(row.dataset.startSeconds||0)||0);
-          const endSeconds=startSeconds+effectiveDuration;
-          if(masterTime<startSeconds){
-            playhead.style.visibility='hidden';
-            return;
-          }
-          playhead.style.visibility='visible';
-          const localPosition=Math.max(0,Math.min(effectiveDuration,masterTime-startSeconds));
-          const ratio=Math.max(0,Math.min(1,(trimStart+localPosition)/duration));
-          playhead.style.setProperty('--playhead',String(ratio*100)+'%');
-          if(masterTime>=endSeconds)playhead.style.setProperty('--playhead',String(((trimStart+effectiveDuration)/duration)*100)+'%');
+          const clips=composeClipsForRow(row);
+          const metrics=clips.map(clip=>composeClipMetrics(row,clip));
+          const active=metrics.find(metric=>masterTime>=metric.startSeconds&&masterTime<metric.endSeconds);
+          metrics.forEach((metric,index)=>{
+            const playhead=metric.clip.playhead||metric.clip.region?.querySelector('.compose-track-playhead');
+            if(!playhead)return;
+            if(metric!==active){
+              playhead.style.visibility='hidden';
+              return;
+            }
+            const sourceTime=metric.effectiveStart+Math.max(0,Math.min(metric.effectiveDuration,masterTime-metric.startSeconds));
+            const ratio=Math.max(0,Math.min(1,(sourceTime-metric.sourceStart)/Math.max(.01,metric.span)));
+            playhead.style.visibility='visible';
+            playhead.style.setProperty('--playhead',String(ratio*100)+'%');
+          });
         });
       };
       const animateTimelinePlayhead=()=>{
