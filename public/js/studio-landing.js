@@ -1696,16 +1696,17 @@
     };
     const applyPlaybackGain=()=>{
       if(!audio)return;
-      const duration=Number.isFinite(audio.duration)&&audio.duration>0?audio.duration:sourceDuration();
-      const trimInSeconds=Number(row.dataset.trimIn||0)*duration;
-      const trimOutSeconds=Number(row.dataset.trimOut||0)*duration;
-      const effectiveDuration=Math.max(0.01,duration-trimInSeconds-trimOutSeconds);
-      const position=Math.max(0,audio.currentTime-trimInSeconds);
-      const inSeconds=Math.min(Number(row.dataset.fadeIn||0),effectiveDuration);
-      const outSeconds=Math.min(Number(row.dataset.fadeOut||0),effectiveDuration);
+      const metrics=(row._composeClips||[]).map(clip=>metricsForClip(clip)).sort((a,b)=>a.startSeconds-b.startSeconds);
+      const time=Number(audio.currentTime)||0;
+      const active=metrics.find(metric=>time>=metric.effectiveStart-.015&&time<metric.effectiveEnd-.025);
+      if(!active){audio.volume=baseVolume();return;}
+      const index=metrics.indexOf(active);
+      const position=Math.max(0,time-active.effectiveStart);
+      const inSeconds=index===0?Math.min(Number(row.dataset.fadeIn||0),active.effectiveDuration):0;
+      const outSeconds=index===metrics.length-1?Math.min(Number(row.dataset.fadeOut||0),active.effectiveDuration):0;
       let gain=1;
       if(inSeconds>0&&position<inSeconds)gain=Math.min(gain,position/inSeconds);
-      if(outSeconds>0&&position>effectiveDuration-outSeconds)gain=Math.min(gain,Math.max(0,(effectiveDuration-position)/outSeconds));
+      if(outSeconds>0&&position>active.effectiveDuration-outSeconds)gain=Math.min(gain,Math.max(0,(active.effectiveDuration-position)/outSeconds));
       audio.volume=baseVolume()*gain;
     };
     volume?.addEventListener('input',()=>applyPlaybackGain());
