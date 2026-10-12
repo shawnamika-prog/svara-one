@@ -591,12 +591,13 @@
     const folderFilter=String(folderControl?.value||'');
     const now=Date.now();
     const dayStart=new Date();dayStart.setHours(0,0,0,0);
+    const tomorrowStart=new Date(dayStart);tomorrowStart.setDate(tomorrowStart.getDate()+1);
     const cutoff=dateFilter==='today'?dayStart.getTime():dateFilter==='7d'?now-7*86400000:dateFilter==='30d'?now-30*86400000:0;
     const filtered=compositionLibraryItems.filter(item=>{
       if(formatFilter&&String(item.format||'WAV').toUpperCase()!==formatFilter)return false;
       if(folderFilter==='__unfiled__'&&item.folderId)return false;
       if(folderFilter&&folderFilter!=='__unfiled__'&&String(item.folderId||'')!==folderFilter)return false;
-      if(dateFilter){const timestamp=Date.parse(item.createdAt||'');if(!Number.isFinite(timestamp)||timestamp<cutoff||(dateFilter==='today'&&timestamp>=now+1))return false;}
+      if(dateFilter){const timestamp=Date.parse(item.createdAt||'');if(!Number.isFinite(timestamp)||timestamp<cutoff||(dateFilter==='today'&&timestamp>=tomorrowStart.getTime()))return false;}
       return true;
     });
     const pageCount=Math.max(1,Math.ceil(filtered.length/compositionLibraryPageSize));
