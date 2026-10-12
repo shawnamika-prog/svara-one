@@ -3,7 +3,7 @@
 **Date:** 2026-10-12  
 **Repository:** `shawnamika-prog/svara-one`  
 **Branch:** `main`  
-**Current frontend file:** `public/js/studio-landing.js` (current main blob: `e3cdbc12c2e5f34d57a120b12ec7cecf8f5faef4`)  
+**Current frontend file:** `public/js/studio-landing.js` (current main blob: `13b036bf7aa3178cff4c127d64cb41178a47bb05`)  
 **Current tracker:** `docs/SVARAONE_SOUND_MASTER_TRACKER.md`  
 **Current status:** Hold S15 until the pre-S15 Compose amendments are tested and finished.
 
@@ -27,15 +27,18 @@ Recent relevant commits:
 - `922c58a1ddc59e679464156580118965bb2ea597` — track same-lane cut playhead stability fix.
 - `132f9bc253fb082df315a648ea6665a1328befbb` — split exact audible range to stabilize trimmed-clip playheads.
 - `af89194363e449ed8f76bb4cc479fa2d12c7b6dc` and `555225025e30d949841b08a5e4cc2b43f363f82a` — clarify audible-range cut/source-boundary semantics in the architecture notes.
+- `2f1051ce2d8edf393ae91988231fcabe876471f6` — one lane-level shared playhead; Play, Move and Cut target the selected clip, and individual playback stops at the selected clip boundary.
 
-The tracker currently says: **same-lane cut/delete implemented; playhead boundary fix pushed, user regression test pending.** Do not assume the latest change is confirmed until the user tests it in the deployed app.
+The tracker currently says: **same-lane selected-clip controls and one shared lane playhead are implemented in source; user regression test pending.** JavaScript syntax was checked after the latest change, but the deployed browser behavior has not yet been confirmed. Do not mark this complete until the user tests it.
 
 ### Cut behaviour now intended
 
 - The cut position comes from the track's local audio playhead.
 - The currently audible source interval is split into two adjacent clip regions in the same lane.
 - Both clips reference the same original source; source media is not duplicated or modified.
-- Clip regions have per-clip waveform/trim handles and selection. Delete should remove only the selected region when more than one remains.
+- Clip regions have per-clip waveform/trim handles and selection. Play, Move, Cut, Delete and Trim target the selected clip; Delete removes only the selected region when more than one remains.
+- Each track lane has one shared visible playhead marker, not one marker per clip. The marker is positioned on the lane timeline and crosses clip boundaries without blinking.
+- Individual Play is limited to the selected clip; Play All continues to use the master composition timeline. Track-wide volume, fades, mute and solo remain track properties.
 - Playback and export use per-clip source ranges and timeline positions; exact clip boundaries should avoid playhead jumps and trim-percentage drift.
 - Cut is unavailable during Play All.
 - After cut, test local track playhead behaviour, clip selection, trim handles, Play All, Stop All, export and Delete. Ask the user for the exact observed regression before making another speculative playhead change.
@@ -43,7 +46,7 @@ The tracker currently says: **same-lane cut/delete implemented; playhead boundar
 ## Pre-S15 amendments still outstanding
 
 1. **Compose workspace UI polish:** user will specify remaining layout changes. The last supplied image identified the final-track-delete empty-state issue, which has already been fixed.
-2. **Cut / clip editor regression:** same-lane implementation and playhead fixes are pushed; await user test before further change.
+2. **Cut / clip editor regression:** selected-clip Play/Move/Cut/Delete/Trim and one shared lane playhead are pushed; await user test before further change.
 3. **SvaraONE playback controls:** current playback controls were described by user as Bootstrap-style; restyle to native SvaraONE styling. Preserve behaviour.
 4. **Composition mini-library visual match:** user wants it to look exactly like Sound History/mini-library and said they will provide a reference screenshot later. Do not guess this redesign before receiving the image.
 
