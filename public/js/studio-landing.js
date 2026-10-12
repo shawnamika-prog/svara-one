@@ -1906,9 +1906,18 @@
       }
       wave?.style.setProperty('--trim-left','0%');
       wave?.style.setProperty('--trim-right','0%');
-      region.style.width=Math.max(24,visibleDuration*geometry.pixelsPerSecond)+'px';
+      const clipWidth=Math.max(24,visibleDuration*geometry.pixelsPerSecond);
+      region.style.width=clipWidth+'px';
+      region.style.minWidth='0';
+      region.style.flex=`0 0 ${clipWidth}px`;
+      region.style.boxSizing='border-box';
       region.style.marginLeft=(Math.max(0,Number(row.dataset.startSeconds)||0)*geometry.pixelsPerSecond)+'px';
       region.style.maxWidth='none';
+      if(wave){
+        wave.style.width='100%';
+        wave.style.minWidth='0';
+        wave.style.boxSizing='border-box';
+      }
     };
     row._composeRenderCutGeometry=renderCutGeometry;
     const renderTrim=()=>{
@@ -2013,7 +2022,13 @@
       region.style.marginLeft=`${(snapped-visualTrimOffset)*geometry.pixelsPerSecond}px`;
       region.style.width=`${trackWidth}px`;
       region.style.maxWidth='none';
-      if(isCutClip)renderCutGeometry();
+      if(isCutClip){
+        region.style.minWidth='0';
+        region.style.flex=`0 0 ${trackWidth}px`;
+        region.style.boxSizing='border-box';
+        if(wave){wave.style.width='100%';wave.style.minWidth='0';wave.style.boxSizing='border-box';}
+        renderCutGeometry();
+      }
       const guide=row.querySelector('.compose-track-time-guide');
       if(guide)guide.textContent=`Start ${formatComposeTime(snapped)}`;
       const trackModel=model?.tracks.get(row.dataset.trackId);
