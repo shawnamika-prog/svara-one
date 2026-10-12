@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-09  
 **Branch:** main  
-**Status:** S16.1 WAV-to-R2 export confirmed working by user. S16.2 MP3/PCM support and Composition mini-library code pushed; deployed verification pending.  
+**Status:** S16.1 WAV and S16.2 MP3/PCM export, along with Composition preview/download workflow, confirmed working by user in the deployed app.  
 **Scope:** Render an existing Compose timeline, store export assets in R2 and make them reusable.
 
 ## Product behaviour
@@ -52,8 +52,8 @@ No D1 migration or full S15 editable-composition persistence has been added. Onl
 
 ## Verification record
 
-**Previously confirmed by user**
-- S16.1 WAV export → R2 save works in the deployed app after the R2 stream-length fix.
+**Confirmed by user in the deployed app**
+- Composition workflow, export, preview and download all work. This confirms the shipped format/export/retrieval flow; no independent automated browser report is stored in the repository.
 
 **Static checks for this extension**
 - `public/js/studio-landing.js` syntax: passed.
@@ -63,14 +63,9 @@ No D1 migration or full S15 editable-composition persistence has been added. Onl
 - WAV encoder test passed for RIFF/WAVE, channels, sample rate, bit depth and consistent RIFF/data lengths.
 - PCM encoder test passed for raw L16 byte length and big-endian signed samples.
 
-**Still needs deployed browser verification**
-- MP3 export → R2 → preview and original-format download.
-- PCM export → R2 → WAV-wrapped preview and raw PCM download.
-- Composition mini-library loads, searches, previews, downloads and imports saved exports.
-- These behaviours are implemented but are not marked live-confirmed until exercised in the deployed app.
+## Next phase
 
-## Next sequence
+S16 export and the Composition mini-library are now user-confirmed working. The next planned phase is **S15 — editable Composition persistence**.
 
-1. Verify MP3 and PCM exports in the deployed app.
-2. Verify Composition mini-library list, playback, download and reuse.
-3. After these are confirmed, assess whether S15 (editable composition state persistence) should begin or whether user-observed fixes are needed. Do not add another persistence model by assumption.
+Before writing a migration, inspect the current D1 schema and API ownership conventions. Persist composition metadata and arrangement state with references to existing R2 source assets; do not duplicate Voice/Sound/Composition media. Save and restore track order, positions, trim boundaries and supported track settings. Keep this separate from the already-working rendered exports.
+
