@@ -127,6 +127,8 @@
     .compose-track-lane{position:relative;grid-column:2;grid-row:1;display:flex;align-items:center;min-height:92px;width:var(--compose-timeline-width,720px);padding:10px 0;background-color:#060d17;background-image:repeating-linear-gradient(to right,#ffffff18 0 1px,transparent 1px var(--compose-five-second-pitch,120px));overflow:hidden}
     .compose-track-region{position:relative;z-index:2;display:flex;align-items:center;width:120px;min-width:120px;flex:0 0 auto;cursor:grab;transition:margin-left .08s ease}
     .compose-track-region:hover{filter:brightness(1.05)}
+    .compose-track-region.selected-clip .compose-track-wave{border-color:#82a4ff;box-shadow:inset 0 0 0 1px #82a4ff66,0 0 0 1px #5f8cff88}
+    .compose-track-region.selected-clip{z-index:3}
     .compose-track-region:active{cursor:grabbing}
     .compose-track-editor.dragging .compose-track-region{cursor:grabbing;transition:none;filter:brightness(1.08)}
     .compose-track-editor.dragging .compose-track-wave{filter:drop-shadow(0 0 7px #4f7cff66)}
@@ -1221,12 +1223,12 @@
             const region=clip.region||row.querySelector('.compose-track-region');
             if(!region)return;
             const start=Math.max(0,Number(clip.startSeconds)||0);
-            const sourceSpan=Math.max(.01,Number(clip.sourceEnd)-Number(clip.sourceStart));
+            const metric=composeClipMetrics(row,clip);
             const gap=index===0?start:Math.max(0,start-previousVisualEnd);
             region.style.marginLeft=`${gap*composeModel.pixelsPerSecond}px`;
-            region.style.width=`${Math.max(12,sourceSpan*composeModel.pixelsPerSecond)}px`;
+            region.style.width=`${Math.max(12,metric.effectiveDuration*composeModel.pixelsPerSecond)}px`;
             region.style.maxWidth='none';
-            previousVisualEnd=start+sourceSpan;
+            previousVisualEnd=metric.endSeconds;
           });
         });
         timeline.style.setProperty('--compose-timeline-width',`${width}px`);
@@ -2012,9 +2014,10 @@
       const peaks=row._composeWaveformPeaks;
       if(!Array.isArray(peaks)||!peaks.length)return;
       const totalDuration=sourceDuration();
-      const start=Math.max(0,Math.min(peaks.length-1,Math.floor((clip.sourceStart/totalDuration)*peaks.length)));
-      const end=Math.max(start+1,Math.min(peaks.length,Math.ceil((clip.sourceEnd/totalDuration)*peaks.length)));
-      bars.innerHTML=waveformForPeaks(peaks.slice(start,end),Math.max(.01,clip.sourceEnd-clip.sourceStart));
+      const metric=metricsForClip(clip);
+      const start=Math.max(0,Math.min(peaks.length-1,Math.floor((metric.effectiveStart/totalDuration)*peaks.length)));
+      const end=Math.max(start+1,Math.min(peaks.length,Math.ceil((metric.effectiveEnd/totalDuration)*peaks.length)));
+      bars.innerHTML=waveformForPeaks(peaks.slice(start,end),metric.effectiveDuration);
     };
     const selectClip=clip=>{
       if(!clip||!row._composeClips?.includes(clip))return;
@@ -2037,14 +2040,17 @@
         const metric=metricsForClip(clip);
         const targetWave=clip.wave;
         if(!targetWave)return;
-        targetWave.style.setProperty('--trim-left',String(clip.trimIn*100)+'%');
-        targetWave.style.setProperty('--trim-right',String(clip.trimOut*100)+'%');
+        // The lane region displays only the audible source interval. Keep trim handles
+        // at its edges and crop the waveform, rather than shrinking the ruler while
+        // leaving a full-length waveform region in place.
+        targetWave.style.setProperty('--trim-left','0%');
+        targetWave.style.setProperty('--trim-right','0%');
         const inSeconds=index===0?Math.min(Number(row.dataset.fadeIn||0),metric.effectiveDuration):0;
         const outSeconds=index===clips.length-1?Math.min(Number(row.dataset.fadeOut||0),metric.effectiveDuration):0;
-        targetWave.style.setProperty('--fade-in-left',String(clip.trimIn*100)+'%');
-        targetWave.style.setProperty('--fade-in-width',String((inSeconds/Math.max(.01,metric.span))*100)+'%');
-        targetWave.style.setProperty('--fade-out-right',String(clip.trimOut*100)+'%');
-        targetWave.style.setProperty('--fade-out-width',String((outSeconds/Math.max(.01,metric.span))*100)+'%');
+        targetWave.style.setProperty('--fade-in-left','0%');
+        targetWave.style.setProperty('--fade-in-width',String((inSeconds/Math.max(.01,metric.effectiveDuration))*100)+'%');
+        targetWave.style.setProperty('--fade-out-right','0%');
+        targetWave.style.setProperty('--fade-out-width',String((outSeconds/Math.max(.01,metric.effectiveDuration))*100)+'%');
         if(clip.trimReadout)clip.trimReadout.textContent='Trim '+formatTrimTime(metric.effectiveStart)+' – '+formatTrimTime(metric.effectiveEnd);
         if(clip.trimInHandle)clip.trimInHandle.title='Trim start: '+formatTrimTime(metric.effectiveStart);
         if(clip.trimOutHandle)clip.trimOutHandle.title='Trim end: '+formatTrimTime(metric.effectiveEnd);
@@ -2068,20 +2074,22 @@
       event.preventDefault();
       event.stopPropagation();
       selectClip(clip);
-      const rect=clip.wave.getBoundingClientRect();
+      const startX=event.clientX;
       const startIn=Number(clip.trimIn||0);
       const startOut=Number(clip.trimOut||0);
+      const span=Math.max(.01,Number(clip.sourceEnd)-Number(clip.sourceStart));
+      const pixelsPerSecond=Math.max(1,Number(composeTimeline?._composeModel?.pixelsPerSecond)||24);
       const minGap=.02;
       row.classList.add('trimming');
       const moveTrim=moveEvent=>{
-        const width=Math.max(1,rect.width);
-        const ratio=Math.max(0,Math.min(1,(moveEvent.clientX-rect.left)/width));
-        if(side==='in')clip.trimIn=Math.max(0,Math.min(1-startOut-minGap,ratio));
-        else clip.trimOut=Math.max(0,Math.min(1-startIn-minGap,1-ratio));
+        const delta=(moveEvent.clientX-startX)/(span*pixelsPerSecond);
+        if(side==='in')clip.trimIn=Math.max(0,Math.min(1-startOut-minGap,startIn+delta));
+        else clip.trimOut=Math.max(0,Math.min(1-startIn-minGap,startOut-delta));
+        renderClipWaveform(clip);
         renderTrim(clip);
         applyPlaybackGain();
         renderPlayhead();
-        row.closest('.compose-timeline')?._updateCompositionGeometry?.();
+        composeTimeline?._updateCompositionGeometry?.();
       };
       const endTrim=()=>{
         row.classList.remove('trimming');
@@ -2141,22 +2149,23 @@
       const clipTrimIn=clipRegion.querySelector('[data-compose-trim="in"]');
       const clipTrimOut=clipRegion.querySelector('[data-compose-trim="out"]');
       const clipReadout=clipRegion.querySelector('.compose-track-trim-readout');
-      const newClip={
-        ...clip,
+      // Preserve object identity: row._composeClips, selection handlers and the
+      // visual region must all reference the exact same clip object.
+      Object.assign(clip,{
         region:clipRegion,
         wave:clipWave,
         playhead:clipPlayhead,
         trimInHandle:clipTrimIn,
         trimOutHandle:clipTrimOut,
         trimReadout:clipReadout
-      };
+      });
       clipRegion.addEventListener('click',event=>{
         if(event.target.closest('[data-compose-trim]'))return;
         selectTrack();
-        selectClip(newClip);
+        selectClip(clip);
       });
       lane.appendChild(clipRegion);
-      return newClip;
+      return clip;
     };
     const cutAtPlayhead=()=>{
       const composeTimeline=row.closest('.compose-timeline');
