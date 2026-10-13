@@ -776,6 +776,22 @@ if (url.pathname === "/api/compositions/drafts" && request.method === "GET") {
       }
     }
 
+    if (url.pathname.startsWith("/api/compositions/drafts/") && request.method === "DELETE") {
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return json({ error: "Authentication required." }, 401);
+      if (!env.DB) return json({ error: "Composition draft storage is not configured." }, 503);
+      const draftId = String(url.pathname.split("/").pop() || "");
+      if (!/^[0-9a-f-]{36}$/i.test(draftId)) return json({ error: "Composition draft not found." }, 404);
+      try {
+        const result = await env.DB.prepare("DELETE FROM composition_drafts WHERE draft_id=? AND user_id=? AND completed_at IS NULL").bind(draftId, userId).run();
+        if (!result.meta?.changes) return json({ error: "Unfinished draft not found for this user." }, 404);
+        return json({ success: true, draftId, deleted: true });
+      } catch (error) {
+        console.error("composition_draft_delete_error", error);
+        return json({ error: /no such table:\\s*composition_drafts/i.test(String(error?.message || error)) ? "Composition draft storage is not initialized. Apply migrations/0015_composition_drafts.sql to Cloudflare D1, then retry." : /no such column:\\s*completed_at/i.test(String(error?.message || error)) ? "Draft completion storage is not initialized. Apply migrations/0016_composition_draft_completion.sql to Cloudflare D1, then retry." : "Could not delete the composition draft." }, /no such table:\\s*composition_drafts|no such column:\\s*completed_at/i.test(String(error?.message || error)) ? 503 : 500);
+      }
+    }
+
     if (url.pathname.startsWith("/api/compositions/drafts/") && request.method === "GET") {
       const userId = await authenticatedUserId(request, env);
       if (!userId) return json({ error: "Authentication required." }, 401);
