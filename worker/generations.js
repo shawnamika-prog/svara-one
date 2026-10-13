@@ -96,11 +96,13 @@ app.fetch=async(request,env,ctx)=>{const url=new URL(request.url);
     if(!env.GENERATED_AUDIO)return new Response('Generation storage is not configured.',{status:503});
     const filename=String(url.searchParams.get('filename')||'').trim().replace(/[\\/]/g,'');
     if(!filename||filename==='.'||filename==='..')return new Response('Invalid filename.',{status:400});
-    const objects=await listUserGenerationObjects(env,userId,500);
-    const object=objects.find(candidate=>String(candidate.key||'').split('/').pop()===filename);
-    if(!object?.key)return new Response('Generation not found.',{status:404,headers:{'cache-control':'no-store'}});
+    const r2Key=`users/${userId}/generations/${filename}`;
+    const generation=await env.DB.prepare("SELECT r2_key,status FROM generations WHERE user_id=? AND r2_key=? LIMIT 1").bind(userId,r2Key).first();
+    if(!generation||generation.status!=='ready'||String(generation.r2_key||'')!==r2Key)return new Response('Generation not found.',{status:404,headers:{'cache-control':'no-store'}});
+    const object={key:r2Key};
     const storedMeta=await env.GENERATED_AUDIO.head?.(object.key);
-    const totalSize=Number(storedMeta?.size??object.size);
+    if(!storedMeta)return new Response('Generation not found.',{status:404,headers:{'cache-control':'no-store'}});
+    const totalSize=Number(storedMeta.size);
     const extension=filename.split('.').pop()?.toLowerCase()||'mp3';
     const contentType=extension==='mp4'?'video/mp4':extension==='webm'?'video/webm':extension==='mov'?'video/quicktime':mimeTypeForFormat(extension);
     const headers=new Headers({

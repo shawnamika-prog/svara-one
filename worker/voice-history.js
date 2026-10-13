@@ -219,7 +219,8 @@ app.fetch = async (request, env, ctx) => {
       if (r2Key && !r2Key.startsWith("users/" + userId + "/generations/")) {
         return json({ error: "Voice asset ownership could not be verified." }, 403);
       }
-      if (r2Key && env.GENERATED_AUDIO) await env.GENERATED_AUDIO.delete(r2Key);
+      if (r2Key && !env.GENERATED_AUDIO) return json({ error: "Voice audio storage is not configured." }, 503);
+      if (r2Key) await env.GENERATED_AUDIO.delete(r2Key);
       await env.DB.prepare("DELETE FROM voice_display_names WHERE generation_id=? AND user_id=?").bind(generationId, userId).run();
       const deleted = await env.DB.prepare("DELETE FROM generations WHERE id=? AND user_id=?").bind(generationId, userId).run();
       if (!deleted.meta?.changes) return json({ error: "Voice generation not found." }, 404);

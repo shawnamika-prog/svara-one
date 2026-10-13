@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS voice_display_names (
   user_id TEXT NOT NULL,
   display_name TEXT NOT NULL,
   updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  FOREIGN KEY (generation_id) REFERENCES generations(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   PRIMARY KEY (generation_id, user_id)
 );
