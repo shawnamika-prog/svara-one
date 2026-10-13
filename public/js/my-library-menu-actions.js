@@ -39,9 +39,13 @@
     }
     if (label === 'Rename') {
       if (!window.SvaraModal?.rename) return;
-      window.SvaraModal.rename(item.filename).then(async newFilename => {
+      const extension = String(item.format || '').toLowerCase();
+      const initialName = item.assetType === 'sound'
+        ? item.filename.replace(/(?:\\.(?:wav|mp3|pcm))+$/i, match => match.match(/\\.(wav|mp3|pcm)$/i)?.[0] || '')
+        : item.filename;
+      window.SvaraModal.rename(initialName).then(async newFilename => {
         const requestedFilename = String(newFilename || '').trim();
-        if (!requestedFilename || requestedFilename === item.filename) return;
+        if (!requestedFilename || requestedFilename === initialName) return;
         try {
           const response = item.assetType === 'composition'
             ? await fetch('/api/compositions/rename', {
@@ -49,11 +53,17 @@
                 headers: {'content-type':'application/json', accept:'application/json'},
                 body: JSON.stringify({compositionId:item.id, displayName:requestedFilename})
               })
-            : await fetch('/api/library/assets/rename', {
-                method: 'POST', credentials: 'same-origin',
-                headers: {'content-type':'application/json', accept:'application/json'},
-                body: JSON.stringify({assetId:item.id, assetType:item.assetType, filename:requestedFilename})
-              });
+            : item.assetType === 'sound'
+              ? await fetch('/api/sound/generations/rename', {
+                  method: 'POST', credentials: 'same-origin',
+                  headers: {'content-type':'application/json', accept:'application/json'},
+                  body: JSON.stringify({generationId:item.id, displayName:requestedFilename})
+                })
+              : await fetch('/api/library/assets/rename', {
+                  method: 'POST', credentials: 'same-origin',
+                  headers: {'content-type':'application/json', accept:'application/json'},
+                  body: JSON.stringify({assetId:item.id, assetType:item.assetType, filename:requestedFilename})
+                });
           const data = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(data.error || 'Rename failed (' + response.status + ')');
           window.SvaraLibrary?.refresh?.();
