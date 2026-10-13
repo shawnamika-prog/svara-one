@@ -40,11 +40,11 @@
     if (label === 'Rename') {
       if (!window.SvaraModal?.rename) return;
       const initialName = item.assetType === 'sound'
-        ? item.filename.replace(/(\.(?:wav|mp3|pcm))+$/i, '')
+        ? item.filename.replace(/(?:\.(?:wav|mp3|pcm))+$/i, '') + '.' + (String(item.format || 'mp3').toLowerCase())
         : item.filename;
       window.SvaraModal.rename(initialName).then(async newFilename => {
         const requestedFilename = String(newFilename || '').trim();
-        if (!requestedFilename || requestedFilename === initialName) return;
+        if (!requestedFilename || (requestedFilename === initialName && item.filename === initialName)) return;
         try {
           const response = item.assetType === 'composition'
             ? await fetch('/api/compositions/rename', {
