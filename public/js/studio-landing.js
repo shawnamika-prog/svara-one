@@ -2614,6 +2614,7 @@
   const voiceHistoryPageInfo=document.getElementById('voiceHistoryPageInfo');
   let voiceHistoryPage=1;
   let voiceHistoryLoading=false;
+  let voiceHistoryReloadQueued=false;
   let voiceHistoryCurrentItems=[];
   let voiceHistoryAudio=null;
   let voiceHistoryPlayingButton=null;
@@ -2694,6 +2695,7 @@
   const loadVoiceHistory=async()=>{
     if(!voiceHistoryList||voiceHistoryLoading)return;
     voiceHistoryLoading=true;
+    stopVoiceHistoryAudio();
     voiceHistoryList.innerHTML='<div class="voice-history-state"><strong>Loading Voice history…</strong><span>Retrieving your saved generations.</span></div>';
     const params=new URLSearchParams({limit:'20',page:String(voiceHistoryPage)});
     [[voiceHistorySearch,'search'],[voiceHistoryVoice,'voiceId'],[voiceHistoryFormat,'format'],[voiceHistoryStatus,'status'],[voiceHistoryDate,'date'],[voiceHistoryFolder,'folderId']].forEach(([control,key])=>{const value=String(control?.value||'').trim();if(value)params.set(key,value);});
@@ -2710,7 +2712,7 @@
       renderVoiceHistory(items);
     }catch(error){
       voiceHistoryList.innerHTML='<div class="voice-history-state"><strong>Could not load Voice history</strong><span>'+escapeHistory(error?.message||'Please try again.')+'</span></div>';
-    }finally{voiceHistoryLoading=false;}
+    }finally{voiceHistoryLoading=false;if(voiceHistoryReloadQueued){voiceHistoryReloadQueued=false;loadVoiceHistory();}}
   };
 
   const openVoiceHistoryModal=(eyebrow,title,body,confirmLabel,confirmClass,onConfirm)=>{
@@ -2773,7 +2775,7 @@
     modal.querySelector('[data-voice-confirm]').addEventListener('click',async()=>{const button=modal.querySelector('[data-voice-confirm]');button.disabled=true;const folderId=modal.querySelector('#voiceHistoryMoveFolder').value||null;try{const response=await fetch('/api/library/assets/move',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json',accept:'application/json'},body:JSON.stringify({assets:[{id:generationId,assetType:'voice'}],folderId})});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||'Could not move Voice.');close();await loadVoiceHistory();await loadVoiceHistoryFolders();}catch(e){error(e.message||'Could not move Voice.');button.disabled=false;}});
     document.body.appendChild(modal);
   };
-  const resetVoiceHistory=()=>{voiceHistoryPage=1;loadVoiceHistory();};
+  const resetVoiceHistory=()=>{voiceHistoryPage=1;if(voiceHistoryLoading){voiceHistoryReloadQueued=true;return;}loadVoiceHistory();};
   voiceHistoryRefresh?.addEventListener('click',()=>{voiceHistoryPage=1;loadVoiceHistory();loadVoiceHistoryFolders();populateVoiceHistoryVoices();});
   voiceHistoryPrev?.addEventListener('click',()=>{if(voiceHistoryPage>1){voiceHistoryPage-=1;loadVoiceHistory();}});
   voiceHistoryNext?.addEventListener('click',()=>{voiceHistoryPage+=1;loadVoiceHistory();});
