@@ -618,6 +618,115 @@
   let compositionLibraryPage=1;
   const compositionLibraryPageSize=10;
 
+  async function openCompositionUseModal(item){
+    document.getElementById('composeUseChoiceModal')?.remove();
+    const id=String(item?.id||'');
+    if(!id)return;
+    const modal=document.createElement('div');
+    modal.id='composeUseChoiceModal';
+    modal.style.cssText='position:fixed;inset:0;z-index:2300;display:grid;place-items:center;padding:20px;background:rgba(0,4,12,.78);backdrop-filter:blur(8px)';
+    modal.innerHTML='<section role="dialog" aria-modal="true" aria-labelledby="composeUseChoiceTitle" style="width:min(520px,100%);padding:24px;border:1px solid rgba(79,124,255,.28);border-radius:16px;background:#091421;color:#e8eef8;box-shadow:0 24px 70px rgba(0,0,0,.55)"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px"><div><p style="margin:0 0 6px;color:#8ca8ff;font-size:11px;letter-spacing:.16em;font-weight:700">COMPOSE</p><h3 id="composeUseChoiceTitle" style="margin:0;font-size:20px">Use saved composition</h3><p style="margin:8px 0 20px;color:#9fb0c6;font-size:13px;line-height:1.5">Choose how to bring this saved composition into your workspace.</p></div><button type="button" data-use-close aria-label="Close" style="border:1px solid #334257;border-radius:8px;background:#111f30;color:#dce6f4;font-size:22px;width:34px;height:34px;cursor:pointer">×</button></div><div style="display:grid;gap:10px"><button type="button" data-use-as-is style="text-align:left;padding:15px;border:1px solid #344a67;border-radius:10px;background:#101f31;color:#edf4ff;cursor:pointer"><strong style="display:block;margin-bottom:5px">Use composition as is</strong><span style="display:block;color:#a7b7cb;font-size:12px;line-height:1.5">Import the finished rendered audio as one track.</span></button><button type="button" data-use-baseline style="text-align:left;padding:15px;border:1px solid #344a67;border-radius:10px;background:#101f31;color:#edf4ff;cursor:pointer"><strong style="display:block;margin-bottom:5px">Use composition with baseline assets</strong><span style="display:block;color:#a7b7cb;font-size:12px;line-height:1.5">Restore the original tracks and saved arrangement controls, if a recipe exists.</span></button></div><p data-use-status role="status" style="min-height:18px;margin:12px 0 0;color:#9fb0c6;font-size:12px"></p></section>';
+    document.body.appendChild(modal);
+    const close=()=>modal.remove();
+    modal.querySelector('[data-use-close]')?.addEventListener('click',close);
+    modal.addEventListener('click',event=>{if(event.target===modal)close();});
+    const useAsIs=()=>{
+      addComposeTrack('composition',{
+        id,
+        assetType:'composition',
+        filename:String(item.filename||'Saved composition'),
+        format:String(item.format||'WAV'),
+        durationSeconds:Number(item.durationSeconds)||30,
+        assetUrl:'/api/compositions/assets/'+encodeURIComponent(id)+(String(item.format||'').toUpperCase()==='PCM'?'?preview=1':'')
+      });
+      close();
+      composeWorkspace.querySelector('.compose-canvas')?.scrollIntoView({behavior:'smooth',block:'start'});
+    };
+    modal.querySelector('[data-use-as-is]')?.addEventListener('click',useAsIs);
+    modal.querySelector('[data-use-baseline]')?.addEventListener('click',async()=>{
+      const button=modal.querySelector('[data-use-baseline]');
+      const status=modal.querySelector('[data-use-status]');
+      button.disabled=true;
+      status.textContent='Loading saved baseline…';
+      try{
+        const response=await fetch('/api/compositions/recipe?id='+encodeURIComponent(id),{credentials:'same-origin',cache:'no-store'});
+        const data=await response.json().catch(()=>({}));
+        if(!response.ok)throw new Error(data.error||'Could not load composition baseline ('+response.status+').');
+        if(!data.available||!Array.isArray(data.recipe?.tracks)||!data.recipe.tracks.length){
+          status.textContent='This composition has no saved baseline. Use “Use composition as is” instead.';
+          button.disabled=false;
+          return;
+        }
+        const tracks=[...data.recipe.tracks].sort((a,b)=>(Number(a.order)||0)-(Number(b.order)||0));
+        const missing=tracks.find(track=>!track.resolvedAsset?.available);
+        if(missing){
+          const sourceName=missing.sourceAsset?.type||'source';
+          status.textContent='A baseline asset is no longer available ('+sourceName+'). Nothing was imported.';
+          button.disabled=false;
+          return;
+        }
+        const canvas=composeWorkspace.querySelector('.compose-canvas');
+        const timelineBefore=canvas?.querySelector('.compose-timeline');
+        const previousCount=timelineBefore?.querySelectorAll('.compose-track-editor').length||0;
+        const created=[];
+        for(const track of tracks){
+          const source=track.sourceAsset||{};
+          const asset=track.resolvedAsset||{};
+          const row=addComposeTrack(String(source.type),{
+            id:String(source.id),
+            assetType:String(source.type),
+            filename:String(asset.filename||'Restored track'),
+            format:String(asset.format||''),
+            soundType:String(asset.soundType||''),
+            durationSeconds:Number(asset.durationSeconds)||Number(track.declaredDuration)||30,
+            assetUrl:String(asset.assetUrl||'')
+          });
+          if(!row)throw new Error('Could not create a restored track.');
+          created.push({row,track});
+        }
+        const timeline=canvas?.querySelector('.compose-timeline');
+        for(const {row,track} of created){
+          const start=Math.max(0,Number(track.startSeconds)||0);
+          row.dataset.startSeconds=String(start);
+          row.dataset.trimIn=String(Math.max(0,Math.min(.98,Number(track.trimIn)||0)));
+          row.dataset.trimOut=String(Math.max(0,Math.min(.98,Number(track.trimOut)||0)));
+          row.dataset.fadeIn=String(Math.max(0,Math.min(10,Number(track.fadeIn)||0)));
+          row.dataset.fadeOut=String(Math.max(0,Math.min(10,Number(track.fadeOut)||0)));
+          row.dataset.composeCutGroup=String(track.cutGroup||'');
+          if(track.cutClip)row.dataset.composeCutClip='1';else delete row.dataset.composeCutClip;
+          row._composeApplyStart?.(start);
+          const fadeIn=row.querySelector('[data-compose-fade="in"]');
+          const fadeOut=row.querySelector('[data-compose-fade="out"]');
+          const volume=row.querySelector('.compose-track-volume input');
+          if(fadeIn){fadeIn.value=String(track.fadeIn||0);fadeIn.dispatchEvent(new Event('input',{bubbles:true}));}
+          if(fadeOut){fadeOut.value=String(track.fadeOut||0);fadeOut.dispatchEvent(new Event('input',{bubbles:true}));}
+          if(volume){volume.value=String(Math.round(Math.max(0,Math.min(1,Number(track.volume)||0))*100));volume.dispatchEvent(new Event('input',{bubbles:true}));}
+          row._composeRenderTrim?.();
+          row._composeRenderCutGeometry?.();
+          row._composeRenderPlayhead?.();
+          const mute=row.querySelector('[data-compose-mute]');
+          if(!!track.muted&&!mute?.classList.contains('active'))mute?.click();
+          if(!!track.solo)row.querySelector('[data-compose-solo]')?.classList.add('active');
+          const model=timeline?._composeModel?.tracks.get(row.dataset.trackId);
+          if(model){
+            model.startSeconds=start;
+            model.trimIn=Number(track.trimIn)||0;
+            model.trimOut=Number(track.trimOut)||0;
+          }
+        }
+        timeline?._syncSoloState?.();
+        timeline?._updateCompositionGeometry?.();
+        timeline?._syncPlayAllButton?.();
+        close();
+        composeWorkspace.querySelector('.compose-canvas')?.scrollIntoView({behavior:'smooth',block:'start'});
+      }catch(error){
+        console.error('compose_baseline_restore_error',error);
+        status.textContent=error?.message||'Could not restore this composition.';
+        button.disabled=false;
+      }
+    });
+  }
+
   function renderCompositionLibrary(){
     const list=composeWorkspace.querySelector('[data-compose-library-list]');
     if(!list)return;
@@ -706,15 +815,7 @@
     list.querySelectorAll('[data-compose-library-use]').forEach(button=>button.addEventListener('click',()=>{
       const item=visible.find(value=>String(value.id)===button.dataset.composeLibraryUse);
       if(!item)return;
-      addComposeTrack('composition',{
-        id:String(item.id),
-        assetType:'composition',
-        filename:String(item.filename||'Saved composition'),
-        format:String(item.format||'WAV'),
-        durationSeconds:Number(item.durationSeconds)||30,
-        assetUrl:'/api/compositions/assets/'+encodeURIComponent(String(item.id))+(String(item.format||'').toUpperCase()==='PCM'?'?preview=1':'')
-      });
-      composeWorkspace.querySelector('.compose-canvas')?.scrollIntoView({behavior:'smooth',block:'start'});
+      openCompositionUseModal(item).catch(error=>{console.error('Composition reuse dialog failed',error);window.alert(error?.message||'Could not reuse this composition.');});
     }));
     list.querySelectorAll('[data-compose-library-rename]').forEach(button=>button.addEventListener('click',()=>{
       const item=visible.find(value=>String(value.id)===button.dataset.composeLibraryRename);
