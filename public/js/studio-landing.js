@@ -776,9 +776,44 @@
       const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||"Could not load saved drafts.");
       composeDrafts=Array.isArray(data.drafts)?data.drafts:[];
       if(!composeDrafts.length){list.innerHTML='<div class="compose-library-state"><strong>No unfinished compositions yet</strong><span>Add a track and leave Autosave on to save your arrangement automatically.</span></div>';return;}
-      list.innerHTML=composeDrafts.map(d=>'<article class="compose-library-item"><div class="compose-library-item-main"><strong>'+escapeHistory(d.name||"Untitled Composition")+'</strong><small>Draft · Not necessarily exported · Last saved '+escapeHistory(formatHistoryDate(d.updatedAt))+'</small></div><div class="compose-library-actions"><button type="button" class="compose-draft-open" data-compose-open-draft="'+escapeHistory(d.id)+'">Open draft</button></div></article>').join("");
+      list.innerHTML=composeDrafts.map(d=>'<article class="compose-library-item"><div class="compose-library-item-main"><strong>'+escapeHistory(d.name||"Untitled Composition")+'</strong><small>Draft · Not necessarily exported · Last saved '+escapeHistory(formatHistoryDate(d.updatedAt))+'</small></div><div class="compose-library-actions"><button type="button" class="compose-draft-open" data-compose-open-draft="'+escapeHistory(d.id)+'">Open draft</button><button type="button" class="compose-draft-delete" data-compose-delete-draft="'+escapeHistory(d.id)+'" aria-label="Delete draft" title="Delete draft">Delete</button></div></article>').join("");
     }catch(error){list.innerHTML='<div class="compose-library-state"><strong>Could not load saved drafts</strong><span>'+escapeHistory(error?.message||"Please try again.")+'</span></div>';}
   }
+  async function deleteComposeDraft(draftId) {
+    const draft=composeDrafts.find(item=>String(item.id)===String(draftId));
+    if(!draft)return;
+    if(!window.confirm('Delete "'+String(draft.name||"Untitled Composition")+'" permanently? This only deletes the draft, not its source audio or completed compositions.'))return;
+    const isOpen=String(composeDraftId||"")===String(draftId);
+    if(isOpen&&composeDraftSaving){window.alert("This draft is currently being saved. Please wait for the save to finish, then delete it.");return;}
+    const list=composeWorkspace.querySelector("[data-compose-drafts-list]");
+    if(list)list.querySelectorAll("button").forEach(button=>button.disabled=true);
+    try{
+      const response=await fetch("/api/compositions/drafts/"+encodeURIComponent(draftId),{method:"DELETE",credentials:"same-origin",cache:"no-store",headers:{accept:"application/json"}});
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(data.error||"Could not delete this draft.");
+      if(isOpen){
+        if(composeDraftDebounce){clearTimeout(composeDraftDebounce);composeDraftDebounce=null;}
+        if(composeDraftInterval){clearInterval(composeDraftInterval);composeDraftInterval=null;}
+        composeDraftSaveSequence++;composeDraftRevision++;composeDraftDirty=false;composeDraftSaving=false;
+        composeDraftId=null;composeDraftName="Untitled Composition";
+        const canvas=composeWorkspace.querySelector(".compose-canvas");
+        const timeline=canvas?.querySelector(".compose-timeline");
+        timeline?._stopAll?.();timeline?.remove();
+        canvas?.querySelector(".compose-add-track-inline")?.remove();
+        if(canvas)canvas.innerHTML='<div class="compose-empty"><p>Import audio assets into your composition one track at a time.</p><button class="compose-add-track" type="button">+ Add Track</button></div>';
+        composeSaveStatus("Draft deleted");
+        const exportButton=composeWorkspace.querySelector("[data-compose-export]");
+        if(exportButton)exportButton.disabled=true;
+        const headActions=composeWorkspace.querySelector(".compose-head-actions");
+        if(headActions)headActions.hidden=true;
+      }
+      await loadCompositionDrafts();
+    }catch(error){
+      window.alert(error?.message||"Could not delete this draft. Your draft and current tracks have been kept.");
+      await loadCompositionDrafts();
+    }
+  }
+
   async function restoreComposeDraft(draftId) {
     const existingTracks=composeWorkspace.querySelectorAll(".compose-timeline .compose-track-editor");
     if(existingTracks.length&&(composeDraftDirty||String(draftId)!==String(composeDraftId||""))&&!window.confirm("Opening this draft will replace the current Compose timeline. Continue?"))return;
@@ -2740,7 +2775,7 @@
       composeWorkspace.addEventListener('change',event=>{if(event.target.closest('.compose-track-editor'))markComposeDraftDirty();});
       composeWorkspace.addEventListener('pointerup',event=>{if(event.target.closest('.compose-track-editor,.compose-timeline-scale'))markComposeDraftDirty();});
       composeWorkspace.addEventListener('mouseup',event=>{if(event.target.closest('.compose-track-editor,.compose-timeline-scale'))markComposeDraftDirty();});
-      composeWorkspace.addEventListener('click',event=>{if(event.target.closest('.compose-add-track,.compose-track-delete-icon,[data-compose-cut],[data-compose-mute],[data-compose-solo]'))setTimeout(markComposeDraftDirty,0);const b=event.target.closest('[data-compose-open-draft]');if(b)restoreComposeDraft(b.dataset.composeOpenDraft);});
+      composeWorkspace.addEventListener('click',event=>{if(event.target.closest('.compose-add-track,.compose-track-delete-icon,[data-compose-cut],[data-compose-mute],[data-compose-solo]'))setTimeout(markComposeDraftDirty,0);const del=event.target.closest('[data-compose-delete-draft]');if(del){deleteComposeDraft(del.dataset.composeDeleteDraft);return;}const b=event.target.closest('[data-compose-open-draft]');if(b)restoreComposeDraft(b.dataset.composeOpenDraft);});
       composeWorkspace.querySelector('[data-compose-drafts-refresh]')?.addEventListener('click',loadCompositionDrafts);
 
       composeWorkspace.querySelector('[data-compose-library-refresh]')?.addEventListener('click',()=>loadCompositionLibrary());
