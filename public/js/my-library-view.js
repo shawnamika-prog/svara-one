@@ -215,7 +215,7 @@
       row.dataset.assetType = String(item.assetType || 'voice');
       row.dataset.folderId = String(item.folderId || '');
       row.dataset.assetUrl = String(item.assetUrl || '');
-      row.innerHTML = `<span class="my-library-name" title="${escapeHtml(item.filename)}"><strong>${escapeHtml(item.filename)}</strong>${item.status !== 'ready' ? `<small>${escapeHtml(item.status)}</small>` : ''}</span><span title="${escapeHtml(item.assetType === 'composition' ? 'Composition' : item.assetType === 'sound' ? 'Sound' : 'Voice')}">${escapeHtml(item.assetType === 'sound' ? 'Sound' : 'Voice')}</span><span>${escapeHtml(formatDate(item.createdAt))}</span><span>${escapeHtml(item.format)}</span><span>${escapeHtml(formatBytes(item.sizeBytes))}</span><span class="my-library-expiry" title="Retention depends on asset type">${escapeHtml(item.assetType === 'composition' ? '—' : formatRemovalDate(item.expiresAt))}</span>`;
+      row.innerHTML = `<span class="my-library-name" title="${escapeHtml(item.filename)}"><strong>${escapeHtml(item.filename)}</strong>${item.status !== 'ready' ? `<small>${escapeHtml(item.status)}</small>` : ''}</span><span title="${escapeHtml(item.assetType === 'composition' ? 'Composition' : item.assetType === 'sound' ? 'Sound' : 'Voice')}">${escapeHtml(item.assetType === 'composition' ? 'Composition' : item.assetType === 'sound' ? 'Sound' : 'Voice')}</span><span>${escapeHtml(formatDate(item.createdAt))}</span><span>${escapeHtml(item.format)}</span><span>${escapeHtml(formatBytes(item.sizeBytes))}</span><span class="my-library-expiry" title="Retention depends on asset type">${escapeHtml(item.assetType === 'composition' ? '—' : formatRemovalDate(item.expiresAt))}</span>`;
       fragment.appendChild(row);
     });
     table.appendChild(fragment);
