@@ -227,24 +227,43 @@
     setTableMessage('Loading your generations…', 'Retrieving your saved SvaraONE creations.', '◇');
     if (filesCount) filesCount.textContent = 'Loading…';
     try {
-      const [response, compositionResponse] = await Promise.all([
+      const [response, soundResponse, compositionResponse] = await Promise.all([
         fetch('/api/generations?limit=500', { method: 'GET', credentials: 'same-origin', cache: 'no-store', headers: { accept: 'application/json' } }),
+        fetch('/api/sound/generations?limit=100&page=1', { method: 'GET', credentials: 'same-origin', cache: 'no-store', headers: { accept: 'application/json' } }),
         fetch('/api/compositions?limit=500', { method: 'GET', credentials: 'same-origin', cache: 'no-store', headers: { accept: 'application/json' } })
       ]);
       const data = await response.json().catch(() => ({}));
+      const soundData = await soundResponse.json().catch(() => ({}));
       const compositionData = await compositionResponse.json().catch(() => ({}));
-      if (response.status === 401 || compositionResponse.status === 401) { window.location.replace('/login.html?next=/studio'); return; }
+      if (response.status === 401 || soundResponse.status === 401 || compositionResponse.status === 401) { window.location.replace('/login.html?next=/studio'); return; }
       if (!response.ok) throw new Error(data.error || `Generation service unavailable (${response.status})`);
+      if (!soundResponse.ok) throw new Error(soundData.error || `Sound service unavailable (${soundResponse.status})`);
       if (!compositionResponse.ok) throw new Error(compositionData.error || `Composition service unavailable (${compositionResponse.status})`);
-      const voiceAndSound = Array.isArray(data.generations) ? data.generations : [];
-      const compositions = (Array.isArray(compositionData.compositions) ? compositionData.compositions : []).map(item => ({
+      const voiceItems = (Array.isArray(data.generations) ? data.generations : []).filter(item => String(item.assetType || 'voice').toLowerCase() !== 'sound');
+      const soundItems = (Array.isArray(soundData.generations) ? soundData.generations : []).map(item => ({
+        ...item, id: String(item.id || ''), assetType: 'sound',
+        filename: String(item.filename || 'Sound asset'),
+        format: String(item.format || '').toUpperCase(),
+        sizeBytes: Number(item.sizeBytes) || 0,
+        createdAt: item.createdAt || null,
+        folderId: item.folderId || null,
+        folderName: item.folderName || null,
+        expiresAt: item.expiresAt || null,
+        assetUrl: '/api/sound/assets/' + encodeURIComponent(String(item.id || ''))
+      }));
+      const compositionItems = (Array.isArray(compositionData.compositions) ? compositionData.compositions : []).map(item => ({
         ...item, id: String(item.id || ''), assetType: 'composition', status: 'ready',
         filename: String(item.filename || 'Composition'), format: String(item.format || '').toUpperCase(),
         sizeBytes: Number(item.sizeBytes) || 0, createdAt: item.createdAt || null,
         folderId: item.folderId || null, folderName: item.folderName || null,
         expiresAt: null
       }));
-      generations = [...voiceAndSound, ...compositions];
+      const unique = new Map();
+      [...voiceItems, ...soundItems, ...compositionItems].forEach(item => {
+        const key = String(item.assetType || 'voice') + ':' + String(item.id || item.filename || '');
+        unique.set(key, item);
+      });
+      generations = [...unique.values()];
       loaded = true;
       render();
     } catch (error) {
