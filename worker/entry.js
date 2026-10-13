@@ -605,6 +605,8 @@ export default {
           cursor = page.cursor;
         } while (scanned < 1000);
 
+        const displayNameRows = await env.DB.prepare("SELECT composition_id,display_name FROM composition_display_names WHERE user_id=?").bind(userId).all();
+        const displayNames = new Map((displayNameRows.results || []).map(row => [String(row.composition_id), String(row.display_name || "")]));
         const assignmentRows = await env.DB.prepare("SELECT composition_id,folder_id FROM composition_folder_assignments WHERE user_id=?").bind(userId).all();
         const folderAssignments = new Map((assignmentRows.results || []).map(row => [String(row.composition_id), String(row.folder_id || "")]));
         const folderIds = [...new Set([...folderAssignments.values()].filter(Boolean))];
@@ -621,9 +623,11 @@ export default {
           const extension = filenameFromKey.split(".").pop()?.toLowerCase() || "wav";
           const id = filenameFromKey.slice(0, -(extension.length + 1));
           const meta = object.customMetadata || {};
-          const filename = String(meta.filename || filenameFromKey);
+          const compositionId = String(meta.compositionExportId || id);
+          const displayName = displayNames.get(compositionId) || "";
+          const filename = displayName ? displayName + "." + extension : String(meta.filename || filenameFromKey);
           return {
-            id: String(meta.compositionExportId || id),
+            id: compositionId,
             filename,
             format: String(meta.format || extension).toUpperCase(),
             mimeType: String(object.httpMetadata?.contentType || (extension === "mp3" ? "audio/mpeg" : extension === "pcm" ? "audio/l16;rate=24000;channels=2" : "audio/wav")),

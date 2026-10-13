@@ -85,6 +85,34 @@ app.fetch = async (request, env, ctx) => {
     }
   }
 
+  if (request.method === "POST" && url.pathname === "/api/compositions/rename") {
+    const userId = await authenticatedUserId(request, env);
+    if (!userId) return json({ error: "Authentication required." }, 401);
+    if (!env.DB || !env.GENERATED_AUDIO) return json({ error: "Composition storage is not configured." }, 503);
+    try {
+      const body = await request.json().catch(() => ({}));
+      const compositionId = String(body?.compositionId || "").trim();
+      let displayName = String(body?.displayName || "").trim();
+      if (!/^[0-9a-f-]{36}$/i.test(compositionId)) return json({ error: "Composition not found." }, 404);
+      displayName = displayName.replace(/\.(wav|mp3|pcm)$/i, "").trim();
+      if (!displayName) return json({ error: "Enter a composition name." }, 400);
+      if (displayName.length > 80 || /[\/\\\u0000-\u001f\u007f]/.test(displayName)) return json({ error: "Use up to 80 characters and avoid file-path characters." }, 400);
+      const prefix = "users/" + userId + "/compositions/" + compositionId + ".";
+      const listed = await env.GENERATED_AUDIO.list({ prefix, limit: 5 });
+      const asset = (listed.objects || []).find(object => String(object.key || "").startsWith(prefix) && /\.(wav|mp3|pcm)$/i.test(String(object.key || "")));
+      if (!asset?.key) return json({ error: "Composition not found." }, 404);
+      const metadata = await env.GENERATED_AUDIO.head(asset.key);
+      if (!metadata || (metadata.customMetadata?.userId && metadata.customMetadata.userId !== userId)) return json({ error: "Composition not found." }, 404);
+      await env.DB.prepare("INSERT INTO composition_display_names (composition_id,user_id,display_name,updated_at) VALUES (?,?,?,strftime('%Y-%m-%dT%H:%M:%fZ','now')) ON CONFLICT(composition_id,user_id) DO UPDATE SET display_name=excluded.display_name,updated_at=excluded.updated_at").bind(compositionId,userId,displayName).run();
+      const keyFilename = String(asset.key).split("/").pop() || "";
+      const extension = keyFilename.split(".").pop()?.toLowerCase() || "wav";
+      return json({ success: true, compositionId, displayName, filename: displayName + "." + extension });
+    } catch (error) {
+      console.error("composition_rename_error", error);
+      return json({ error: "Could not rename the composition. Please try again." }, 500);
+    }
+  }
+
   if (request.method === "DELETE" && url.pathname.startsWith("/api/compositions/") && url.pathname.split("/").length === 4) {
     const userId = await authenticatedUserId(request, env);
     if (!userId) return json({ error: "Authentication required." }, 401);
