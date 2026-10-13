@@ -1286,6 +1286,26 @@
       filenameInput.disabled=true;
       formatSelect.disabled=true;
       try{
+        const recipeTracks=currentRows.map((row,index)=>{
+          const volume=row.querySelector('.compose-track-volume input');
+          const mute=row.querySelector('[data-compose-mute]');
+          const solo=row.querySelector('[data-compose-solo]');
+          return {
+            trackId:String(row.dataset.trackId||('track-'+(index+1))),
+            sourceAsset:{type:String(row.dataset.composeAssetType||''),id:String(row.dataset.composeAssetId||'')},
+            startSeconds:Number(row.dataset.startSeconds||0)||0,
+            trimIn:Number(row.dataset.trimIn||0)||0,
+            trimOut:Number(row.dataset.trimOut||0)||0,
+            fadeIn:Number(row.dataset.fadeIn||0)||0,
+            fadeOut:Number(row.dataset.fadeOut||0)||0,
+            volume:Math.max(0,Math.min(1,Number(volume?.value||100)/100)),
+            muted:!!mute?.classList.contains('active'),
+            solo:!!solo?.classList.contains('active'),
+            declaredDuration:Number(row.dataset.sourceDuration||row.dataset.assetDuration||30)||30,
+            cutGroup:String(row.dataset.composeCutGroup||''),
+            cutClip:row.dataset.composeCutClip==='1'
+          };
+        });
         const result=await renderCompositionAudio(currentRows,message=>{status.textContent=message;},details.sampleRate);
         status.textContent='Encoding '+details.label+'…';
         const blob=format==='wav'
@@ -1312,10 +1332,26 @@
         const data=await response.json().catch(()=>({}));
         if(!response.ok)throw new Error(data.error||'Composition export failed ('+response.status+').');
         if(!data.id)throw new Error('The audio was uploaded but the server did not return an asset ID.');
+        let recipeSaveFailed=false;
+        try{
+          const recipeResponse=await fetch('/api/compositions/recipe',{
+            method:'POST',
+            credentials:'same-origin',
+            cache:'no-store',
+            headers:{'content-type':'application/json'},
+            body:JSON.stringify({compositionId:String(data.id),tracks:recipeTracks})
+          });
+          const recipeData=await recipeResponse.json().catch(()=>({}));
+          if(!recipeResponse.ok)throw new Error(recipeData.error||'Editable baseline save failed ('+recipeResponse.status+').');
+        }catch(recipeError){
+          recipeSaveFailed=true;
+          console.warn('compose_recipe_save_failed',recipeError);
+        }
         const assetUrl='/api/compositions/assets/'+encodeURIComponent(String(data.id));
         const previewUrl=assetUrl+(format==='pcm'?'?preview=1':'');
         modal.remove();
         openComposeSavedPreview({url:previewUrl,downloadUrl:assetUrl+'?download=1',filename:String(data.filename||filename),format:details.label,sizeBytes:Number(data.sizeBytes||blob.size),durationSeconds:Number(data.durationSeconds||result.durationSeconds)});
+        if(recipeSaveFailed)window.alert('The rendered composition was saved, but its editable baseline was not saved. Apply migration 0014_composition_recipes.sql and check that every track source is still available, then export again.');
         loadCompositionLibrary();
       }catch(error){
         status.textContent=error?.message||'Export failed. No saved asset was confirmed.';
