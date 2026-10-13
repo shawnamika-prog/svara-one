@@ -210,15 +210,21 @@
       m.confirm.disabled = true;
       m.confirm.textContent = 'Deleting…';
       try {
-        for (const filename of names) {
-          const response = await fetch('/api/generations/delete', {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: { 'content-type': 'application/json', accept: 'application/json' },
-            body: JSON.stringify({ filename })
-          });
+        for (const asset of assets) {
+          let response;
+          if (asset.assetType === 'composition') {
+            response = await fetch('/api/compositions/' + encodeURIComponent(asset.id), {
+              method: 'DELETE', credentials: 'same-origin', headers: { accept: 'application/json' }
+            });
+          } else {
+            response = await fetch('/api/library/assets/delete', {
+              method: 'POST', credentials: 'same-origin',
+              headers: { 'content-type': 'application/json', accept: 'application/json' },
+              body: JSON.stringify({ assetId: asset.id, assetType: asset.assetType })
+            });
+          }
           const data = await response.json().catch(() => ({}));
-          if (!response.ok) throw new Error(data.error || `Could not delete ${filename}`);
+          if (!response.ok) throw new Error(data.error || `Could not delete ${asset.filename}`);
         }
         m.close();
         clear();
