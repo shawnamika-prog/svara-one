@@ -47,3 +47,12 @@
 - After audio export succeeds and the existing editable recipe save succeeds, the UI calls the owner-authenticated draft completion endpoint. The Worker verifies the exported R2 composition belongs to the authenticated user, then records the composition ID and completion timestamp.
 - If export or recipe persistence fails, the draft is retained. If completion fails, the UI warns and the draft remains listed until completion is confirmed.
 - **Verification:** UI and Worker syntax checks pass; list filtering, completion endpoint and recipe-before-completion ordering confirmed in source. Live D1/browser round-trip remains pending. Apply migration 0016 before live test.
+
+
+### S15.4 — Delete unfinished drafts (2026-10-13)
+
+- Added authenticated owner-scoped DELETE `/api/compositions/drafts/:draftId`. Only unfinished drafts can be deleted; completed drafts and Composition History assets are not affected. No source audio is deleted.
+- Added a Delete action and confirmation to each Unfinished Compositions row.
+- When deleting the currently open draft, the UI first requires the server deletion to succeed, then stops playback, removes the timeline and inline track controls, restores the empty Compose canvas, clears the active draft ID and dirty/save state, and cancels pending debounce/periodic autosave work. An in-flight save blocks deletion to avoid a save/delete race.
+- On deletion failure, the active workspace is preserved and the user is shown an error.
+- **Verification:** source edits are pushed to main; live browser/Worker/D1 testing remains for the user. Migration 0016 must be applied for the current draft completion schema.
