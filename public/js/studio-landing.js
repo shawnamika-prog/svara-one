@@ -1529,12 +1529,32 @@
           recipeSaveFailed=true;
           console.warn('compose_recipe_save_failed',recipeError);
         }
+        let draftCompletionFailed=false;
+        if(!recipeSaveFailed&&composeDraftId){
+          try{
+            const completionResponse=await fetch('/api/compositions/drafts/'+encodeURIComponent(composeDraftId)+'/complete',{
+              method:'POST',credentials:'same-origin',cache:'no-store',
+              headers:{'content-type':'application/json',accept:'application/json'},
+              body:JSON.stringify({compositionId:String(data.id)})
+            });
+            const completionData=await completionResponse.json().catch(()=>({}));
+            if(!completionResponse.ok)throw new Error(completionData.error||'Draft completion failed ('+completionResponse.status+').');
+            composeDraftDirty=false;
+            composeDraftId=null;
+            composeSaveStatus('Exported');
+          }catch(completionError){
+            draftCompletionFailed=true;
+            console.warn('compose_draft_completion_failed',completionError);
+          }
+        }
         const assetUrl='/api/compositions/assets/'+encodeURIComponent(String(data.id));
         const previewUrl=assetUrl+(format==='pcm'?'?preview=1':'');
         modal.remove();
         openComposeSavedPreview({url:previewUrl,downloadUrl:assetUrl+'?download=1',filename:String(data.filename||filename),format:details.label,sizeBytes:Number(data.sizeBytes||blob.size),durationSeconds:Number(data.durationSeconds||result.durationSeconds)});
-        if(recipeSaveFailed)window.alert('The rendered composition was saved, but its editable baseline was not saved. Apply migration 0014_composition_recipes.sql and check that every track source is still available, then export again.');
+        if(recipeSaveFailed)window.alert('The rendered composition was saved, but its editable baseline was not saved. The unfinished draft has been retained. Check migration 0014_composition_recipes.sql and source availability before retrying.');
+        else if(draftCompletionFailed)window.alert('The rendered composition and editable recipe were saved, but SvaraONE could not mark the draft as completed. The draft remains available until completion is confirmed.');
         loadCompositionLibrary();
+        loadCompositionDrafts();
       }catch(error){
         status.textContent=error?.message||'Export failed. No saved asset was confirmed.';
         status.classList.add('error');
