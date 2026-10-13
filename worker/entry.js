@@ -647,8 +647,11 @@ export default {
         });
       } catch (error) {
         try { await env.GENERATED_AUDIO.delete(key); } catch (cleanupError) { console.error("composition_export_cleanup_error", cleanupError); }
-        if (!reservation.alreadyCharged) await refundComposeExportCredits(userId, reservation.cost, referenceId, env);
-        catch (refundError) { console.error("compose_export_credit_refund_error", refundError); }
+        try {
+          if (!reservation.alreadyCharged) await refundComposeExportCredits(userId, reservation.cost, referenceId, env);
+        } catch (refundError) {
+          console.error("compose_export_credit_refund_error", refundError);
+        }
         if (error?.message === "COMPOSITION_EXPORT_TOO_LARGE") return json({ error: "Composition export exceeds the current 80 MB limit." }, 413);
         if (error?.message === "INVALID_COMPOSITION_WAV") return json({ error: "The uploaded file is not a complete supported PCM WAV." }, 400);
         if (error?.message === "INVALID_COMPOSITION_MP3") return json({ error: "The uploaded file is not a valid MP3 stream." }, 400);
