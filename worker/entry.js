@@ -538,6 +538,7 @@ export default {
       });
       if (reservation?.error) return json({ error: "Compose export credits could not be reserved. No export was saved." }, 503);
       if (!reservation) return json({ error: "Not enough credits to export this composition.", creditsRequired: exportCost }, 402);
+      if (reservation.alreadyCharged) return json({ error: "This export attempt has already been charged. Refresh Composition History before starting a new export." }, 409);
 
       try {
         let receivedBytes = 0;
@@ -644,7 +645,7 @@ export default {
         });
       } catch (error) {
         try { await env.GENERATED_AUDIO.delete(key); } catch (cleanupError) { console.error("composition_export_cleanup_error", cleanupError); }
-        try { await refundComposeExportCredits(userId, reservation.cost, referenceId, env); }
+        if (!reservation.alreadyCharged) await refundComposeExportCredits(userId, reservation.cost, referenceId, env);
         catch (refundError) { console.error("compose_export_credit_refund_error", refundError); }
         if (error?.message === "COMPOSITION_EXPORT_TOO_LARGE") return json({ error: "Composition export exceeds the current 80 MB limit." }, 413);
         if (error?.message === "INVALID_COMPOSITION_WAV") return json({ error: "The uploaded file is not a complete supported PCM WAV." }, 400);
