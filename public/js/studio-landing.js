@@ -352,6 +352,44 @@
     <div class="sound-history-pagination"><span id="soundHistoryPageInfo">Page 1</span><div><button id="soundHistoryPrev" class="sound-history-page-button" type="button">Previous</button><button id="soundHistoryNext" class="sound-history-page-button" type="button">Next</button></div></div>`;
   workspace.appendChild(soundHistory);
 
+  const voiceHistoryStyles=document.createElement('style');
+  voiceHistoryStyles.id='voice-history-styles';
+  voiceHistoryStyles.textContent=`
+    .voice-history-workspace{grid-column:1/-1;margin-top:18px;border:1px solid #ffffff10;background:linear-gradient(180deg,#0a1020,#080d19);border-radius:18px;overflow:hidden;box-shadow:0 20px 60px #0004;color:#dce8f3}
+    .voice-history-head{padding:22px;border-bottom:1px solid #ffffff0b;display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+    .voice-history-head small{color:#31e3c8;font-size:9px;letter-spacing:.2em;font-weight:800}.voice-history-head h2{margin:6px 0 0;font-size:22px;letter-spacing:-.04em}.voice-history-head p{margin:7px 0 0;color:#8091a8;font-size:11px;line-height:1.5}
+    .voice-history-refresh,.voice-history-page-button{border:1px solid #ffffff12;border-radius:9px;background:#0b1523;color:#aebdcb;padding:9px 12px;font:700 9px Inter,system-ui,sans-serif;cursor:pointer}.voice-history-refresh:hover,.voice-history-page-button:hover:not(:disabled){background:#111e2e;color:#fff}.voice-history-page-button:disabled{opacity:.3;cursor:default}
+    .voice-history-toolbar{display:grid;grid-template-columns:minmax(180px,2fr) repeat(5,minmax(110px,1fr));gap:8px;padding:14px 20px 0}
+    .voice-history-toolbar input,.voice-history-toolbar select{box-sizing:border-box;width:100%;min-width:0;border:1px solid #ffffff12;border-radius:9px;background:#07121d;color:#dbe6ef;padding:10px 11px;outline:none;font:500 10px Inter,system-ui,sans-serif}.voice-history-toolbar input:focus,.voice-history-toolbar select:focus{border-color:#31e3c877;box-shadow:0 0 0 3px #31e3c80c}
+    .voice-history-table-head,.voice-history-item{display:grid;grid-template-columns:minmax(150px,1.4fr) minmax(180px,2fr) 65px minmax(85px,.8fr) 95px minmax(115px,1fr) 190px;gap:10px;align-items:center}
+    .voice-history-table-head{padding:13px 34px 9px;color:#62768b;font-size:8px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;border-bottom:1px solid #ffffff0b}
+    .voice-history-list{padding:12px 20px 16px;display:grid;gap:8px}.voice-history-item{padding:12px;border:1px solid #ffffff0b;border-radius:11px;background:#09111e}.voice-history-item:hover{border-color:#31e3c82b;background:#0b1523}
+    .voice-history-main,.voice-history-script{min-width:0}.voice-history-main strong{display:block;color:#dce8f3;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.voice-history-main small,.voice-history-script small{display:block;margin-top:4px;color:#667b91;font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.voice-history-script{color:#8498ad;font-size:10px;line-height:1.45;overflow:hidden}.voice-history-meta{color:#91a3b7;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.voice-history-status{font-size:8px;text-transform:uppercase;letter-spacing:.06em;font-weight:800}.voice-history-status.ready{color:#31e3c8}.voice-history-status.generating{color:#d7a8ff}.voice-history-status.failed,.voice-history-status.storage_failed{color:#ef7777}
+    .voice-history-actions{display:flex;align-items:center;gap:5px;min-width:0}.voice-history-action{width:29px;height:29px;flex:0 0 29px;padding:0;border:1px solid #ffffff10;border-radius:50%;background:#0b1523;color:#b9c9d8;font:700 11px Inter,system-ui,sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center}.voice-history-action:hover:not(:disabled){border-color:#31e3c866;background:#10252b;color:#fff}.voice-history-action:disabled{opacity:.28;cursor:default}.voice-history-action.rename{color:#cdb0ff}.voice-history-action.delete{background:#2b151a;border-color:#5d2931;color:#ff7777}.voice-history-action.delete:hover{background:#241521;border-color:#a85cff66;color:#ff7777}
+    .voice-history-state{padding:42px 20px;text-align:center;color:#71869d}.voice-history-state strong{display:block;color:#b7c7d7;font-size:12px}.voice-history-state span{display:block;margin-top:6px;font-size:10px}.voice-history-pagination{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:0 20px 18px;color:#71869d;font-size:9px}.voice-history-pagination>div{display:flex;gap:7px}
+    .voice-history-modal{position:fixed;inset:0;z-index:1260;display:flex;align-items:center;justify-content:center;padding:24px}.voice-history-modal-backdrop{position:absolute;inset:0;background:#000c;backdrop-filter:blur(8px)}.voice-history-dialog{position:relative;width:min(500px,calc(100vw - 32px));background:linear-gradient(180deg,#091522,#050b15);border:1px solid rgba(49,227,200,.32);border-radius:15px;box-shadow:0 26px 76px #000b;padding:20px;color:#b9c8d6}.voice-history-dialog header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.voice-history-dialog header small{color:#31e3c8;font-size:9px;letter-spacing:.14em;font-weight:800}.voice-history-dialog h3{margin:5px 0 0;color:#e7eef5;font-size:17px}.voice-history-close{width:30px;height:30px;border:1px solid #ffffff10;border-radius:8px;background:#0b1b29;color:#91a5b7;font-size:20px;line-height:1;cursor:pointer}.voice-history-dialog label{display:block;margin:18px 0 7px;color:#9fb2c5;font-size:11px}.voice-history-dialog input{box-sizing:border-box;width:100%;padding:11px 12px;border:1px solid #ffffff14;border-radius:9px;background:#07121d;color:#dbe6ef;outline:none;font:12px Inter,system-ui,sans-serif}.voice-history-dialog p{margin:9px 0 0;color:#71879a;font-size:10px;line-height:1.5}.voice-history-dialog .error{color:#ff8d8d}.voice-history-dialog footer{display:flex;justify-content:flex-end;gap:9px;margin-top:20px}.voice-history-dialog footer button{padding:9px 14px;border:1px solid #ffffff12;border-radius:8px;background:#0b1523;color:#9fb2c5;font:700 10px Inter,system-ui,sans-serif;cursor:pointer}.voice-history-dialog footer button.primary{background:#102b2c;border-color:#31e3c866;color:#b9fff4}.voice-history-dialog footer button.danger{background:#2b151a;border-color:#a63e49;color:#ff9da5}.voice-history-dialog button:disabled{opacity:.55;cursor:default}
+    @media(max-width:1100px){.voice-history-toolbar{grid-template-columns:repeat(3,minmax(0,1fr))}.voice-history-toolbar input{grid-column:span 2}.voice-history-table-head{display:none}.voice-history-item{grid-template-columns:minmax(0,1.4fr) minmax(0,2fr) 55px minmax(80px,.8fr);gap:9px}.voice-history-item .voice-history-status,.voice-history-item .voice-history-date{display:none}.voice-history-actions{grid-column:1/-1;justify-content:flex-end}}
+    @media(max-width:620px){.voice-history-head{padding:17px}.voice-history-head h2{font-size:19px}.voice-history-toolbar{grid-template-columns:repeat(2,minmax(0,1fr));padding:12px}.voice-history-toolbar input{grid-column:1/-1}.voice-history-list{padding:12px}.voice-history-item{grid-template-columns:minmax(0,1fr) auto;gap:8px}.voice-history-script{grid-column:1/-1;grid-row:2}.voice-history-item .voice-history-format,.voice-history-item .voice-history-folder{display:none}.voice-history-actions{grid-column:1/-1}.voice-history-pagination{padding:0 12px 14px}}
+  `;
+  document.head.appendChild(voiceHistoryStyles);
+  const voiceHistory=document.createElement('section');
+  voiceHistory.id='voiceHistoryWorkspace';
+  voiceHistory.className='voice-history-workspace';
+  voiceHistory.innerHTML=`
+    <div class="voice-history-head"><div><small>VOICE HISTORY</small><h2>Your voice generations</h2><p>Find, preview, organize and manage your generated Voice assets.</p></div><button id="voiceHistoryRefresh" class="voice-history-refresh" type="button">Refresh</button></div>
+    <div class="voice-history-toolbar">
+      <input id="voiceHistorySearch" type="search" placeholder="Search voices, scripts, filenames…" aria-label="Search Voice history">
+      <select id="voiceHistoryVoice" aria-label="Filter by voice"><option value="">All voices</option></select>
+      <select id="voiceHistoryFormat" aria-label="Filter by format"><option value="">All formats</option><option value="mp3">MP3</option><option value="wav">WAV</option><option value="pcm">PCM</option></select>
+      <select id="voiceHistoryStatus" aria-label="Filter by status"><option value="">All statuses</option><option value="ready">Ready</option><option value="generating">Generating</option><option value="failed">Failed</option><option value="storage_failed">Storage failed</option></select>
+      <select id="voiceHistoryDate" aria-label="Filter by date"><option value="">All dates</option><option value="today">Today</option><option value="7d">Last 7 days</option><option value="30d">Last 30 days</option></select>
+      <select id="voiceHistoryFolder" aria-label="Filter by folder"><option value="">All folders</option><option value="__unfiled__">Unfiled</option></select>
+    </div>
+    <div class="voice-history-table-head"><span>Generation</span><span>Script</span><span>Format</span><span>Folder</span><span>Status</span><span>Date</span><span>Actions</span></div>
+    <div id="voiceHistoryList" class="voice-history-list"><div class="voice-history-state"><strong>Loading Voice history…</strong><span>Retrieving your saved generations.</span></div></div>
+    <div class="voice-history-pagination"><span id="voiceHistoryPageInfo">Page 1</span><div><button id="voiceHistoryPrev" class="voice-history-page-button" type="button" disabled>Previous</button><button id="voiceHistoryNext" class="voice-history-page-button" type="button" disabled>Next</button></div></div>`;
+  voiceView.appendChild(voiceHistory);
+
 
   const placeholder=document.createElement('section');
   placeholder.id='studioPlaceholder';
@@ -2471,6 +2509,7 @@
     setActive(view);
     if(view==='library')window.SvaraLibrary?.refresh?.();
     if(view==='sound')loadSoundHistory();
+    if(view==='voice')loadVoiceHistory();
     window.scrollTo({top:0,behavior:'smooth'});
   }
 
@@ -2562,6 +2601,165 @@
   soundHistorySearch?.addEventListener('input',()=>{clearTimeout(soundHistorySearch._timer);soundHistorySearch._timer=setTimeout(resetSoundHistory,250);});
   loadSoundCapabilities();
   loadSoundHistoryFolders();
+  const voiceHistoryList=document.getElementById('voiceHistoryList');
+  const voiceHistoryRefresh=document.getElementById('voiceHistoryRefresh');
+  const voiceHistorySearch=document.getElementById('voiceHistorySearch');
+  const voiceHistoryVoice=document.getElementById('voiceHistoryVoice');
+  const voiceHistoryFormat=document.getElementById('voiceHistoryFormat');
+  const voiceHistoryStatus=document.getElementById('voiceHistoryStatus');
+  const voiceHistoryDate=document.getElementById('voiceHistoryDate');
+  const voiceHistoryFolder=document.getElementById('voiceHistoryFolder');
+  const voiceHistoryPrev=document.getElementById('voiceHistoryPrev');
+  const voiceHistoryNext=document.getElementById('voiceHistoryNext');
+  const voiceHistoryPageInfo=document.getElementById('voiceHistoryPageInfo');
+  let voiceHistoryPage=1;
+  let voiceHistoryLoading=false;
+  let voiceHistoryCurrentItems=[];
+  let voiceHistoryAudio=null;
+  let voiceHistoryPlayingButton=null;
+
+  const stopVoiceHistoryAudio=()=>{
+    if(voiceHistoryAudio){voiceHistoryAudio.pause();voiceHistoryAudio.removeAttribute('src');voiceHistoryAudio.load();voiceHistoryAudio.remove();voiceHistoryAudio=null;}
+    if(voiceHistoryPlayingButton){voiceHistoryPlayingButton.textContent='▶';voiceHistoryPlayingButton=null;}
+  };
+  const loadVoiceHistoryFolders=async()=>{
+    try{
+      const response=await fetch('/api/generations/folders',{credentials:'same-origin',cache:'no-store',headers:{accept:'application/json'}});
+      const data=await response.json().catch(()=>({}));
+      if(response.status===401){window.location.replace('/login.html?next=/studio');return;}
+      if(!response.ok)throw new Error(data.error||'Could not load folders.');
+      const current=voiceHistoryFolder?.value||'';
+      voiceHistoryFolder.innerHTML='<option value="">All folders</option><option value="__unfiled__">Unfiled</option>'+(Array.isArray(data.folders)?data.folders.map(folder=>'<option value="'+escapeHistory(folder.id)+'">'+escapeHistory(folder.name)+'</option>').join(''):'');
+      if(current)voiceHistoryFolder.value=current;
+    }catch(error){if(voiceHistoryFolder)voiceHistoryFolder.innerHTML='<option value="">All folders</option><option value="__unfiled__">Unfiled</option>';}
+  };
+  const populateVoiceHistoryVoices=()=>{
+    if(!voiceHistoryVoice)return;
+    const current=voiceHistoryVoice.value;
+    const voices=Array.isArray(window.SVARA_VOICES)?window.SVARA_VOICES:[];
+    voiceHistoryVoice.innerHTML='<option value="">All voices</option>'+voices.map(voice=>'<option value="'+escapeHistory(voice.id)+'">'+escapeHistory(voice.name||voice.id)+'</option>').join('');
+    if(current&&voices.some(voice=>String(voice.id)===current))voiceHistoryVoice.value=current;
+  };
+  window.addEventListener('svara:voices-updated',populateVoiceHistoryVoices);
+  populateVoiceHistoryVoices();
+
+  const renderVoiceHistory=items=>{
+    voiceHistoryCurrentItems=items;
+    if(!items.length){voiceHistoryList.innerHTML='<div class="voice-history-state"><strong>No matching Voice generations</strong><span>Try changing your search or filters.</span></div>';return;}
+    voiceHistoryList.innerHTML=items.map(item=>{
+      const ready=item.status==='ready'&&Boolean(item.assetUrl);
+      const filename=String(item.filename||'Voice generation');
+      const script=String(item.script||'').trim();
+      const scriptPreview=script?script.slice(0,220)+(script.length>220?'…':''):'No script recorded';
+      const status=String(item.status||'failed');
+      const url=ready?String(item.assetUrl):'';
+      const download=ready?String(item.downloadUrl||item.assetUrl+'&download=1'):'';
+      return '<article class="voice-history-item">'+
+        '<div class="voice-history-main"><strong title="'+escapeHistory(filename)+'">'+escapeHistory(filename)+'</strong><small title="'+escapeHistory(item.voiceName||'Voice')+'">'+escapeHistory(item.voiceName||'Voice')+' · '+Number(item.characterCount||0).toLocaleString()+' characters</small></div>'+
+        '<div class="voice-history-script" title="'+escapeHistory(script)+'">'+escapeHistory(scriptPreview)+'</div>'+
+        '<span class="voice-history-meta voice-history-format">'+escapeHistory(String(item.format||'').toUpperCase())+'</span>'+
+        '<span class="voice-history-meta voice-history-folder">'+escapeHistory(item.folderName||'Unfiled')+'</span>'+
+        '<span class="voice-history-status">'+escapeHistory(status.replace('_',' '))+'</span>'+
+        '<span class="voice-history-meta voice-history-date">'+escapeHistory(formatHistoryDate(item.createdAt))+'</span>'+
+        '<div class="voice-history-actions">'+
+          '<button class="voice-history-action" type="button" data-voice-history-play="'+escapeHistory(item.id)+'" data-url="'+escapeHistory(url)+'" '+(!ready?'disabled':'')+' aria-label="Preview Voice" title="Preview">'+(ready?'▶':'—')+'</button>'+
+          '<button class="voice-history-action" type="button" data-voice-history-download="'+escapeHistory(item.id)+'" data-url="'+escapeHistory(download)+'" data-filename="'+escapeHistory(filename)+'" '+(!ready?'disabled':'')+' aria-label="Download Voice" title="Download">↓</button>'+
+          '<button class="voice-history-action" type="button" data-voice-history-move="'+escapeHistory(item.id)+'" data-folder-id="'+escapeHistory(item.folderId||'')+'" aria-label="Move Voice" title="Move to folder">↗</button>'+
+          '<button class="voice-history-action rename" type="button" data-voice-history-rename="'+escapeHistory(item.id)+'" aria-label="Rename Voice" title="Rename">✎</button>'+
+          '<button class="voice-history-action delete" type="button" data-voice-history-delete="'+escapeHistory(item.id)+'" aria-label="Delete Voice" title="Delete">⌫</button>'+
+        '</div></article>';
+    }).join('');
+    voiceHistoryList.querySelectorAll('[data-voice-history-play]').forEach(button=>button.addEventListener('click',()=>{
+      if(voiceHistoryPlayingButton===button){stopVoiceHistoryAudio();return;}
+      stopVoiceHistoryAudio();
+      const url=button.dataset.url;
+      if(!url)return;
+      voiceHistoryAudio=new Audio(url);
+      voiceHistoryPlayingButton=button;
+      button.textContent='Ⅱ';
+      voiceHistoryAudio.addEventListener('ended',stopVoiceHistoryAudio,{once:true});
+      voiceHistoryAudio.addEventListener('error',()=>{stopVoiceHistoryAudio();button.title='Preview unavailable';},{once:true});
+      voiceHistoryAudio.play().catch(()=>{stopVoiceHistoryAudio();button.title='Preview unavailable';});
+    }));
+    voiceHistoryList.querySelectorAll('[data-voice-history-download]').forEach(button=>button.addEventListener('click',()=>{
+      const url=button.dataset.url;
+      if(!url)return;
+      const anchor=document.createElement('a');anchor.href=url;anchor.download=button.dataset.filename||'voice-audio';anchor.rel='noopener';document.body.appendChild(anchor);anchor.click();anchor.remove();
+    }));
+    voiceHistoryList.querySelectorAll('[data-voice-history-move]').forEach(button=>button.addEventListener('click',()=>openVoiceHistoryMoveModal(button.dataset.voiceHistoryMove,button.dataset.folderId||'').catch(error=>console.error('Voice move dialog failed',error))));
+    voiceHistoryList.querySelectorAll('[data-voice-history-rename]').forEach(button=>button.addEventListener('click',()=>{const item=voiceHistoryCurrentItems.find(x=>String(x.id)===button.dataset.voiceHistoryRename);if(item)openVoiceHistoryRenameModal(item);}));
+    voiceHistoryList.querySelectorAll('[data-voice-history-delete]').forEach(button=>button.addEventListener('click',()=>{const item=voiceHistoryCurrentItems.find(x=>String(x.id)===button.dataset.voiceHistoryDelete);if(item)openVoiceHistoryDeleteModal(item);}));
+  };
+
+  const loadVoiceHistory=async()=>{
+    if(!voiceHistoryList||voiceHistoryLoading)return;
+    voiceHistoryLoading=true;
+    voiceHistoryList.innerHTML='<div class="voice-history-state"><strong>Loading Voice history…</strong><span>Retrieving your saved generations.</span></div>';
+    const params=new URLSearchParams({limit:'20',page:String(voiceHistoryPage)});
+    [[voiceHistorySearch,'search'],[voiceHistoryVoice,'voiceId'],[voiceHistoryFormat,'format'],[voiceHistoryStatus,'status'],[voiceHistoryDate,'date'],[voiceHistoryFolder,'folderId']].forEach(([control,key])=>{const value=String(control?.value||'').trim();if(value)params.set(key,value);});
+    try{
+      const response=await fetch('/api/voice/generations?'+params.toString(),{credentials:'same-origin',cache:'no-store',headers:{accept:'application/json'}});
+      const data=await response.json().catch(()=>({}));
+      if(response.status===401){window.location.replace('/login.html?next=/studio');return;}
+      if(!response.ok)throw new Error(data.error||'Voice History unavailable ('+response.status+')');
+      const items=Array.isArray(data.generations)?data.generations:[];
+      const pageCount=Number(data.pageCount||0);
+      if(voiceHistoryPageInfo)voiceHistoryPageInfo.textContent=pageCount?'Page '+data.page+' of '+pageCount+' · '+data.total+' total':'No results';
+      if(voiceHistoryPrev)voiceHistoryPrev.disabled=!data.hasPrevious;
+      if(voiceHistoryNext)voiceHistoryNext.disabled=!data.hasNext;
+      renderVoiceHistory(items);
+    }catch(error){
+      voiceHistoryList.innerHTML='<div class="voice-history-state"><strong>Could not load Voice history</strong><span>'+escapeHistory(error?.message||'Please try again.')+'</span></div>';
+    }finally{voiceHistoryLoading=false;}
+  };
+
+  const openVoiceHistoryModal=(eyebrow,title,body,confirmLabel,confirmClass,onConfirm)=>{
+    const modal=document.createElement('div');modal.className='voice-history-modal';
+    modal.innerHTML='<div class="voice-history-modal-backdrop"></div><section class="voice-history-dialog" role="dialog" aria-modal="true"><header><div><small>'+escapeHistory(eyebrow)+'</small><h3>'+escapeHistory(title)+'</h3></div><button type="button" class="voice-history-close" aria-label="Close">×</button></header>'+body+'<footer><button type="button" data-voice-cancel>Cancel</button><button type="button" class="'+confirmClass+'" data-voice-confirm>'+escapeHistory(confirmLabel)+'</button></footer></section>';
+    const close=()=>modal.remove();
+    modal.querySelector('.voice-history-close').addEventListener('click',close);
+    modal.querySelector('[data-voice-cancel]').addEventListener('click',close);
+    modal.querySelector('.voice-history-modal-backdrop').addEventListener('click',close);
+    document.body.appendChild(modal);
+    return {modal,close};
+  };
+  const openVoiceHistoryRenameModal=item=>{
+    const modal=document.createElement('div');modal.className='voice-history-modal';
+    modal.innerHTML='<div class="voice-history-modal-backdrop"></div><section class="voice-history-dialog" role="dialog" aria-modal="true"><header><div><small>VOICE HISTORY</small><h3>Rename Voice</h3></div><button type="button" class="voice-history-close" aria-label="Close">×</button></header><label for="voiceHistoryRenameInput">Generation filename</label><input id="voiceHistoryRenameInput" maxlength="100" autocomplete="off" spellcheck="false"><p>The file extension is preserved automatically.</p><p class="error" hidden></p><footer><button type="button" data-voice-cancel>Cancel</button><button type="button" class="primary" data-voice-confirm>Rename</button></footer></section>';
+    const input=modal.querySelector('#voiceHistoryRenameInput');input.value=String(item.filename||'').replace(/\.(mp3|wav|pcm)$/i,'');
+    const close=()=>modal.remove();const error=message=>{const p=modal.querySelector('.error');p.textContent=message;p.hidden=false;};
+    modal.querySelector('.voice-history-close').addEventListener('click',close);modal.querySelector('[data-voice-cancel]').addEventListener('click',close);modal.querySelector('.voice-history-modal-backdrop').addEventListener('click',close);
+    modal.querySelector('[data-voice-confirm]').addEventListener('click',async()=>{const name=String(input.value||'').trim().replace(/\.(mp3|wav|pcm)$/i,'');if(!name){error('Enter a filename.');return;}if(name.length>100){error('Use 100 characters or fewer.');return;}const button=modal.querySelector('[data-voice-confirm]');button.disabled=true;try{const response=await fetch('/api/voice/generations/rename',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json',accept:'application/json'},body:JSON.stringify({generationId:item.id,displayName:name})});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||'Could not rename Voice.');close();await loadVoiceHistory();}catch(e){error(e.message||'Could not rename Voice.');button.disabled=false;}});
+    document.body.appendChild(modal);input.focus();input.select();
+  };
+  const openVoiceHistoryDeleteModal=item=>{
+    const modal=document.createElement('div');modal.className='voice-history-modal';
+    modal.innerHTML='<div class="voice-history-modal-backdrop"></div><section class="voice-history-dialog" role="alertdialog" aria-modal="true"><header><div><small>VOICE HISTORY</small><h3>Delete Voice?</h3></div><button type="button" class="voice-history-close" aria-label="Close">×</button></header><p>Delete this generated Voice audio file and its history record?</p><p>The source voice remains in your Voice Library.</p><p class="error" hidden></p><footer><button type="button" data-voice-cancel>Cancel</button><button type="button" class="danger" data-voice-confirm>Delete Voice</button></footer></section>';
+    const close=()=>modal.remove();const error=message=>{const p=modal.querySelector('.error');p.textContent=message;p.hidden=false;};
+    modal.querySelector('.voice-history-close').addEventListener('click',close);modal.querySelector('[data-voice-cancel]').addEventListener('click',close);modal.querySelector('.voice-history-modal-backdrop').addEventListener('click',close);
+    modal.querySelector('[data-voice-confirm]').addEventListener('click',async()=>{const button=modal.querySelector('[data-voice-confirm]');button.disabled=true;try{const response=await fetch('/api/voice/generations/delete',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json',accept:'application/json'},body:JSON.stringify({generationId:item.id})});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||'Could not delete Voice.');stopVoiceHistoryAudio();close();await loadVoiceHistory();}catch(e){error(e.message||'Could not delete Voice.');button.disabled=false;}});
+    document.body.appendChild(modal);
+  };
+  const openVoiceHistoryMoveModal=async(generationId,currentFolderId='')=>{
+    const folderResponse=await fetch('/api/generations/folders',{credentials:'same-origin',cache:'no-store',headers:{accept:'application/json'}});
+    const folderData=await folderResponse.json().catch(()=>({}));if(!folderResponse.ok)throw new Error(folderData.error||'Could not load folders.');
+    let folders=Array.isArray(folderData.folders)?folderData.folders:[];folders=folders.filter(folder=>String(folder.id)!==String(currentFolderId||''));
+    let selectedFolderId=null;const modal=document.createElement('div');modal.className='voice-history-modal';
+    modal.innerHTML='<div class="voice-history-modal-backdrop"></div><section class="voice-history-dialog" role="dialog" aria-modal="true"><header><div><small>VOICE HISTORY</small><h3>Move Voice</h3></div><button type="button" class="voice-history-close" aria-label="Close">×</button></header><label for="voiceHistoryMoveFolder">Move to folder</label><select id="voiceHistoryMoveFolder" style="box-sizing:border-box;width:100%;padding:11px 12px;border:1px solid #ffffff14;border-radius:9px;background:#07121d;color:#dbe6ef;font:12px Inter"><option value="">Unfiled</option>'+folders.map(folder=>'<option value="'+escapeHistory(folder.id)+'">'+escapeHistory(folder.name)+'</option>').join('')+'</select><button type="button" data-create-folder style="margin-top:10px;width:100%;padding:10px;border:1px solid #31e3c866;border-radius:8px;background:#102124;color:#b9fff4;font:700 10px Inter;cursor:pointer">+ Create New Folder</button><p class="error" hidden></p><footer><button type="button" data-voice-cancel>Cancel</button><button type="button" class="primary" data-voice-confirm>Move Voice</button></footer></section>';
+    const close=()=>modal.remove();const error=message=>{const p=modal.querySelector('.error');p.textContent=message;p.hidden=false;};
+    modal.querySelector('.voice-history-close').addEventListener('click',close);modal.querySelector('[data-voice-cancel]').addEventListener('click',close);modal.querySelector('.voice-history-modal-backdrop').addEventListener('click',close);
+    modal.querySelector('[data-create-folder]').addEventListener('click',async()=>{const name=window.prompt('New folder name');if(!name?.trim())return;try{const response=await fetch('/api/generations/folders',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json',accept:'application/json'},body:JSON.stringify({name:name.trim()})});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||'Could not create folder.');folders.push(data.folder);const select=modal.querySelector('#voiceHistoryMoveFolder');select.insertAdjacentHTML('beforeend','<option value="'+escapeHistory(data.folder.id)+'">'+escapeHistory(data.folder.name)+'</option>');select.value=data.folder.id;}catch(e){error(e.message||'Could not create folder.');}});
+    modal.querySelector('[data-voice-confirm]').addEventListener('click',async()=>{const button=modal.querySelector('[data-voice-confirm]');button.disabled=true;const folderId=modal.querySelector('#voiceHistoryMoveFolder').value||null;try{const response=await fetch('/api/library/assets/move',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json',accept:'application/json'},body:JSON.stringify({assets:[{id:generationId,assetType:'voice'}],folderId})});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||'Could not move Voice.');close();await loadVoiceHistory();await loadVoiceHistoryFolders();}catch(e){error(e.message||'Could not move Voice.');button.disabled=false;}});
+    document.body.appendChild(modal);
+  };
+  const resetVoiceHistory=()=>{voiceHistoryPage=1;loadVoiceHistory();};
+  voiceHistoryRefresh?.addEventListener('click',()=>{voiceHistoryPage=1;loadVoiceHistory();loadVoiceHistoryFolders();populateVoiceHistoryVoices();});
+  voiceHistoryPrev?.addEventListener('click',()=>{if(voiceHistoryPage>1){voiceHistoryPage-=1;loadVoiceHistory();}});
+  voiceHistoryNext?.addEventListener('click',()=>{voiceHistoryPage+=1;loadVoiceHistory();});
+  [voiceHistoryVoice,voiceHistoryFormat,voiceHistoryStatus,voiceHistoryDate,voiceHistoryFolder].forEach(control=>control?.addEventListener('change',resetVoiceHistory));
+  voiceHistorySearch?.addEventListener('input',()=>{clearTimeout(voiceHistorySearch._timer);voiceHistorySearch._timer=setTimeout(resetVoiceHistory,250);});
+  loadVoiceHistoryFolders();
+
   const soundPrompt=document.getElementById('soundPrompt');
   const soundPromptCount=document.getElementById('soundPromptCount');
   const soundInspire=document.getElementById('soundInspire');
