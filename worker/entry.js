@@ -1017,7 +1017,7 @@ export default {
         providerGenerationId: row.provider_generation_id,
         type: row.type,
         prompt: row.prompt,
-        filename: (row.display_name ? row.display_name : String(row.r2_key || "").split("/").pop().replace(/\\.[^.]+$/, "")) + "." + String(row.format || "mp3").toLowerCase(),
+        filename: (String(row.display_name || String(row.r2_key || "").split("/").pop().replace(/\\.[^.]+$/, "")).replace(/\\.(wav|mp3|pcm)$/i, "")) + "." + String(row.format || "mp3").toLowerCase(),
         sourceType: row.source_type,
         sourceAssetId: row.source_asset_id,
         durationSeconds: row.duration_seconds,
