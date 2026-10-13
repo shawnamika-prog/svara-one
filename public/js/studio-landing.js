@@ -653,7 +653,7 @@
         const data=await response.json().catch(()=>({}));
         if(!response.ok)throw new Error(data.error||'Could not load composition baseline ('+response.status+').');
         if(!data.available||!Array.isArray(data.recipe?.tracks)||!data.recipe.tracks.length){
-          status.textContent='This composition has no saved baseline. Use “Use composition as is” instead.';
+          status.textContent='This composition has no baseline assets. Select “Use composition as is” instead.';
           button.disabled=false;
           return;
         }
@@ -776,7 +776,7 @@
         '<div class="compose-library-item-main"><strong>'+escapeHistory(filename)+'</strong></div>'+
         '<span class="compose-library-meta">'+(duration?escapeHistory(formatComposeTime(duration).replace('.00','')):'Unknown')+'</span>'+
         '<span class="compose-library-meta">'+escapeHistory(format)+'</span>'+
-        '<span class="compose-library-meta">'+Math.max(1,Math.round(size/1024))+' KB</span>'+
+        '<span class="compose-library-meta">'+(size>=1048576?(size/1048576).toFixed(1)+' MB':size>=1024?(size/1024).toFixed(1)+' KB':Math.max(0,Math.round(size))+' B')+'</span>'+
         '<span class="compose-library-meta compose-library-folder" title="'+escapeHistory(folderName)+'">'+escapeHistory(folderName)+'</span>'+
         '<span class="compose-library-meta">'+escapeHistory(date)+'</span>'+
         '<div class="compose-library-actions"><button class="compose-library-play" type="button" data-compose-library-play="'+escapeHistory(id)+'" data-compose-library-url="'+escapeHistory(previewUrl)+'" aria-label="Play composition" title="Play">▶</button><button class="compose-library-download" type="button" data-compose-library-download="'+escapeHistory(id)+'" data-compose-library-url="'+escapeHistory(assetUrl+'?download=1')+'" data-compose-library-filename="'+escapeHistory(filename)+'" aria-label="Download composition" title="Download">↓</button><button class="compose-library-move" type="button" data-compose-library-move="'+escapeHistory(id)+'" aria-label="Move composition" title="Move composition">↗</button><button class="compose-library-use" type="button" data-compose-library-use="'+escapeHistory(id)+'" aria-label="Use composition in Compose" title="Use in Compose">＋</button><button class="compose-library-rename" type="button" data-compose-library-rename="'+escapeHistory(id)+'" aria-label="Rename composition" title="Rename composition">✎</button><button class="compose-library-delete" type="button" data-compose-library-delete="'+escapeHistory(id)+'" aria-label="Delete composition" title="Delete composition">⌫</button></div>'+
