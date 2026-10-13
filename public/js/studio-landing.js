@@ -1566,7 +1566,12 @@
         const data=await response.json().catch(()=>({}));
         if(!response.ok)throw new Error(data.error||'Composition export failed ('+response.status+').');
         if(!data.id)throw new Error('The audio was uploaded but the server did not return an asset ID.');
-        if(Number.isFinite(Number(data.creditsCharged)))status.textContent='Export saved · '+Number(data.creditsCharged).toLocaleString()+' credits charged · '+Number(data.creditsRemaining||0).toLocaleString()+' remaining';
+        if(Number.isFinite(Number(data.creditsCharged))){
+          const remainingCredits=Number(data.creditsRemaining);
+          status.textContent='Export saved · '+Number(data.creditsCharged).toLocaleString()+' credits charged · '+(Number.isFinite(remainingCredits)?remainingCredits:0).toLocaleString()+' remaining';
+          const topCredits=document.getElementById('topCredits');
+          if(topCredits&&Number.isFinite(remainingCredits))topCredits.textContent=remainingCredits.toLocaleString();
+        }
         let recipeSaveFailed=false;
         try{
           const recipeResponse=await fetch('/api/compositions/recipe',{
