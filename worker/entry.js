@@ -652,6 +652,151 @@ export default {
       }
     }
 
+
+    if (url.pathname === "/api/compositions/drafts" && request.method === "GET") {
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return json({ error: "Authentication required." }, 401);
+      if (!env.DB) return json({ error: "Composition draft storage is not configured." }, 503);
+      try {
+        const rows = await env.DB.prepare(
+          "SELECT draft_id,display_name,created_at,updated_at,last_exported_composition_id FROM composition_drafts WHERE user_id=? ORDER BY updated_at DESC LIMIT 100"
+        ).bind(userId).all();
+        return json({ drafts: (rows.results || []).map(row => ({
+          id: row.draft_id,
+          name: row.display_name || "Untitled Composition",
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+          lastExportedCompositionId: row.last_exported_composition_id || null
+        })) });
+      } catch (error) {
+        console.error("composition_drafts_list_error", error);
+        return json({ error: "Could not load saved composition drafts. Confirm migration 0015 has been applied." }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/compositions/drafts" && request.method === "POST") {
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return json({ error: "Authentication required." }, 401);
+      if (!env.DB) return json({ error: "Composition draft storage is not configured." }, 503);
+      const contentLength = Number(request.headers.get("content-length") || 0);
+      if (contentLength > 262144) return json({ error: "Composition draft is too large." }, 413);
+      let payload;
+      try { payload = await request.json(); } catch { return json({ error: "A valid draft JSON body is required." }, 400); }
+      const draftId = String(payload?.draftId || "");
+      const displayName = String(payload?.name || "Untitled Composition").trim().slice(0, 120) || "Untitled Composition";
+      const tracks = payload?.tracks;
+      if (!/^[0-9a-f-]{36}$/i.test(draftId)) return json({ error: "A valid draft ID is required." }, 400);
+      if (!Array.isArray(tracks) || tracks.length < 1 || tracks.length > 100) return json({ error: "A draft must contain between 1 and 100 tracks." }, 400);
+
+      const normalizedTracks = [];
+      for (let index = 0; index < tracks.length; index++) {
+        const track = tracks[index] || {};
+        const source = track.sourceAsset || {};
+        const type = String(source.type || "");
+        const assetId = String(source.id || "");
+        if (!["voice", "sound", "composition"].includes(type) || !/^[0-9a-f-]{36}$/i.test(assetId)) {
+          return json({ error: "Track " + (index + 1) + " has an invalid source asset reference." }, 400);
+        }
+        let sourceOwned = false;
+        if (type === "voice") {
+          sourceOwned = !!(await env.DB.prepare(
+            "SELECT id FROM generations WHERE id=? AND user_id=? AND status='ready' AND r2_key IS NOT NULL LIMIT 1"
+          ).bind(assetId, userId).first());
+        } else if (type === "sound") {
+          sourceOwned = !!(await env.DB.prepare(
+            "SELECT id FROM sound_generations WHERE id=? AND user_id=? AND status='ready' AND r2_key IS NOT NULL LIMIT 1"
+          ).bind(assetId, userId).first());
+        } else if (env.GENERATED_AUDIO) {
+          const sourcePage = await env.GENERATED_AUDIO.list({ prefix: "users/" + userId + "/compositions/" + assetId + ".", limit: 5 });
+          sourceOwned = (sourcePage.objects || []).some(object => /\.(wav|mp3|pcm)$/i.test(String(object.key || "")));
+        }
+        if (!sourceOwned) return json({ error: "Track " + (index + 1) + " references a missing or inaccessible source asset." }, 409);
+        const number = (value, fallback, min, max) => {
+          const n = Number(value);
+          return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : fallback;
+        };
+        normalizedTracks.push({
+          trackId: String(track.trackId || ("track-" + (index + 1))).slice(0, 100),
+          sourceAsset: { type, id: assetId },
+          order: index,
+          startSeconds: number(track.startSeconds, 0, 0, 3600),
+          trimIn: number(track.trimIn, 0, 0, 0.98),
+          trimOut: number(track.trimOut, 0, 0, 0.98),
+          fadeIn: number(track.fadeIn, 0, 0, 10),
+          fadeOut: number(track.fadeOut, 0, 0, 10),
+          volume: number(track.volume, 1, 0, 1),
+          muted: !!track.muted,
+          solo: !!track.solo,
+          declaredDuration: number(track.declaredDuration, 0, 0, 3600),
+          cutGroup: String(track.cutGroup || "").slice(0, 100),
+          cutClip: !!track.cutClip
+        });
+      }
+      const recipe = JSON.stringify({ schemaVersion: 1, draftId, tracks: normalizedTracks });
+      if (recipe.length > 262144) return json({ error: "Composition draft is too large." }, 413);
+      try {
+        await env.DB.prepare(
+          "INSERT INTO composition_drafts (draft_id,user_id,display_name,schema_version,recipe_json,updated_at) VALUES (?,?,?,1,?,strftime('%Y-%m-%dT%H:%M:%fZ','now')) ON CONFLICT(draft_id,user_id) DO UPDATE SET display_name=excluded.display_name,schema_version=1,recipe_json=excluded.recipe_json,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')"
+        ).bind(draftId, userId, displayName, recipe).run();
+        return json({ success: true, draftId, name: displayName, schemaVersion: 1, trackCount: normalizedTracks.length });
+      } catch (error) {
+        console.error("composition_draft_save_error", error);
+        return json({ error: "Could not save the composition draft. Confirm migration 0015_composition_drafts.sql has been applied." }, 500);
+      }
+    }
+
+    if (url.pathname.startsWith("/api/compositions/drafts/") && request.method === "GET") {
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return json({ error: "Authentication required." }, 401);
+      if (!env.DB || !env.GENERATED_AUDIO) return json({ error: "Composition draft storage is not configured." }, 503);
+      const draftId = String(url.pathname.split("/").pop() || "");
+      if (!/^[0-9a-f-]{36}$/i.test(draftId)) return json({ error: "Composition draft not found." }, 404);
+      try {
+        const row = await env.DB.prepare(
+          "SELECT display_name,schema_version,recipe_json,updated_at FROM composition_drafts WHERE draft_id=? AND user_id=? LIMIT 1"
+        ).bind(draftId, userId).first();
+        if (!row) return json({ error: "Composition draft not found." }, 404);
+        const recipe = JSON.parse(String(row.recipe_json || ""));
+        if (Number(row.schema_version) !== 1 || Number(recipe?.schemaVersion) !== 1 || !Array.isArray(recipe?.tracks)) {
+          return json({ error: "This composition draft version is not supported." }, 409);
+        }
+        const resolvedTracks = [];
+        for (const track of recipe.tracks) {
+          const source = track.sourceAsset || {};
+          const sourceId = String(source.id || "");
+          const sourceType = String(source.type || "");
+          let resolved = { available: false, type: sourceType, id: sourceId };
+          if (sourceType === "voice") {
+            const asset = await env.DB.prepare("SELECT id,voice_name,format,r2_key FROM generations WHERE id=? AND user_id=? AND status='ready' AND r2_key IS NOT NULL LIMIT 1").bind(sourceId, userId).first();
+            if (asset?.r2_key) {
+              const filename = String(asset.r2_key).split("/").pop() || "";
+              resolved = { available: true, type: "voice", id: sourceId, filename: String(asset.voice_name || filename), format: String(asset.format || "").toUpperCase(), assetUrl: "/api/generations/media?filename=" + encodeURIComponent(filename), durationSeconds: Number(track.declaredDuration) || 30 };
+            }
+          } else if (sourceType === "sound") {
+            const asset = await env.DB.prepare("SELECT id,type,prompt,duration_seconds,format,r2_key FROM sound_generations WHERE id=? AND user_id=? AND status='ready' AND r2_key IS NOT NULL LIMIT 1").bind(sourceId, userId).first();
+            if (asset?.r2_key) {
+              resolved = { available: true, type: "sound", id: sourceId, filename: String(asset.prompt || String(asset.r2_key).split("/").pop()).slice(0, 120), soundType: String(asset.type || ""), format: String(asset.format || "").toUpperCase(), assetUrl: "/api/sound/assets/" + encodeURIComponent(sourceId), durationSeconds: Number(asset.duration_seconds) || Number(track.declaredDuration) || 30 };
+            }
+          } else if (sourceType === "composition") {
+            const page = await env.GENERATED_AUDIO.list({ prefix: "users/" + userId + "/compositions/" + sourceId + ".", limit: 5, include: ["httpMetadata", "customMetadata"] });
+            const object = (page.objects || []).find(item => /\.(wav|mp3|pcm)$/i.test(String(item.key || "")));
+            if (object?.key) {
+              const meta = object.customMetadata || {};
+              const filename = String(object.key).split("/").pop() || "";
+              const extension = filename.split(".").pop() || "wav";
+              const format = String(meta.format || extension).toUpperCase();
+              resolved = { available: true, type: "composition", id: sourceId, filename: String(meta.filename || filename), format, assetUrl: "/api/compositions/assets/" + encodeURIComponent(sourceId) + (format === "PCM" ? "?preview=1" : ""), durationSeconds: Number(meta.durationSeconds) || Number(track.declaredDuration) || 30 };
+            }
+          }
+          resolvedTracks.push({ ...track, resolvedAsset: resolved });
+        }
+        return json({ success: true, draftId, name: row.display_name || "Untitled Composition", updatedAt: row.updated_at, recipe: { ...recipe, tracks: resolvedTracks } });
+      } catch (error) {
+        console.error("composition_draft_load_error", error);
+        return json({ error: "Could not load the saved composition draft." }, 500);
+      }
+    }
+
     if (url.pathname === "/api/compositions/recipe" && request.method === "POST") {
       const userId = await authenticatedUserId(request, env);
       if (!userId) return json({ error: "Authentication required." }, 401);
