@@ -788,7 +788,7 @@ if (url.pathname === "/api/compositions/drafts" && request.method === "GET") {
         return json({ success: true, draftId, deleted: true });
       } catch (error) {
         console.error("composition_draft_delete_error", error);
-        return json({ error: /no such table:\\s*composition_drafts/i.test(String(error?.message || error)) ? "Composition draft storage is not initialized. Apply migrations/0015_composition_drafts.sql to Cloudflare D1, then retry." : /no such column:\\s*completed_at/i.test(String(error?.message || error)) ? "Draft completion storage is not initialized. Apply migrations/0016_composition_draft_completion.sql to Cloudflare D1, then retry." : "Could not delete the composition draft." }, /no such table:\\s*composition_drafts|no such column:\\s*completed_at/i.test(String(error?.message || error)) ? 503 : 500);
+        return json({ error: /no such table:\s*composition_drafts/i.test(String(error?.message || error)) ? "Composition draft storage is not initialized. Apply migrations/0015_composition_drafts.sql to Cloudflare D1, then retry." : /no such column:\s*completed_at/i.test(String(error?.message || error)) ? "Draft completion storage is not initialized. Apply migrations/0016_composition_draft_completion.sql to Cloudflare D1, then retry." : "Could not delete the composition draft." }, /no such table:\s*composition_drafts|no such column:\s*completed_at/i.test(String(error?.message || error)) ? 503 : 500);
       }
     }
 
