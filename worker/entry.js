@@ -106,6 +106,61 @@ function json(data, status = 200) {
   });
 }
 
+function composeExportCreditCost(env) {
+  const raw = String(env.SVARAONE_COMPOSE_EXPORT_CREDITS ?? "").trim();
+  if (!/^[1-9]\\d*$/.test(raw)) return null;
+  const cost = Number(raw);
+  return Number.isSafeInteger(cost) && cost > 0 ? cost : null;
+}
+
+async function reserveComposeExportCredits(userId, cost, env, referenceId) {
+  const existing = await env.DB.prepare(
+    "SELECT id, amount FROM credit_ledger WHERE user_id=? AND reference_id=? AND reason='compose_export' LIMIT 1"
+  ).bind(userId, referenceId).first();
+  if (existing) return { alreadyCharged: true, cost: Math.abs(Number(existing.amount) || cost), referenceId };
+
+  const latest = await env.DB.prepare(
+    "SELECT balance_after FROM credit_ledger WHERE user_id=? ORDER BY created_at DESC, rowid DESC LIMIT 1"
+  ).bind(userId).first();
+  if (!latest || Number(latest.balance_after) < cost) return null;
+
+  const debitId = crypto.randomUUID();
+  const result = await env.DB.prepare(`
+    INSERT INTO credit_ledger (id,user_id,amount,balance_after,reason,reference_id,period_key)
+    SELECT ?, ?, ?, balance_after - ?, 'compose_export', ?, 'compose_export'
+    FROM credit_ledger
+    WHERE user_id=? AND balance_after >= ?
+    ORDER BY created_at DESC, rowid DESC
+    LIMIT 1
+  `).bind(debitId,userId,-cost,cost,referenceId,userId,cost).run();
+  if (!result.meta?.changes) return null;
+  const balance = await env.DB.prepare(
+    "SELECT balance_after FROM credit_ledger WHERE id=?"
+  ).bind(debitId).first("balance_after");
+  return { alreadyCharged: false, cost, referenceId, balance: Number(balance || 0) };
+}
+
+async function refundComposeExportCredits(userId, cost, referenceId, env) {
+  const existing = await env.DB.prepare(
+    "SELECT id FROM credit_ledger WHERE user_id=? AND reference_id=? AND reason='compose_export_refund' LIMIT 1"
+  ).bind(userId,referenceId).first();
+  if (existing) return { refunded: false, alreadyRefunded: true };
+  const latest = await env.DB.prepare(
+    "SELECT balance_after FROM credit_ledger WHERE user_id=? ORDER BY created_at DESC, rowid DESC LIMIT 1"
+  ).bind(userId).first();
+  if (!latest) throw new Error("Credit ledger balance is unavailable for refund.");
+  const result = await env.DB.prepare(`
+    INSERT INTO credit_ledger (id,user_id,amount,balance_after,reason,reference_id,period_key)
+    SELECT ?, ?, ?, balance_after + ?, 'compose_export_refund', ?, 'compose_export'
+    FROM credit_ledger
+    WHERE user_id=?
+    ORDER BY created_at DESC, rowid DESC
+    LIMIT 1
+  `).bind(crypto.randomUUID(),userId,cost,cost,referenceId,userId).run();
+  if (!result.meta?.changes) throw new Error("Credit refund could not be recorded.");
+  return { refunded: true, alreadyRefunded: false };
+}
+
 function generationCost(text, env) {
   const factor = Number(env.SVARAONE_CREDIT_FACTOR);
   const safeFactor = Number.isFinite(factor) && factor > 0 ? factor : 1;
@@ -428,6 +483,9 @@ export default {
       const userId = await authenticatedUserId(request, env);
       if (!userId) return json({ error: "Authentication required." }, 401);
       if (!env.GENERATED_AUDIO) return json({ error: "Composition storage is not configured." }, 503);
+      if (!env.DB) return json({ error: "Credit accounting is not configured." }, 503);
+      const exportCost = composeExportCreditCost(env);
+      if (exportCost === null) return json({ error: "Compose export credit pricing is missing or invalid. Configure SVARAONE_COMPOSE_EXPORT_CREDITS as a positive integer." }, 503);
 
       const contentType = String(request.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
       const format = String(request.headers.get("x-svara-composition-format") || "").trim().toLowerCase();
@@ -465,11 +523,21 @@ export default {
       const extension = extensionByFormat[format];
       const filename = baseFilename + "." + extension;
       const id = crypto.randomUUID();
+      const requestKey = String(request.headers.get("x-svara-compose-export-key") || "").trim();
+      if (!/^[a-f0-9-]{36}$/i.test(requestKey)) return json({ error: "A valid export attempt key is required. Please retry the export." }, 400);
+      const referenceId = requestKey;
       const key = "users/" + userId + "/compositions/" + id + "." + extension;
       const createdAt = new Date().toISOString();
       if (format === "pcm" && (declaredSize % 4 !== 0 || Math.abs(durationSeconds - declaredSize / 96000) > 0.02)) {
         return json({ error: "PCM byte length does not match 24 kHz, 16-bit stereo audio duration." }, 400);
       }
+
+      const reservation = await reserveComposeExportCredits(userId, exportCost, env, referenceId).catch(error => {
+        console.error("compose_export_credit_reservation_error", error);
+        return { error };
+      });
+      if (reservation?.error) return json({ error: "Compose export credits could not be reserved. No export was saved." }, 503);
+      if (!reservation) return json({ error: "Not enough credits to export this composition.", creditsRequired: exportCost }, 402);
 
       try {
         let receivedBytes = 0;
@@ -557,8 +625,13 @@ export default {
           await env.GENERATED_AUDIO.delete(key);
           return json({ error: "Uploaded audio size did not match the declared content length." }, 400);
         }
+        const remainingRow = await env.DB.prepare(
+          "SELECT balance_after FROM credit_ledger WHERE user_id=? ORDER BY created_at DESC, rowid DESC LIMIT 1"
+        ).bind(userId).first();
         return json({
           success: true,
+          creditsCharged: reservation.cost,
+          creditsRemaining: Number(remainingRow?.balance_after ?? reservation.balance ?? 0),
           id,
           filename,
           format: format.toUpperCase(),
@@ -571,6 +644,8 @@ export default {
         });
       } catch (error) {
         try { await env.GENERATED_AUDIO.delete(key); } catch (cleanupError) { console.error("composition_export_cleanup_error", cleanupError); }
+        try { await refundComposeExportCredits(userId, reservation.cost, referenceId, env); }
+        catch (refundError) { console.error("compose_export_credit_refund_error", refundError); }
         if (error?.message === "COMPOSITION_EXPORT_TOO_LARGE") return json({ error: "Composition export exceeds the current 80 MB limit." }, 413);
         if (error?.message === "INVALID_COMPOSITION_WAV") return json({ error: "The uploaded file is not a complete supported PCM WAV." }, 400);
         if (error?.message === "INVALID_COMPOSITION_MP3") return json({ error: "The uploaded file is not a valid MP3 stream." }, 400);
