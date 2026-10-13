@@ -754,7 +754,62 @@ export default {
         if (!recipe || Number(row.schema_version) !== 1 || Number(recipe.schemaVersion) !== 1 || !Array.isArray(recipe.tracks)) {
           return json({ error: "This composition recipe version is not supported." }, 409);
         }
-        return json({ success: true, compositionId, available: true, schemaVersion: 1, updatedAt: row.updated_at, recipe });
+        const resolvedTracks = [];
+        for (const track of recipe.tracks) {
+          const source = track.sourceAsset || {};
+          const sourceId = String(source.id || "");
+          const sourceType = String(source.type || "");
+          let resolved = { available: false, type: sourceType, id: sourceId };
+          if (sourceType === "voice") {
+            const asset = await env.DB.prepare(
+              "SELECT id,voice_name,format,r2_key FROM generations WHERE id=? AND user_id=? AND status='ready' AND r2_key IS NOT NULL LIMIT 1"
+            ).bind(sourceId, userId).first();
+            if (asset?.r2_key) {
+              const filename = String(asset.r2_key).split("/").pop() || "";
+              resolved = {
+                available: true, type: "voice", id: sourceId,
+                filename: String(asset.voice_name || filename),
+                format: String(asset.format || "").toUpperCase(),
+                assetUrl: "/api/generations/media?filename=" + encodeURIComponent(filename),
+                durationSeconds: Number(track.declaredDuration) || 30
+              };
+            }
+          } else if (sourceType === "sound") {
+            const asset = await env.DB.prepare(
+              "SELECT id,type,prompt,duration_seconds,format,r2_key FROM sound_generations WHERE id=? AND user_id=? AND status='ready' AND r2_key IS NOT NULL LIMIT 1"
+            ).bind(sourceId, userId).first();
+            if (asset?.r2_key) {
+              const filename = String(asset.r2_key).split("/").pop() || "";
+              resolved = {
+                available: true, type: "sound", id: sourceId,
+                filename: String(asset.prompt || filename).slice(0, 120),
+                soundType: String(asset.type || ""),
+                format: String(asset.format || "").toUpperCase(),
+                assetUrl: "/api/sound/assets/" + encodeURIComponent(sourceId),
+                durationSeconds: Number(asset.duration_seconds) || Number(track.declaredDuration) || 30
+              };
+            }
+          } else if (sourceType === "composition") {
+            const sourcePrefix = "users/" + userId + "/compositions/" + sourceId + ".";
+            const sourcePage = await env.GENERATED_AUDIO.list({ prefix: sourcePrefix, limit: 5, include: ["httpMetadata", "customMetadata"] });
+            const sourceObject = (sourcePage.objects || []).find(object => /\.(wav|mp3|pcm)$/i.test(String(object.key || "")));
+            if (sourceObject?.key) {
+              const meta = sourceObject.customMetadata || {};
+              const filename = String(sourceObject.key).split("/").pop() || "";
+              const extension = filename.split(".").pop() || "wav";
+              const format = String(meta.format || extension).toUpperCase();
+              resolved = {
+                available: true, type: "composition", id: sourceId,
+                filename: String(meta.filename || filename),
+                format,
+                assetUrl: "/api/compositions/assets/" + encodeURIComponent(sourceId) + (format === "PCM" ? "?preview=1" : ""),
+                durationSeconds: Number(meta.durationSeconds) || Number(track.declaredDuration) || 30
+              };
+            }
+          }
+          resolvedTracks.push({ ...track, resolvedAsset: resolved });
+        }
+        return json({ success: true, compositionId, available: true, schemaVersion: 1, updatedAt: row.updated_at, recipe: { ...recipe, tracks: resolvedTracks } });
       } catch (error) {
         console.error("composition_recipe_load_error", error);
         return json({ error: "Could not load the editable composition recipe. Confirm the S15 D1 migration has been applied." }, 500);
