@@ -8,7 +8,8 @@
         id: row?.dataset.assetId || '',
         assetType: row?.dataset.assetType || 'voice',
         filename: name.querySelector('strong')?.textContent?.trim() || '',
-        format: row?.children?.[3]?.textContent?.trim() || ''
+        format: row?.children?.[3]?.textContent?.trim() || '',
+        assetUrl: row?.dataset.assetUrl || ''
       };
       return;
     }
@@ -23,7 +24,7 @@
     activeItem = null;
     if (label === 'Download') {
       const url = item.assetType === 'composition'
-        ? '/api/compositions/' + encodeURIComponent(item.id) + '/media?download=1'
+        ? (item.assetUrl || '/api/compositions?download=1')
         : item.assetType === 'sound'
           ? '/api/sound/assets/' + encodeURIComponent(item.id) + '?download=1'
           : '/api/generations/media?filename=' + encodeURIComponent(item.filename) + '&download=1';
