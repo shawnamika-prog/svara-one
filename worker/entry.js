@@ -4,6 +4,7 @@ import { handleAuth } from "./auth.js";
 import { handlePayfast, runBillingCron } from "./payfast.js";
 import { getVoiceById, getVoiceByProviderId, syncVoiceRegistry, seedMissingVoiceSamples } from "./voice-registry.js";
 import { createGeneration, markGenerationReady, markGenerationFailed, cleanupExpiredGenerations, mimeTypeForFormat } from "./generations.js";
+import "./voice-history.js";
 import { processSvaraFlow, translateSvaraFlowPlan } from "./svaraflow-voice.js";
 import { handleSoundGenerate } from "./sound-api.js";
 import { ensureSoundProviderCapabilities } from "./sound-capabilities.js";
