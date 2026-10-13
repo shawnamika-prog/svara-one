@@ -1558,13 +1558,15 @@
             'x-svara-composition-filename':filename,
             'x-svara-composition-duration':String(result.durationSeconds),
             'x-svara-composition-track-count':String(result.trackCount),
-            'x-svara-composition-size':String(blob.size)
+            'x-svara-composition-size':String(blob.size),
+            'x-svara-compose-export-key':(crypto.randomUUID?crypto.randomUUID():String(Date.now())+'-'+Math.random().toString(16).slice(2))
           },
           body:blob
         });
         const data=await response.json().catch(()=>({}));
         if(!response.ok)throw new Error(data.error||'Composition export failed ('+response.status+').');
         if(!data.id)throw new Error('The audio was uploaded but the server did not return an asset ID.');
+        if(Number.isFinite(Number(data.creditsCharged)))status.textContent='Export saved · '+Number(data.creditsCharged).toLocaleString()+' credits charged · '+Number(data.creditsRemaining||0).toLocaleString()+' remaining';
         let recipeSaveFailed=false;
         try{
           const recipeResponse=await fetch('/api/compositions/recipe',{
