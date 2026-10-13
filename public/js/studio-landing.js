@@ -733,6 +733,7 @@
   let composeDraftDirty = false;
   let composeDraftSaving = false;
   let composeDraftSaveSequence = 0;
+  let composeDraftRevision = 0;
   let composeDraftDebounce = null;
   let composeDraftInterval = null;
   let composeDrafts = [];
@@ -748,7 +749,7 @@
   }
   function markComposeDraftDirty() {
     if(composeWorkspace.hidden||!composeWorkspace.querySelector(".compose-timeline .compose-track-editor"))return;
-    composeDraftDirty=true;composeSaveStatus("Unsaved changes");
+    composeDraftRevision++;composeDraftDirty=true;composeSaveStatus("Unsaved changes");
     if(composeDraftDebounce)clearTimeout(composeDraftDebounce);
     composeDraftDebounce=setTimeout(()=>{if(composeWorkspace.querySelector("[data-compose-autosave]")?.checked)saveComposeDraft(false);},1400);
   }
@@ -758,12 +759,12 @@
     if(!manual&&!composeWorkspace.querySelector("[data-compose-autosave]")?.checked)return false;
     if(composeDraftSaving){composeDraftDirty=true;return false;}
     if(!composeDraftId)composeDraftId=crypto.randomUUID();
-    const seq=++composeDraftSaveSequence;composeDraftSaving=true;composeSaveStatus("Saving…");
+    const seq=++composeDraftSaveSequence,revisionAtStart=composeDraftRevision;composeDraftSaving=true;composeSaveStatus("Saving…");
     const button=composeWorkspace.querySelector("[data-compose-save]");if(manual&&button)button.disabled=true;
     try{
       const response=await fetch("/api/compositions/drafts",{method:"POST",credentials:"same-origin",cache:"no-store",headers:{"content-type":"application/json",accept:"application/json"},body:JSON.stringify({draftId:composeDraftId,name:composeDraftName,tracks})});
       const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||"Draft save failed ("+response.status+").");
-      if(seq===composeDraftSaveSequence){composeDraftDirty=false;composeSaveStatus("Saved just now");await loadCompositionDrafts();}
+      if(seq===composeDraftSaveSequence){composeDraftDirty=composeDraftRevision!==revisionAtStart;composeSaveStatus(composeDraftDirty?"Unsaved changes":"Saved just now");await loadCompositionDrafts();if(composeDraftDirty&&composeWorkspace.querySelector("[data-compose-autosave]")?.checked)setTimeout(()=>saveComposeDraft(false),250);}
       return true;
     }catch(error){composeDraftDirty=true;composeSaveStatus("Save failed");console.error("compose_draft_save_error",error);if(manual)window.alert(error?.message||"Could not save this composition draft.");return false;}
     finally{composeDraftSaving=false;if(manual&&button)button.disabled=false;}
