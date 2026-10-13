@@ -355,7 +355,7 @@
   const voiceHistoryStyles=document.createElement('style');
   voiceHistoryStyles.id='voice-history-styles';
   voiceHistoryStyles.textContent=`
-    .sound-workspace:has(.voice-panel){align-items:stretch}.sound-workspace:has(.voice-panel) .voice-output{height:100%;min-height:100%}.voice-history-workspace{grid-column:1/-1;margin-top:18px;border:1px solid #ffffff10;background:linear-gradient(180deg,#0a1020,#080d19);border-radius:18px;overflow:hidden;box-shadow:0 20px 60px #0004;color:#dce8f3}
+    .workspace:has(#voiceWorkspace){align-items:stretch}.workspace:has(#voiceWorkspace) #voiceWorkspace>.output{height:100%;min-height:100%;box-sizing:border-box}.voice-history-workspace{grid-column:1/-1;margin-top:18px;border:1px solid #ffffff10;background:linear-gradient(180deg,#0a1020,#080d19);border-radius:18px;overflow:hidden;box-shadow:0 20px 60px #0004;color:#dce8f3}
     .voice-history-head{padding:22px;border-bottom:1px solid #ffffff0b;display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
     .voice-history-head small{color:#31e3c8;font-size:9px;letter-spacing:.2em;font-weight:800}.voice-history-head h2{margin:6px 0 0;font-size:22px;letter-spacing:-.04em}.voice-history-head p{margin:7px 0 0;color:#8091a8;font-size:11px;line-height:1.5}
     .voice-history-refresh,.voice-history-page-button{border:1px solid #ffffff12;border-radius:9px;background:#0b1523;color:#aebdcb;padding:9px 12px;font:700 9px Inter,system-ui,sans-serif;cursor:pointer}.voice-history-refresh:hover,.voice-history-page-button:hover:not(:disabled){background:#111e2e;color:#fff}.voice-history-page-button:disabled{opacity:.3;cursor:default}
