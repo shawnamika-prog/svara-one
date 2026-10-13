@@ -39,3 +39,11 @@
 - Added Compose Save, Autosave (on by default), configurable 30/60/120-second periodic save, debounced edit saves, visible save state, unfinished draft list and draft restore flow. Draft persistence is separate from R2 audio export.
 - **Deployment prerequisite:** apply `migrations/0015_composition_drafts.sql` to Cloudflare D1 before testing the new draft UI/API. No D1 mutation was performed by this code change.
 - **Verification status:** UI JavaScript and Worker module syntax checks pass after accounting for Worker imports/exports. Follow-up polish standardized Save/Autosave/interval/status sizing, changed Autosave to a switch, and hides the entire control group until at least one track is present. Worker now returns an actionable 503 when `composition_drafts` is missing. Live Worker/D1/browser round-trip is not yet confirmed; apply migration 0015 in Cloudflare D1. Preserve the S14/S15.1 known-working baseline and build forward only.
+
+### S15.3 — Draft completion after export (2026-10-13)
+
+- Added `migrations/0016_composition_draft_completion.sql` to add `completed_at` and a partial index for unfinished drafts. Apply this migration to Cloudflare D1 before deploying/testing the completion workflow.
+- Draft list endpoint now returns only records where `completed_at IS NULL`.
+- After audio export succeeds and the existing editable recipe save succeeds, the UI calls the owner-authenticated draft completion endpoint. The Worker verifies the exported R2 composition belongs to the authenticated user, then records the composition ID and completion timestamp.
+- If export or recipe persistence fails, the draft is retained. If completion fails, the UI warns and the draft remains listed until completion is confirmed.
+- **Verification:** UI and Worker syntax checks pass; list filtering, completion endpoint and recipe-before-completion ordering confirmed in source. Live D1/browser round-trip remains pending. Apply migration 0016 before live test.
