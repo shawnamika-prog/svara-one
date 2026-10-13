@@ -670,7 +670,7 @@ export default {
         })) });
       } catch (error) {
         console.error("composition_drafts_list_error", error);
-        return json({ error: "Could not load saved composition drafts. Confirm migration 0015 has been applied." }, 500);
+        return json({ error: /no such table:\s*composition_drafts/i.test(String(error?.message || error)) ? "Composition draft storage is not initialized. Apply migrations/0015_composition_drafts.sql to the SvaraONE Cloudflare D1 database, then retry." : "Could not load saved composition drafts. Check the Worker logs for composition_drafts_list_error." }, /no such table:\s*composition_drafts/i.test(String(error?.message || error)) ? 503 : 500);
       }
     }
 
@@ -741,7 +741,7 @@ export default {
         return json({ success: true, draftId, name: displayName, schemaVersion: 1, trackCount: normalizedTracks.length });
       } catch (error) {
         console.error("composition_draft_save_error", error);
-        return json({ error: "Could not save the composition draft. Confirm migration 0015_composition_drafts.sql has been applied." }, 500);
+        return json({ error: /no such table:\s*composition_drafts/i.test(String(error?.message || error)) ? "Composition draft storage is not initialized. Apply migrations/0015_composition_drafts.sql to the SvaraONE Cloudflare D1 database, then retry." : "Could not save the composition draft. Check the Worker logs for composition_draft_save_error." }, /no such table:\s*composition_drafts/i.test(String(error?.message || error)) ? 503 : 500);
       }
     }
 
