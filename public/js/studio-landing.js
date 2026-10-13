@@ -2659,7 +2659,7 @@
         '<div class="voice-history-script" title="'+escapeHistory(script)+'">'+escapeHistory(scriptPreview)+'</div>'+
         '<span class="voice-history-meta voice-history-format">'+escapeHistory(String(item.format||'').toUpperCase())+'</span>'+
         '<span class="voice-history-meta voice-history-folder">'+escapeHistory(item.folderName||'Unfiled')+'</span>'+
-        '<span class="voice-history-status">'+escapeHistory(status.replace('_',' '))+'</span>'+
+        '<span class="voice-history-status '+escapeHistory(status)+'">'+escapeHistory(status.replace('_',' '))+'</span>'+
         '<span class="voice-history-meta voice-history-date">'+escapeHistory(formatHistoryDate(item.createdAt))+'</span>'+
         '<div class="voice-history-actions">'+
           '<button class="voice-history-action" type="button" data-voice-history-play="'+escapeHistory(item.id)+'" data-url="'+escapeHistory(url)+'" '+(!ready?'disabled':'')+' aria-label="Preview Voice" title="Preview">'+(ready?'▶':'—')+'</button>'+
@@ -2748,7 +2748,28 @@
     modal.innerHTML='<div class="voice-history-modal-backdrop"></div><section class="voice-history-dialog" role="dialog" aria-modal="true"><header><div><small>VOICE HISTORY</small><h3>Move Voice</h3></div><button type="button" class="voice-history-close" aria-label="Close">×</button></header><label for="voiceHistoryMoveFolder">Move to folder</label><select id="voiceHistoryMoveFolder" style="box-sizing:border-box;width:100%;padding:11px 12px;border:1px solid #ffffff14;border-radius:9px;background:#07121d;color:#dbe6ef;font:12px Inter"><option value="">Unfiled</option>'+folders.map(folder=>'<option value="'+escapeHistory(folder.id)+'">'+escapeHistory(folder.name)+'</option>').join('')+'</select><button type="button" data-create-folder style="margin-top:10px;width:100%;padding:10px;border:1px solid #31e3c866;border-radius:8px;background:#102124;color:#b9fff4;font:700 10px Inter;cursor:pointer">+ Create New Folder</button><p class="error" hidden></p><footer><button type="button" data-voice-cancel>Cancel</button><button type="button" class="primary" data-voice-confirm>Move Voice</button></footer></section>';
     const close=()=>modal.remove();const error=message=>{const p=modal.querySelector('.error');p.textContent=message;p.hidden=false;};
     modal.querySelector('.voice-history-close').addEventListener('click',close);modal.querySelector('[data-voice-cancel]').addEventListener('click',close);modal.querySelector('.voice-history-modal-backdrop').addEventListener('click',close);
-    modal.querySelector('[data-create-folder]').addEventListener('click',async()=>{const name=window.prompt('New folder name');if(!name?.trim())return;try{const response=await fetch('/api/generations/folders',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json',accept:'application/json'},body:JSON.stringify({name:name.trim()})});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||'Could not create folder.');folders.push(data.folder);const select=modal.querySelector('#voiceHistoryMoveFolder');select.insertAdjacentHTML('beforeend','<option value="'+escapeHistory(data.folder.id)+'">'+escapeHistory(data.folder.name)+'</option>');select.value=data.folder.id;}catch(e){error(e.message||'Could not create folder.');}});
+    modal.querySelector('[data-create-folder]').addEventListener('click',()=>{
+      const dialog=modal.querySelector('.voice-history-dialog');
+      const select=modal.querySelector('#voiceHistoryMoveFolder');
+      const createTrigger=modal.querySelector('[data-create-folder]');
+      let input=modal.querySelector('#voiceHistoryNewFolder');
+      if(input){input.focus();return;}
+      const label=document.createElement('label');label.htmlFor='voiceHistoryNewFolder';label.textContent='New folder name';
+      input=document.createElement('input');input.id='voiceHistoryNewFolder';input.maxLength=80;input.autocomplete='off';input.placeholder='e.g. Client projects';
+      const help=document.createElement('p');help.textContent='Create the folder and it will be selected as the destination.';
+      const create=document.createElement('button');create.type='button';create.className='primary';create.style.marginTop='9px';create.textContent='Create folder';
+      dialog.insertBefore(label,select);dialog.insertBefore(input,select);dialog.insertBefore(help,select);dialog.insertBefore(create,select);
+      select.hidden=true;createTrigger.hidden=true;
+      create.addEventListener('click',async()=>{
+        const name=input.value.trim();if(!name){input.focus();return;}create.disabled=true;
+        try{
+          const response=await fetch('/api/generations/folders',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json',accept:'application/json'},body:JSON.stringify({name})});
+          const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||'Could not create folder.');
+          folders.push(data.folder);select.insertAdjacentHTML('beforeend','<option value="'+escapeHistory(data.folder.id)+'">'+escapeHistory(data.folder.name)+'</option>');select.value=data.folder.id;select.hidden=false;label.remove();input.remove();help.remove();create.remove();createTrigger.hidden=false;createTrigger.textContent='+ Create New Folder';
+        }catch(e){error(e.message||'Could not create folder.');create.disabled=false;}
+      });
+      input.focus();
+    });
     modal.querySelector('[data-voice-confirm]').addEventListener('click',async()=>{const button=modal.querySelector('[data-voice-confirm]');button.disabled=true;const folderId=modal.querySelector('#voiceHistoryMoveFolder').value||null;try{const response=await fetch('/api/library/assets/move',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json',accept:'application/json'},body:JSON.stringify({assets:[{id:generationId,assetType:'voice'}],folderId})});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||'Could not move Voice.');close();await loadVoiceHistory();await loadVoiceHistoryFolders();}catch(e){error(e.message||'Could not move Voice.');button.disabled=false;}});
     document.body.appendChild(modal);
   };
