@@ -102,7 +102,7 @@
       const queryOk = !query || haystack.includes(query);
       const dateOk = dateMatches(item.createdAt, dateValue);
       const formatOk = formatValue === 'All formats' || item.format === formatValue;
-      const typeOk = typeValue === 'All types' || (typeValue === 'Voice' ? item.assetType !== 'sound' : item.assetType === 'sound');
+      const typeOk = typeValue === 'All types' || (typeValue === 'Voice' ? item.assetType === 'voice' : typeValue === 'Sound' ? item.assetType === 'sound' : item.assetType === 'composition');
       return queryOk && dateOk && formatOk && typeOk;
     });
   }
@@ -118,7 +118,7 @@
       case 'oldest': return sorted.sort((a, b) => time(a.createdAt) - time(b.createdAt));
       case 'name-asc': return sorted.sort((a, b) => text(a.filename).localeCompare(text(b.filename)));
       case 'name-desc': return sorted.sort((a, b) => text(b.filename).localeCompare(text(a.filename)));
-      case 'type-asc': return sorted.sort((a, b) => text(a.assetType === 'sound' ? 'Sound' : 'Voice').localeCompare(text(b.assetType === 'sound' ? 'Sound' : 'Voice')) || text(a.filename).localeCompare(text(b.filename)) || time(b.createdAt) - time(a.createdAt));
+      case 'type-asc': return sorted.sort((a, b) => text(a.assetType === 'composition' ? 'Composition' : a.assetType === 'sound' ? 'Sound' : 'Voice').localeCompare(text(b.assetType === 'composition' ? 'Composition' : b.assetType === 'sound' ? 'Sound' : 'Voice')) || text(a.filename).localeCompare(text(b.filename)) || time(b.createdAt) - time(a.createdAt));
       case 'size-desc': return sorted.sort((a, b) => (Number(b.sizeBytes) || 0) - (Number(a.sizeBytes) || 0));
       case 'size-asc': return sorted.sort((a, b) => (Number(a.sizeBytes) || 0) - (Number(b.sizeBytes) || 0));
       case 'newest':
@@ -202,9 +202,9 @@
     const visible = filteredAndSortedGenerations();
     const activeFilter = Boolean((searchInput?.value || '').trim()) || (dateFilter?.value || 'All dates') !== 'All dates' || (formatFilter?.value || 'All formats') !== 'All formats' || (typeFilter?.value || 'All types') !== 'All types';
     table.querySelectorAll('.my-library-row').forEach(row => row.remove());
-    if (filesTitle) filesTitle.textContent = activeFilter ? 'Filtered generations' : 'All generations';
+    if (filesTitle) filesTitle.textContent = activeFilter ? 'Filtered assets' : 'All assets';
     if (filesCount) filesCount.textContent = `${visible.length} ${visible.length === 1 ? 'item' : 'items'}`;
-    if (!visible.length) { empty.hidden = false; empty.innerHTML = `<div><div class="my-library-empty-icon">◈</div><h3>${escapeHtml(generations.length ? 'No matching generations' : 'Your generations will appear here')}</h3><p>${escapeHtml(generations.length ? 'Try changing your search or filters.' : 'Generate a Voice or Sound and the asset will be added to My Library.')}</p></div>`; return; }
+    if (!visible.length) { empty.hidden = false; empty.innerHTML = `<div><div class="my-library-empty-icon">◈</div><h3>${escapeHtml(generations.length ? 'No matching generations' : 'Your assets will appear here')}</h3><p>${escapeHtml(generations.length ? 'Try changing your search or filters.' : 'Your Voice, Sound and exported Composition assets will appear here.')}</p></div>`; return; }
     empty.hidden = true;
     const fragment = document.createDocumentFragment();
     visible.forEach((item, index) => {
@@ -214,7 +214,7 @@
       row.dataset.assetId = String(item.id || '');
       row.dataset.assetType = String(item.assetType || 'voice');
       row.dataset.folderId = String(item.folderId || '');
-      row.innerHTML = `<span class="my-library-name" title="${escapeHtml(item.filename)}"><strong>${escapeHtml(item.filename)}</strong>${item.status !== 'ready' ? `<small>${escapeHtml(item.status)}</small>` : ''}</span><span title="${escapeHtml(item.assetType === 'sound' ? 'Sound' : 'Voice')}">${escapeHtml(item.assetType === 'sound' ? 'Sound' : 'Voice')}</span><span>${escapeHtml(formatDate(item.createdAt))}</span><span>${escapeHtml(item.format)}</span><span>${escapeHtml(formatBytes(item.sizeBytes))}</span><span class="my-library-expiry" title="Automatically removed after 90 days">${escapeHtml(formatRemovalDate(item.expiresAt))}</span>`;
+      row.innerHTML = `<span class="my-library-name" title="${escapeHtml(item.filename)}"><strong>${escapeHtml(item.filename)}</strong>${item.status !== 'ready' ? `<small>${escapeHtml(item.status)}</small>` : ''}</span><span title="${escapeHtml(item.assetType === 'composition' ? 'Composition' : item.assetType === 'sound' ? 'Sound' : 'Voice')}">${escapeHtml(item.assetType === 'sound' ? 'Sound' : 'Voice')}</span><span>${escapeHtml(formatDate(item.createdAt))}</span><span>${escapeHtml(item.format)}</span><span>${escapeHtml(formatBytes(item.sizeBytes))}</span><span class="my-library-expiry" title="Retention depends on asset type">${escapeHtml(item.assetType === 'composition' ? '—' : formatRemovalDate(item.expiresAt))}</span>`;
       fragment.appendChild(row);
     });
     table.appendChild(fragment);
@@ -226,11 +226,24 @@
     setTableMessage('Loading your generations…', 'Retrieving your saved SvaraONE creations.', '◇');
     if (filesCount) filesCount.textContent = 'Loading…';
     try {
-      const response = await fetch('/api/generations?limit=500', { method: 'GET', credentials: 'same-origin', cache: 'no-store', headers: { accept: 'application/json' } });
+      const [response, compositionResponse] = await Promise.all([
+        fetch('/api/generations?limit=500', { method: 'GET', credentials: 'same-origin', cache: 'no-store', headers: { accept: 'application/json' } }),
+        fetch('/api/compositions?limit=500', { method: 'GET', credentials: 'same-origin', cache: 'no-store', headers: { accept: 'application/json' } })
+      ]);
       const data = await response.json().catch(() => ({}));
-      if (response.status === 401) { window.location.replace('/login.html?next=/studio'); return; }
+      const compositionData = await compositionResponse.json().catch(() => ({}));
+      if (response.status === 401 || compositionResponse.status === 401) { window.location.replace('/login.html?next=/studio'); return; }
       if (!response.ok) throw new Error(data.error || `Generation service unavailable (${response.status})`);
-      generations = Array.isArray(data.generations) ? data.generations : [];
+      if (!compositionResponse.ok) throw new Error(compositionData.error || `Composition service unavailable (${compositionResponse.status})`);
+      const voiceAndSound = Array.isArray(data.generations) ? data.generations : [];
+      const compositions = (Array.isArray(compositionData.compositions) ? compositionData.compositions : []).map(item => ({
+        ...item, id: String(item.id || ''), assetType: 'composition', status: 'ready',
+        filename: String(item.filename || 'Composition'), format: String(item.format || '').toUpperCase(),
+        sizeBytes: Number(item.sizeBytes) || 0, createdAt: item.createdAt || null,
+        folderId: item.folderId || null, folderName: item.folderName || null,
+        expiresAt: null
+      }));
+      generations = [...voiceAndSound, ...compositions];
       loaded = true;
       render();
     } catch (error) {
