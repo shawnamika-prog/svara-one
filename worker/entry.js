@@ -882,6 +882,52 @@ export default {
       return storedSoundAsset(request, env, userId, generationId);
     }
 
+
+    if (request.method === "POST" && url.pathname === "/api/sound/generations/rename") {
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return json({ error: "Authentication required." }, 401);
+      if (!env.DB) return json({ error: "Sound history storage is not configured." }, 503);
+      try {
+        const body = await request.json().catch(() => ({}));
+        const generationId = String(body?.generationId || "").trim();
+        const displayName = String(body?.displayName || "").trim().replace(/\\.(wav|mp3|pcm)$/i, "");
+        if (!generationId || !displayName) return json({ error: "Sound generation and filename are required." }, 400);
+        if (displayName.length > 100 || /[\\/\\\\]/.test(displayName)) return json({ error: "Use a filename up to 100 characters without path separators." }, 400);
+        const row = await env.DB.prepare("SELECT id,format FROM sound_generations WHERE id=? AND user_id=? LIMIT 1").bind(generationId,userId).first();
+        if (!row) return json({ error: "Sound generation not found." }, 404);
+        await env.DB.prepare("INSERT INTO sound_display_names (generation_id,user_id,display_name,updated_at) VALUES (?,?,?,strftime('%Y-%m-%dT%H:%M:%fZ','now')) ON CONFLICT(generation_id,user_id) DO UPDATE SET display_name=excluded.display_name,updated_at=excluded.updated_at").bind(generationId,userId,displayName).run();
+        return json({ success: true, generationId, filename: displayName + "." + String(row.format || "mp3").toLowerCase() });
+      } catch (error) {
+        console.error("sound_generation_rename_error", error);
+        return json({ error: "Could not rename Sound generation." }, 500);
+      }
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/sound/generations/delete") {
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return json({ error: "Authentication required." }, 401);
+      if (!env.DB) return json({ error: "Sound history storage is not configured." }, 503);
+      try {
+        const body = await request.json().catch(() => ({}));
+        const generationId = String(body?.generationId || "").trim();
+        if (!generationId) return json({ error: "Sound generation ID is required." }, 400);
+        const row = await env.DB.prepare("SELECT id,r2_key FROM sound_generations WHERE id=? AND user_id=? LIMIT 1").bind(generationId,userId).first();
+        if (!row) return json({ error: "Sound generation not found." }, 404);
+        if (row.r2_key && env.GENERATED_AUDIO) {
+          const prefix = "users/" + userId + "/";
+          if (!String(row.r2_key).startsWith(prefix)) return json({ error: "Sound asset ownership could not be verified." }, 403);
+          await env.GENERATED_AUDIO.delete(row.r2_key);
+        }
+        await env.DB.prepare("DELETE FROM sound_display_names WHERE generation_id=? AND user_id=?").bind(generationId,userId).run();
+        const deleted = await env.DB.prepare("DELETE FROM sound_generations WHERE id=? AND user_id=?").bind(generationId,userId).run();
+        if (!deleted.meta?.changes) return json({ error: "Sound generation not found." }, 404);
+        return json({ success: true, generationId });
+      } catch (error) {
+        console.error("sound_generation_delete_error", error);
+        return json({ error: "Could not delete Sound generation." }, 500);
+      }
+    }
+
     if (request.method === "GET" && url.pathname === "/api/sound/generations") {
       const userId = await authenticatedUserId(request, env);
       if (!userId) return json({ error: "Authentication required." }, 401);
@@ -934,6 +980,7 @@ export default {
           sg.provider_generation_id,
           sg.type,
           sg.prompt,
+          sdn.display_name,
           sg.source_type,
           sg.source_asset_id,
           sg.duration_seconds,
@@ -957,6 +1004,8 @@ export default {
         LEFT JOIN library_folders lf
           ON lf.id = sg.folder_id
          AND lf.user_id = sg.user_id
+        LEFT JOIN sound_display_names sdn
+          ON sdn.generation_id = sg.id AND sdn.user_id = sg.user_id
         WHERE ${where}
         ORDER BY sg.created_at DESC
         LIMIT ? OFFSET ?
@@ -968,6 +1017,7 @@ export default {
         providerGenerationId: row.provider_generation_id,
         type: row.type,
         prompt: row.prompt,
+        filename: (row.display_name ? row.display_name : String(row.r2_key || "").split("/").pop().replace(/\\.[^.]+$/, "")) + "." + String(row.format || "mp3").toLowerCase(),
         sourceType: row.source_type,
         sourceAssetId: row.source_asset_id,
         durationSeconds: row.duration_seconds,
