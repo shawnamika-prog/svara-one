@@ -624,7 +624,9 @@ export default {
         if (!stored) throw new Error("R2 did not confirm the Composition upload.");
         if (Number(stored.size) !== declaredSize) {
           await env.GENERATED_AUDIO.delete(key);
-          return json({ error: "Uploaded audio size did not match the declared content length." }, 400);
+          try { if (!reservation.alreadyCharged) await refundComposeExportCredits(userId, reservation.cost, referenceId, env); }
+          catch (refundError) { console.error("compose_export_size_mismatch_refund_error", refundError); }
+          return json({ error: "Uploaded audio size did not match the declared content length. Credits were refunded if the reservation was recorded." }, 400);
         }
         const remainingRow = await env.DB.prepare(
           "SELECT balance_after FROM credit_ledger WHERE user_id=? ORDER BY created_at DESC, rowid DESC LIMIT 1"
