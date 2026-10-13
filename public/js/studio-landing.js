@@ -793,7 +793,7 @@
       if(!response.ok)throw new Error(data.error||"Could not delete this draft.");
       if(isOpen){
         if(composeDraftDebounce){clearTimeout(composeDraftDebounce);composeDraftDebounce=null;}
-        if(composeDraftInterval){clearInterval(composeDraftInterval);composeDraftInterval=null;}
+        // Keep the periodic autosave timer alive for any new composition started in this workspace.
         composeDraftSaveSequence++;composeDraftRevision++;composeDraftDirty=false;composeDraftSaving=false;
         composeDraftId=null;composeDraftName="Untitled Composition";
         const canvas=composeWorkspace.querySelector(".compose-canvas");
