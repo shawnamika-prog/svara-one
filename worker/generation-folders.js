@@ -226,7 +226,19 @@ app.fetch = async (request, env, ctx) => {
       for(const asset of assets){
         const id=String(asset?.id||"").trim();
         const type=String(asset?.assetType||"voice").trim().toLowerCase();
-        if(!id||!["voice","sound"].includes(type))return json({error:"Invalid asset selection."},400);
+        if(!id||!["voice","sound","composition"].includes(type))return json({error:"Invalid asset selection."},400);
+        if(type==="composition"){
+          if(!env.GENERATED_AUDIO)return json({error:"Composition storage is not configured."},503);
+          const prefix="users/"+userId+"/compositions/"+id+".";
+          const objects=await env.GENERATED_AUDIO.list({prefix,limit:5});
+          const object=(objects.objects||[]).find(item=>String(item.key||"").startsWith(prefix)&&/\.(wav|mp3|pcm)$/i.test(String(item.key||"")));
+          if(!object?.key)continue;
+          const metadata=await env.GENERATED_AUDIO.head(object.key);
+          if(!metadata||(metadata.customMetadata?.userId&&metadata.customMetadata.userId!==userId))continue;
+          await env.DB.prepare("INSERT INTO composition_folder_assignments (composition_id,user_id,folder_id,updated_at) VALUES (?,?,?,strftime('%Y-%m-%dT%H:%M:%fZ','now')) ON CONFLICT(composition_id,user_id) DO UPDATE SET folder_id=excluded.folder_id,updated_at=excluded.updated_at").bind(id,userId,folderId).run();
+          moved++;
+          continue;
+        }
         const tableName=type==="sound"?"sound_generations":"generations";
         const result=await env.DB.prepare("UPDATE "+tableName+" SET folder_id=? WHERE id=? AND user_id=?").bind(folderId,id,userId).run();
         if(result.meta?.changes)moved+=Number(result.meta.changes);
@@ -266,26 +278,13 @@ app.fetch = async (request, env, ctx) => {
       const folder = await folderForUser(env, folderId, userId);
       if (!folder) return json({ error: "Folder not found." }, 404);
 
-      const rows = await env.DB.prepare("SELECT id,r2_key FROM generations WHERE user_id=? AND folder_id=?").bind(userId, folderId).all();
-      const generationRows = rows.results || [];
-      const keys = generationRows.map(row => String(row.r2_key || "")).filter(Boolean);
-
-      if (keys.length) {
-        for (let i = 0; i < keys.length; i += 1000) {
-          await env.GENERATED_AUDIO.delete(keys.slice(i, i + 1000));
-        }
-      }
-
-      if (generationRows.length) {
-        for (let i = 0; i < generationRows.length; i += 100) {
-          const chunk = generationRows.slice(i, i + 100);
-          const placeholders = chunk.map(() => "?").join(",");
-          await env.DB.prepare(`DELETE FROM generations WHERE user_id=? AND folder_id=? AND id IN (${placeholders})`).bind(userId, folderId, ...chunk.map(row => String(row.id))).run();
-        }
-      }
-
+      // Deleting a folder must never delete the user's assets. Unfile every
+      // domain first, then remove only the folder record.
+      const voiceResult = await env.DB.prepare("UPDATE generations SET folder_id=NULL WHERE user_id=? AND folder_id=?").bind(userId, folderId).run();
+      const soundResult = await env.DB.prepare("UPDATE sound_generations SET folder_id=NULL WHERE user_id=? AND folder_id=?").bind(userId, folderId).run();
+      await env.DB.prepare("UPDATE composition_folder_assignments SET folder_id=NULL,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE user_id=? AND folder_id=?").bind(userId, folderId).run();
       await env.DB.prepare("DELETE FROM library_folders WHERE id=? AND user_id=?").bind(folderId, userId).run();
-      return json({ success: true, folderId, folderName: String(folder.name || ""), deletedCount: generationRows.length });
+      return json({ success: true, folderId, folderName: String(folder.name || ""), unfiledCount: Number(voiceResult.meta?.changes||0)+Number(soundResult.meta?.changes||0) });
     } catch (error) {
       console.error("library_folder_delete_error", error);
       return json({ error: error?.message || "Could not delete folder." }, 500);
