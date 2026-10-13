@@ -653,13 +653,44 @@ export default {
     }
 
 
-    if (url.pathname === "/api/compositions/drafts" && request.method === "GET") {
+    
+    if (url.pathname.startsWith("/api/compositions/drafts/") && url.pathname.endsWith("/complete") && request.method === "POST") {
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return json({ error: "Authentication required." }, 401);
+      if (!env.DB) return json({ error: "Composition draft storage is not configured." }, 503);
+      const parts = url.pathname.split("/");
+      const draftId = String(parts[parts.length - 2] || "");
+      if (!/^[0-9a-f-]{36}$/i.test(draftId)) return json({ error: "Composition draft not found." }, 404);
+      let payload;
+      try { payload = await request.json(); } catch { return json({ error: "A valid composition ID is required." }, 400); }
+      const compositionId = String(payload?.compositionId || "");
+      if (!/^[0-9a-f-]{36}$/i.test(compositionId)) return json({ error: "A valid composition ID is required." }, 400);
+      try {
+        const ownedExport = await env.GENERATED_AUDIO?.list({ prefix: "users/" + userId + "/compositions/" + compositionId + ".", limit: 5 });
+        if (!(ownedExport?.objects || []).some(object => /\.(wav|mp3|pcm)$/i.test(String(object.key || "")))) {
+          return json({ error: "The exported composition could not be verified for this user." }, 409);
+        }
+        const result = await env.DB.prepare(
+          "UPDATE composition_drafts SET completed_at=strftime('%Y-%m-%dT%H:%M:%fZ','now'),last_exported_composition_id=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE draft_id=? AND user_id=? AND completed_at IS NULL"
+        ).bind(compositionId, draftId, userId).run();
+        if (!result.meta?.changes) {
+          const existing = await env.DB.prepare("SELECT draft_id FROM composition_drafts WHERE draft_id=? AND user_id=? AND completed_at IS NOT NULL").bind(draftId, userId).first();
+          if (!existing) return json({ error: "Saved draft not found for this user." }, 404);
+        }
+        return json({ success: true, draftId, compositionId, completed: true });
+      } catch (error) {
+        console.error("composition_draft_complete_error", error);
+        return json({ error: /no such column:\s*completed_at/i.test(String(error?.message || error)) ? "Draft completion storage is not initialized. Apply migrations/0016_composition_draft_completion.sql to Cloudflare D1, then retry." : "Could not mark the draft as completed." }, /no such column:\s*completed_at/i.test(String(error?.message || error)) ? 503 : 500);
+      }
+    }
+
+if (url.pathname === "/api/compositions/drafts" && request.method === "GET") {
       const userId = await authenticatedUserId(request, env);
       if (!userId) return json({ error: "Authentication required." }, 401);
       if (!env.DB) return json({ error: "Composition draft storage is not configured." }, 503);
       try {
         const rows = await env.DB.prepare(
-          "SELECT draft_id,display_name,created_at,updated_at,last_exported_composition_id FROM composition_drafts WHERE user_id=? ORDER BY updated_at DESC LIMIT 100"
+          "SELECT draft_id,display_name,created_at,updated_at,last_exported_composition_id FROM composition_drafts WHERE user_id=? AND completed_at IS NULL ORDER BY updated_at DESC LIMIT 100"
         ).bind(userId).all();
         return json({ drafts: (rows.results || []).map(row => ({
           id: row.draft_id,
