@@ -652,6 +652,115 @@ export default {
       }
     }
 
+    if (url.pathname === "/api/compositions/recipe" && request.method === "POST") {
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return json({ error: "Authentication required." }, 401);
+      if (!env.DB || !env.GENERATED_AUDIO) return json({ error: "Composition recipe storage is not configured." }, 503);
+
+      const contentLength = Number(request.headers.get("content-length") || 0);
+      if (contentLength > 262144) return json({ error: "Composition recipe is too large." }, 413);
+      let payload;
+      try { payload = await request.json(); } catch { return json({ error: "A valid recipe JSON body is required." }, 400); }
+      const compositionId = String(payload?.compositionId || "");
+      const tracks = payload?.tracks;
+      if (!/^[0-9a-f-]{36}$/i.test(compositionId)) return json({ error: "Composition asset not found." }, 404);
+      if (!Array.isArray(tracks) || tracks.length < 1 || tracks.length > 100) {
+        return json({ error: "A recipe must contain between 1 and 100 tracks." }, 400);
+      }
+
+      const compositionPrefix = "users/" + userId + "/compositions/" + compositionId + ".";
+      const compositionPage = await env.GENERATED_AUDIO.list({ prefix: compositionPrefix, limit: 5 });
+      const compositionObject = (compositionPage.objects || []).find(object => /\.(wav|mp3|pcm)$/i.test(String(object.key || "")));
+      if (!compositionObject?.key) return json({ error: "Composition asset not found." }, 404);
+
+      const normalizedTracks = [];
+      for (let index = 0; index < tracks.length; index++) {
+        const track = tracks[index] || {};
+        const source = track.sourceAsset || {};
+        const type = String(source.type || "");
+        const assetId = String(source.id || "");
+        if (!["voice", "sound", "composition"].includes(type) || !/^[0-9a-f-]{36}$/i.test(assetId)) {
+          return json({ error: "Track " + (index + 1) + " has an invalid source asset reference." }, 400);
+        }
+        let sourceOwned = false;
+        if (type === "voice") {
+          sourceOwned = !!(await env.DB.prepare(
+            "SELECT id FROM generations WHERE id=? AND user_id=? AND status='ready' AND r2_key IS NOT NULL LIMIT 1"
+          ).bind(assetId, userId).first());
+        } else if (type === "sound") {
+          sourceOwned = !!(await env.DB.prepare(
+            "SELECT id FROM sound_generations WHERE id=? AND user_id=? AND status='ready' AND r2_key IS NOT NULL LIMIT 1"
+          ).bind(assetId, userId).first());
+        } else {
+          const sourcePrefix = "users/" + userId + "/compositions/" + assetId + ".";
+          const sourcePage = await env.GENERATED_AUDIO.list({ prefix: sourcePrefix, limit: 5 });
+          sourceOwned = (sourcePage.objects || []).some(object => /\.(wav|mp3|pcm)$/i.test(String(object.key || "")));
+        }
+        if (!sourceOwned) return json({ error: "Track " + (index + 1) + " references a missing or inaccessible source asset." }, 409);
+
+        const number = (value, fallback, min, max) => {
+          const n = Number(value);
+          return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : fallback;
+        };
+        normalizedTracks.push({
+          trackId: String(track.trackId || ("track-" + (index + 1))).slice(0, 100),
+          sourceAsset: { type, id: assetId },
+          order: index,
+          startSeconds: number(track.startSeconds, 0, 0, 3600),
+          trimIn: number(track.trimIn, 0, 0, 0.98),
+          trimOut: number(track.trimOut, 0, 0, 0.98),
+          fadeIn: number(track.fadeIn, 0, 0, 10),
+          fadeOut: number(track.fadeOut, 0, 0, 10),
+          volume: number(track.volume, 1, 0, 1),
+          muted: !!track.muted,
+          solo: !!track.solo,
+          declaredDuration: number(track.declaredDuration, 0, 0, 3600),
+          cutGroup: String(track.cutGroup || "").slice(0, 100),
+          cutClip: !!track.cutClip
+        });
+      }
+
+      const recipe = JSON.stringify({ schemaVersion: 1, compositionId, tracks: normalizedTracks });
+      if (recipe.length > 262144) return json({ error: "Composition recipe is too large." }, 413);
+      try {
+        await env.DB.prepare(
+          "INSERT INTO composition_recipes (composition_id,user_id,schema_version,recipe_json,updated_at) VALUES (?,?,1,?,strftime('%Y-%m-%dT%H:%M:%fZ','now')) ON CONFLICT(composition_id,user_id) DO UPDATE SET schema_version=1,recipe_json=excluded.recipe_json,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')"
+        ).bind(compositionId, userId, recipe).run();
+        return json({ success: true, compositionId, schemaVersion: 1, trackCount: normalizedTracks.length });
+      } catch (error) {
+        console.error("composition_recipe_save_error", error);
+        return json({ error: "Could not save the editable composition recipe. Confirm the S15 D1 migration has been applied." }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/compositions/recipe" && request.method === "GET") {
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return json({ error: "Authentication required." }, 401);
+      if (!env.DB || !env.GENERATED_AUDIO) return json({ error: "Composition recipe storage is not configured." }, 503);
+      const compositionId = String(url.searchParams.get("id") || "");
+      if (!/^[0-9a-f-]{36}$/i.test(compositionId)) return json({ error: "Composition asset not found." }, 404);
+      const prefix = "users/" + userId + "/compositions/" + compositionId + ".";
+      const page = await env.GENERATED_AUDIO.list({ prefix, limit: 5 });
+      if (!(page.objects || []).some(object => /\.(wav|mp3|pcm)$/i.test(String(object.key || "")))) {
+        return json({ error: "Composition asset not found." }, 404);
+      }
+      try {
+        const row = await env.DB.prepare(
+          "SELECT schema_version,recipe_json,updated_at FROM composition_recipes WHERE composition_id=? AND user_id=? LIMIT 1"
+        ).bind(compositionId, userId).first();
+        if (!row) return json({ success: true, compositionId, available: false, recipe: null });
+        let recipe;
+        try { recipe = JSON.parse(String(row.recipe_json || "")); } catch { return json({ error: "The saved composition recipe is invalid." }, 500); }
+        if (!recipe || Number(row.schema_version) !== 1 || Number(recipe.schemaVersion) !== 1 || !Array.isArray(recipe.tracks)) {
+          return json({ error: "This composition recipe version is not supported." }, 409);
+        }
+        return json({ success: true, compositionId, available: true, schemaVersion: 1, updatedAt: row.updated_at, recipe });
+      } catch (error) {
+        console.error("composition_recipe_load_error", error);
+        return json({ error: "Could not load the editable composition recipe. Confirm the S15 D1 migration has been applied." }, 500);
+      }
+    }
+
     if (request.method === "GET" && url.pathname.startsWith("/api/compositions/assets/") && url.pathname.split("/").length === 5) {
       const userId = await authenticatedUserId(request, env);
       if (!userId) return json({ error: "Authentication required." }, 401);
