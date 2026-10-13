@@ -108,7 +108,7 @@ function json(data, status = 200) {
 
 function composeExportCreditCost(env) {
   const raw = String(env.SVARAONE_COMPOSE_EXPORT_CREDITS ?? "").trim();
-  if (!/^[1-9]\\d*$/.test(raw)) return null;
+  if (!/^[1-9]\d*$/.test(raw)) return null;
   const cost = Number(raw);
   return Number.isSafeInteger(cost) && cost > 0 ? cost : null;
 }
