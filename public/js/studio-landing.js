@@ -2842,6 +2842,7 @@
   const soundHistoryPageInfo=document.getElementById('soundHistoryPageInfo');
   let soundHistoryPage=1;
   let soundHistoryLoading=false;
+  let soundHistoryReloadQueued=false;
   let soundHistoryCurrentItems=[];
 
   const escapeHistory=value=>String(value??'').replace(/[&<>\"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));
@@ -2886,7 +2887,8 @@
     modal.querySelector('.sound-prompt-viewer-close').focus();
   };
   const loadSoundHistory=async()=>{
-    if(!soundHistoryList||soundHistoryLoading)return;
+    if(!soundHistoryList)return;
+    if(soundHistoryLoading){soundHistoryReloadQueued=true;return;}
     soundHistoryLoading=true;
     soundHistoryList.innerHTML='<div class="sound-history-state"><strong>Loading Sound history…</strong><span>Retrieving your saved generations.</span></div>';
     const params=new URLSearchParams({limit:'20',page:String(soundHistoryPage)});
@@ -2906,7 +2908,7 @@
       soundHistoryList.innerHTML=items.map(item=>{const prompt=item.prompt?escapeHistory(item.prompt):'No prompt recorded';const source=item.sourceType==='voice'?'Existing Voice':item.sourceType?escapeHistory(item.sourceType):'Direct';return `<article class="sound-history-item"><div class="sound-history-main"><strong title="${escapeHistory(item.filename||item.type||'Sound generation')}">${escapeHistory(item.filename||item.type||'Sound generation')}</strong><small class="sound-history-prompt" data-sound-history-prompt="${prompt}" tabindex="0" aria-label="View full generation prompt">${prompt}</small></div><span class="sound-history-meta">${formatHistoryDuration(item.durationSeconds)}</span><span class="sound-history-meta">${escapeHistory(String(item.format||'').toUpperCase())}</span><span class="sound-history-meta">${escapeHistory(source)}</span><span class="sound-history-meta">${escapeHistory(item.folderName||"Unfiled")}</span><span class="sound-history-status ${escapeHistory(item.status)}">${escapeHistory(item.status)}</span><span class="sound-history-meta">${formatHistoryDate(item.createdAt)}</span><div class="sound-history-actions"><button class="sound-history-play" type="button" data-sound-history-play="${escapeHistory(item.id)}" data-sound-history-url="${escapeHistory(item.assetUrl||"")}" ${item.status!=="ready"||!item.assetUrl?"disabled":""} aria-label="Play Sound">${item.status==="ready"&&item.assetUrl?"▶":"—"}</button><button class="sound-history-download" type="button" data-sound-history-download="${escapeHistory(item.id)}" data-sound-history-url="${escapeHistory(item.assetUrl||"")}" data-sound-history-format="${escapeHistory(item.format||"mp3")}" data-sound-history-created-at="${escapeHistory(item.createdAt||"")}" ${item.status!=="ready"||!item.assetUrl?"disabled":""} aria-label="Download Sound">↓</button><button class="sound-history-move" type="button" data-sound-history-move="${escapeHistory(item.id)}" data-sound-history-folder-id="${escapeHistory(item.folderId||"")}" aria-label="Move Sound" title="Move">↗</button><button class="sound-history-rename" type="button" data-sound-history-rename="${escapeHistory(item.id)}" aria-label="Rename Sound" title="Rename">✎</button><button class="sound-history-delete" type="button" data-sound-history-delete="${escapeHistory(item.id)}" aria-label="Delete Sound" title="Delete">⌫</button></div></article>`;}).join('');
       bindSoundHistoryPromptViewers();bindSoundHistoryPlayback();bindSoundHistoryDownloads();bindSoundHistoryMoves();bindSoundHistoryRenameDelete();
     }catch(error){soundHistoryList.innerHTML=`<div class="sound-history-state"><strong>Could not load Sound history</strong><span>${escapeHistory(error?.message||'Please try again.')}</span></div>`;}
-    finally{soundHistoryLoading=false;}
+    finally{soundHistoryLoading=false;if(soundHistoryReloadQueued){soundHistoryReloadQueued=false;loadSoundHistory();}}
   };
   let soundHistoryAudio=null;
   let soundHistoryPlayingButton=null;
@@ -2958,6 +2960,16 @@
   soundHistorySearch?.addEventListener('input',()=>{clearTimeout(soundHistorySearch._timer);soundHistorySearch._timer=setTimeout(resetSoundHistory,250);});
   loadSoundCapabilities();
   loadSoundHistoryFolders();
+  // Keep History in sync with generations that finish after the initial page load.
+  // Only poll the currently open History workspace, and pause while the tab is hidden.
+  const refreshVisibleGenerationHistory=()=>{
+    if(document.visibilityState==='hidden')return;
+    if(activeWorkspaceView==='sound')loadSoundHistory();
+    else if(activeWorkspaceView==='voice')loadVoiceHistory();
+  };
+  const generationHistoryRefreshTimer=setInterval(refreshVisibleGenerationHistory,15000);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshVisibleGenerationHistory();});
+  window.addEventListener('focus',refreshVisibleGenerationHistory);
   const voiceHistoryList=document.getElementById('voiceHistoryList');
   const voiceHistoryRefresh=document.getElementById('voiceHistoryRefresh');
   const voiceHistorySearch=document.getElementById('voiceHistorySearch');
