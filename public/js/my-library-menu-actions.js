@@ -41,32 +41,17 @@
     if (label === 'Rename') {
       if (!window.SvaraModal?.rename) return;
       const initialName = item.filename.replace(/(?:\.(?:wav|mp3|pcm))+$/i, '');
-      window.SvaraModal.rename(initialName).then(async newFilename => {
-        const requestedFilename = String(newFilename || '').trim();
+      window.SvaraModal.rename(initialName, async requestedFilename => {
         if (!requestedFilename || (requestedFilename === initialName && item.filename === initialName)) return;
-        try {
-          const response = item.assetType === 'composition'
-            ? await fetch('/api/compositions/rename', {
-                method: 'POST', credentials: 'same-origin',
-                headers: {'content-type':'application/json', accept:'application/json'},
-                body: JSON.stringify({compositionId:item.id, displayName:requestedFilename})
-              })
-            : item.assetType === 'sound'
-              ? await fetch('/api/sound/generations/rename', {
-                  method: 'POST', credentials: 'same-origin',
-                  headers: {'content-type':'application/json', accept:'application/json'},
-                  body: JSON.stringify({generationId:item.id, displayName:requestedFilename})
-                })
-              : await fetch('/api/library/assets/rename', {
-                  method: 'POST', credentials: 'same-origin',
-                  headers: {'content-type':'application/json', accept:'application/json'},
-                  body: JSON.stringify({assetId:item.id, assetType:item.assetType, filename:requestedFilename})
-                });
-          const data = await response.json().catch(() => ({}));
-          if (!response.ok) throw new Error(data.error || 'Rename failed (' + response.status + ')');
-          window.SvaraLibrary?.refresh?.();
-        } catch (error) { console.error(error); }
-      }).catch(error => console.error(error));
+        const response = item.assetType === 'composition'
+          ? await fetch('/api/compositions/rename', {method:'POST',credentials:'same-origin',headers:{'content-type':'application/json',accept:'application/json'},body:JSON.stringify({compositionId:item.id,displayName:requestedFilename})})
+          : item.assetType === 'sound'
+            ? await fetch('/api/sound/generations/rename', {method:'POST',credentials:'same-origin',headers:{'content-type':'application/json',accept:'application/json'},body:JSON.stringify({generationId:item.id,displayName:requestedFilename})})
+            : await fetch('/api/library/assets/rename', {method:'POST',credentials:'same-origin',headers:{'content-type':'application/json',accept:'application/json'},body:JSON.stringify({assetId:item.id,assetType:item.assetType,filename:requestedFilename})});
+        const data=await response.json().catch(()=>({}));
+        if(!response.ok)throw new Error(data.error||'Rename failed ('+response.status+')');
+        window.SvaraLibrary?.refresh?.();
+      });
       return;
     }
     if (label === 'Delete') {
