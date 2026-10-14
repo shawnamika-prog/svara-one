@@ -36,6 +36,16 @@
     .sv-field input:focus,.sv-field textarea:focus,.sv-field select:focus{border-color:#818CF888;box-shadow:0 0 0 2px #6366F112}
     .sv-asset-icon{background:#242454;color:#A5B4FC}
     .sv-preview-stage{background:radial-gradient(ellipse at 50% 15%,#34366f,#17192d 55%,#050a12)}
+    .sv-brand-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding-top:18px}
+    .sv-brand-upload{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:16px;border:1px dashed #6366F188;border-radius:10px;background:#0a1220;color:#e5edf8;cursor:pointer;min-height:132px}
+    .sv-brand-upload:hover{background:#14152c;border-color:#818CF8}
+    .sv-brand-upload input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+    .sv-brand-upload-icon{display:grid;place-items:center;width:28px;height:28px;border-radius:7px;background:#242454;color:#A5B4FC;font-size:18px}
+    .sv-brand-upload strong{font-size:12px}.sv-brand-upload small,.sv-brand-file{font-size:10px;color:#8294aa;overflow-wrap:anywhere}
+    .sv-brand-preview{display:flex;align-items:center;gap:12px;padding:12px;margin-top:14px;border:1px solid #ffffff12;border-radius:9px;background:#080e18}
+    .sv-brand-preview[hidden]{display:none!important}.sv-brand-preview img{max-width:180px;max-height:76px;object-fit:contain}.sv-brand-preview span{font-size:10px;color:#8294aa}
+    .sv-brand-grid input[type=color]{height:40px;padding:4px;cursor:pointer}
+    @media(max-width:700px){.sv-brand-grid{grid-template-columns:1fr}}
     .sv-accordion-head{width:100%;display:flex;align-items:center;gap:12px;padding:17px 22px;border:0;background:transparent;color:#e5edf8;text-align:left;cursor:pointer}
     .sv-accordion-head:hover{background:#ffffff04}
     .sv-accordion-number{width:34px;height:34px;display:grid;place-items:center;flex:none;border-radius:9px;background:#242454;color:#A5B4FC;font-size:11px;font-weight:800}
@@ -145,6 +155,22 @@
             <div class="sv-accordion-foot"><span class="sv-setup-note">Character assets will be connected in a later phase.</span><button class="sv-btn" type="button" data-section-review="characters">Mark reviewed</button></div>
           </div>
         </section>
+        <section class="sv-card sv-accordion" data-accordion="branding">
+          <button class="sv-accordion-head" type="button" data-accordion-toggle="branding" aria-expanded="false"><span class="sv-accordion-number">03</span><span class="sv-accordion-title"><strong>Branding</strong><small>Logos, brand colours, fonts and visual assets</small></span><span class="sv-accordion-state" data-accordion-state="branding">Not started</span><span class="sv-accordion-chevron">⌄</span></button>
+          <div class="sv-accordion-body" data-accordion-body="branding" hidden>
+            <p class="sv-accordion-intro">Upload your brand assets so scenes can reflect your identity. These selections are currently held in this workspace only; persistent storage and automatic application to generated scenes will be connected in a later phase.</p>
+            <div class="sv-brand-grid">
+              <label class="sv-brand-upload"><input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-brand-upload="logo"><span class="sv-brand-upload-icon">＋</span><strong>Logo</strong><small>PNG, JPG, WebP or SVG</small><span class="sv-brand-file" data-brand-file="logo">No logo uploaded</span></label>
+              <label class="sv-brand-upload"><input type="file" accept="image/png,image/jpeg,image/webp" data-brand-upload="reference"><span class="sv-brand-upload-icon">＋</span><strong>Brand imagery</strong><small>Campaign images or visual references</small><span class="sv-brand-file" data-brand-file="reference">No imagery uploaded</span></label>
+              <label class="sv-field"><span>Primary brand colour</span><input type="color" value="#6366F1" data-project-field="brandPrimary"></label>
+              <label class="sv-field"><span>Secondary brand colour</span><input type="color" value="#818CF8" data-project-field="brandSecondary"></label>
+              <label class="sv-field"><span>Brand font / typography notes</span><input data-project-field="brandFont" placeholder="e.g. Inter, bold geometric sans"></label>
+              <label class="sv-field"><span>Brand guidelines / notes</span><textarea data-project-field="brandNotes" rows="2" placeholder="Logo usage, clear space, tone, do's and don'ts..."></textarea></label>
+            </div>
+            <div class="sv-brand-preview" data-brand-preview hidden><img data-brand-logo-preview alt="Uploaded brand logo preview"><span>Logo preview</span></div>
+            <div class="sv-accordion-foot"><span class="sv-setup-note">Brand assets can later be reused across scenes and exports.</span><button class="sv-btn" type="button" data-section-review="branding">Mark reviewed</button></div>
+          </div>
+        </section>
         <section class="sv-card sv-accordion" data-accordion="environment">
           <button class="sv-accordion-head" type="button" data-accordion-toggle="environment" aria-expanded="false"><span class="sv-accordion-number">03</span><span class="sv-accordion-title"><strong>Environments</strong><small>Locations, backgrounds, lighting and atmosphere</small></span><span class="sv-accordion-state" data-accordion-state="environment">Not started</span><span class="sv-accordion-chevron">⌄</span></button>
           <div class="sv-accordion-body" data-accordion-body="environment" hidden>
@@ -188,7 +214,7 @@
     const globalStatus=root.querySelector('[data-global-status]');
     const previewState=root.querySelector('[data-preview-state]');
     let scenes=seedScenes(), selectedId=null, tab='settings', mode='director', reorder=false, modal=null;
-    const projectReviewed={story:false,characters:false,environment:false,style:false};
+    const projectReviewed={story:false,characters:false,branding:false,environment:false,style:false};\n    const brandFiles={logo:null,reference:null};
     const selected=()=>scenes.find(s=>s.id===selectedId)||null;
     const setStatus=(message,type='')=>{globalStatus.textContent=message;globalStatus.className='sv-status'+(type?' '+type:'');};
     const renderScenes=()=>{
@@ -244,6 +270,8 @@
     root.addEventListener('click',event=>{
       const accordionToggle=event.target.closest('[data-accordion-toggle]');
       if(accordionToggle){const id=accordionToggle.dataset.accordionToggle;const body=root.querySelector('[data-accordion-body="'+id+'"]');if(body){const open=body.hidden;body.hidden=!open;accordionToggle.setAttribute('aria-expanded',String(open));const chevron=accordionToggle.querySelector('.sv-accordion-chevron');if(chevron)chevron.textContent=open?'⌃':'⌄';}return;}
+      const brandInput=event.target.closest('[data-brand-upload]');
+      if(brandInput){const kind=brandInput.dataset.brandUpload;const file=brandInput.files&&brandInput.files[0];if(file){brandFiles[kind]=file;const label=root.querySelector('[data-brand-file="'+kind+'"]');if(label)label.textContent=file.name;const state=root.querySelector('[data-accordion-state="branding"]');if(state){state.textContent='Assets added';state.classList.add('complete');}if(kind==='logo'&&file.type.startsWith('image/')){const preview=root.querySelector('[data-brand-preview]');const img=root.querySelector('[data-brand-logo-preview]');if(img){if(img.dataset.objectUrl)URL.revokeObjectURL(img.dataset.objectUrl);img.dataset.objectUrl=URL.createObjectURL(file);img.src=img.dataset.objectUrl;}if(preview)preview.hidden=false;}}return;}
       const reviewButton=event.target.closest('[data-section-review]');
       if(reviewButton){const id=reviewButton.dataset.sectionReview;projectReviewed[id]=!projectReviewed[id];const state=root.querySelector('[data-accordion-state="'+id+'"]');if(state){state.textContent=projectReviewed[id]?'Reviewed':'In progress';state.classList.toggle('complete',projectReviewed[id]);}reviewButton.textContent=projectReviewed[id]?'Mark incomplete':'Mark reviewed';return;}
       const modeButton=event.target.closest('[data-mode]');if(modeButton){mode=modeButton.dataset.mode;root.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',b===modeButton));setStatus(mode==='director'?'Director mode: approve each scene before generation.':mode==='hybrid'?'Hybrid mode: review key decisions and let SvaraFlow assist.':'Automatic mode selected. Automated orchestration is a planned feature.');return;}
