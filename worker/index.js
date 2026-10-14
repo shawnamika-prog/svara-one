@@ -205,7 +205,7 @@ export default {
   }
 
   if(url.pathname==="/api/video/runway"&&request.method==="POST"){
-    if(!env.RUNWAY_API_KEY)return json({error:"Runway is not configured yet. Add the RUNWAY_API_KEY Worker secret in Cloudflare."},503,request);
+    if(!env.VIDEO_PROVIDER_API_KEY)return json({error:"Runway is not configured yet. Add the VIDEO_PROVIDER_API_KEY Worker secret in Cloudflare."},503,request);
     try{
       const form=await request.formData();
       const image=form.get("image");
@@ -223,7 +223,7 @@ export default {
       const version="2024-11-06";
       const descriptorResponse=await fetch("https://api.dev.runwayml.com/v1/uploads",{
         method:"POST",
-        headers:{Authorization:`Bearer ${env.RUNWAY_API_KEY}`,"X-Runway-Version":version,"Content-Type":"application/json"},
+        headers:{Authorization:`Bearer ${env.VIDEO_PROVIDER_API_KEY}`,"X-Runway-Version":version,"Content-Type":"application/json"},
         body:JSON.stringify({filename:String(image.name||"svaraone-video-input.png"),type:"ephemeral"})
       });
       const descriptor=await descriptorResponse.json().catch(()=>({}));
@@ -236,7 +236,7 @@ export default {
       if(!uploadResponse.ok)return json({error:`Image upload failed (HTTP ${uploadResponse.status}). Please try again.`},502,request);
       const generationResponse=await fetch("https://api.dev.runwayml.com/v1/image_to_video",{
         method:"POST",
-        headers:{Authorization:`Bearer ${env.RUNWAY_API_KEY}`,"X-Runway-Version":version,"Content-Type":"application/json"},
+        headers:{Authorization:`Bearer ${env.VIDEO_PROVIDER_API_KEY}`,"X-Runway-Version":version,"Content-Type":"application/json"},
         body:JSON.stringify({model:"gen4_turbo",promptImage:descriptor.runwayUri,promptText,ratio,duration})
       });
       const generation=await generationResponse.json().catch(()=>({}));
@@ -249,12 +249,12 @@ export default {
   }
 
   if(url.pathname.startsWith("/api/video/runway/tasks/")&&request.method==="GET"){
-    if(!env.RUNWAY_API_KEY)return json({error:"Runway is not configured yet."},503,request);
+    if(!env.VIDEO_PROVIDER_API_KEY)return json({error:"Runway is not configured yet."},503,request);
     const taskId=decodeURIComponent(url.pathname.slice("/api/video/runway/tasks/".length));
     if(!taskId||!/^[A-Za-z0-9_-]+$/.test(taskId))return json({error:"Invalid Runway task ID."},400,request);
     try{
       const upstream=await fetch(`https://api.dev.runwayml.com/v1/tasks/${encodeURIComponent(taskId)}`,{
-        headers:{Authorization:`Bearer ${env.RUNWAY_API_KEY}`,"X-Runway-Version":"2024-11-06"}
+        headers:{Authorization:`Bearer ${env.VIDEO_PROVIDER_API_KEY}`,"X-Runway-Version":"2024-11-06"}
       });
       const data=await upstream.json().catch(()=>({}));
       return json(data,upstream.status,request);
