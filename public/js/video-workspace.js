@@ -107,7 +107,7 @@
         </section>
         <div class="sv-main">
           <section class="sv-card">
-            
+            <div class="sv-vhead"><div><div class="sv-eyebrow">STORYBOARD</div><span class="sv-hidden" data-count>(3)</span></div></div>
             <div class="sv-scenes" data-scenes style="padding:10px"></div>
             <div style="padding:0 10px 10px"><button class="sv-add" data-action="add">＋ Add New Scene</button></div>
           </section>
