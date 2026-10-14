@@ -102,7 +102,7 @@
       <div class="sv-video">
         <section class="sv-card">
           <div class="sv-vhead"><div><div class="sv-eyebrow">VIDEO</div><h2>Bring your story to life</h2><p>Plan, create and direct every scene. You direct &amp; SvaraFlow coordinates the work.</p></div>
-            <div class="sv-actions"><div class="sv-mode" role="group" aria-label="Production mode"><button data-mode="director" class="active">Director</button><button data-mode="hybrid">Hybrid</button><button data-mode="automatic">Automatic</button></div><button class="sv-btn" data-action="save">▣ Save Project</button><button class="sv-btn" data-action="project-menu" title="More project actions">•••</button></div>
+            
           </div>
         </section>
         <div class="sv-main">
