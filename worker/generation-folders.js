@@ -316,6 +316,13 @@ app.fetch = async (request, env, ctx) => {
       }
       const dot = originalFilename.lastIndexOf(".");
       const extension = dot > 0 ? originalFilename.slice(dot).toLowerCase() : "." + String(row.format || "mp3").toLowerCase();
+      if (assetType === "sound") {
+        const displayName = requestedFilename.replace(/(?:\.(?:wav|mp3|pcm))+$/i, "").trim();
+        if (!displayName || displayName === "." || displayName === "..") return json({ error: "Enter a valid Sound name." }, 400);
+        if (displayName.length > 100 || /[\\/\u0000-\u001f\u007f]/.test(displayName)) return json({ error: "Use a Sound name up to 100 characters without file-path characters." }, 400);
+        await env.DB.prepare("INSERT INTO sound_display_names (generation_id,user_id,display_name,updated_at) VALUES (?,?,?,strftime('%Y-%m-%dT%H:%M:%fZ','now')) ON CONFLICT(generation_id,user_id) DO UPDATE SET display_name=excluded.display_name,updated_at=excluded.updated_at").bind(assetId,userId,displayName).run();
+        return json({ success: true, assetId, assetType, displayName, filename: displayName + extension, storageFilename: originalFilename });
+      }
       let filename = requestedFilename.replace(/[\\/]/g, "").trim().replace(/(?:\.(?:wav|mp3|pcm))+$/i, "");
       if (!filename || filename === "." || filename === "..") return json({ error: "A valid filename is required." }, 400);
       filename += extension;
