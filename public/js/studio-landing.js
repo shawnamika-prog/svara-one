@@ -990,7 +990,8 @@
     document.head.appendChild(style);
     const input=modal.querySelector('#composeRenameInput');
     input.value=filename;
-    const close=()=>{modal.remove();style.remove();};
+    let isSubmitting=false;
+    const close=()=>{if(!isSubmitting){modal.remove();style.remove();}};
     const showError=message=>{const error=modal.querySelector('.compose-rename-error');error.textContent=message;error.hidden=false;};
     document.body.appendChild(modal);
     const closeButton=modal.querySelector('[data-compose-rename-close]');
