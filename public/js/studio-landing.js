@@ -52,6 +52,8 @@
     .sound-history-move{border:1px solid #ffffff10;border-radius:50%;background:#0b1523;color:#cdb0ff;padding:0;width:30px;height:30px;font:700 11px Inter;cursor:pointer;display:flex;align-items:center;justify-content:center}.sound-history-move:hover{background:#151f30;color:#fff;border-color:#a85cff44}
     .sound-history-download{border:1px solid #ffffff10;border-radius:50%;background:#0b1523;color:#cdb0ff;padding:0;width:30px;height:30px;font:700 12px Inter;cursor:pointer;display:flex;align-items:center;justify-content:center}.sound-history-download:hover:not(:disabled){background:#151f30;color:#fff;border-color:#a85cff44}.sound-history-download:disabled{opacity:.28;cursor:default}
     .sound-history-play{width:30px;height:30px;border:1px solid #ffffff10;border-radius:50%;background:#0b1523;color:#cdb0ff;font:700 11px Inter;cursor:pointer;display:flex;align-items:center;justify-content:center}.sound-history-play:hover:not(:disabled){background:#151f30;color:#fff;border-color:#a85cff44}.sound-history-play:disabled{opacity:.28;cursor:default}.sound-history-rename,.sound-history-delete{width:30px;height:30px;flex:0 0 30px;padding:0;border:1px solid #ffffff10;border-radius:50%;background:#0b1523;color:#cdb0ff;font:700 12px Inter;cursor:pointer;display:flex;align-items:center;justify-content:center}.sound-history-rename:hover{background:#281642;border-color:#b36cff88;color:#e1bdff}.sound-history-delete{background:#2b151a;border-color:#5d2931;color:#ff7777}.sound-history-delete:hover{background:#241521;border-color:#a85cff66;color:#ff7777}.sound-history-actions{min-width:190px}.sound-workspace{align-items:stretch}.sound-workspace>.sound-panel{align-self:stretch;height:100%;box-sizing:border-box}.sound-output{display:flex;flex-direction:column}.sound-output-body{flex:1}
+    .sound-history-prompt{cursor:help;outline:none}.sound-history-prompt:focus{color:#cdb0ff;text-decoration:underline;text-decoration-color:#a85cff88}
+    .sound-history-prompt-tooltip{position:fixed;z-index:5000;box-sizing:border-box;width:min(560px,calc(100vw - 24px));max-height:min(300px,calc(100vh - 24px));overflow:auto;padding:15px 17px;border:1px solid #a85cff66;border-radius:12px;background:linear-gradient(145deg,#111a29,#080f1b);box-shadow:0 18px 48px #000b,0 0 0 1px #ffffff08 inset;color:#cbd7e5;font:11px/1.65 Inter,system-ui,sans-serif;white-space:pre-wrap;overflow-wrap:anywhere;pointer-events:none;scrollbar-width:thin;scrollbar-color:#60418c #0b1320}.sound-history-prompt-tooltip[hidden]{display:none}
     .sound-history-main{min-width:0}.sound-history-main strong{display:block;color:#dce8f3;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sound-history-main small{display:block;margin-top:4px;color:#667b91;font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .sound-history-meta{color:#91a3b7;font-size:9px;white-space:nowrap}.sound-history-status{font-size:8px;text-transform:uppercase;letter-spacing:.08em;font-weight:800}.sound-history-status.ready{color:#31e3c8}.sound-history-status.processing{color:#d7a8ff}.sound-history-status.failed,.sound-history-status.storage_failed{color:#ef7777}
     .sound-history-state{padding:45px 20px;text-align:center;color:#71869d}.sound-history-state strong{display:block;color:#b7c7d7;font-size:12px}.sound-history-state span{display:block;margin-top:6px;font-size:10px}
@@ -2849,6 +2851,53 @@
   const setHistoryOptions=(select,values,labels={})=>{if(!select)return;const current=select.value;const label=select===soundHistoryType?'types':'formats';select.innerHTML=`<option value="">All ${label}</option>`;values.forEach(value=>{const option=document.createElement('option');option.value=value;option.textContent=labels[value]||String(value).toUpperCase();select.appendChild(option);});if(values.includes(current))select.value=current;};
   const loadSoundHistoryFolders=async()=>{try{const response=await fetch("/api/generations/folders",{credentials:"same-origin",cache:"no-store",headers:{accept:"application/json"}});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||"folders unavailable");const current=soundHistoryFolder?.value||"";if(soundHistoryFolder){soundHistoryFolder.innerHTML="<option value=\"\">All folders</option><option value=\"__unfiled__\">Unfiled</option>"+(Array.isArray(data.folders)?data.folders.map(folder=>"<option value=\""+escapeHistory(folder.id)+"\">"+escapeHistory(folder.name)+"</option>").join(""):"");if(current)soundHistoryFolder.value=current;}}catch(error){if(soundHistoryFolder)soundHistoryFolder.innerHTML="<option value=\"\">All folders</option><option value=\"__unfiled__\">Unfiled</option>";}};
   const loadSoundCapabilities=async()=>{try{const response=await fetch('/api/sound/capabilities',{credentials:'same-origin',cache:'no-store',headers:{accept:'application/json'}});if(!response.ok)throw new Error('capabilities unavailable');const data=await response.json();const capabilities=data?.capabilities||{};setHistoryOptions(soundHistoryType,Array.isArray(capabilities.types)?capabilities.types:[],{soundtrack:'Soundtrack'});setHistoryOptions(soundHistoryFormat,Array.isArray(capabilities.outputFormats)?capabilities.outputFormats:[]);}catch(error){setHistoryOptions(soundHistoryType,[]);setHistoryOptions(soundHistoryFormat,[]);}};
+  const ensureSoundPromptTooltip=()=>{
+    if(!soundHistoryList||soundHistoryList.dataset.promptTooltipReady==='1')return;
+    soundHistoryList.dataset.promptTooltipReady='1';
+    const tooltip=document.createElement('div');
+    tooltip.className='sound-history-prompt-tooltip';
+    tooltip.hidden=true;
+    tooltip.setAttribute('role','tooltip');
+    document.body.appendChild(tooltip);
+    let activeTarget=null;
+    const formatPrompt=value=>String(value||'No prompt recorded')
+      .replace(/;\\s*(?=(?:Role|Intent|Mood|Style|Energy|Texture|Tempo|Intensity|Complexity|Opening|Development|Climax|Ending|Support|Avoid|Vocal policy|Voice content):)/gi,';\\n')
+      .replace(/;\\s+/g,';\\n');
+    const place=(x,y)=>{
+      const gap=14,pad=12;
+      const rect=tooltip.getBoundingClientRect();
+      let left=x+gap,top=y+gap;
+      if(left+rect.width>window.innerWidth-pad)left=Math.max(pad,x-rect.width-gap);
+      if(top+rect.height>window.innerHeight-pad)top=Math.max(pad,y-rect.height-gap);
+      tooltip.style.left=left+'px';tooltip.style.top=top+'px';
+    };
+    const show=(target,x,y)=>{
+      if(!target)return;
+      activeTarget=target;
+      tooltip.textContent=formatPrompt(target.dataset.soundHistoryPrompt);
+      tooltip.hidden=false;
+      place(x,y);
+    };
+    const hide=()=>{activeTarget=null;tooltip.hidden=true;};
+    soundHistoryList.addEventListener('pointerover',event=>{
+      const target=event.target.closest('[data-sound-history-prompt]');
+      if(!target||target===activeTarget)return;
+      show(target,event.clientX,event.clientY);
+    });
+    soundHistoryList.addEventListener('pointermove',event=>{if(activeTarget)place(event.clientX,event.clientY);});
+    soundHistoryList.addEventListener('pointerout',event=>{
+      if(activeTarget&&!event.relatedTarget?.closest?.('[data-sound-history-prompt]'))hide();
+    });
+    soundHistoryList.addEventListener('focusin',event=>{
+      const target=event.target.closest('[data-sound-history-prompt]');
+      if(target){const rect=target.getBoundingClientRect();show(target,rect.left,rect.bottom);}
+    });
+    soundHistoryList.addEventListener('focusout',event=>{
+      if(event.target.closest('[data-sound-history-prompt]'))hide();
+    });
+    window.addEventListener('scroll',hide,true);
+    window.addEventListener('resize',hide);
+  };
   const loadSoundHistory=async()=>{
     if(!soundHistoryList||soundHistoryLoading)return;
     soundHistoryLoading=true;
@@ -2867,7 +2916,7 @@
       if(soundHistoryPrev)soundHistoryPrev.disabled=!data.hasPrevious;
       if(soundHistoryNext)soundHistoryNext.disabled=!data.hasNext;
       if(!items.length){soundHistoryList.innerHTML='<div class="sound-history-state"><strong>No matching Sound generations</strong><span>Try changing your search or filters.</span></div>';return;}
-      soundHistoryList.innerHTML=items.map(item=>{const prompt=item.prompt?escapeHistory(item.prompt):'No prompt recorded';const source=item.sourceType==='voice'?'Existing Voice':item.sourceType?escapeHistory(item.sourceType):'Direct';return `<article class="sound-history-item"><div class="sound-history-main"><strong title="${escapeHistory(item.filename||item.type||'Sound generation')}">${escapeHistory(item.filename||item.type||'Sound generation')}</strong><small title="${prompt}">${prompt}</small></div><span class="sound-history-meta">${formatHistoryDuration(item.durationSeconds)}</span><span class="sound-history-meta">${escapeHistory(String(item.format||'').toUpperCase())}</span><span class="sound-history-meta">${escapeHistory(source)}</span><span class="sound-history-meta">${escapeHistory(item.folderName||"Unfiled")}</span><span class="sound-history-status ${escapeHistory(item.status)}">${escapeHistory(item.status)}</span><span class="sound-history-meta">${formatHistoryDate(item.createdAt)}</span><div class="sound-history-actions"><button class="sound-history-play" type="button" data-sound-history-play="${escapeHistory(item.id)}" data-sound-history-url="${escapeHistory(item.assetUrl||"")}" ${item.status!=="ready"||!item.assetUrl?"disabled":""} aria-label="Play Sound">${item.status==="ready"&&item.assetUrl?"▶":"—"}</button><button class="sound-history-download" type="button" data-sound-history-download="${escapeHistory(item.id)}" data-sound-history-url="${escapeHistory(item.assetUrl||"")}" data-sound-history-format="${escapeHistory(item.format||"mp3")}" data-sound-history-created-at="${escapeHistory(item.createdAt||"")}" ${item.status!=="ready"||!item.assetUrl?"disabled":""} aria-label="Download Sound">↓</button><button class="sound-history-move" type="button" data-sound-history-move="${escapeHistory(item.id)}" data-sound-history-folder-id="${escapeHistory(item.folderId||"")}" aria-label="Move Sound" title="Move">↗</button><button class="sound-history-rename" type="button" data-sound-history-rename="${escapeHistory(item.id)}" aria-label="Rename Sound" title="Rename">✎</button><button class="sound-history-delete" type="button" data-sound-history-delete="${escapeHistory(item.id)}" aria-label="Delete Sound" title="Delete">⌫</button></div></article>`;}).join('');
+      soundHistoryList.innerHTML=items.map(item=>{const prompt=item.prompt?escapeHistory(item.prompt):'No prompt recorded';const source=item.sourceType==='voice'?'Existing Voice':item.sourceType?escapeHistory(item.sourceType):'Direct';return `<article class="sound-history-item"><div class="sound-history-main"><strong title="${escapeHistory(item.filename||item.type||'Sound generation')}">${escapeHistory(item.filename||item.type||'Sound generation')}</strong><small class="sound-history-prompt" data-sound-history-prompt="${prompt}" tabindex="0" aria-label="View full generation prompt">${prompt}</small></div><span class="sound-history-meta">${formatHistoryDuration(item.durationSeconds)}</span><span class="sound-history-meta">${escapeHistory(String(item.format||'').toUpperCase())}</span><span class="sound-history-meta">${escapeHistory(source)}</span><span class="sound-history-meta">${escapeHistory(item.folderName||"Unfiled")}</span><span class="sound-history-status ${escapeHistory(item.status)}">${escapeHistory(item.status)}</span><span class="sound-history-meta">${formatHistoryDate(item.createdAt)}</span><div class="sound-history-actions"><button class="sound-history-play" type="button" data-sound-history-play="${escapeHistory(item.id)}" data-sound-history-url="${escapeHistory(item.assetUrl||"")}" ${item.status!=="ready"||!item.assetUrl?"disabled":""} aria-label="Play Sound">${item.status==="ready"&&item.assetUrl?"▶":"—"}</button><button class="sound-history-download" type="button" data-sound-history-download="${escapeHistory(item.id)}" data-sound-history-url="${escapeHistory(item.assetUrl||"")}" data-sound-history-format="${escapeHistory(item.format||"mp3")}" data-sound-history-created-at="${escapeHistory(item.createdAt||"")}" ${item.status!=="ready"||!item.assetUrl?"disabled":""} aria-label="Download Sound">↓</button><button class="sound-history-move" type="button" data-sound-history-move="${escapeHistory(item.id)}" data-sound-history-folder-id="${escapeHistory(item.folderId||"")}" aria-label="Move Sound" title="Move">↗</button><button class="sound-history-rename" type="button" data-sound-history-rename="${escapeHistory(item.id)}" aria-label="Rename Sound" title="Rename">✎</button><button class="sound-history-delete" type="button" data-sound-history-delete="${escapeHistory(item.id)}" aria-label="Delete Sound" title="Delete">⌫</button></div></article>`;}).join('');
       bindSoundHistoryPlayback();bindSoundHistoryDownloads();bindSoundHistoryMoves();bindSoundHistoryRenameDelete();
     }catch(error){soundHistoryList.innerHTML=`<div class="sound-history-state"><strong>Could not load Sound history</strong><span>${escapeHistory(error?.message||'Please try again.')}</span></div>`;}
     finally{soundHistoryLoading=false;}
