@@ -23,6 +23,55 @@
     @media(max-width:1050px){.sv-main{grid-template-columns:1fr}.sv-right{grid-template-columns:1fr 1fr;align-items:start}.sv-steps{gap:5px}.sv-step{gap:5px}}
     @media(max-width:700px){.sv-scene{grid-template-columns:110px minmax(0,1fr);gap:9px}.sv-scene-actions{grid-column:1/-1;grid-template-columns:repeat(4,minmax(0,1fr))}.sv-thumb{min-height:75px}.sv-right{grid-template-columns:1fr}.sv-steps{grid-template-columns:repeat(5,minmax(68px,1fr));overflow:auto}.sv-step small{display:none}.sv-vhead{padding:14px}.sv-vhead h2{font-size:19px}}
     @media(max-width:420px){.sv-scene{grid-template-columns:1fr}.sv-thumb{min-height:130px}.sv-scene-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.sv-mode button{padding:7px 6px;font-size:8px}.sv-two{grid-template-columns:1fr}}
+    /* Compose-inspired spacious panel sizing */
+    .studio-domain-placeholder:has(.sv-video){width:100%;max-width:none;margin-left:0;margin-right:0}
+    .sv-video{gap:20px}
+    .sv-card{border-radius:20px}
+    .sv-vhead{padding:24px 28px;gap:20px}
+    .sv-eyebrow{font-size:10px}
+    .sv-vhead h2{font-size:26px;margin:7px 0}
+    .sv-vhead p{font-size:13px;line-height:1.65}
+    .sv-steps{padding:20px 24px;gap:14px}
+    .sv-step{gap:11px;font-size:12px}
+    .sv-step b{width:34px;height:34px;font-size:12px}
+    .sv-step strong{font-size:12px}
+    .sv-step small{font-size:10px}
+    .sv-main{grid-template-columns:minmax(0,1.45fr) minmax(380px,.9fr);gap:20px}
+    .sv-scenes{gap:14px}
+    .sv-scene{grid-template-columns:minmax(220px,30%) minmax(0,1fr) 132px;gap:16px;padding:14px;border-radius:15px}
+    .sv-thumb{min-height:150px;border-radius:10px}
+    .sv-thumb span{font-size:34px}
+    .sv-scene-info{padding:5px 0}
+    .sv-scene-info h3{font-size:15px;margin-bottom:9px}
+    .sv-scene-info p{font-size:12px;line-height:1.65;margin-bottom:12px}
+    .sv-meta{gap:7px}
+    .sv-chip{font-size:10px;padding:6px 8px}
+    .sv-mini-assets{gap:7px;margin-top:12px}
+    .sv-mini-assets button{font-size:10px;padding:8px 9px}
+    .sv-scene-actions{gap:7px}
+    .sv-scene-actions .sv-btn{padding:10px 7px;font-size:10px}
+    .sv-btn{font-size:11px;padding:11px 14px}
+    .sv-preview{padding:18px}
+    .sv-preview-head{padding:2px 2px 14px}
+    .sv-preview-head strong{font-size:15px}
+    .sv-preview-stage{border-radius:12px;min-height:240px}
+    .sv-preview-placeholder{padding:26px}
+    .sv-preview-placeholder b{font-size:32px}
+    .sv-preview-placeholder span{font-size:12px;line-height:1.65}
+    .sv-settings{padding:20px;gap:16px}
+    .sv-tabs button{font-size:11px;padding:14px 9px}
+    .sv-field label{font-size:10px}
+    .sv-field input,.sv-field textarea,.sv-field select{font-size:12px;padding:12px}
+    .sv-asset-row{padding:13px;gap:12px}
+    .sv-asset-icon{width:36px;height:36px}
+    .sv-asset-copy strong{font-size:12px}
+    .sv-asset-copy small{font-size:10px}
+    .sv-status{padding:13px;font-size:11px;line-height:1.6}
+    .sv-asset-placeholder{padding:19px;font-size:11px;line-height:1.7}
+    @media(max-width:1250px){.sv-main{grid-template-columns:minmax(0,1.2fr) minmax(340px,.9fr);gap:16px}.sv-scene{grid-template-columns:minmax(170px,28%) minmax(0,1fr) 118px;gap:12px}.sv-thumb{min-height:125px}}
+    @media(max-width:1050px){.sv-main{grid-template-columns:1fr}.sv-right{grid-template-columns:1fr 1fr;align-items:start}.sv-steps{gap:8px}.sv-step{gap:8px}}
+    @media(max-width:700px){.sv-vhead{padding:18px}.sv-vhead h2{font-size:22px}.sv-main{gap:14px}.sv-scene{grid-template-columns:130px minmax(0,1fr);gap:12px;padding:12px}.sv-scene-actions{grid-column:1/-1;grid-template-columns:repeat(3,minmax(0,1fr))}.sv-thumb{min-height:90px}.sv-right{grid-template-columns:1fr}.sv-steps{grid-template-columns:repeat(5,minmax(76px,1fr));overflow:auto;padding:16px}.sv-step small{display:none}.sv-preview-stage{min-height:190px}}
+    @media(max-width:420px){.sv-scene{grid-template-columns:1fr}.sv-thumb{min-height:160px}.sv-scene-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.sv-mode button{padding:7px 6px;font-size:8px}.sv-two{grid-template-columns:1fr}.sv-vhead{padding:15px}.sv-steps{grid-template-columns:repeat(5,minmax(68px,1fr))}}
   `;
   document.head.appendChild(style);
 
