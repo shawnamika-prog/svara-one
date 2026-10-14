@@ -47,7 +47,7 @@
     .sv-video{width:100%;max-width:none;margin:0}
     .sv-video{gap:20px}
     .sv-card{border-radius:20px}
-    .sv-vhead{padding:24px 28px;gap:20px}
+    .sv-vhead{padding:24px 28px;gap:20px;text-align:left}\n    .sv-vhead>div:first-child{margin-right:auto;text-align:left;align-self:flex-start}\n    .sv-vhead h2,.sv-vhead p,.sv-vhead .sv-eyebrow{text-align:left}
     .sv-eyebrow{font-size:10px}
     .sv-vhead h2{font-size:26px;margin:7px 0}
     .sv-vhead p{font-size:13px;line-height:1.65}
@@ -101,11 +101,8 @@
     root.innerHTML = `
       <div class="sv-video">
         <section class="sv-card">
-          <div class="sv-vhead"><div><div class="sv-eyebrow">SVARAONE STUDIO · VIDEO</div><h2>Video Workspace</h2><p>Plan, create and direct every scene. You direct; SvaraFlow coordinates the work.</p></div>
+          <div class="sv-vhead"><div><div class="sv-eyebrow">VIDEO</div><h2>Bring your story to life</h2><p>Plan, create and direct every scene. You direct &amp; SvaraFlow coordinates the work.</p></div>
             <div class="sv-actions"><div class="sv-mode" role="group" aria-label="Production mode"><button data-mode="director" class="active">Director</button><button data-mode="hybrid">Hybrid</button><button data-mode="automatic">Automatic</button></div><button class="sv-btn" data-action="save">▣ Save Project</button><button class="sv-btn" data-action="project-menu" title="More project actions">•••</button></div>
-          </div>
-          <div class="sv-steps" aria-label="Production stages">
-            <div class="sv-step active"><b>1</b><span><strong>Concept</strong><small>Idea &amp; goals</small></span></div><div class="sv-step"><b>2</b><span><strong>Storyboard</strong><small>Plan scenes</small></span></div><div class="sv-step"><b>3</b><span><strong>Assets</strong><small>Images &amp; audio</small></span></div><div class="sv-step"><b>4</b><span><strong>Generate</strong><small>Create videos</small></span></div><div class="sv-step"><b>5</b><span><strong>Assemble</strong><small>Edit &amp; export</small></span></div>
           </div>
         </section>
         <div class="sv-main">
