@@ -33,3 +33,6 @@ aside a{padding:11px 10px;color:#8da1b7;border-radius:10px;text-decoration:none;
 @media(max-width:1250px){.workspace{grid-template-columns:1fr 1fr}.library{grid-column:1/-1}.library #voiceList{height:165px}.voice{width:195px;min-width:195px;height:142px}}
 @media(max-width:900px){.studio-shell{grid-template-columns:1fr}aside{display:none}.workspace{grid-template-columns:1fr;padding:16px}.library{grid-column:auto}.library .panel-head{display:block}.library .panel-head input{margin-top:16px}.library #voiceList{height:160px}.controls{grid-template-columns:1fr}}
 @media(max-width:560px){.studio-nav{padding:0 16px}.brand img{width:90px}.studio-title{font-size:13px}.topbar-credits{display:none}.workspace{padding:10px}.panel-head h2{font-size:19px}.library #voiceList{height:150px}.voice{min-width:178px;width:178px;height:132px;padding:9px}.voice b{max-width:98px}.voice small{max-width:110px}.voice-wave{height:37px;margin-top:8px;gap:2px}.voice-wave i{width:2px}.editor textarea{height:200px}.language-warning{margin:16px 12px 2px;display:block}.language-warning[hidden]{display:none}}
+
+/* Video navigation uses the Video workspace's indigo identity */
+aside>a[href="#video"].active{background:linear-gradient(100deg,#29275f,#1a1c43);color:#A5B4FC;box-shadow:inset 0 0 0 1px #6366F177}
