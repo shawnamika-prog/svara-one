@@ -305,6 +305,15 @@ app.fetch = async (request, env, ctx) => {
       const row = await env.DB.prepare("SELECT id,r2_key,format FROM " + table + " WHERE id=? AND user_id=? LIMIT 1").bind(assetId, userId).first();
       if (!row?.r2_key) return json({ error: "Asset not found." }, 404);
       const oldKey = String(row.r2_key), originalFilename = oldKey.split("/").pop() || "";
+      if (assetType === "voice") {
+        const displayName = requestedFilename.replace(/(?:\.(?:wav|mp3|pcm))+$/i, "").trim();
+        if (!displayName || displayName === "." || displayName === "..") return json({ error: "Enter a valid Voice name." }, 400);
+        if (displayName.length > 100 || /[\\/\u0000-\u001f\u007f]/.test(displayName)) return json({ error: "Use a Voice name up to 100 characters without file-path characters." }, 400);
+        const dot = originalFilename.lastIndexOf(".");
+        const extension = dot > 0 ? originalFilename.slice(dot).toLowerCase() : "." + String(row.format || "mp3").toLowerCase();
+        await env.DB.prepare("INSERT INTO voice_display_names (generation_id,user_id,display_name,updated_at) VALUES (?,?,?,strftime('%Y-%m-%dT%H:%M:%fZ','now')) ON CONFLICT(generation_id,user_id) DO UPDATE SET display_name=excluded.display_name,updated_at=excluded.updated_at").bind(assetId,userId,displayName).run();
+        return json({ success: true, assetId, assetType, displayName, filename: displayName + extension, storageFilename: originalFilename });
+      }
       const dot = originalFilename.lastIndexOf(".");
       const extension = dot > 0 ? originalFilename.slice(dot).toLowerCase() : "." + String(row.format || "mp3").toLowerCase();
       let filename = requestedFilename.replace(/[\\/]/g, "").trim().replace(/(?:\.(?:wav|mp3|pcm))+$/i, "");

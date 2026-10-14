@@ -8,6 +8,7 @@
         id: row?.dataset.assetId || '',
         assetType: row?.dataset.assetType || 'voice',
         filename: name.querySelector('strong')?.textContent?.trim() || '',
+        storageFilename: row?.dataset.storageFilename || name.querySelector('strong')?.textContent?.trim() || '',
         format: row?.children?.[3]?.textContent?.trim() || '',
         assetUrl: row?.dataset.assetUrl || ''
       };
@@ -27,7 +28,7 @@
         ? (item.assetUrl || '/api/compositions?download=1')
         : item.assetType === 'sound'
           ? '/api/sound/assets/' + encodeURIComponent(item.id) + '?download=1'
-          : '/api/generations/media?filename=' + encodeURIComponent(item.filename) + '&download=1';
+          : '/api/generations/media?filename=' + encodeURIComponent(item.storageFilename || item.filename) + '&download=1';
       const link = document.createElement('a');
       link.href = url;
       link.download = item.filename;
