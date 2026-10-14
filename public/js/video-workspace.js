@@ -50,7 +50,7 @@
     .sv-vhead{padding:24px 28px;gap:20px;text-align:left}\n    .sv-vhead>div:first-child{margin-right:auto;text-align:left;align-self:flex-start}\n    .sv-vhead h2,.sv-vhead p,.sv-vhead .sv-eyebrow{text-align:left}
     .sv-eyebrow{font-size:10px}
     .sv-vhead h2{font-size:26px;margin:7px 0}
-    .sv-vhead p{font-size:13px;line-height:1.65}
+    .sv-vhead p{font-size:14px;line-height:1.65}
     .sv-steps{padding:20px 24px;gap:14px}
     .sv-step{gap:11px;font-size:12px}
     .sv-step b{width:34px;height:34px;font-size:12px}
