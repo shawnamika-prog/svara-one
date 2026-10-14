@@ -39,9 +39,7 @@
     }
     if (label === 'Rename') {
       if (!window.SvaraModal?.rename) return;
-      const initialName = item.assetType === 'sound'
-        ? item.filename.replace(/(?:\.(?:wav|mp3|pcm))+$/i, '')
-        : item.filename;
+      const initialName = item.filename.replace(/(?:\.(?:wav|mp3|pcm))+$/i, '');
       window.SvaraModal.rename(initialName).then(async newFilename => {
         const requestedFilename = String(newFilename || '').trim();
         if (!requestedFilename || (requestedFilename === initialName && item.filename === initialName)) return;
