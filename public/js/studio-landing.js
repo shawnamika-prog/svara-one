@@ -246,7 +246,7 @@
       <a href="#sound" class="studio-domain-card" data-domain="sound" aria-label="Open Sound workspace">
         <img src="${assets.sound}" alt="" loading="lazy" decoding="async">
         <span class="studio-card-top">${icons.sound}</span>
-        <div class="studio-card-copy"><p class="studio-card-kicker">SOUND</p><h2>Create sound that moves.</h2><p class="studio-card-description">Music, SFX and sonic worlds built for your projects.</p><span class="studio-card-cta">Explore Sound <span aria-hidden="true">→</span></span></div>
+        <div class="studio-card-copy"><p class="studio-card-kicker">SOUND</p><h2>Create sound that moves</h2><p class="studio-card-description">Music, SFX and sonic worlds built for your projects.</p><span class="studio-card-cta">Explore Sound <span aria-hidden="true">→</span></span></div>
       </a>
       <a href="#video" class="studio-domain-card" data-domain="video" aria-label="Open Video workspace">
         <img src="${assets.video}" alt="" loading="lazy" decoding="async">
@@ -268,7 +268,7 @@
   soundView.innerHTML=`
     <section class="sound-panel">
       <div class="sound-panel-head">
-        <div><small>SOUND STUDIO</small><h2>Create sound that moves.</h2><p>Shape music, sound effects, ambience and sonic worlds for your creative work.</p></div>
+        <div><small>SOUND STUDIO</small><h2>Create sound that moves</h2><p>Shape music, sound effects, ambience and sonic worlds for your creative work.</p></div>
         <div id="soundFlowBadge" class="sound-flow"><span class="sound-flow-dot"></span>SvaraFlow ON</div>
       </div>
       <div class="sound-prompt">
