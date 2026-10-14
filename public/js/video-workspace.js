@@ -56,6 +56,17 @@
     .sv-accordion-state.complete{color:#67e8c5;border-color:#22665b;background:#102822}
     .sv-accordion-chevron{font-size:17px;color:#A5B4FC;width:18px;text-align:center}
     .sv-accordion-body{padding:0 22px 20px;border-top:1px solid #ffffff0c}
+    /* Consistent compact label/control rows across all setup panels */
+    .sv-setup-grid .sv-field,.sv-brand-grid .sv-field{grid-template-columns:155px minmax(0,1fr);align-items:start;column-gap:12px}
+    .sv-setup-grid .sv-field>span,.sv-brand-grid .sv-field>span,.sv-setup-grid .sv-field>label,.sv-brand-grid .sv-field>label{grid-column:1;grid-row:1;text-align:right;align-self:center;padding-top:10px}
+    .sv-setup-grid .sv-field>input,.sv-setup-grid .sv-field>textarea,.sv-setup-grid .sv-field>select,.sv-brand-grid .sv-field>input,.sv-brand-grid .sv-field>textarea,.sv-brand-grid .sv-field>select{grid-column:2;grid-row:1}
+    .sv-setup-grid .sv-field-wide,.sv-brand-grid .sv-field-wide{grid-column:1/-1}
+    .sv-brand-grid .sv-field-wide .sv-accordion-intro{grid-column:2}
+    @media(max-width:700px){
+      .sv-setup-grid .sv-field,.sv-brand-grid .sv-field{grid-template-columns:112px minmax(0,1fr);column-gap:9px}
+      .sv-setup-grid .sv-field>span,.sv-brand-grid .sv-field>span,.sv-setup-grid .sv-field>label,.sv-brand-grid .sv-field>label{font-size:9px;letter-spacing:.04em}
+    }
+
     .sv-accordion-body[hidden]{display:none!important}
     .sv-setup-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding-top:18px}
     .sv-field-wide{grid-column:1/-1}
@@ -137,8 +148,8 @@
           </div>
         </section>
         <section class="sv-card sv-accordion" data-accordion="story">
-          <button class="sv-accordion-head" type="button" data-accordion-toggle="story" aria-expanded="true"><span class="sv-accordion-number">01</span><span class="sv-accordion-title"><strong>Story &amp; Concept</strong><small>Purpose, narrative, audience and tone</small></span><span class="sv-accordion-state" data-accordion-state="story">In progress</span><span class="sv-accordion-chevron">⌃</span></button>
-          <div class="sv-accordion-body" data-accordion-body="story">
+          <button class="sv-accordion-head" type="button" data-accordion-toggle="story" aria-expanded="false"><span class="sv-accordion-number">01</span><span class="sv-accordion-title"><strong>Story &amp; Concept</strong><small>Purpose, narrative, audience and tone</small></span><span class="sv-accordion-state" data-accordion-state="story">In progress</span><span class="sv-accordion-chevron">⌃</span></button>
+          <div class="sv-accordion-body" data-accordion-body="story" hidden>
             <div class="sv-setup-grid">
               <label class="sv-field"><span>Project title</span><input data-project-field="title" placeholder="e.g. SvaraONE Brand Film"></label>
               <label class="sv-field"><span>Production type</span><select data-project-field="type"><option value="">Choose a production type</option><option>Brand film / advertisement</option><option>Narrative / short film</option><option>Music video</option><option>Social media video</option><option>Explainer / product video</option><option>Other</option></select></label>
@@ -195,8 +206,8 @@
           </div>
         </section>
         <section class="sv-card sv-accordion" data-accordion="storyboard">
-          <button class="sv-accordion-head" type="button" data-accordion-toggle="storyboard" aria-expanded="true"><span class="sv-accordion-number">05</span><span class="sv-accordion-title"><strong>Storyboard</strong><small>Your scenes, shots and camera direction</small></span><span class="sv-accordion-state" data-accordion-state="storyboard">0 scenes</span><span class="sv-accordion-chevron">⌃</span></button>
-          <div class="sv-accordion-body" data-accordion-body="storyboard">
+          <button class="sv-accordion-head" type="button" data-accordion-toggle="storyboard" aria-expanded="false"><span class="sv-accordion-number">05</span><span class="sv-accordion-title"><strong>Storyboard</strong><small>Your scenes, shots and camera direction</small></span><span class="sv-accordion-state" data-accordion-state="storyboard">0 scenes</span><span class="sv-accordion-chevron">⌃</span></button>
+          <div class="sv-accordion-body" data-accordion-body="storyboard" hidden>
             <span class="sv-hidden" data-count>(0)</span>
             <div class="sv-scenes" data-scenes style="padding:10px"></div>
             <div style="padding:0 10px 10px"><button class="sv-add" data-action="add">＋ Add New Scene</button></div>
