@@ -23,23 +23,23 @@
     @media(max-width:1050px){.sv-main{grid-template-columns:1fr}.sv-right{grid-template-columns:1fr 1fr;align-items:start}.sv-steps{gap:5px}.sv-step{gap:5px}}
     @media(max-width:700px){.sv-scene{grid-template-columns:110px minmax(0,1fr);gap:9px}.sv-scene-actions{grid-column:1/-1;grid-template-columns:repeat(4,minmax(0,1fr))}.sv-thumb{min-height:75px}.sv-right{grid-template-columns:1fr}.sv-steps{grid-template-columns:repeat(5,minmax(68px,1fr));overflow:auto}.sv-step small{display:none}.sv-vhead{padding:14px}.sv-vhead h2{font-size:19px}}
     @media(max-width:420px){.sv-scene{grid-template-columns:1fr}.sv-thumb{min-height:130px}.sv-scene-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.sv-mode button{padding:7px 6px;font-size:8px}.sv-two{grid-template-columns:1fr}}
-    /* Video workspace accent theme: deep bluish teal */
-    .sv-video{--sv-accent:#35c8c3;--sv-accent-bright:#58ddd5;--sv-accent-soft:#103b43;--sv-accent-border:#238f91}
-    .sv-eyebrow{color:#58c9cc}
-    .sv-btn:hover{border-color:#35c8c388;color:#fff}
-    .sv-btn.primary{border-color:#238f91;background:linear-gradient(110deg,#147b83,#28b5b4);color:#f4ffff}
-    .sv-mode button.active{background:#103b43;color:#b9f6f0;box-shadow:inset 0 0 0 1px #35c8c366}
-    .sv-step.active b,.sv-step.done b{background:#168e95;color:#fff}
-    .sv-scene.selected{border-color:#35c8c399;box-shadow:inset 0 0 0 1px #35c8c324}
-    .sv-thumb{background:radial-gradient(ellipse at 65% 15%,#1d5368,#102b3a 45%,#070d18 80%);color:#62c9ce}
-    .sv-number{background:#168e95;color:#fff}
-    .sv-mini-assets button:hover{color:#fff;border-color:#35c8c366}
-    .sv-add{border-color:#238f9188;color:#69d9d4}
-    .sv-add:hover{background:#0d252d}
-    .sv-tabs button.active{color:#8ce8e1;border-bottom-color:#2db9b6;background:#0d2029}
-    .sv-field input:focus,.sv-field textarea:focus,.sv-field select:focus{border-color:#35c8c388;box-shadow:0 0 0 2px #35c8c312}
-    .sv-asset-icon{background:#10323b;color:#65d5d0}
-    .sv-preview-stage{background:radial-gradient(ellipse at 50% 15%,#1c4b62,#101f2b 55%,#050a12)}
+    /* Video workspace accent theme: indigo */
+    .sv-video{--sv-accent:#6366F1;--sv-accent-bright:#818CF8;--sv-accent-soft:#242454;--sv-accent-border:#5558D9}
+    .sv-eyebrow{color:#818CF8}
+    .sv-btn:hover{border-color:#6366F188;color:#fff}
+    .sv-btn.primary{border-color:#5558D9;background:linear-gradient(110deg,#4F46E5,#6366F1);color:#fff}
+    .sv-mode button.active{background:#242454;color:#D5D6FF;box-shadow:inset 0 0 0 1px #818CF866}
+    .sv-step.active b,.sv-step.done b{background:#6366F1;color:#fff}
+    .sv-scene.selected{border-color:#818CF899;box-shadow:inset 0 0 0 1px #6366F124}
+    .sv-thumb{background:radial-gradient(ellipse at 65% 15%,#34366f,#1b1d42 45%,#070d18 80%);color:#A5B4FC}
+    .sv-number{background:#5558D9;color:#fff}
+    .sv-mini-assets button:hover{color:#fff;border-color:#818CF866}
+    .sv-add{border-color:#6366F188;color:#A5B4FC}
+    .sv-add:hover{background:#171936}
+    .sv-tabs button.active{color:#C7D2FE;border-bottom-color:#818CF8;background:#14152c}
+    .sv-field input:focus,.sv-field textarea:focus,.sv-field select:focus{border-color:#818CF888;box-shadow:0 0 0 2px #6366F112}
+    .sv-asset-icon{background:#242454;color:#A5B4FC}
+    .sv-preview-stage{background:radial-gradient(ellipse at 50% 15%,#34366f,#17192d 55%,#050a12)}
     /* Compose-inspired spacious panel sizing */
     /* Match Compose's content alignment: start close to the sidebar, not centered in a narrow column */
     main.workspace:has(.sv-video){display:block;grid-template-columns:minmax(0,1fr);max-width:none;width:100%;margin:0;padding:26px 38px}
