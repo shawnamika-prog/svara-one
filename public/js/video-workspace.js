@@ -147,16 +147,8 @@
             <div class="sv-accordion-foot"><span class="sv-setup-note">You can refine this brief at any time.</span><button class="sv-btn" type="button" data-section-review="story">Mark reviewed</button></div>
           </div>
         </section>
-        <section class="sv-card sv-accordion" data-accordion="characters">
-          <button class="sv-accordion-head" type="button" data-accordion-toggle="characters" aria-expanded="false"><span class="sv-accordion-number">02</span><span class="sv-accordion-title"><strong>Characters &amp; Mascots</strong><small>Reusable character identity and references</small></span><span class="sv-accordion-state" data-accordion-state="characters">Not started</span><span class="sv-accordion-chevron">⌄</span></button>
-          <div class="sv-accordion-body" data-accordion-body="characters" hidden>
-            <p class="sv-accordion-intro">Create or select the main characters and mascots. Approved references can be reused across scenes to help maintain visual continuity.</p>
-            <div class="sv-asset-placeholder"><strong>Character library · planned</strong><br>Reusable character references, identity notes and approved looks will live here.</div>
-            <div class="sv-accordion-foot"><span class="sv-setup-note">Character assets will be connected in a later phase.</span><button class="sv-btn" type="button" data-section-review="characters">Mark reviewed</button></div>
-          </div>
-        </section>
         <section class="sv-card sv-accordion" data-accordion="branding">
-          <button class="sv-accordion-head" type="button" data-accordion-toggle="branding" aria-expanded="false"><span class="sv-accordion-number">03</span><span class="sv-accordion-title"><strong>Branding</strong><small>Logos, brand colours, fonts and visual assets</small></span><span class="sv-accordion-state" data-accordion-state="branding">Not started</span><span class="sv-accordion-chevron">⌄</span></button>
+          <button class="sv-accordion-head" type="button" data-accordion-toggle="branding" aria-expanded="false"><span class="sv-accordion-number">02</span><span class="sv-accordion-title"><strong>Branding</strong><small>Logos, brand colours, fonts and visual assets</small></span><span class="sv-accordion-state" data-accordion-state="branding">Not started</span><span class="sv-accordion-chevron">⌄</span></button>
           <div class="sv-accordion-body" data-accordion-body="branding" hidden>
             <p class="sv-accordion-intro">Upload your brand assets so scenes can reflect your identity. These selections are currently held in this workspace only; persistent storage and automatic application to generated scenes will be connected in a later phase.</p>
             <div class="sv-brand-grid">
@@ -165,10 +157,20 @@
               <label class="sv-field"><span>Primary brand colour</span><input type="color" value="#6366F1" data-project-field="brandPrimary"></label>
               <label class="sv-field"><span>Secondary brand colour</span><input type="color" value="#818CF8" data-project-field="brandSecondary"></label>
               <label class="sv-field"><span>Brand font / typography notes</span><input data-project-field="brandFont" placeholder="e.g. Inter, bold geometric sans"></label>
+              <label class="sv-field sv-field-wide"><span>Logo placement preference</span><select data-project-field="logoPlacement"><option value="as-needed">Choose per scene</option><option value="mascot-clothing">On mascot clothing or uniform</option><option value="mascot-accessory">As a mascot accessory or badge</option><option value="mascot-prop">On a prop the mascot holds or uses</option><option value="environment">On a sign or environment element</option><option value="end-card">End card / closing frame</option><option value="overlay">Clean graphic overlay in the final video</option></select></label>
+              <p class="sv-accordion-intro sv-field-wide">For a logo on a mascot, choose the intended placement here and describe the character-specific details in Characters &amp; Mascots. For accurate brand marks, SvaraONE should preserve the uploaded logo as a separate reference/graphic and apply it deliberately, rather than relying on the video model to redraw it.</p>
               <label class="sv-field"><span>Brand guidelines / notes</span><textarea data-project-field="brandNotes" rows="2" placeholder="Logo usage, clear space, tone, do's and don'ts..."></textarea></label>
             </div>
             <div class="sv-brand-preview" data-brand-preview hidden><img data-brand-logo-preview alt="Uploaded brand logo preview"><span>Logo preview</span></div>
             <div class="sv-accordion-foot"><span class="sv-setup-note">Brand assets can later be reused across scenes and exports.</span><button class="sv-btn" type="button" data-section-review="branding">Mark reviewed</button></div>
+          </div>
+        </section>
+        <section class="sv-card sv-accordion" data-accordion="characters">
+          <button class="sv-accordion-head" type="button" data-accordion-toggle="characters" aria-expanded="false"><span class="sv-accordion-number">03</span><span class="sv-accordion-title"><strong>Characters &amp; Mascots</strong><small>Reusable character identity and references</small></span><span class="sv-accordion-state" data-accordion-state="characters">Not started</span><span class="sv-accordion-chevron">⌄</span></button>
+          <div class="sv-accordion-body" data-accordion-body="characters" hidden>
+            <p class="sv-accordion-intro">Create or select the main characters and mascots. Approved references can be reused across scenes to help maintain visual continuity.</p>
+            <div class="sv-asset-placeholder"><strong>Character library · planned</strong><br>Reusable character references, identity notes and approved looks will live here.</div>
+            <div class="sv-accordion-foot"><span class="sv-setup-note">Character assets will be connected in a later phase.</span><button class="sv-btn" type="button" data-section-review="characters">Mark reviewed</button></div>
           </div>
         </section>
         <section class="sv-card sv-accordion" data-accordion="environment">
