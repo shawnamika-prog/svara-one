@@ -76,7 +76,9 @@
     .sv-video{width:100%;max-width:none;margin:0}
     .sv-video{gap:20px}
     .sv-card{border-radius:20px}
-    .sv-vhead{padding:24px 28px;gap:20px;text-align:left}\n    .sv-vhead>div:first-child{margin-right:auto;text-align:left;align-self:flex-start}\n    .sv-vhead h2,.sv-vhead p,.sv-vhead .sv-eyebrow{text-align:left}
+    .sv-vhead{padding:24px 28px;gap:20px;text-align:left}
+    .sv-vhead>div:first-child{margin-right:auto;text-align:left;align-self:flex-start}
+    .sv-vhead h2,.sv-vhead p,.sv-vhead .sv-eyebrow{text-align:left}
     .sv-eyebrow{font-size:10px}
     .sv-vhead h2{font-size:26px;margin:7px 0}
     .sv-vhead p{font-size:12px;font-weight:400;letter-spacing:normal;line-height:1.65}
@@ -216,7 +218,8 @@
     const globalStatus=root.querySelector('[data-global-status]');
     const previewState=root.querySelector('[data-preview-state]');
     let scenes=seedScenes(), selectedId=null, tab='settings', mode='director', reorder=false, modal=null;
-    const projectReviewed={story:false,characters:false,branding:false,environment:false,style:false};\n    const brandFiles={logo:null,reference:null};
+    const projectReviewed={story:false,characters:false,branding:false,environment:false,style:false};
+    const brandFiles={logo:null,reference:null};
     const selected=()=>scenes.find(s=>s.id===selectedId)||null;
     const setStatus=(message,type='')=>{globalStatus.textContent=message;globalStatus.className='sv-status'+(type?' '+type:'');};
     const renderScenes=()=>{
