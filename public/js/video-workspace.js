@@ -27,6 +27,7 @@
   document.head.appendChild(style);
 
   function render(root){
+    if(root.dataset.videoWorkspaceInitialized==='1')return;
     root.className='studio-domain-placeholder';
     root.innerHTML = `
       <div class="sv-video">
