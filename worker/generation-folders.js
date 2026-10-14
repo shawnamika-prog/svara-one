@@ -94,7 +94,7 @@ app.fetch = async (request, env, ctx) => {
       const compositionId = String(body?.compositionId || "").trim();
       let displayName = String(body?.displayName || "").trim();
       if (!/^[0-9a-f-]{36}$/i.test(compositionId)) return json({ error: "Composition not found." }, 404);
-      displayName = displayName.replace(/\.(wav|mp3|pcm)$/i, "").trim();
+      displayName = displayName.replace(/(?:\.(?:wav|mp3|pcm))+$/i, "").trim();
       if (!displayName) return json({ error: "Enter a composition name." }, 400);
       if (displayName.length > 80 || /[\/\\\u0000-\u001f\u007f]/.test(displayName)) return json({ error: "Use up to 80 characters and avoid file-path characters." }, 400);
       const prefix = "users/" + userId + "/compositions/" + compositionId + ".";
@@ -307,9 +307,9 @@ app.fetch = async (request, env, ctx) => {
       const oldKey = String(row.r2_key), originalFilename = oldKey.split("/").pop() || "";
       const dot = originalFilename.lastIndexOf(".");
       const extension = dot > 0 ? originalFilename.slice(dot).toLowerCase() : "." + String(row.format || "mp3").toLowerCase();
-      let filename = requestedFilename.replace(/[\\/]/g, "").trim();
+      let filename = requestedFilename.replace(/[\\/]/g, "").trim().replace(/(?:\.(?:wav|mp3|pcm))+$/i, "");
       if (!filename || filename === "." || filename === "..") return json({ error: "A valid filename is required." }, 400);
-      if (!filename.toLowerCase().endsWith(extension)) filename += extension;
+      filename += extension;
       if (filename.length > 180) return json({ error: "Filename is too long." }, 400);
       const prefix = assetType === "sound" ? "users/" + userId + "/sound/" : "users/" + userId + "/generations/";
       const newKey = prefix + filename;
