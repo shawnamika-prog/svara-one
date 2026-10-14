@@ -36,6 +36,26 @@
     .sv-field input:focus,.sv-field textarea:focus,.sv-field select:focus{border-color:#818CF888;box-shadow:0 0 0 2px #6366F112}
     .sv-asset-icon{background:#242454;color:#A5B4FC}
     .sv-preview-stage{background:radial-gradient(ellipse at 50% 15%,#34366f,#17192d 55%,#050a12)}
+    .sv-accordion-head{width:100%;display:flex;align-items:center;gap:12px;padding:17px 22px;border:0;background:transparent;color:#e5edf8;text-align:left;cursor:pointer}
+    .sv-accordion-head:hover{background:#ffffff04}
+    .sv-accordion-number{width:34px;height:34px;display:grid;place-items:center;flex:none;border-radius:9px;background:#242454;color:#A5B4FC;font-size:11px;font-weight:800}
+    .sv-accordion-title{display:grid;gap:4px;flex:1;min-width:0}
+    .sv-accordion-title strong{font-size:14px;font-weight:700}
+    .sv-accordion-title small{font-size:11px;color:#8294aa;font-weight:400}
+    .sv-accordion-state{font-size:10px;color:#91a4b8;padding:5px 8px;border:1px solid #ffffff12;border-radius:7px;background:#0a1422;white-space:nowrap}
+    .sv-accordion-state.complete{color:#67e8c5;border-color:#22665b;background:#102822}
+    .sv-accordion-chevron{font-size:17px;color:#A5B4FC;width:18px;text-align:center}
+    .sv-accordion-body{padding:0 22px 20px;border-top:1px solid #ffffff0c}
+    .sv-accordion-body[hidden]{display:none!important}
+    .sv-setup-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding-top:18px}
+    .sv-field-wide{grid-column:1/-1}
+    .sv-field>span{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8196ad}
+    .sv-accordion-intro{color:#91a4b8;font-size:12px;line-height:1.7;margin:18px 0}
+    .sv-accordion-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;flex-wrap:wrap}
+    .sv-setup-note{font-size:10px;color:#71859c}
+    .sv-accordion-body>.sv-scenes{padding:14px 0!important}
+    .sv-accordion-body>div[style]{padding-left:0!important;padding-right:0!important}
+    @media(max-width:700px){.sv-accordion-head{padding:14px}.sv-accordion-body{padding:0 14px 15px}.sv-accordion-title strong{font-size:12px}.sv-accordion-title small{font-size:10px}.sv-accordion-state{display:none}.sv-setup-grid{grid-template-columns:1fr}.sv-field-wide{grid-column:auto}}
     /* Hide the right-side preview and settings panels for the simplified storyboard layout */
     .sv-main{grid-template-columns:minmax(0,1fr)!important}
     .sv-right{display:none!important}
@@ -104,18 +124,63 @@
             
           </div>
         </section>
-        <div class="sv-main">
-          <section class="sv-card">
-            <div class="sv-vhead"><div><div class="sv-eyebrow">STORYBOARD</div><span class="sv-hidden" data-count>(3)</span></div></div>
+        <section class="sv-card sv-accordion" data-accordion="story">
+          <button class="sv-accordion-head" type="button" data-accordion-toggle="story" aria-expanded="true"><span class="sv-accordion-number">01</span><span class="sv-accordion-title"><strong>Story &amp; Concept</strong><small>Purpose, narrative, audience and tone</small></span><span class="sv-accordion-state" data-accordion-state="story">In progress</span><span class="sv-accordion-chevron">⌃</span></button>
+          <div class="sv-accordion-body" data-accordion-body="story">
+            <div class="sv-setup-grid">
+              <label class="sv-field"><span>Project title</span><input data-project-field="title" placeholder="e.g. SvaraONE Brand Film"></label>
+              <label class="sv-field"><span>Production type</span><select data-project-field="type"><option value="">Choose a production type</option><option>Brand film / advertisement</option><option>Narrative / short film</option><option>Music video</option><option>Social media video</option><option>Explainer / product video</option><option>Other</option></select></label>
+              <label class="sv-field sv-field-wide"><span>Story or initial idea</span><textarea data-project-field="story" placeholder="What is the story, message or experience you want to create?" rows="3"></textarea></label>
+              <label class="sv-field"><span>Audience</span><input data-project-field="audience" placeholder="Who is this video for?"></label>
+              <label class="sv-field"><span>Tone / emotion</span><input data-project-field="tone" placeholder="e.g. bold, uplifting, suspenseful"></label>
+            </div>
+            <div class="sv-accordion-foot"><span class="sv-setup-note">You can refine this brief at any time.</span><button class="sv-btn" type="button" data-section-review="story">Mark reviewed</button></div>
+          </div>
+        </section>
+        <section class="sv-card sv-accordion" data-accordion="characters">
+          <button class="sv-accordion-head" type="button" data-accordion-toggle="characters" aria-expanded="false"><span class="sv-accordion-number">02</span><span class="sv-accordion-title"><strong>Characters &amp; Mascots</strong><small>Reusable character identity and references</small></span><span class="sv-accordion-state" data-accordion-state="characters">Not started</span><span class="sv-accordion-chevron">⌄</span></button>
+          <div class="sv-accordion-body" data-accordion-body="characters" hidden>
+            <p class="sv-accordion-intro">Create or select the main characters and mascots. Approved references can be reused across scenes to help maintain visual continuity.</p>
+            <div class="sv-asset-placeholder"><strong>Character library · planned</strong><br>Reusable character references, identity notes and approved looks will live here.</div>
+            <div class="sv-accordion-foot"><span class="sv-setup-note">Character assets will be connected in a later phase.</span><button class="sv-btn" type="button" data-section-review="characters">Mark reviewed</button></div>
+          </div>
+        </section>
+        <section class="sv-card sv-accordion" data-accordion="environment">
+          <button class="sv-accordion-head" type="button" data-accordion-toggle="environment" aria-expanded="false"><span class="sv-accordion-number">03</span><span class="sv-accordion-title"><strong>Environments</strong><small>Locations, backgrounds, lighting and atmosphere</small></span><span class="sv-accordion-state" data-accordion-state="environment">Not started</span><span class="sv-accordion-chevron">⌄</span></button>
+          <div class="sv-accordion-body" data-accordion-body="environment" hidden>
+            <p class="sv-accordion-intro">Define the places and settings where your story takes place. Reuse approved environment references across scenes.</p>
+            <div class="sv-asset-placeholder"><strong>Environment library · planned</strong><br>Locations, background references and lighting setups will live here.</div>
+            <div class="sv-accordion-foot"><span class="sv-setup-note">Environment assets will be connected in a later phase.</span><button class="sv-btn" type="button" data-section-review="environment">Mark reviewed</button></div>
+          </div>
+        </section>
+        <section class="sv-card sv-accordion" data-accordion="style">
+          <button class="sv-accordion-head" type="button" data-accordion-toggle="style" aria-expanded="false"><span class="sv-accordion-number">04</span><span class="sv-accordion-title"><strong>Visual Style</strong><small>Look, palette, mood and cinematic direction</small></span><span class="sv-accordion-state" data-accordion-state="style">Not started</span><span class="sv-accordion-chevron">⌄</span></button>
+          <div class="sv-accordion-body" data-accordion-body="style" hidden>
+            <div class="sv-setup-grid">
+              <label class="sv-field"><span>Visual direction</span><select data-project-field="visualStyle"><option value="">Choose a visual style</option><option>Cinematic realism</option><option>3D animation</option><option>Stylised illustration</option><option>Anime</option><option>Mixed media</option></select></label>
+              <label class="sv-field"><span>Colour palette</span><input data-project-field="palette" placeholder="e.g. midnight blue, violet, warm gold"></label>
+              <label class="sv-field sv-field-wide"><span>Visual notes</span><textarea data-project-field="visualNotes" rows="2" placeholder="Lighting, camera language, texture and mood..."></textarea></label>
+            </div>
+            <div class="sv-accordion-foot"><span class="sv-setup-note">You can change the visual direction later.</span><button class="sv-btn" type="button" data-section-review="style">Mark reviewed</button></div>
+          </div>
+        </section>
+        <section class="sv-card sv-accordion" data-accordion="storyboard">
+          <button class="sv-accordion-head" type="button" data-accordion-toggle="storyboard" aria-expanded="true"><span class="sv-accordion-number">05</span><span class="sv-accordion-title"><strong>Storyboard</strong><small>Your scenes, shots and camera direction</small></span><span class="sv-accordion-state" data-accordion-state="storyboard">0 scenes</span><span class="sv-accordion-chevron">⌃</span></button>
+          <div class="sv-accordion-body" data-accordion-body="storyboard">
+            <span class="sv-hidden" data-count>(0)</span>
             <div class="sv-scenes" data-scenes style="padding:10px"></div>
             <div style="padding:0 10px 10px"><button class="sv-add" data-action="add">＋ Add New Scene</button></div>
-          </section>
-          <div class="sv-right">
-            <section class="sv-card sv-preview"><div class="sv-preview-head"><strong>Scene Preview</strong><span class="sv-chip" data-preview-state>Baseline needed</span></div><div class="sv-preview-stage" data-preview><div class="sv-preview-placeholder"><b>▶</b><span>Select a scene and add a reference image.<br>Preview and generated video will appear here.</span></div></div><div class="sv-status" style="margin-top:10px" data-global-status role="status">UI foundation ready. Generation remains scene-by-scene.</div></section>
-            <section class="sv-card"><div class="sv-tabs" role="tablist"><button class="active" data-tab="settings">Scene Settings</button><button data-tab="assets">Assets</button><button data-tab="prompt">Prompt</button><button data-tab="advanced">Advanced</button></div><div class="sv-settings" data-settings></div></section>
           </div>
-        </div>
-        <section class="sv-card"><div class="sv-vhead"><div><div class="sv-eyebrow">ASSEMBLY · PLACEHOLDER</div><h2>Production Timeline</h2><p>Approved scene clips, dialogue, music, sound effects and transitions will be arranged here in a later phase.</p></div><span class="sv-chip">Not connected yet</span></div><div style="padding:14px;display:grid;gap:8px"><div class="sv-asset-row"><div class="sv-asset-icon">▣</div><div class="sv-asset-copy"><strong>Video scenes</strong><small>Scene clips and transitions · planned</small></div><span class="sv-chip">Future</span></div><div class="sv-asset-row"><div class="sv-asset-icon">♫</div><div class="sv-asset-copy"><strong>Voice, music &amp; sound</strong><small>Audio lanes and sync controls · planned</small></div><span class="sv-chip">Future</span></div></div></section>
+        </section>
+        <section class="sv-card sv-accordion" data-accordion="production">
+          <button class="sv-accordion-head" type="button" data-accordion-toggle="production" aria-expanded="false"><span class="sv-accordion-number">06</span><span class="sv-accordion-title"><strong>Generate &amp; Assemble</strong><small>Generate, review, edit and export</small></span><span class="sv-accordion-state">Planned</span><span class="sv-accordion-chevron">⌄</span></button>
+          <div class="sv-accordion-body" data-accordion-body="production" hidden>
+            <p class="sv-accordion-intro">Once your scenes are ready, generate clips, review results, and assemble the finished production with dialogue, music, sound effects and transitions.</p>
+            <div class="sv-asset-row"><div class="sv-asset-icon">▣</div><div class="sv-asset-copy"><strong>Video scenes</strong><small>Scene clips, approvals and transitions · planned</small></div><span class="sv-chip">Future phase</span></div>
+            <div class="sv-asset-row"><div class="sv-asset-icon">♫</div><div class="sv-asset-copy"><strong>Voice, music &amp; sound</strong><small>Audio lanes, sync controls and export · planned</small></div><span class="sv-chip">Future phase</span></div>
+          </div>
+        </section>
+        <div class="sv-hidden" aria-hidden="true"><div class="sv-right"><section class="sv-card sv-preview"><div class="sv-preview-head"><strong>Scene Preview</strong><span class="sv-chip" data-preview-state>Baseline needed</span></div><div class="sv-preview-stage" data-preview><div class="sv-preview-placeholder"><b>▶</b><span>Add a scene to see its preview here.</span></div></div><div class="sv-status" style="margin-top:10px" data-global-status role="status">UI foundation ready. Generation remains scene-by-scene.</div></section><section class="sv-card"><div class="sv-tabs" role="tablist"><button class="active" data-tab="settings">Scene Settings</button><button data-tab="assets">Assets</button><button data-tab="prompt">Prompt</button><button data-tab="advanced">Advanced</button></div><div class="sv-settings" data-settings></div></section></div></div>
       </div>`;
     const scenesNode=root.querySelector('[data-scenes]');
     const settingsNode=root.querySelector('[data-settings]');
@@ -123,10 +188,12 @@
     const globalStatus=root.querySelector('[data-global-status]');
     const previewState=root.querySelector('[data-preview-state]');
     let scenes=seedScenes(), selectedId=null, tab='settings', mode='director', reorder=false, modal=null;
+    const projectReviewed={story:false,characters:false,environment:false,style:false};
     const selected=()=>scenes.find(s=>s.id===selectedId)||null;
     const setStatus=(message,type='')=>{globalStatus.textContent=message;globalStatus.className='sv-status'+(type?' '+type:'');};
     const renderScenes=()=>{
       root.querySelector('[data-count]').textContent='('+scenes.length+')';
+      const storyboardState=root.querySelector('[data-accordion-state="storyboard"]');if(storyboardState)storyboardState.textContent=scenes.length+' scene'+(scenes.length===1?'':'s');
       scenesNode.innerHTML=scenes.map((s,index)=>`<article class="sv-scene ${s.id===selectedId?'selected':''}" data-scene="${esc(s.id)}" tabindex="0" aria-label="Select ${esc(s.title)}">
         <div class="sv-thumb">${s.image?'<img src="'+esc(s.image)+'" alt="Scene reference">':s.video?'<video src="'+esc(s.video)+'" muted playsinline></video>':'<span>✧</span>'}</div>
         <div class="sv-scene-info"><h3>${esc(s.title)}</h3><p>${esc(s.description)}</p><div class="sv-meta"><span class="sv-chip">${s.duration}s</span><span class="sv-chip">${s.ratio==='1280:720'?'16:9':s.ratio==='720:1280'?'9:16':s.ratio==='960:960'?'1:1':s.ratio}</span><span class="sv-chip">Runway Gen-4 Turbo</span><span class="sv-chip ${s.status==='Completed'||s.status==='Approved'?'ready':'status'}">${esc(s.status)}</span></div><div class="sv-mini-assets"><button data-scene-action="image" data-id="${esc(s.id)}">▧ Image</button><button data-scene-action="motion" data-id="${esc(s.id)}">⌁ Motion</button><button data-scene-action="voice" data-id="${esc(s.id)}">♩ Voice</button><button data-scene-action="music" data-id="${esc(s.id)}">♫ Music</button><button data-scene-action="sound" data-id="${esc(s.id)}">◖ Sound</button></div></div>
@@ -175,6 +242,10 @@
     const addScene=()=>{const n=scenes.length+1;const s={id:'scene-'+Date.now(),title:'Scene '+n+' — New Scene',description:'Describe what happens in this scene.',duration:5,ratio:'1280:720',status:'Baseline needed',image:'',video:'',prompt:'Describe the action, camera movement, lighting and desired visual continuity.'};scenes.push(s);selectScene(s.id);setStatus('New scene added. Edit the description, attach a baseline image and refine the prompt.');};
     const openProjectMenu=()=>{const wrap=document.createElement('div');wrap.className='sv-modal-backdrop';wrap.innerHTML='<section class="sv-modal" role="dialog" aria-modal="true"><h3>Project actions</h3><div class="sv-asset-placeholder">Project rename, duplicate, templates and history are planned. This milestone keeps the project local to this workspace.</div><div class="sv-modal-foot"><button class="sv-btn" data-close>Close</button></div></section>';wrap.addEventListener('click',e=>{if(e.target===wrap||e.target.closest('[data-close]'))wrap.remove();});root.appendChild(wrap);};
     root.addEventListener('click',event=>{
+      const accordionToggle=event.target.closest('[data-accordion-toggle]');
+      if(accordionToggle){const id=accordionToggle.dataset.accordionToggle;const body=root.querySelector('[data-accordion-body="'+id+'"]');if(body){const open=body.hidden;body.hidden=!open;accordionToggle.setAttribute('aria-expanded',String(open));const chevron=accordionToggle.querySelector('.sv-accordion-chevron');if(chevron)chevron.textContent=open?'⌃':'⌄';}return;}
+      const reviewButton=event.target.closest('[data-section-review]');
+      if(reviewButton){const id=reviewButton.dataset.sectionReview;projectReviewed[id]=!projectReviewed[id];const state=root.querySelector('[data-accordion-state="'+id+'"]');if(state){state.textContent=projectReviewed[id]?'Reviewed':'In progress';state.classList.toggle('complete',projectReviewed[id]);}reviewButton.textContent=projectReviewed[id]?'Mark incomplete':'Mark reviewed';return;}
       const modeButton=event.target.closest('[data-mode]');if(modeButton){mode=modeButton.dataset.mode;root.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',b===modeButton));setStatus(mode==='director'?'Director mode: approve each scene before generation.':mode==='hybrid'?'Hybrid mode: review key decisions and let SvaraFlow assist.':'Automatic mode selected. Automated orchestration is a planned feature.');return;}
       const tabButton=event.target.closest('[data-tab]');if(tabButton){tab=tabButton.dataset.tab;renderTabs();renderSettings();return;}
       const sceneAction=event.target.closest('[data-scene-action]');if(sceneAction){event.stopPropagation();const s=scenes.find(x=>x.id===sceneAction.dataset.id);if(!s)return;const action=sceneAction.dataset.sceneAction;if(action==='generate'){selectScene(s.id);generate(s);}else if(action==='preview'){selectScene(s.id);renderPreview();if(s.video){preview.innerHTML='<video controls autoplay playsinline src="'+esc(s.video)+'"></video>';}}else if(action==='edit'){selectScene(s.id);tab='settings';renderTabs();renderSettings();}else if(action==='image'){selectScene(s.id);chooseImage();}else if(action==='motion'){selectScene(s.id);tab='prompt';renderTabs();renderSettings();}else if(action==='voice'||action==='music'||action==='sound'){selectScene(s.id);showPlaceholder(action);}else if(action==='duplicate'){const copy={...s,id:'scene-'+Date.now(),title:s.title+' (Copy)',image:s.image,video:'',status:s.imageFile?'Ready to generate':'Baseline needed'};scenes.splice(scenes.indexOf(s)+1,0,copy);selectScene(copy.id);setStatus('Scene duplicated. Review its prompt and image before generating.');}else if(action==='delete'){scenes=scenes.filter(x=>x.id!==s.id);selectedId=scenes[0]?.id||null;renderScenes();renderSettings();renderPreview();setStatus('Scene removed from this unsaved storyboard.');}return;}
