@@ -40,6 +40,9 @@
     .sv-field input:focus,.sv-field textarea:focus,.sv-field select:focus{border-color:#818CF888;box-shadow:0 0 0 2px #6366F112}
     .sv-asset-icon{background:#242454;color:#A5B4FC}
     .sv-preview-stage{background:radial-gradient(ellipse at 50% 15%,#34366f,#17192d 55%,#050a12)}
+    /* Hide the right-side preview and settings panels for the simplified storyboard layout */
+    .sv-main{grid-template-columns:minmax(0,1fr)!important}
+    .sv-right{display:none!important}
     /* Compose-inspired spacious panel sizing */
     /* Match Compose's content alignment: start close to the sidebar, not centered in a narrow column */
     main.workspace:has(.sv-video){display:block;grid-template-columns:minmax(0,1fr);max-width:none;width:100%;margin:0;padding:26px 38px}
