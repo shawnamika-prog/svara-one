@@ -148,7 +148,7 @@
           </div>
         </section>
         <section class="sv-card sv-accordion" data-accordion="story">
-          <button class="sv-accordion-head" type="button" data-accordion-toggle="story" aria-expanded="false"><span class="sv-accordion-number">01</span><span class="sv-accordion-title"><strong>Story &amp; Concept</strong><small>Purpose, narrative, audience and tone</small></span><span class="sv-accordion-state" data-accordion-state="story">In progress</span><span class="sv-accordion-chevron">⌃</span></button>
+          <button class="sv-accordion-head" type="button" data-accordion-toggle="story" aria-expanded="false"><span class="sv-accordion-number">01</span><span class="sv-accordion-title"><strong>Story &amp; Concept</strong><small>Purpose, narrative, audience and tone</small></span><span class="sv-accordion-state" data-accordion-state="story">In progress</span><span class="sv-accordion-chevron">⌄</span></button>
           <div class="sv-accordion-body" data-accordion-body="story" hidden>
             <div class="sv-setup-grid">
               <label class="sv-field"><span>Project title</span><input data-project-field="title" placeholder="e.g. SvaraONE Brand Film"></label>
@@ -206,7 +206,7 @@
           </div>
         </section>
         <section class="sv-card sv-accordion" data-accordion="storyboard">
-          <button class="sv-accordion-head" type="button" data-accordion-toggle="storyboard" aria-expanded="false"><span class="sv-accordion-number">05</span><span class="sv-accordion-title"><strong>Storyboard</strong><small>Your scenes, shots and camera direction</small></span><span class="sv-accordion-state" data-accordion-state="storyboard">0 scenes</span><span class="sv-accordion-chevron">⌃</span></button>
+          <button class="sv-accordion-head" type="button" data-accordion-toggle="storyboard" aria-expanded="false"><span class="sv-accordion-number">05</span><span class="sv-accordion-title"><strong>Storyboard</strong><small>Your scenes, shots and camera direction</small></span><span class="sv-accordion-state" data-accordion-state="storyboard">0 scenes</span><span class="sv-accordion-chevron">⌄</span></button>
           <div class="sv-accordion-body" data-accordion-body="storyboard" hidden>
             <span class="sv-hidden" data-count>(0)</span>
             <div class="sv-scenes" data-scenes style="padding:10px"></div>
