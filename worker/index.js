@@ -204,6 +204,63 @@ export default {
     try {const body=await request.json().catch(()=>({}));const requested=[...new Set((Array.isArray(body.voiceIds)?body.voiceIds:[]).map(String).filter(Boolean))].slice(0,6);if(!requested.length)return json({error:"Provide 1-6 voiceIds"},400,request);const catalogue=await deepgramCatalogue(env);const allowed=new Set(catalogue.map(v=>v.canonical_name));const voices=requested.filter(v=>allowed.has(v));if(!voices.length)return json({error:"No selected voices are in the current Aura-2 catalogue"},400,request);const samples=[];for(const voiceId of voices)for(const [testId] of LAB_TESTS){try{samples.push({status:"generated",...(await generateLabSample(env,voiceId,testId))});}catch(err){samples.push({status:"error",voice_id:voiceId,test_id:testId,error:String(err?.message||"Generation failed").slice(0,300)});}}return json({version:"0.1",provider:"deepgram",generated_at:new Date().toISOString(),test_count:LAB_TESTS.length,voice_count:voices.length,samples},200,request);}catch(err){return json({error:String(err?.message||"Lab batch failed").slice(0,300)},502,request);}
   }
 
+  if(url.pathname==="/api/video/runway"&&request.method==="POST"){
+    if(!env.RUNWAY_API_KEY)return json({error:"Runway is not configured yet. Add the RUNWAY_API_KEY Worker secret in Cloudflare."},503,request);
+    try{
+      const form=await request.formData();
+      const image=form.get("image");
+      const promptText=String(form.get("promptText")||"").trim();
+      const ratio=String(form.get("ratio")||"1280:720");
+      const duration=Number(form.get("duration")||5);
+      const allowedRatios=new Set(["1280:720","720:1280","1104:832","832:1104","960:960","1584:672"]);
+      if(!image||typeof image.arrayBuffer!=="function")return json({error:"Choose an image to animate."},400,request);
+      if(!["image/png","image/jpeg","image/webp"].includes(image.type))return json({error:"Use a PNG, JPEG or WebP image."},400,request);
+      if(image.size>20*1024*1024)return json({error:"Image must be 20 MB or smaller."},400,request);
+      if(!promptText)return json({error:"Describe the motion you want."},400,request);
+      if(promptText.length>2000)return json({error:"Prompt must be 2,000 characters or fewer."},400,request);
+      if(!allowedRatios.has(ratio))return json({error:"Choose a supported aspect ratio."},400,request);
+      if(![5,10].includes(duration))return json({error:"Choose a 5- or 10-second video."},400,request);
+      const version="2024-11-06";
+      const descriptorResponse=await fetch("https://api.dev.runwayml.com/v1/uploads",{
+        method:"POST",
+        headers:{Authorization:`Bearer ${env.RUNWAY_API_KEY}`,"X-Runway-Version":version,"Content-Type":"application/json"},
+        body:JSON.stringify({filename:String(image.name||"svaraone-video-input.png"),type:"ephemeral"})
+      });
+      const descriptor=await descriptorResponse.json().catch(()=>({}));
+      if(!descriptorResponse.ok)return json({error:descriptor.error||"Runway could not prepare the image upload.",details:descriptor.issues||undefined},descriptorResponse.status,request);
+      if(!descriptor.uploadUrl||!descriptor.fields||!descriptor.runwayUri)return json({error:"Runway returned an incomplete upload descriptor."},502,request);
+      const uploadForm=new FormData();
+      for(const [key,value] of Object.entries(descriptor.fields))uploadForm.append(key,String(value));
+      uploadForm.append("file",image,String(image.name||"svaraone-video-input.png"));
+      const uploadResponse=await fetch(descriptor.uploadUrl,{method:"POST",body:uploadForm});
+      if(!uploadResponse.ok)return json({error:`Image upload failed (HTTP ${uploadResponse.status}). Please try again.`},502,request);
+      const generationResponse=await fetch("https://api.dev.runwayml.com/v1/image_to_video",{
+        method:"POST",
+        headers:{Authorization:`Bearer ${env.RUNWAY_API_KEY}`,"X-Runway-Version":version,"Content-Type":"application/json"},
+        body:JSON.stringify({model:"gen4_turbo",promptImage:descriptor.runwayUri,promptText,ratio,duration})
+      });
+      const generation=await generationResponse.json().catch(()=>({}));
+      if(!generationResponse.ok)return json({error:generation.error||"Runway rejected the video request.",issues:generation.issues||undefined},generationResponse.status,request);
+      return json({ok:true,...generation},200,request);
+    }catch(err){
+      console.error("runway_video_request_failed",err);
+      return json({error:String(err?.message||"Video request failed").slice(0,300)},502,request);
+    }
+  }
+
+  if(url.pathname.startsWith("/api/video/runway/tasks/")&&request.method==="GET"){
+    if(!env.RUNWAY_API_KEY)return json({error:"Runway is not configured yet."},503,request);
+    const taskId=decodeURIComponent(url.pathname.slice("/api/video/runway/tasks/".length));
+    if(!taskId||!/^[A-Za-z0-9_-]+$/.test(taskId))return json({error:"Invalid Runway task ID."},400,request);
+    try{
+      const upstream=await fetch(`https://api.dev.runwayml.com/v1/tasks/${encodeURIComponent(taskId)}`,{
+        headers:{Authorization:`Bearer ${env.RUNWAY_API_KEY}`,"X-Runway-Version":"2024-11-06"}
+      });
+      const data=await upstream.json().catch(()=>({}));
+      return json(data,upstream.status,request);
+    }catch(err){return json({error:String(err?.message||"Could not check video status").slice(0,300)},502,request);}
+  }
+
   if(url.pathname==="/api/voice/generate"&&request.method==="POST"){
     try {
       const body=await request.json();
