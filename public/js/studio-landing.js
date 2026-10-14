@@ -2967,9 +2967,37 @@
     if(activeWorkspaceView==='sound')loadSoundHistory();
     else if(activeWorkspaceView==='voice')loadVoiceHistory();
   };
-  const generationHistoryRefreshTimer=setInterval(refreshVisibleGenerationHistory,15000);
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshVisibleGenerationHistory();});
-  window.addEventListener('focus',refreshVisibleGenerationHistory);
+  // Keep idle traffic low; check more frequently only while a visible history row is processing.
+  let generationHistoryRefreshTimer=null;
+  const historyHasProcessing=()=>{
+    if(activeWorkspaceView==='sound')return Boolean(soundHistoryList?.querySelector('.sound-history-status.processing'));
+    if(activeWorkspaceView==='voice')return Boolean(voiceHistoryList?.querySelector('.voice-history-status.processing'));
+    return false;
+  };
+  const scheduleGenerationHistoryRefresh=()=>{
+    if(generationHistoryRefreshTimer!==null)clearTimeout(generationHistoryRefreshTimer);
+    if(document.visibilityState==='hidden'||!['sound','voice'].includes(activeWorkspaceView)){generationHistoryRefreshTimer=null;return;}
+    const delay=historyHasProcessing()?7000:60000;
+    generationHistoryRefreshTimer=setTimeout(()=>{
+      generationHistoryRefreshTimer=null;
+      refreshVisibleGenerationHistory();
+      scheduleGenerationHistoryRefresh();
+    },delay);
+  };
+  const originalShowForHistoryRefresh=show;
+  show=function(view,updateHash=true){
+    originalShowForHistoryRefresh(view,updateHash);
+    scheduleGenerationHistoryRefresh();
+  };
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible')refreshVisibleGenerationHistory();
+    scheduleGenerationHistoryRefresh();
+  });
+  window.addEventListener('focus',()=>{
+    refreshVisibleGenerationHistory();
+    scheduleGenerationHistoryRefresh();
+  });
+  scheduleGenerationHistoryRefresh();
   const voiceHistoryList=document.getElementById('voiceHistoryList');
   const voiceHistoryRefresh=document.getElementById('voiceHistoryRefresh');
   const voiceHistorySearch=document.getElementById('voiceHistorySearch');
