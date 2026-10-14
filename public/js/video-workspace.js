@@ -24,7 +24,10 @@
     @media(max-width:700px){.sv-scene{grid-template-columns:110px minmax(0,1fr);gap:9px}.sv-scene-actions{grid-column:1/-1;grid-template-columns:repeat(4,minmax(0,1fr))}.sv-thumb{min-height:75px}.sv-right{grid-template-columns:1fr}.sv-steps{grid-template-columns:repeat(5,minmax(68px,1fr));overflow:auto}.sv-step small{display:none}.sv-vhead{padding:14px}.sv-vhead h2{font-size:19px}}
     @media(max-width:420px){.sv-scene{grid-template-columns:1fr}.sv-thumb{min-height:130px}.sv-scene-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.sv-mode button{padding:7px 6px;font-size:8px}.sv-two{grid-template-columns:1fr}}
     /* Compose-inspired spacious panel sizing */
-    .studio-domain-placeholder:has(.sv-video){width:100%;max-width:none;margin-left:0;margin-right:0}
+    /* Match Compose's content alignment: start close to the sidebar, not centered in a narrow column */
+    main.workspace:has(.sv-video){display:block;grid-template-columns:minmax(0,1fr);max-width:none;width:100%;margin:0;padding:26px 38px}
+    .studio-domain-placeholder:has(.sv-video){display:block;width:100%;max-width:none;margin:0;padding:0;justify-self:stretch}
+    .sv-video{width:100%;max-width:none;margin:0}
     .sv-video{gap:20px}
     .sv-card{border-radius:20px}
     .sv-vhead{padding:24px 28px;gap:20px}
