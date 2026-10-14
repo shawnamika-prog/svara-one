@@ -895,15 +895,20 @@ if (url.pathname === "/api/compositions/drafts" && request.method === "GET") {
           const sourceType = String(source.type || "");
           let resolved = { available: false, type: sourceType, id: sourceId };
           if (sourceType === "voice") {
-            const asset = await env.DB.prepare("SELECT id,voice_name,format,r2_key FROM generations WHERE id=? AND user_id=? AND status='ready' AND r2_key IS NOT NULL LIMIT 1").bind(sourceId, userId).first();
+            const asset = await env.DB.prepare("SELECT g.id,g.voice_name,g.format,g.r2_key,vdn.display_name FROM generations g LEFT JOIN voice_display_names vdn ON vdn.generation_id=g.id AND vdn.user_id=g.user_id WHERE g.id=? AND g.user_id=? AND g.status='ready' AND g.r2_key IS NOT NULL LIMIT 1").bind(sourceId, userId).first();
             if (asset?.r2_key) {
-              const filename = String(asset.r2_key).split("/").pop() || "";
-              resolved = { available: true, type: "voice", id: sourceId, filename: String(asset.voice_name || filename), format: String(asset.format || "").toUpperCase(), assetUrl: "/api/generations/media?filename=" + encodeURIComponent(filename), durationSeconds: Number(track.declaredDuration) || 30 };
+              const storageFilename = String(asset.r2_key).split("/").pop() || "";
+              const extension = storageFilename.split(".").pop()?.toLowerCase() || String(asset.format || "mp3").toLowerCase();
+              const filename = String(asset.display_name || storageFilename.replace(/\\.[^.]+$/, "")) + "." + extension;
+              resolved = { available: true, type: "voice", id: sourceId, filename, storageFilename, format: String(asset.format || extension).toUpperCase(), assetUrl: "/api/generations/media?filename=" + encodeURIComponent(storageFilename), durationSeconds: Number(track.declaredDuration) || 30 };
             }
           } else if (sourceType === "sound") {
-            const asset = await env.DB.prepare("SELECT id,type,prompt,duration_seconds,format,r2_key FROM sound_generations WHERE id=? AND user_id=? AND status='ready' AND r2_key IS NOT NULL LIMIT 1").bind(sourceId, userId).first();
+            const asset = await env.DB.prepare("SELECT sg.id,sg.type,sg.prompt,sg.duration_seconds,sg.format,sg.r2_key,sdn.display_name FROM sound_generations sg LEFT JOIN sound_display_names sdn ON sdn.generation_id=sg.id AND sdn.user_id=sg.user_id WHERE sg.id=? AND sg.user_id=? AND sg.status='ready' AND sg.r2_key IS NOT NULL LIMIT 1").bind(sourceId, userId).first();
             if (asset?.r2_key) {
-              resolved = { available: true, type: "sound", id: sourceId, filename: String(asset.prompt || String(asset.r2_key).split("/").pop()).slice(0, 120), soundType: String(asset.type || ""), format: String(asset.format || "").toUpperCase(), assetUrl: "/api/sound/assets/" + encodeURIComponent(sourceId), durationSeconds: Number(asset.duration_seconds) || Number(track.declaredDuration) || 30 };
+              const storageFilename = String(asset.r2_key).split("/").pop() || "sound.mp3";
+              const extension = storageFilename.split(".").pop()?.toLowerCase() || String(asset.format || "mp3").toLowerCase();
+              const filename = String(asset.display_name || storageFilename.replace(/\\.[^.]+$/, "")) + "." + extension;
+              resolved = { available: true, type: "sound", id: sourceId, filename, storageFilename, soundType: String(asset.type || ""), format: String(asset.format || extension).toUpperCase(), assetUrl: "/api/sound/assets/" + encodeURIComponent(sourceId), durationSeconds: Number(asset.duration_seconds) || Number(track.declaredDuration) || 30 };
             }
           } else if (sourceType === "composition") {
             const page = await env.GENERATED_AUDIO.list({ prefix: "users/" + userId + "/compositions/" + sourceId + ".", limit: 5, include: ["httpMetadata", "customMetadata"] });
