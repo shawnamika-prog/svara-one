@@ -2818,7 +2818,114 @@
       composeWorkspace.dataset.initialized='1';
     }else if(view==='video'){
       placeholder.className='studio-domain-placeholder';
-      placeholder.innerHTML=`<div class="placeholder-panel"><small>VIDEO</small><h2>Video workspace</h2><p>This workspace is being built as an independent SvaraONE domain. The Studio landing page is ready for it.</p></div>`;
+      if(!document.getElementById('runwayVideoStyle')){
+        const runwayStyle=document.createElement('style');
+        runwayStyle.id='runwayVideoStyle';
+        runwayStyle.textContent=`
+          .runway-video-workspace{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:stretch;min-height:calc(100vh - 130px)}
+          .runway-video-panel{border:1px solid #ffffff10;background:linear-gradient(180deg,#0a1020,#080d19);border-radius:18px;overflow:hidden;box-shadow:0 20px 60px #0004;min-width:0}
+          .runway-video-head{padding:22px;border-bottom:1px solid #ffffff0b}.runway-video-head small{color:#31e3c8;font-size:9px;letter-spacing:.2em;font-weight:800}.runway-video-head h2{margin:7px 0 0;font-size:23px;letter-spacing:-.04em}.runway-video-head p{margin:7px 0 0;color:#8091a8;font-size:11px;line-height:1.6}
+          .runway-video-form{padding:20px;display:grid;gap:16px}.runway-video-field{display:grid;gap:8px}.runway-video-field>label,.runway-video-label{color:#8da0b5;font-size:9px;font-weight:800;letter-spacing:.13em;text-transform:uppercase}
+          .runway-video-field textarea,.runway-video-field select,.runway-video-file{box-sizing:border-box;width:100%;border:1px solid #ffffff12;border-radius:11px;background:#050a14;color:#e5edf6;padding:12px;font:12px/1.6 Inter,system-ui,sans-serif;outline:none}.runway-video-field textarea{min-height:138px;resize:vertical}.runway-video-field textarea:focus,.runway-video-field select:focus,.runway-video-file:focus{border-color:#31e3c866;box-shadow:0 0 0 3px #31e3c811}
+          .runway-video-file{padding:10px;font-size:10px}.runway-video-preview{display:none;width:100%;max-height:250px;object-fit:contain;border-radius:11px;background:#050a14;border:1px solid #ffffff0d}.runway-video-preview.show{display:block}
+          .runway-video-options{display:grid;grid-template-columns:1fr 1fr;gap:10px}.runway-video-submit{width:100%;border:0;border-radius:11px;background:linear-gradient(105deg,#1d9e9a,#3477d9);color:#fff;padding:14px 16px;font:800 11px Inter,system-ui,sans-serif;cursor:pointer;box-shadow:0 10px 30px #24dec61a}.runway-video-submit:disabled{opacity:.65;cursor:wait}.runway-video-note{color:#60748a;font-size:9px;line-height:1.55;margin:0}
+          .runway-video-status{margin:0 20px 20px;padding:12px;border:1px solid #ffffff0e;border-radius:10px;background:#070d17;color:#8ea2b7;font-size:10px;line-height:1.55;overflow-wrap:anywhere}.runway-video-status.error{border-color:#7c343b;background:#1b0d13;color:#ff9a9a}.runway-video-status.success{border-color:#1d766b;background:#071b1a;color:#7fe7d6}
+          .runway-video-output{padding:20px}.runway-video-empty{min-height:400px;display:grid;place-items:center;align-content:center;text-align:center;padding:24px;color:#61758b}.runway-video-empty-mark{width:66px;height:66px;display:grid;place-items:center;border:1px solid #31e3c833;border-radius:18px;background:#0a1c22;color:#31e3c8;font-size:26px;margin-bottom:16px}.runway-video-empty h3{margin:0;color:#b7c6d6;font-size:13px}.runway-video-empty p{max-width:300px;margin:8px auto 0;font-size:10px;line-height:1.6}.runway-video-result{display:none}.runway-video-result.show{display:block}.runway-video-result video{display:block;width:100%;max-height:520px;background:#03060b;border-radius:12px;border:1px solid #ffffff12}.runway-video-result a{display:inline-flex;margin-top:12px;color:#5be5d2;font-size:10px;font-weight:700;text-decoration:none}.runway-video-task{margin-top:12px;color:#73869b;font-size:9px;overflow-wrap:anywhere}
+          @media(max-width:900px){.runway-video-workspace{grid-template-columns:1fr;min-height:0}.runway-video-empty{min-height:240px}}
+          @media(max-width:560px){.runway-video-head{padding:17px}.runway-video-form,.runway-video-output{padding:14px}.runway-video-status{margin:0 14px 14px}.runway-video-options{grid-template-columns:1fr 1fr}}
+        `;
+        document.head.appendChild(runwayStyle);
+      }
+      placeholder.innerHTML=`
+        <div class="runway-video-workspace">
+          <section class="runway-video-panel">
+            <div class="runway-video-head"><small>VIDEO STUDIO · API TEST</small><h2>Bring an image to life</h2><p>Upload a starting image, describe the motion, and send a real generation request to Runway Gen-4 Turbo.</p></div>
+            <form id="runwayVideoForm" class="runway-video-form">
+              <div class="runway-video-field"><label for="runwayImage">Starting image</label><input class="runway-video-file" id="runwayImage" name="image" type="file" accept="image/png,image/jpeg,image/webp" required><img id="runwayImagePreview" class="runway-video-preview" alt="Selected starting image preview"></div>
+              <div class="runway-video-field"><label for="runwayPrompt">Motion prompt</label><textarea id="runwayPrompt" name="promptText" maxlength="2000" required>Animate the bull mascot naturally. He turns his head slightly toward the camera, raises one hand in a welcoming gesture, and nods. Add a subtle cinematic camera push-in. Preserve his original face, glowing blue horns, black hoodie, proportions, and office background. Smooth, polished 3D product-explainer animation. Keep the character consistent and avoid warping or introducing new objects.</textarea></div>
+              <div class="runway-video-options">
+                <div class="runway-video-field"><label for="runwayRatio">Aspect ratio</label><select id="runwayRatio" name="ratio"><option value="1280:720" selected>Landscape · 16:9</option><option value="720:1280">Portrait · 9:16</option><option value="1104:832">Landscape · 4:3</option><option value="832:1104">Portrait · 3:4</option><option value="960:960">Square · 1:1</option><option value="1584:672">Wide · 2.36:1</option></select></div>
+                <div class="runway-video-field"><label for="runwayDuration">Duration</label><select id="runwayDuration" name="duration"><option value="5" selected>5 seconds</option><option value="10">10 seconds</option></select></div>
+              </div>
+              <button id="runwayVideoSubmit" class="runway-video-submit" type="submit">✦ Generate video with Runway</button>
+              <p class="runway-video-note">Test workspace · Gen-4 Turbo · Uses your configured Runway API key on the server. Video generation may consume Runway credits.</p>
+            </form>
+            <p id="runwayVideoStatus" class="runway-video-status" aria-live="polite">Choose an image and send your first video request.</p>
+          </section>
+          <section class="runway-video-panel">
+            <div class="runway-video-head"><small>GENERATION OUTPUT</small><h2>Your video</h2><p>The task status and finished video will appear here.</p></div>
+            <div class="runway-video-output">
+              <div id="runwayVideoEmpty" class="runway-video-empty"><div class="runway-video-empty-mark">▶</div><h3>Your video will appear here</h3><p>Runway returns a task first. This panel checks the task until the video is ready.</p></div>
+              <div id="runwayVideoResult" class="runway-video-result"><video id="runwayVideoPlayer" controls playsinline></video><a id="runwayVideoDownload" href="#" target="_blank" rel="noopener">Open / download generated video ↗</a><div id="runwayVideoTask" class="runway-video-task"></div></div>
+            </div>
+          </section>
+        </div>`;
+      const runwayForm=placeholder.querySelector('#runwayVideoForm');
+      const runwayFile=placeholder.querySelector('#runwayImage');
+      const runwayPreview=placeholder.querySelector('#runwayImagePreview');
+      const runwayStatus=placeholder.querySelector('#runwayVideoStatus');
+      const runwaySubmit=placeholder.querySelector('#runwayVideoSubmit');
+      const runwayEmpty=placeholder.querySelector('#runwayVideoEmpty');
+      const runwayResult=placeholder.querySelector('#runwayVideoResult');
+      const runwayPlayer=placeholder.querySelector('#runwayVideoPlayer');
+      const runwayDownload=placeholder.querySelector('#runwayVideoDownload');
+      const runwayTask=placeholder.querySelector('#runwayVideoTask');
+      let runwayPreviewUrl=null;
+      runwayFile.addEventListener('change',()=>{
+        if(runwayPreviewUrl)URL.revokeObjectURL(runwayPreviewUrl);
+        const file=runwayFile.files&&runwayFile.files[0];
+        runwayPreviewUrl=file?URL.createObjectURL(file):null;
+        runwayPreview.src=runwayPreviewUrl||'';
+        runwayPreview.classList.toggle('show',!!runwayPreviewUrl);
+      });
+      runwayForm.addEventListener('submit',async event=>{
+        event.preventDefault();
+        const file=runwayFile.files&&runwayFile.files[0];
+        if(!file){runwayStatus.textContent='Choose a PNG, JPEG or WebP image first.';runwayStatus.className='runway-video-status error';return;}
+        const promptText=placeholder.querySelector('#runwayPrompt').value.trim();
+        if(!promptText){runwayStatus.textContent='Describe the motion you want.';runwayStatus.className='runway-video-status error';return;}
+        runwaySubmit.disabled=true;runwaySubmit.textContent='Uploading image and submitting…';
+        runwayStatus.className='runway-video-status';runwayStatus.textContent='Uploading your image securely to Runway and submitting the video task…';
+        runwayEmpty.hidden=true;runwayResult.classList.remove('show');runwayPlayer.removeAttribute('src');runwayPlayer.load();
+        try{
+          const payload=new FormData();
+          payload.append('image',file,file.name);
+          payload.append('promptText',promptText);
+          payload.append('ratio',placeholder.querySelector('#runwayRatio').value);
+          payload.append('duration',placeholder.querySelector('#runwayDuration').value);
+          const response=await fetch('/api/video/runway',{method:'POST',credentials:'same-origin',body:payload});
+          const data=await response.json().catch(()=>({}));
+          if(!response.ok)throw new Error(data.error||('Request failed ('+response.status+')'));
+          const taskId=String(data.id||data.taskId||'');
+          if(!taskId)throw new Error('Runway accepted no task ID. Response: '+JSON.stringify(data).slice(0,400));
+          runwayTask.textContent='Task ID: '+taskId;
+          runwayStatus.textContent='Request accepted by Runway. Task '+taskId+' is processing…';
+          for(let attempt=0;attempt<60;attempt++){
+            await new Promise(resolve=>setTimeout(resolve,4000));
+            const poll=await fetch('/api/video/runway/tasks/'+encodeURIComponent(taskId),{credentials:'same-origin',cache:'no-store'});
+            const state=await poll.json().catch(()=>({}));
+            if(!poll.ok)throw new Error(state.error||('Task check failed ('+poll.status+')'));
+            const status=String(state.status||'').toUpperCase();
+            runwayStatus.textContent='Runway task status: '+(status||'PROCESSING')+'.';
+            runwayTask.textContent='Task ID: '+taskId+(state.progress!=null?' · '+state.progress+'%':'');
+            if(status==='SUCCEEDED'){
+              const output=Array.isArray(state.output)?state.output[0]:state.output;
+              if(!output)throw new Error('Runway marked the task successful but returned no video URL.');
+              runwayPlayer.src=output;runwayDownload.href=output;runwayDownload.download='svaraone-runway-video.mp4';
+              runwayResult.classList.add('show');runwayEmpty.hidden=true;
+              runwayStatus.className='runway-video-status success';runwayStatus.textContent='Video generated successfully. Preview it on the right or open the video URL.';
+              return;
+            }
+            if(status==='FAILED'||status==='CANCELED')throw new Error(state.failure||state.failureCode||'Runway could not generate this video.');
+          }
+          throw new Error('The task is still processing after four minutes. Your task ID is '+taskId+'. You can submit again later or check the task status.');
+        }catch(err){
+          runwayStatus.className='runway-video-status error';runwayStatus.textContent=String(err&&err.message||err||'Video generation failed');
+          runwayEmpty.hidden=false;
+        }finally{
+          runwaySubmit.disabled=false;runwaySubmit.textContent='✦ Generate video with Runway';
+        }
+      });
     }
     if(view==='compose'){loadCompositionLibrary();loadCompositionDrafts();}
     setActive(view);
