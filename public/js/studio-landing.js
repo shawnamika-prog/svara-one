@@ -2861,8 +2861,8 @@
     document.body.appendChild(tooltip);
     let activeTarget=null;
     const formatPrompt=value=>String(value||'No prompt recorded')
-      .replace(/;\\s*(?=(?:Role|Intent|Mood|Style|Energy|Texture|Tempo|Intensity|Complexity|Opening|Development|Climax|Ending|Support|Avoid|Vocal policy|Voice content):)/gi,';\\n')
-      .replace(/;\\s+/g,';\\n');
+      .replace(/;\s*(?=(?:Role|Intent|Mood|Style|Energy|Texture|Tempo|Intensity|Complexity|Opening|Development|Climax|Ending|Support|Avoid|Vocal policy|Voice content):)/gi,';\n')
+      .replace(/;\s+/g,';\n');
     const place=(x,y)=>{
       const gap=14,pad=12;
       const rect=tooltip.getBoundingClientRect();
