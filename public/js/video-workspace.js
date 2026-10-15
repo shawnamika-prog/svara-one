@@ -20,6 +20,7 @@
     @media(max-width:700px){.sv-scene{grid-template-columns:110px minmax(0,1fr);gap:9px}.sv-scene-actions{grid-column:1/-1;grid-template-columns:repeat(4,minmax(0,1fr))}.sv-thumb{min-height:75px}.sv-right{grid-template-columns:1fr}.sv-steps{grid-template-columns:repeat(5,minmax(68px,1fr));overflow:auto}.sv-step small{display:none}.sv-vhead{padding:14px}.sv-vhead h2{font-size:19px}}
     @media(max-width:420px){.sv-scene{grid-template-columns:1fr}.sv-thumb{min-height:130px}.sv-scene-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.sv-mode button{padding:7px 6px;font-size:8px}.sv-two{grid-template-columns:1fr}}
     /* Video workspace accent theme: indigo */
+    .sv-concept-kicker{font-size:9px;font-weight:800;letter-spacing:.16em;color:#a5a6ff;margin-bottom:8px}.sv-discovery-result h3{font-size:19px;margin:6px 0 8px;color:#f2f5ff}.sv-discovery-result h4{font-size:11px;margin:17px 0 7px;color:#c7d2fe}.sv-discovery-result p,.sv-discovery-result li{font-size:11px;line-height:1.65;color:#aebbd0}.sv-concept-logline{font-size:13px!important;color:#e0e7ff!important}.sv-concept-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:14px 0}.sv-concept-grid>div{padding:10px;border:1px solid #ffffff12;border-radius:8px;background:#0b1422;min-width:0}.sv-concept-grid small{display:block;color:#8795bd;font-size:8px;letter-spacing:.1em;margin-bottom:5px}.sv-concept-grid strong{font-size:10px;line-height:1.5;overflow-wrap:anywhere}.sv-concept-scenes{display:grid;gap:8px}.sv-concept-scene{padding:11px;border:1px solid #ffffff12;background:#0a1321;border-radius:9px}.sv-concept-scene-head{display:flex;justify-content:space-between;gap:8px;align-items:start}.sv-concept-scene-head strong{font-size:11px}.sv-concept-scene-head span{white-space:nowrap;color:#a5b4fc;font-size:9px}.sv-concept-scene p{margin:7px 0 0}.sv-concept-scene b{color:#d9e2f4}.
     .sv-video{--sv-accent:#6366F1;--sv-accent-bright:#818CF8;--sv-accent-soft:#242454;--sv-accent-border:#5558D9}
     .sv-eyebrow{color:#818CF8}
     .sv-btn:hover{border-color:#6366F188;color:#fff}
@@ -182,7 +183,7 @@
             <div class="sv-discovery-help"><span>Not sure about the audience or goal? Leave them blank. Discovery will help you decide. You stay in control. Nothing is final until you approve the concept.</span></div>
             <div class="sv-accordion-foot"><span class="sv-setup-note"></span><button class="sv-btn primary" type="button" data-discovery-submit>Shape my idea <span aria-hidden="true">→</span></button></div>
             <div class="sv-discovery-result" data-discovery-result hidden aria-live="polite"></div>
-            <div class="sv-accordion-foot sv-discovery-result-actions" data-discovery-actions hidden><span class="sv-setup-note">Draft only · SvaraFlow/OpenAI connection is a separate implementation step.</span><button class="sv-btn" type="button" data-discovery-edit>Edit my answers</button></div>
+            <div class="sv-accordion-foot sv-discovery-result-actions" data-discovery-actions hidden><span class="sv-setup-note" data-discovery-result-note>AI concept draft · references are not yet analysed.</span><button class="sv-btn" type="button" data-discovery-edit>Edit my answers</button><button class="sv-btn primary" type="button" data-discovery-approve>Approve concept &amp; create storyboard →</button></div>
           </div>
         </section>
         <section class="sv-card sv-accordion" data-accordion="branding">
@@ -254,6 +255,7 @@
     const globalStatus=root.querySelector('[data-global-status]');
     const previewState=root.querySelector('[data-preview-state]');
     let scenes=seedScenes(), selectedId=null, tab='settings', mode='director', reorder=false, modal=null;
+    let discoveryConcept=null;
     const projectReviewed={story:false,characters:false,branding:false,environment:false,style:false};
     const brandFiles={logo:null,reference:null};
     const selected=()=>scenes.find(s=>s.id===selectedId)||null;
@@ -317,6 +319,7 @@
       if(discoveryMode){root.querySelectorAll('[data-discovery-mode]').forEach(button=>{const active=button===discoveryMode;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});const submit=root.querySelector('[data-discovery-submit]');if(submit)submit.textContent=discoveryMode.dataset.discoveryMode==='brief'?'Review my brief →':'Shape my idea →';const intro=root.querySelector('.sv-discovery .sv-accordion-intro');if(intro)intro.innerHTML=discoveryMode.dataset.discoveryMode==='brief'?'Add the material you already have. SvaraFlow<sup>™</sup> can organise your brief, identify gaps and help turn it into a clear creative direction.':'You don\'t need a finished script or a detailed brief. Tell SvaraFlow<sup>™</sup> what you\'re trying to achieve, and we\'ll help you discover the story, format and visual direction.';return;}
       if(event.target.closest('[data-discovery-edit]')){const result=root.querySelector('[data-discovery-result]');const actions=root.querySelector('[data-discovery-actions]');if(result)result.hidden=true;if(actions)actions.hidden=true;root.querySelector('[data-discovery-submit]')?.scrollIntoView({block:'nearest',behavior:'smooth'});return;}
       if(event.target.closest('[data-discovery-submit]')){
+        const button=event.target.closest('[data-discovery-submit]');
         const idea=(root.querySelector('[data-discovery-field="idea"]')?.value||'').trim();
         const url=(root.querySelector('[data-discovery-field="url"]')?.value||'').trim();
         const audience=root.querySelector('[data-discovery-field="audience"]')?.value||'';
@@ -324,14 +327,59 @@
         const files=root.querySelector('[data-discovery-files]')?.files||[];
         const mode=root.querySelector('[data-discovery-mode].active')?.dataset.discoveryMode||'discover';
         if(!idea&&!url&&!files.length){const field=root.querySelector('[data-discovery-field="idea"]');if(field){field.focus();field.setCustomValidity('Tell us a little about the video you want to make, or add a link or reference file.');field.reportValidity();field.addEventListener('input',()=>field.setCustomValidity(''),{once:true});}return;}
+        if(!idea&&!url){setStatus('Reference files are selected, but file analysis is not connected yet. Add a short description to start discovery.','error');return;}
         const result=root.querySelector('[data-discovery-result]');const actions=root.querySelector('[data-discovery-actions]');
-        const fileNames=Array.from(files).map(file=>file.name);
-        const suggestedGoal=goal||'Clarify the main message and the action viewers should take';
-        const suggestedAudience=audience||'Identify the audience during discovery';
-        const safeList=items=>items.map(item=>'<li>'+esc(item)+'</li>').join('');
-        result.innerHTML='<h3>'+(mode==='brief'?'Your brief at a glance':'Let\'s shape this idea')+'</h3><p><strong>Starting point:</strong> '+esc(idea||'Review the supplied reference material')+'</p>'+(url?'<p><strong>Product or website:</strong> '+esc(url)+'</p>':'')+'<p><strong>Audience:</strong> '+esc(suggestedAudience)+'</p><p><strong>Objective:</strong> '+esc(suggestedGoal)+'</p>'+(fileNames.length?'<p><strong>Reference files selected:</strong> '+esc(fileNames.join(', '))+'</p>':'')+'<p><strong>Recommended next discovery questions</strong></p><ul>'+safeList([audience?'Confirm what this audience needs to understand':'Who most needs to understand or act on this video?',goal?'Clarify the single most important takeaway':'What should viewers understand, feel or do after watching?',url?'Confirm the key features and claims from the supplied product information':'What makes the product, platform or idea useful or different?'])+'</ul><div class="sv-draft-note">This is a local draft preview only. Files and links have not been uploaded or analysed, and SvaraFlow/OpenAI has not been called yet.</div>';
-        result.hidden=false;actions.hidden=false;result.scrollIntoView({block:'nearest',behavior:'smooth'});
-        const state=root.querySelector('[data-accordion-state="story"]');if(state){state.textContent='Discovery draft';state.classList.remove('complete');}
+        if(discoveryConcept){discoveryConcept=null;}
+        if(result){result.hidden=false;result.innerHTML='<h3>Developing your concept…</h3><p>SvaraFlow is analysing your idea and building a structured creative direction and scene outline. This can take a few moments.</p>';}
+        if(actions)actions.hidden=true;
+        if(button){button.disabled=true;button.textContent='Developing concept…';}
+        setStatus('SvaraFlow is developing your concept with OpenAI…');
+        try{
+          const response=await fetch('/api/video/discovery',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({idea,url,audience,goal,mode})});
+          const data=await response.json().catch(()=>({}));
+          if(!response.ok)throw new Error(data.error||('Creative Discovery failed ('+response.status+')'));
+          if(!data.concept||!Array.isArray(data.concept.sceneOutline))throw new Error('The discovery service returned an incomplete concept. Please try again.');
+          discoveryConcept=data.concept;
+          const c=discoveryConcept;
+          const list=items=>items.map(item=>'<li>'+esc(item)+'</li>').join('');
+          const scenesMarkup=c.sceneOutline.map((scene,index)=>'<article class="sv-concept-scene"><div class="sv-concept-scene-head"><strong>'+esc(String(index+1).padStart(2,'0')+' · '+scene.title)+'</strong><span>'+esc(scene.durationSeconds)+' sec</span></div><p>'+esc(scene.purpose)+'</p><p><b>Visual:</b> '+esc(scene.visualDescription)+'</p><p><b>Camera:</b> '+esc(scene.cameraDirection)+'</p>'+(scene.narration?'<p><b>Narration:</b> '+esc(scene.narration)+'</p>':'')+'</article>').join('');
+          result.innerHTML='<div class="sv-concept-kicker">SVARAFLOW™ · CREATIVE CONCEPT</div><h3>'+esc(c.title)+'</h3><p class="sv-concept-logline">'+esc(c.logline)+'</p><div class="sv-concept-grid"><div><small>FORMAT</small><strong>'+esc(c.recommendedFormat)+'</strong></div><div><small>EST. DURATION</small><strong>'+esc(c.durationSeconds)+' seconds</strong></div><div><small>AUDIENCE</small><strong>'+esc(c.audience)+'</strong></div><div><small>OBJECTIVE</small><strong>'+esc(c.objective)+'</strong></div></div><h4>Creative direction</h4><p>'+esc(c.creativeDirection)+'</p><p><b>Visual style:</b> '+esc(c.visualStyle)+' · <b>Tone:</b> '+esc(c.tone)+'</p><p><b>Key message:</b> '+esc(c.keyMessage)+'</p><p><b>Call to action:</b> '+esc(c.callToAction)+'</p><h4>Proposed scene outline</h4><div class="sv-concept-scenes">'+scenesMarkup+'</div><h4>Questions to resolve</h4><ul>'+list(c.openQuestions)+'</ul><h4>Working assumptions</h4><ul>'+list(c.assumptions)+'</ul><div class="sv-draft-note">AI-generated concept for your review. No reference files have been uploaded or analysed, and the supplied URL has not been visited. No images or video have been generated yet.</div>';
+          if(actions)actions.hidden=false;
+          const note=root.querySelector('[data-discovery-result-note]');if(note)note.textContent='Review the concept. Approving it creates editable storyboard scene cards; it does not generate media.';
+          result.scrollIntoView({block:'nearest',behavior:'smooth'});
+          const state=root.querySelector('[data-accordion-state="story"]');if(state){state.textContent='Concept ready for review';state.classList.remove('complete');}
+          setStatus('Concept ready for your review. Nothing advances until you approve it.','success');
+        }catch(error){
+          if(result){result.hidden=false;result.innerHTML='<h3>Discovery could not be completed</h3><p>'+esc(String(error?.message||error))+'</p><p>You can edit your answers and try again.</p>';}
+          setStatus(String(error?.message||error),'error');
+        }finally{
+          if(button){button.disabled=false;button.innerHTML=(mode==='brief'?'Review my brief':'Shape my idea')+' <span aria-hidden="true">→</span>';}
+        }
+        return;
+      }
+      if(event.target.closest('[data-discovery-approve]')){
+        if(!discoveryConcept){setStatus('Develop a concept before approving it.','error');return;}
+        const c=discoveryConcept;
+        scenes=c.sceneOutline.map((scene,index)=>({
+          id:'scene-'+Date.now()+'-'+index,
+          title:'Scene '+(index+1)+' — '+String(scene.title||'Untitled scene'),
+          description:String(scene.purpose||scene.visualDescription||''),
+          duration:Math.min(30,Math.max(2,Number(scene.durationSeconds)||5)),
+          ratio:'1280:720',
+          status:'Baseline needed',
+          image:'',
+          video:'',
+          imageFile:null,
+          prompt:[scene.visualDescription,scene.cameraDirection,scene.narration?'Narration: '+scene.narration:'', 'Visual style: '+c.visualStyle, 'Tone: '+c.tone].filter(Boolean).join('\n')
+        }));
+        selectedId=scenes[0]?.id||null;
+        const storyboard=root.querySelector('[data-accordion-body="storyboard"]');
+        const storyboardHead=root.querySelector('[data-accordion-toggle="storyboard"]');
+        if(storyboard){storyboard.hidden=false;if(storyboardHead)storyboardHead.setAttribute('aria-expanded','true');const chev=storyboardHead?.querySelector('.sv-accordion-chevron');if(chev)chev.textContent='⌃';}
+        const state=root.querySelector('[data-accordion-state="storyboard"]');if(state)state.textContent=scenes.length+' scenes · concept approved';
+        renderScenes();renderSettings();renderPreview();
+        setStatus('Concept approved. '+scenes.length+' editable storyboard scenes created. Add or generate reference images in the next step.','success');
+        storyboard?.scrollIntoView({block:'nearest',behavior:'smooth'});
         return;
       }
       const fileInput=event.target.closest('[data-discovery-files]');
