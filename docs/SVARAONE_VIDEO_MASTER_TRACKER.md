@@ -1,6 +1,6 @@
 # SvaraONE Video Workspace — Master Tracker
 
-**Last updated:** 2026-10-14  
+**Last updated:** 2026-10-15  
 **Repository:** `shawnamika-prog/svara-one`  
 **Working branch:** `main`  
 **Current confirmed Video workspace baseline:** `baefd547141228598a9d166703994d768a12c3ae`
@@ -33,6 +33,16 @@ Concept → Storyboard → Assets → Generate → Assemble
 | V6 — Persistence and project library | Save/load projects, scene metadata, prompts, asset references, generated outputs and project history; connect to appropriate library workflows | Planned | Refresh/navigation preserves saved work; project ownership and asset references remain consistent |
 | V7 — Quality and release audit | Responsive/UI audit, accessibility, error paths, API/security checks, credit-accounting audit, regression checks across existing workspaces | Planned | Acceptance checklist passes before calling Video production-ready |
 
+## Panel 1 — Creative Discovery update (2026-10-15)
+
+- Replaced the basic Story & Concept form with a Creative Discovery entry experience.
+- Two entry paths: **Help me develop my idea** and **I already have a brief**.
+- Captures an initial idea, optional website/product URL, optional audience and goal, and selectable reference files.
+- Local draft preview suggests the next discovery questions and makes missing details explicit rather than forcing the user to know everything up front.
+- The UI clearly states that this draft preview does not upload/analyse selected files or URLs and does not call SvaraFlow/OpenAI yet. No AI generation or persistence is claimed as implemented.
+- Verification performed: JavaScript syntax parse passed after the change. Browser/device visual verification remains outstanding.
+- Next: connect the discovery submit flow to a real backend orchestration endpoint, define a validated structured concept response, then generate provisional static scene images and assemble a playable concept reel.
+
 ## Current foundation notes
 
 - Video workspace entry point: `public/js/video-workspace.js`.
@@ -54,7 +64,9 @@ For each phase:
 
 ## Immediate next task
 
-Complete **V1.1 — UI cleanup and baseline lock**:
+Continue **Panel 1 — Creative Discovery integration** after browser review of the new UI. The discovery panel currently creates a local draft only; connect the real SvaraFlow/OpenAI orchestration before representing concept generation as available.
+
+The earlier **V1.1 — UI cleanup and baseline lock** remains a separate verification task:
 - Remove the unwanted “Scene (1)” label/overlay.
 - Rework scene-card layout so video/image placeholders cannot overlap the scene title or description, including at mobile widths.
 - Verify desktop, tablet and mobile layouts, and confirm the latest workspace initialization/state-preservation behavior remains intact.
