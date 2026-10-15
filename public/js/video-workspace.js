@@ -310,7 +310,7 @@
     };
     const addScene=()=>{const n=scenes.length+1;const s={id:'scene-'+Date.now(),title:'Scene '+n+' — New Scene',description:'Describe what happens in this scene.',duration:5,ratio:'1280:720',status:'Baseline needed',image:'',video:'',prompt:'Describe the action, camera movement, lighting and desired visual continuity.'};scenes.push(s);selectScene(s.id);setStatus('New scene added. Edit the description, attach a baseline image and refine the prompt.');};
     const openProjectMenu=()=>{const wrap=document.createElement('div');wrap.className='sv-modal-backdrop';wrap.innerHTML='<section class="sv-modal" role="dialog" aria-modal="true"><h3>Project actions</h3><div class="sv-asset-placeholder">Project rename, duplicate, templates and history are planned. This milestone keeps the project local to this workspace.</div><div class="sv-modal-foot"><button class="sv-btn" data-close>Close</button></div></section>';wrap.addEventListener('click',e=>{if(e.target===wrap||e.target.closest('[data-close]'))wrap.remove();});root.appendChild(wrap);};
-    root.addEventListener('click',event=>{
+    root.addEventListener('click',async event=>{
       const accordionToggle=event.target.closest('[data-accordion-toggle]');
       if(accordionToggle){const id=accordionToggle.dataset.accordionToggle;const body=root.querySelector('[data-accordion-body="'+id+'"]');if(body){const open=body.hidden;body.hidden=!open;accordionToggle.setAttribute('aria-expanded',String(open));const chevron=accordionToggle.querySelector('.sv-accordion-chevron');if(chevron)chevron.textContent=open?'⌃':'⌄';}return;}
       const brandInput=event.target.closest('[data-brand-upload]');
