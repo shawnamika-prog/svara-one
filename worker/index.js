@@ -205,7 +205,8 @@ export default {
   }
 
   if(url.pathname==="/api/video/runway"&&request.method==="POST"){
-    if(!env.VIDEO_PROVIDER_API_KEY)return json({error:"Runway is not configured yet. Add the VIDEO_PROVIDER_API_KEY Worker secret in Cloudflare."},503,request);
+    if(!env.VIDEO_API_KEY)return json({error:"Video provider is not configured yet. Add the VIDEO_API_KEY secret in Cloudflare."},503,request);
+    if(String(env.VIDEO_PROVIDER||"runway").trim().toLowerCase()!=="runway")return json({error:"The configured video provider does not match this temporary Runway adapter."},503,request);
     try{
       const form=await request.formData();
       const image=form.get("image");
@@ -221,9 +222,9 @@ export default {
       if(!allowedRatios.has(ratio))return json({error:"Choose a supported aspect ratio."},400,request);
       if(![5,10].includes(duration))return json({error:"Choose a 5- or 10-second video."},400,request);
       const version="2024-11-06";
-      const descriptorResponse=await fetch("https://api.dev.runwayml.com/v1/uploads",{
+      const descriptorResponse=await fetch(String(env.VIDEO_API_URL||"https://api.dev.runwayml.com").trim().replace(/\/+$/,"")+"/v1/uploads",{
         method:"POST",
-        headers:{Authorization:`Bearer ${env.VIDEO_PROVIDER_API_KEY}`,"X-Runway-Version":version,"Content-Type":"application/json"},
+        headers:{Authorization:`Bearer ${env.VIDEO_API_KEY}`,"X-Runway-Version":version,"Content-Type":"application/json"},
         body:JSON.stringify({filename:String(image.name||"svaraone-video-input.png"),type:"ephemeral"})
       });
       const descriptor=await descriptorResponse.json().catch(()=>({}));
@@ -234,10 +235,10 @@ export default {
       uploadForm.append("file",image,String(image.name||"svaraone-video-input.png"));
       const uploadResponse=await fetch(descriptor.uploadUrl,{method:"POST",body:uploadForm});
       if(!uploadResponse.ok)return json({error:`Image upload failed (HTTP ${uploadResponse.status}). Please try again.`},502,request);
-      const generationResponse=await fetch("https://api.dev.runwayml.com/v1/image_to_video",{
+      const generationResponse=await fetch(String(env.VIDEO_API_URL||"https://api.dev.runwayml.com").trim().replace(/\/+$/,"")+"/v1/image_to_video",{
         method:"POST",
-        headers:{Authorization:`Bearer ${env.VIDEO_PROVIDER_API_KEY}`,"X-Runway-Version":version,"Content-Type":"application/json"},
-        body:JSON.stringify({model:"gen4_turbo",promptImage:descriptor.runwayUri,promptText,ratio,duration})
+        headers:{Authorization:`Bearer ${env.VIDEO_API_KEY}`,"X-Runway-Version":version,"Content-Type":"application/json"},
+        body:JSON.stringify({model:String(env.VIDEO_MODEL||"gen4_turbo").trim(),promptImage:descriptor.runwayUri,promptText,ratio,duration})
       });
       const generation=await generationResponse.json().catch(()=>({}));
       if(!generationResponse.ok)return json({error:generation.error||"Runway rejected the video request.",issues:generation.issues||undefined},generationResponse.status,request);
@@ -249,12 +250,13 @@ export default {
   }
 
   if(url.pathname.startsWith("/api/video/runway/tasks/")&&request.method==="GET"){
-    if(!env.VIDEO_PROVIDER_API_KEY)return json({error:"Runway is not configured yet."},503,request);
+    if(!env.VIDEO_API_KEY)return json({error:"Video provider is not configured yet."},503,request);
+    if(String(env.VIDEO_PROVIDER||"runway").trim().toLowerCase()!=="runway")return json({error:"The configured video provider does not match this temporary Runway adapter."},503,request);
     const taskId=decodeURIComponent(url.pathname.slice("/api/video/runway/tasks/".length));
     if(!taskId||!/^[A-Za-z0-9_-]+$/.test(taskId))return json({error:"Invalid Runway task ID."},400,request);
     try{
-      const upstream=await fetch(`https://api.dev.runwayml.com/v1/tasks/${encodeURIComponent(taskId)}`,{
-        headers:{Authorization:`Bearer ${env.VIDEO_PROVIDER_API_KEY}`,"X-Runway-Version":"2024-11-06"}
+      const upstream=await fetch(String(env.VIDEO_API_URL||"https://api.dev.runwayml.com").trim().replace(/\/+$/,"")+"/v1/tasks/"+encodeURIComponent(taskId),{
+        headers:{Authorization:`Bearer ${env.VIDEO_API_KEY}`,"X-Runway-Version":"2024-11-06"}
       });
       const data=await upstream.json().catch(()=>({}));
       return json(data,upstream.status,request);
