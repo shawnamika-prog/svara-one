@@ -67,6 +67,8 @@
       .sv-setup-grid .sv-field>span,.sv-brand-grid .sv-field>span,.sv-setup-grid .sv-field>label,.sv-brand-grid .sv-field>label{font-size:9px;letter-spacing:.04em}
     }
 
+    .sv-discovery .sv-accordion-intro{margin:24px 0 26px;line-height:1.8}
+    .sv-discovery-mode small{font-weight:400;letter-spacing:normal}
     .sv-discovery-modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:8px 0 4px}
     .sv-discovery-mode{display:grid;grid-template-columns:32px minmax(0,1fr);column-gap:10px;align-items:start;text-align:left;padding:15px;border:1px solid #ffffff16;border-radius:12px;background:#0a1220;color:#e5edf8;cursor:pointer}
     .sv-discovery-mode.active{border-color:#818CF8;background:linear-gradient(135deg,#171936,#0b1220);box-shadow:inset 0 0 0 1px #6366F122}
@@ -175,7 +177,7 @@
               <label class="sv-field sv-field-wide"><span>Website or product link <small>(optional)</small></span><input type="url" data-discovery-field="url" placeholder="https://your-platform.com"></label>
               <label class="sv-field"><span>Who is it for? <small>(optional)</small></span><select data-discovery-field="audience"><option value="">Help me decide</option><option>Potential customers</option><option>Existing customers</option><option>Investors or business partners</option><option>Employees or internal teams</option><option>General audience</option></select></label>
               <label class="sv-field"><span>What should it do? <small>(optional)</small></span><select data-discovery-field="goal"><option value="">Recommend a goal</option><option>Explain how something works</option><option>Introduce or launch a product</option><option>Encourage sign-ups or sales</option><option>Tell a story or build awareness</option><option>Train or educate</option></select></label>
-              <div class="sv-field sv-field-wide"><span>Reference files <small>(optional)</small></span><label class="sv-discovery-upload"><input type="file" data-discovery-files multiple accept=".pdf,.doc,.docx,.txt,.md,.ppt,.pptx,.png,.jpg,.jpeg,.webp"><span>＋ Add a script, brief, presentation or reference images</span><small data-discovery-file-names>No files selected</small></label></div>
+              <div class="sv-field sv-field-wide"><span>Reference files <small>(optional)</small></span><label class="sv-discovery-upload"><input type="file" data-discovery-files multiple accept=".pdf,.doc,.docx,.txt,.md,.ppt,.pptx,.png,.jpg,.jpeg,.webp"><span>＋ Add a script, brief, presentation or reference images</span><small data-discovery-file-names>No files selected</small></label><small class="sv-setup-note">Available for either starting path.</small></div>
             </div>
             <div class="sv-discovery-help"><span>Not sure about the audience or goal? Leave them blank. Discovery should help you decide.</span></div>
             <div class="sv-accordion-foot"><span class="sv-setup-note">You stay in control. Nothing is final until you approve the concept.</span><button class="sv-btn primary" type="button" data-discovery-submit>Shape my idea <span aria-hidden="true">→</span></button></div>
