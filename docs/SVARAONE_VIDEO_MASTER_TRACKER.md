@@ -13,7 +13,8 @@ Build the Video workspace around a scene-first production workflow consistent wi
 - Inspect the current implementation before changing it.
 - Preserve existing working behavior and state.
 - Do not represent placeholder UI as completed backend functionality.
-- Keep provider integration explicit; Runway is the initial video-generation provider.
+- Keep provider integration configurable; Runway is the current test adapter, not a permanent architectural dependency.
+- Use Cloudflare bindings `VIDEO_API_KEY` (secret), `VIDEO_API_URL`, `VIDEO_PROVIDER`, and `VIDEO_MODEL`; do not put secret values in `wrangler.jsonc`.
 - Update this tracker as each phase is implemented and tested.
 
 ## Workflow
@@ -32,6 +33,13 @@ Concept → Storyboard → Assets → Generate → Assemble
 | V5 — Assembly and export | Timeline with scene clips, ordering, trims, transitions, voice/music/sound lanes, sync, preview and final export | Planned | User can assemble approved scene outputs into a coherent timeline and export a final video |
 | V6 — Persistence and project library | Save/load projects, scene metadata, prompts, asset references, generated outputs and project history; connect to appropriate library workflows | Planned | Refresh/navigation preserves saved work; project ownership and asset references remain consistent |
 | V7 — Quality and release audit | Responsive/UI audit, accessibility, error paths, API/security checks, credit-accounting audit, regression checks across existing workspaces | Planned | Acceptance checklist passes before calling Video production-ready |
+
+## Video provider configuration baseline (2026-10-15)
+
+- Standardised provider bindings to `VIDEO_API_KEY` (Cloudflare secret), `VIDEO_API_URL`, `VIDEO_PROVIDER`, and `VIDEO_MODEL`.
+- Wrangler defaults: `VIDEO_PROVIDER=runway`, `VIDEO_API_URL=https://api.dev.runwayml.com`, `VIDEO_MODEL=gen4_turbo`.
+- The temporary Runway adapter now reads the configured base URL, model and `VIDEO_API_KEY`; it rejects a provider mismatch rather than pretending another provider is supported.
+- API key must be created as a Cloudflare secret named `VIDEO_API_KEY`; it is intentionally not written into `wrangler.jsonc`.
 
 ## Panel 1 — Creative Discovery update (2026-10-15)
 
