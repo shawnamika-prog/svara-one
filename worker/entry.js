@@ -26,31 +26,34 @@ const VIDEO_DISCOVERY_SCHEMA = {
   additionalProperties: false,
   required: ["title","logline","recommendedFormat","durationSeconds","audience","objective","keyMessage","creativeDirection","visualStyle","tone","callToAction","sceneOutline","openQuestions","assumptions"],
   properties: {
-    title: { type: "string" },
-    logline: { type: "string" },
-    recommendedFormat: { type: "string" },
-    durationSeconds: { type: "integer" },
-    audience: { type: "string" },
-    objective: { type: "string" },
-    keyMessage: { type: "string" },
-    creativeDirection: { type: "string" },
-    visualStyle: { type: "string" },
-    tone: { type: "string" },
-    callToAction: { type: "string" },
+    title: { type: "string", description: "A short, memorable human-facing concept title, ideally 3–7 words." },
+    logline: { type: "string", description: "One vivid, natural sentence communicating the story and emotional hook. About 25 words maximum. Speak to a person, not another AI." },
+    recommendedFormat: { type: "string", description: "A concise format and aspect-ratio recommendation, maximum 12 words." },
+    durationSeconds: { type: "integer", description: "Recommended total runtime in seconds." },
+    audience: { type: "string", description: "The primary audience in plain language, maximum 18 words." },
+    objective: { type: "string", description: "The single most important outcome, maximum 18 words. Avoid marketing jargon." },
+    keyMessage: { type: "string", description: "The one thought the viewer should remember, maximum 20 words." },
+    creativeDirection: { type: "string", description: "A human-readable story idea in 1–2 sentences, maximum 45 words. Describe the experience and emotional arc, not instructions for an AI generator." },
+    visualStyle: { type: "string", description: "A short visual identity in plain language, maximum 12 words; no imperative prompt language." },
+    tone: { type: "string", description: "Two to four natural tone words, not a sentence." },
+    callToAction: { type: "string", description: "A concise closing invitation, maximum 12 words; do not invent unsupported product claims." },
     sceneOutline: {
       type: "array", minItems: 3, maxItems: 6,
       items: {
         type: "object", additionalProperties: false,
         required: ["title","purpose","visualDescription","cameraDirection","narration","durationSeconds"],
         properties: {
-          title: { type: "string" }, purpose: { type: "string" },
-          visualDescription: { type: "string" }, cameraDirection: { type: "string" },
-          narration: { type: "string" }, durationSeconds: { type: "integer" }
+          title: { type: "string", description: "An evocative scene heading, 2–6 words." },
+          purpose: { type: "string", description: "One short sentence explaining the story beat or feeling, maximum 16 words." },
+          visualDescription: { type: "string", description: "One concrete, filmable description of what the audience sees and what changes, maximum 28 words. No generic production advice." },
+          cameraDirection: { type: "string", description: "One concise shot, framing or movement choice that serves the story, maximum 14 words." },
+          narration: { type: "string", description: "Only actual proposed spoken words, natural and memorable, maximum 18 words. Empty string is valid if narration is not needed; never write narration instructions." },
+          durationSeconds: { type: "integer", description: "Approximate duration for this scene in seconds." }
         }
       }
     },
-    openQuestions: { type: "array", minItems: 1, maxItems: 5, items: { type: "string" } },
-    assumptions: { type: "array", minItems: 1, maxItems: 5, items: { type: "string" } }
+    openQuestions: { type: "array", minItems: 1, maxItems: 3, items: { type: "string", description: "A genuinely important decision for the user, phrased as a short human question." } },
+    assumptions: { type: "array", minItems: 1, maxItems: 3, items: { type: "string", description: "A short, transparent assumption only where information is missing." } }
   }
 };
 
@@ -71,15 +74,18 @@ async function createVideoDiscovery(body, env) {
   const timeout = setTimeout(() => controller.abort(), 45000);
   try {
     const instructions = [
-      "You are SvaraFlow™, the creative development director inside SvaraONE Video.",
-      "Turn a rough user idea or existing brief into a useful, approval-ready video concept.",
-      "The user may provide only one sentence. Make reasonable, clearly listed assumptions rather than blocking discovery.",
+      "You are SvaraFlow™, a thoughtful, experienced human-facing creative director helping a person discover what their video could become.",
+      "Your first job is creative thinking, not writing a production brief for another AI system. Sound perceptive, clear, imaginative and collaborative; never refer to prompts, generators, AI tools, production pipelines or instructions to another system.",
+      "Start from the user's intent. Find the human story, the audience's reason to care, a clear emotional progression and a specific, memorable creative idea. Do not default to generic marketing language or stock creator-tool imagery.",
+      "The user may provide only one sentence. Move the idea forward with reasonable assumptions; do not interrogate the user or make them complete a brief.",
+      "Write for a human: concise, natural language, concrete choices, no jargon, no repetition. Prefer one strong idea over lists of generic possibilities.",
+      "The concept summary must feel like a creative partner explaining the idea to the user. The scene outline must tell a coherent story from opening hook through development to resolution.",
+      "For every scene, provide one concrete filmable visual, one concise camera choice that supports the story, and actual proposed narration words only when narration belongs in that scene. Empty narration is valid. Never put instructions such as 'use...', 'prioritize...' or 'end with...' inside creative fields.",
+      "Keep all fields short according to their schema descriptions. Avoid repeating the same idea in creativeDirection, visualStyle, keyMessage and callToAction.",
+      "Respect the supplied audience and objective. Do not invent product features, results, claims or facts. If details are unknown, disclose only the most material assumptions.",
       "Do not claim to have visited or verified a supplied URL. Treat it only as a reference string; use only the user's supplied description.",
       "Do not claim that images, video, voice, music or other media have been generated.",
-      "Make a coherent short-form concept with 3 to 6 practical scenes. Scene durations must add up approximately to durationSeconds.",
-      "Be specific about visuals, action, camera direction and narration. Avoid generic filler. Preserve the user's intent.",
-      "Open questions should be the few important decisions the user may want to clarify. Assumptions should disclose reasonable gaps.",
-      "Return only data matching the required JSON schema."
+      "Make 3 to 6 scenes with durations adding up approximately to durationSeconds. Return only data matching the required JSON schema."
     ].join("\n");
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
