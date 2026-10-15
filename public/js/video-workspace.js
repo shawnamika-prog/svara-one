@@ -67,7 +67,7 @@
       .sv-setup-grid .sv-field>span,.sv-brand-grid .sv-field>span,.sv-setup-grid .sv-field>label,.sv-brand-grid .sv-field>label{font-size:9px;letter-spacing:.04em}
     }
 
-    .sv-discovery .sv-accordion-intro{margin:24px 0 26px;line-height:1.8}
+    .sv-discovery .sv-accordion-intro{margin:28px 0 30px;line-height:1.8}.sv-discovery .sv-accordion-intro sup{font-size:.65em;vertical-align:super;letter-spacing:0}
     .sv-discovery-mode small{font-weight:400;letter-spacing:normal}
     .sv-discovery-modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:8px 0 4px}
     .sv-discovery-mode{display:grid;grid-template-columns:32px minmax(0,1fr);column-gap:10px;align-items:start;text-align:left;padding:15px;border:1px solid #ffffff16;border-radius:12px;background:#0a1220;color:#e5edf8;cursor:pointer}
@@ -75,9 +75,9 @@
     .sv-discovery-mode-icon{grid-row:1/3;display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:#242454;color:#C7D2FE;font-size:17px}
     .sv-discovery-mode strong{font-size:12px;line-height:1.5}.sv-discovery-mode small{font-size:10px;color:#8294aa;line-height:1.6;margin-top:4px}
     .sv-discovery-fields{margin-top:10px}
-    .sv-discovery-upload{grid-column:2;display:grid;gap:7px;border:1px dashed #6366F188;border-radius:9px;padding:13px;background:#0a1220;color:#A5B4FC;cursor:pointer;font-size:11px;line-height:1.5}
+    .sv-discovery-upload{grid-column:1/-1;display:grid;min-width:0;width:100%;box-sizing:border-box;gap:7px;border:1px dashed #6366F188;border-radius:9px;padding:13px;background:#0a1220;color:#A5B4FC;cursor:pointer;font-size:11px;font-weight:400;letter-spacing:normal;line-height:1.5}.sv-discovery-upload span{font-weight:400;letter-spacing:normal;overflow-wrap:anywhere}.sv-discovery-upload input{min-width:0;max-width:100%;box-sizing:border-box}.sv-discovery-fields .sv-field-wide{min-width:0}
     .sv-discovery-upload input{width:100%;font-size:10px;color:#91a4b8}
-    .sv-discovery-upload small{color:#8294aa;overflow-wrap:anywhere}
+    .sv-discovery-upload small{color:#8294aa;overflow-wrap:anywhere;font-weight:400;letter-spacing:normal}
     .sv-discovery-help{margin-top:12px;padding:11px 13px;border-radius:9px;background:#0a1220;border:1px solid #ffffff0c;color:#91a4b8;font-size:10px;line-height:1.6}
     .sv-discovery-result{margin-top:16px;padding:16px;border:1px solid #6366F155;border-radius:12px;background:linear-gradient(145deg,#14152c,#080e18);color:#dbe7f6;font-size:12px;line-height:1.7}
     .sv-discovery-result h3{font-size:15px;margin:0 0 8px;color:#eef2ff}.sv-discovery-result p{margin:7px 0;color:#a9b8cc}.sv-discovery-result ul{margin:8px 0;padding-left:19px;color:#a9b8cc}.sv-discovery-result li{margin:4px 0}
@@ -167,7 +167,7 @@
         <section class="sv-card sv-accordion sv-discovery" data-accordion="story">
           <button class="sv-accordion-head" type="button" data-accordion-toggle="story" aria-expanded="false"><span class="sv-accordion-number">01</span><span class="sv-accordion-title"><strong>Creative Discovery</strong><small>Start with an idea. SvaraFlow helps shape the video.</small></span><span class="sv-accordion-state" data-accordion-state="story">Ready to explore</span><span class="sv-accordion-chevron">⌄</span></button>
           <div class="sv-accordion-body" data-accordion-body="story" hidden>
-            <p class="sv-accordion-intro">You don't need a finished script or a detailed brief. Tell us what you're trying to achieve, and we'll help you discover the story, format and visual direction.</p>
+            <p class="sv-accordion-intro">You don't need a finished script or a detailed brief. Tell SvaraFlow <sup>TM</sup> what you're trying to achieve, and we'll help you discover the story, format and visual direction.</p>
             <div class="sv-discovery-modes" role="group" aria-label="Choose how to start">
               <button type="button" class="sv-discovery-mode active" data-discovery-mode="discover" aria-pressed="true"><span class="sv-discovery-mode-icon">✧</span><strong>Help me develop my idea</strong><small>Start with a goal, even if the details aren't clear yet.</small></button>
               <button type="button" class="sv-discovery-mode" data-discovery-mode="brief" aria-pressed="false"><span class="sv-discovery-mode-icon">▤</span><strong>I already have a brief</strong><small>Bring your script, requirements or existing creative notes.</small></button>
@@ -177,10 +177,10 @@
               <label class="sv-field sv-field-wide"><span>Website or product link <small>(optional)</small></span><input type="url" data-discovery-field="url" placeholder="https://your-platform.com"></label>
               <label class="sv-field"><span>Who is it for? <small>(optional)</small></span><select data-discovery-field="audience"><option value="">Help me decide</option><option>Potential customers</option><option>Existing customers</option><option>Investors or business partners</option><option>Employees or internal teams</option><option>General audience</option></select></label>
               <label class="sv-field"><span>What should it do? <small>(optional)</small></span><select data-discovery-field="goal"><option value="">Recommend a goal</option><option>Explain how something works</option><option>Introduce or launch a product</option><option>Encourage sign-ups or sales</option><option>Tell a story or build awareness</option><option>Train or educate</option></select></label>
-              <div class="sv-field sv-field-wide"><span>Reference files <small>(optional)</small></span><label class="sv-discovery-upload"><input type="file" data-discovery-files multiple accept=".pdf,.doc,.docx,.txt,.md,.ppt,.pptx,.png,.jpg,.jpeg,.webp"><span>＋ Add a script, brief, presentation or reference images</span><small data-discovery-file-names>No files selected</small></label><small class="sv-setup-note">Available for either starting path.</small></div>
+              <div class="sv-field sv-field-wide"><span>Reference files <small>(optional)</small></span><label class="sv-discovery-upload"><input type="file" data-discovery-files multiple accept=".pdf,.doc,.docx,.txt,.md,.ppt,.pptx,.png,.jpg,.jpeg,.webp"><span>＋ Add a script, brief, presentation or reference images</span><small data-discovery-file-names>No files selected</small></label></div>
             </div>
-            <div class="sv-discovery-help"><span>Not sure about the audience or goal? Leave them blank. Discovery should help you decide.</span></div>
-            <div class="sv-accordion-foot"><span class="sv-setup-note">You stay in control. Nothing is final until you approve the concept.</span><button class="sv-btn primary" type="button" data-discovery-submit>Shape my idea <span aria-hidden="true">→</span></button></div>
+            <div class="sv-discovery-help"><span>Not sure about the audience or goal? Leave them blank. Discovery will help you decide. You stay in control. Nothing is final until you approve the concept.</span></div>
+            <div class="sv-accordion-foot"><span class="sv-setup-note"></span><button class="sv-btn primary" type="button" data-discovery-submit>Shape my idea <span aria-hidden="true">→</span></button></div>
             <div class="sv-discovery-result" data-discovery-result hidden aria-live="polite"></div>
             <div class="sv-accordion-foot sv-discovery-result-actions" data-discovery-actions hidden><span class="sv-setup-note">Draft only · SvaraFlow/OpenAI connection is a separate implementation step.</span><button class="sv-btn" type="button" data-discovery-edit>Edit my answers</button></div>
           </div>
