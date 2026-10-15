@@ -51,6 +51,17 @@ Concept → Storyboard → Assets → Generate → Assemble
 - Verification performed: JavaScript syntax parse passed after the change. Browser/device visual verification remains outstanding.
 - Next: connect the discovery submit flow to a real backend orchestration endpoint, define a validated structured concept response, then generate provisional static scene images and assemble a playable concept reel.
 
+## Panel 1 — Creative Discovery functionality (2026-10-15)
+
+- Added authenticated `POST /api/video/discovery` in the Cloudflare Worker entrypoint. It uses the existing `OPENAI_API_KEY` secret and the configured `SVARAFLOW_VIDEO_MODEL` / `SVARAFLOW_MODEL` fallback (default `gpt-5-mini`).
+- The endpoint validates the submitted idea, URL format, audience and objective; requests a strict structured concept from OpenAI; validates the scene outline; and returns a concept plus provider/model metadata.
+- The concept includes a title, logline, format, estimated duration, audience, objective, key message, creative direction, visual style, tone, CTA, 3–6 scene outlines, open questions and assumptions.
+- Panel 1 now calls the backend instead of fabricating a local preview. It shows loading and error states, renders the returned concept, and waits for explicit user approval.
+- **Approve concept & create storyboard** creates editable scene cards from the approved outline. It does not claim that images or video have been generated.
+- Current limitations are explicit: uploaded reference files are not yet uploaded or analysed; the supplied URL is not fetched; no static scene images or concept reel are generated yet. File-only submissions prompt for a short written description.
+- Verification: frontend JavaScript syntax parse passed; Worker entrypoint syntax parse passed after removing ES-module import/export declarations for the check. No live OpenAI/API/browser test has been run in this environment, so runtime credentials, deployed routing and visual behaviour still require testing.
+- Commits: backend `abd0108c053c35a8b14f70ff49ece3fbfc66fff9`; frontend `254239b0e53dda0183c42e86341c2b686958084b` and async-handler fix `663efb1731688c867932e63c2ec1394f13c4c647`; cache bust `b6963ce66bb979e3a54808f768cb7a011e8d5ed8`.
+
 ## Current foundation notes
 
 - Video workspace entry point: `public/js/video-workspace.js`.
