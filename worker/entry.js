@@ -21,6 +21,105 @@ const PORTRAIT_NAMES = {
 
 const SESSION_COOKIE = "svara_session";
 const MAX_GENERATION_CHARS = 10000;
+const VIDEO_DISCOVERY_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["title","logline","recommendedFormat","durationSeconds","audience","objective","keyMessage","creativeDirection","visualStyle","tone","callToAction","sceneOutline","openQuestions","assumptions"],
+  properties: {
+    title: { type: "string" },
+    logline: { type: "string" },
+    recommendedFormat: { type: "string" },
+    durationSeconds: { type: "integer" },
+    audience: { type: "string" },
+    objective: { type: "string" },
+    keyMessage: { type: "string" },
+    creativeDirection: { type: "string" },
+    visualStyle: { type: "string" },
+    tone: { type: "string" },
+    callToAction: { type: "string" },
+    sceneOutline: {
+      type: "array", minItems: 3, maxItems: 6,
+      items: {
+        type: "object", additionalProperties: false,
+        required: ["title","purpose","visualDescription","cameraDirection","narration","durationSeconds"],
+        properties: {
+          title: { type: "string" }, purpose: { type: "string" },
+          visualDescription: { type: "string" }, cameraDirection: { type: "string" },
+          narration: { type: "string" }, durationSeconds: { type: "integer" }
+        }
+      }
+    },
+    openQuestions: { type: "array", minItems: 1, maxItems: 5, items: { type: "string" } },
+    assumptions: { type: "array", minItems: 1, maxItems: 5, items: { type: "string" } }
+  }
+};
+
+async function createVideoDiscovery(body, env) {
+  const idea = String(body?.idea || "").trim();
+  const productUrl = String(body?.url || "").trim();
+  const audience = String(body?.audience || "").trim();
+  const goal = String(body?.goal || "").trim();
+  const mode = body?.mode === "brief" ? "brief" : "discover";
+  if (!idea && !productUrl) throw Object.assign(new Error("Add an idea or a website/product link to begin discovery."), { status: 400 });
+  if (idea.length > 6000) throw Object.assign(new Error("Keep the idea or brief to 6,000 characters or fewer."), { status: 400 });
+  if (productUrl && (productUrl.length > 500 || !/^https?:\/\//i.test(productUrl))) throw Object.assign(new Error("Enter a valid website URL beginning with http:// or https://."), { status: 400 });
+  if (audience.length > 300 || goal.length > 300) throw Object.assign(new Error("Audience and objective must each be 300 characters or fewer."), { status: 400 });
+  const apiKey = String(env.OPENAI_API_KEY || "").trim();
+  if (!apiKey) throw Object.assign(new Error("Creative Discovery is not configured yet. The OpenAI API key is missing from Cloudflare."), { status: 503 });
+  const model = String(env.SVARAFLOW_VIDEO_MODEL || env.SVARAFLOW_MODEL || "gpt-5-mini").trim();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 45000);
+  try {
+    const instructions = [
+      "You are SvaraFlow™, the creative development director inside SvaraONE Video.",
+      "Turn a rough user idea or existing brief into a useful, approval-ready video concept.",
+      "The user may provide only one sentence. Make reasonable, clearly listed assumptions rather than blocking discovery.",
+      "Do not claim to have visited or verified a supplied URL. Treat it only as a reference string; use only the user's supplied description.",
+      "Do not claim that images, video, voice, music or other media have been generated.",
+      "Make a coherent short-form concept with 3 to 6 practical scenes. Scene durations must add up approximately to durationSeconds.",
+      "Be specific about visuals, action, camera direction and narration. Avoid generic filler. Preserve the user's intent.",
+      "Open questions should be the few important decisions the user may want to clarify. Assumptions should disclose reasonable gaps.",
+      "Return only data matching the required JSON schema."
+    ].join("\n");
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model, instructions,
+        input: JSON.stringify({ entryPath: mode, idea, productUrl, intendedAudience: audience || null, objective: goal || null }),
+        text: { format: { type: "json_schema", name: "svaraone_video_concept", strict: true, schema: VIDEO_DISCOVERY_SCHEMA } },
+        max_output_tokens: 5000
+      })
+    });
+    if (!response.ok) {
+      const detail = await response.text().catch(() => "");
+      console.error("video_discovery_openai_error", { status: response.status, detail: detail.slice(0, 500) });
+      throw Object.assign(new Error(response.status === 401 ? "The OpenAI API key was rejected. Check the OPENAI_API_KEY secret in Cloudflare." : "SvaraFlow could not develop the concept right now. Please try again."), { status: 502 });
+    }
+    const payload = await response.json();
+    const outputText = typeof payload.output_text === "string" ? payload.output_text : (Array.isArray(payload.output) ? payload.output : []).flatMap(item => Array.isArray(item.content) ? item.content : []).map(item => typeof item.text === "string" ? item.text : "").join("");
+    let concept;
+    try { concept = JSON.parse(outputText); } catch { throw Object.assign(new Error("SvaraFlow returned an unreadable concept. Please try again."), { status: 502 }); }
+    if (!concept || !Array.isArray(concept.sceneOutline) || concept.sceneOutline.length < 3 || concept.sceneOutline.length > 6) {
+      throw Object.assign(new Error("SvaraFlow returned an incomplete storyboard outline. Please try again."), { status: 502 });
+    }
+    const allowedDuration = Number(concept.durationSeconds);
+    concept.durationSeconds = Number.isInteger(allowedDuration) ? Math.min(180, Math.max(15, allowedDuration)) : 30;
+    concept.sceneOutline = concept.sceneOutline.map((scene, index) => ({
+      ...scene,
+      title: String(scene.title || `Scene ${index + 1}`).slice(0, 120),
+      durationSeconds: Math.min(30, Math.max(2, Number.isInteger(scene.durationSeconds) ? scene.durationSeconds : 5))
+    }));
+    return { ok: true, concept, meta: { provider: "openai", model, referenceFilesAnalysed: false, urlFetched: false } };
+  } catch (error) {
+    if (error?.name === "AbortError") throw Object.assign(new Error("Creative Discovery timed out. Please try again."), { status: 504 });
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 const LEGACY_PROVIDER_VOICE_IDS = {
   "svara-amara-01": "aura-2-thalia-en",
   "svara-james-01": "aura-2-orion-en",
@@ -478,6 +577,21 @@ export default {
     if (payfastResponse) return payfastResponse;
 
     const url = new URL(request.url);
+
+    if (request.method === "POST" && url.pathname === "/api/video/discovery") {
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return json({ error: "Authentication required." }, 401);
+      let body = {};
+      try { body = await request.json(); } catch { return json({ error: "Send discovery details as JSON." }, 400); }
+      try {
+        const result = await createVideoDiscovery(body, env);
+        return json(result);
+      } catch (error) {
+        const status = Number.isInteger(error?.status) ? error.status : 502;
+        console.error("video_discovery_error", { status, message: String(error?.message || "Discovery failed").slice(0, 300) });
+        return json({ error: String(error?.message || "Creative Discovery failed. Please try again.").slice(0, 300) }, status);
+      }
+    }
 
     if (request.method === "POST" && url.pathname === "/api/compositions/export") {
       const userId = await authenticatedUserId(request, env);
