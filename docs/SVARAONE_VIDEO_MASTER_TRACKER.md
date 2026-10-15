@@ -53,14 +53,14 @@ Concept → Storyboard → Assets → Generate → Assemble
 
 ## Panel 1 — Creative Discovery functionality (2026-10-15)
 
-- Added authenticated `POST /api/video/discovery` in the Cloudflare Worker entrypoint. It uses the existing `OPENAI_API_KEY` secret and the configured `SVARAFLOW_VIDEO_MODEL` / `SVARAFLOW_MODEL` fallback (default `gpt-5-mini`).
-- The endpoint validates the submitted idea, URL format, audience and objective; requests a strict structured concept from OpenAI; validates the scene outline; and returns a concept plus provider/model metadata.
-- The concept includes a title, logline, format, estimated duration, audience, objective, key message, creative direction, visual style, tone, CTA, 3–6 scene outlines, open questions and assumptions.
-- Panel 1 now calls the backend instead of fabricating a local preview. It shows loading and error states, renders the returned concept, and waits for explicit user approval.
-- **Approve concept & create storyboard** creates editable scene cards from the approved outline. It does not claim that images or video have been generated.
-- Current limitations are explicit: uploaded reference files are not yet uploaded or analysed; the supplied URL is not fetched; no static scene images or concept reel are generated yet. File-only submissions prompt for a short written description.
-- Verification: frontend JavaScript syntax parse passed; Worker entrypoint syntax parse passed after removing ES-module import/export declarations for the check. No live OpenAI/API/browser test has been run in this environment, so runtime credentials, deployed routing and visual behaviour still require testing.
-- Commits: backend `abd0108c053c35a8b14f70ff49ece3fbfc66fff9`; frontend `254239b0e53dda0183c42e86341c2b686958084b` and async-handler fix `663efb1731688c867932e63c2ec1394f13c4c647`; cache bust `b6963ce66bb979e3a54808f768cb7a011e8d5ed8`.
+- Added authenticated `POST /api/video/discovery` using the existing `OPENAI_API_KEY` Cloudflare secret and the configured SvaraFlow model fallback.
+- Reworked SvaraFlow instructions to act as a human-facing creative director, prioritise a specific story and emotional arc, avoid AI-to-AI prompt language and generic marketing filler, and keep the concept and scene fields concise.
+- Expanded schema field descriptions with concise guidance for the logline, creative direction, visual direction, camera direction and actual spoken narration. Every scene still returns consistent visual, camera and narration fields; narration may be empty when it is not needed.
+- Redesigned the concept response to be left-aligned, more compact, and easier to scan. Uses icons rather than repeated field labels for format, duration, audience, objective, visual, camera and narration. Questions and assumptions are tucked into a collapsed disclosure.
+- Approval remains explicit: approving creates editable storyboard scene cards; it does not generate images or video.
+- Limitations remain: reference files are not uploaded/analysed, URLs are not fetched, and no still images or concept reel are generated yet.
+- Verification: frontend JavaScript syntax passed; Worker entrypoint syntax passed after removing ES-module import/export declarations for the check. No live OpenAI request or deployed browser test has been run.
+- Commits: backend prompt/schema `f0eee99f1781e76af8dc53bd05398aba5fb7e7f2`; concept UI `525b380dca431be8c5b456672677b04f623c70f2`; typography `8ebe6ce092520081cd8f63e7c3ab8459be9d2499`; cache bust `05d3757b14c7273af26eeb252f0fbfaec95c227f`.
 
 ## Current foundation notes
 
