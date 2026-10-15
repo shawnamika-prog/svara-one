@@ -165,12 +165,12 @@
           </div>
         </section>
         <section class="sv-card sv-accordion sv-discovery" data-accordion="story">
-          <button class="sv-accordion-head" type="button" data-accordion-toggle="story" aria-expanded="false"><span class="sv-accordion-number">01</span><span class="sv-accordion-title"><strong>Creative Discovery</strong><small>Start with an idea. SvaraFlow helps shape the video.</small></span><span class="sv-accordion-state" data-accordion-state="story">Ready to explore</span><span class="sv-accordion-chevron">⌄</span></button>
+          <button class="sv-accordion-head" type="button" data-accordion-toggle="story" aria-expanded="false"><span class="sv-accordion-number">01</span><span class="sv-accordion-title"><strong>Creative Discovery</strong><small>Start with an idea. SvaraFlow<sup>™</sup> helps shape the video.</small></span><span class="sv-accordion-state" data-accordion-state="story">Ready to explore</span><span class="sv-accordion-chevron">⌄</span></button>
           <div class="sv-accordion-body" data-accordion-body="story" hidden>
-            <p class="sv-accordion-intro">You don't need a finished script or a detailed brief. Tell SvaraFlow <sup>TM</sup> what you're trying to achieve, and we'll help you discover the story, format and visual direction.</p>
+            <p class="sv-accordion-intro">You don't need a finished script or a detailed brief. Tell SvaraFlow<sup>™</sup> what you're trying to achieve, and we'll help you discover the story, format and visual direction.</p>
             <div class="sv-discovery-modes" role="group" aria-label="Choose how to start">
               <button type="button" class="sv-discovery-mode active" data-discovery-mode="discover" aria-pressed="true"><span class="sv-discovery-mode-icon">✧</span><strong>Help me develop my idea</strong><small>Start with a goal, even if the details aren't clear yet.</small></button>
-              <button type="button" class="sv-discovery-mode" data-discovery-mode="brief" aria-pressed="false"><span class="sv-discovery-mode-icon">▤</span><strong>I already have a brief</strong><small>Bring your script, requirements or existing creative notes. SvaraFlow<sup>™</sup> can organise your brief, identify gaps and help turn it into a clear creative direction.</small></button>
+              <button type="button" class="sv-discovery-mode" data-discovery-mode="brief" aria-pressed="false"><span class="sv-discovery-mode-icon">▤</span><strong>I already have a brief</strong><small>Add the material you already have. SvaraFlow<sup>™</sup> can organise your brief, identify gaps and help turn it into a clear creative direction.</small></button>
             </div>
             <div class="sv-setup-grid sv-discovery-fields">
               <label class="sv-field sv-field-wide"><span>What are you trying to achieve?</span><textarea data-discovery-field="idea" rows="4" placeholder="e.g. I need a video to explain what my platform does."></textarea></label>
