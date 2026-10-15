@@ -67,6 +67,21 @@
       .sv-setup-grid .sv-field>span,.sv-brand-grid .sv-field>span,.sv-setup-grid .sv-field>label,.sv-brand-grid .sv-field>label{font-size:9px;letter-spacing:.04em}
     }
 
+    .sv-discovery-modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:8px 0 4px}
+    .sv-discovery-mode{display:grid;grid-template-columns:32px minmax(0,1fr);column-gap:10px;align-items:start;text-align:left;padding:15px;border:1px solid #ffffff16;border-radius:12px;background:#0a1220;color:#e5edf8;cursor:pointer}
+    .sv-discovery-mode.active{border-color:#818CF8;background:linear-gradient(135deg,#171936,#0b1220);box-shadow:inset 0 0 0 1px #6366F122}
+    .sv-discovery-mode-icon{grid-row:1/3;display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:#242454;color:#C7D2FE;font-size:17px}
+    .sv-discovery-mode strong{font-size:12px;line-height:1.5}.sv-discovery-mode small{font-size:10px;color:#8294aa;line-height:1.6;margin-top:4px}
+    .sv-discovery-fields{margin-top:10px}
+    .sv-discovery-upload{grid-column:2;display:grid;gap:7px;border:1px dashed #6366F188;border-radius:9px;padding:13px;background:#0a1220;color:#A5B4FC;cursor:pointer;font-size:11px;line-height:1.5}
+    .sv-discovery-upload input{width:100%;font-size:10px;color:#91a4b8}
+    .sv-discovery-upload small{color:#8294aa;overflow-wrap:anywhere}
+    .sv-discovery-help{margin-top:12px;padding:11px 13px;border-radius:9px;background:#0a1220;border:1px solid #ffffff0c;color:#91a4b8;font-size:10px;line-height:1.6}
+    .sv-discovery-result{margin-top:16px;padding:16px;border:1px solid #6366F155;border-radius:12px;background:linear-gradient(145deg,#14152c,#080e18);color:#dbe7f6;font-size:12px;line-height:1.7}
+    .sv-discovery-result h3{font-size:15px;margin:0 0 8px;color:#eef2ff}.sv-discovery-result p{margin:7px 0;color:#a9b8cc}.sv-discovery-result ul{margin:8px 0;padding-left:19px;color:#a9b8cc}.sv-discovery-result li{margin:4px 0}
+    .sv-discovery-result .sv-draft-note{padding:9px 11px;border-radius:8px;background:#241f12;border:1px solid #8a6d2d55;color:#e9d5a2;font-size:10px;margin-top:12px}
+    .sv-discovery-result-actions{justify-content:space-between}
+    @media(max-width:700px){.sv-discovery-modes{grid-template-columns:1fr}.sv-discovery-upload{grid-column:1}.sv-discovery-result{padding:13px}}
     .sv-accordion-body[hidden]{display:none!important}
     .sv-setup-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding-top:18px}
     .sv-field-wide{grid-column:1/-1}
@@ -147,17 +162,25 @@
             
           </div>
         </section>
-        <section class="sv-card sv-accordion" data-accordion="story">
-          <button class="sv-accordion-head" type="button" data-accordion-toggle="story" aria-expanded="false"><span class="sv-accordion-number">01</span><span class="sv-accordion-title"><strong>Story &amp; Concept</strong><small>Purpose, narrative, audience and tone</small></span><span class="sv-accordion-state" data-accordion-state="story">In progress</span><span class="sv-accordion-chevron">⌄</span></button>
+        <section class="sv-card sv-accordion sv-discovery" data-accordion="story">
+          <button class="sv-accordion-head" type="button" data-accordion-toggle="story" aria-expanded="false"><span class="sv-accordion-number">01</span><span class="sv-accordion-title"><strong>Creative Discovery</strong><small>Start with an idea. SvaraFlow helps shape the video.</small></span><span class="sv-accordion-state" data-accordion-state="story">Ready to explore</span><span class="sv-accordion-chevron">⌄</span></button>
           <div class="sv-accordion-body" data-accordion-body="story" hidden>
-            <div class="sv-setup-grid">
-              <label class="sv-field"><span>Project title</span><input data-project-field="title" placeholder="e.g. SvaraONE Brand Film"></label>
-              <label class="sv-field"><span>Production type</span><select data-project-field="type"><option value="">Choose a production type</option><option>Brand film / advertisement</option><option>Narrative / short film</option><option>Music video</option><option>Social media video</option><option>Explainer / product video</option><option>Other</option></select></label>
-              <label class="sv-field sv-field-wide"><span>Story or initial idea</span><textarea data-project-field="story" placeholder="What is the story, message or experience you want to create?" rows="3"></textarea></label>
-              <label class="sv-field"><span>Audience</span><input data-project-field="audience" placeholder="Who is this video for?"></label>
-              <label class="sv-field"><span>Tone / emotion</span><input data-project-field="tone" placeholder="e.g. bold, uplifting, suspenseful"></label>
+            <p class="sv-accordion-intro">You don't need a finished script or a detailed brief. Tell us what you're trying to achieve, and we'll help you discover the story, format and visual direction.</p>
+            <div class="sv-discovery-modes" role="group" aria-label="Choose how to start">
+              <button type="button" class="sv-discovery-mode active" data-discovery-mode="discover" aria-pressed="true"><span class="sv-discovery-mode-icon">✧</span><strong>Help me develop my idea</strong><small>Start with a goal, even if the details aren't clear yet.</small></button>
+              <button type="button" class="sv-discovery-mode" data-discovery-mode="brief" aria-pressed="false"><span class="sv-discovery-mode-icon">▤</span><strong>I already have a brief</strong><small>Bring your script, requirements or existing creative notes.</small></button>
             </div>
-            <div class="sv-accordion-foot"><span class="sv-setup-note">You can refine this brief at any time.</span><button class="sv-btn" type="button" data-section-review="story">Mark reviewed</button></div>
+            <div class="sv-setup-grid sv-discovery-fields">
+              <label class="sv-field sv-field-wide"><span>What are you trying to achieve?</span><textarea data-discovery-field="idea" rows="4" placeholder="e.g. I need a video to explain what my platform does."></textarea></label>
+              <label class="sv-field sv-field-wide"><span>Website or product link <small>(optional)</small></span><input type="url" data-discovery-field="url" placeholder="https://your-platform.com"></label>
+              <label class="sv-field"><span>Who is it for? <small>(optional)</small></span><select data-discovery-field="audience"><option value="">Help me decide</option><option>Potential customers</option><option>Existing customers</option><option>Investors or business partners</option><option>Employees or internal teams</option><option>General audience</option></select></label>
+              <label class="sv-field"><span>What should it do? <small>(optional)</small></span><select data-discovery-field="goal"><option value="">Recommend a goal</option><option>Explain how something works</option><option>Introduce or launch a product</option><option>Encourage sign-ups or sales</option><option>Tell a story or build awareness</option><option>Train or educate</option></select></label>
+              <label class="sv-field sv-field-wide"><span>Reference files <small>(optional)</small></span><label class="sv-discovery-upload"><input type="file" data-discovery-files multiple accept=".pdf,.doc,.docx,.txt,.md,.ppt,.pptx,.png,.jpg,.jpeg,.webp"><span>＋ Add a script, brief, presentation or reference images</span><small data-discovery-file-names>No files selected</small></label></label>
+            </div>
+            <div class="sv-discovery-help"><span>Not sure about the audience or goal? Leave them blank. Discovery should help you decide.</span></div>
+            <div class="sv-accordion-foot"><span class="sv-setup-note">You stay in control. Nothing is final until you approve the concept.</span><button class="sv-btn primary" type="button" data-discovery-submit>Shape my idea <span aria-hidden="true">→</span></button></div>
+            <div class="sv-discovery-result" data-discovery-result hidden aria-live="polite"></div>
+            <div class="sv-accordion-foot sv-discovery-result-actions" data-discovery-actions hidden><span class="sv-setup-note">Draft only · SvaraFlow/OpenAI connection is a separate implementation step.</span><button class="sv-btn" type="button" data-discovery-edit>Edit my answers</button></div>
           </div>
         </section>
         <section class="sv-card sv-accordion" data-accordion="branding">
@@ -288,6 +311,29 @@
       if(accordionToggle){const id=accordionToggle.dataset.accordionToggle;const body=root.querySelector('[data-accordion-body="'+id+'"]');if(body){const open=body.hidden;body.hidden=!open;accordionToggle.setAttribute('aria-expanded',String(open));const chevron=accordionToggle.querySelector('.sv-accordion-chevron');if(chevron)chevron.textContent=open?'⌃':'⌄';}return;}
       const brandInput=event.target.closest('[data-brand-upload]');
       if(brandInput){const kind=brandInput.dataset.brandUpload;const file=brandInput.files&&brandInput.files[0];if(file){brandFiles[kind]=file;const label=root.querySelector('[data-brand-file="'+kind+'"]');if(label)label.textContent=file.name;const state=root.querySelector('[data-accordion-state="branding"]');if(state){state.textContent='Assets added';state.classList.add('complete');}if(kind==='logo'&&file.type.startsWith('image/')){const preview=root.querySelector('[data-brand-preview]');const img=root.querySelector('[data-brand-logo-preview]');if(img){if(img.dataset.objectUrl)URL.revokeObjectURL(img.dataset.objectUrl);img.dataset.objectUrl=URL.createObjectURL(file);img.src=img.dataset.objectUrl;}if(preview)preview.hidden=false;}}return;}
+      const discoveryMode=event.target.closest('[data-discovery-mode]');
+      if(discoveryMode){root.querySelectorAll('[data-discovery-mode]').forEach(button=>{const active=button===discoveryMode;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});const submit=root.querySelector('[data-discovery-submit]');if(submit)submit.textContent=discoveryMode.dataset.discoveryMode==='brief'?'Review my brief →':'Shape my idea →';const intro=root.querySelector('.sv-discovery .sv-accordion-intro');if(intro)intro.textContent=discoveryMode.dataset.discoveryMode==='brief'?'Add the material you already have. SvaraFlow can organise your brief, identify gaps and help turn it into a clear creative direction.':'You don\'t need a finished script or a detailed brief. Tell us what you\'re trying to achieve, and we\'ll help you discover the story, format and visual direction.';return;}
+      if(event.target.closest('[data-discovery-edit]')){const result=root.querySelector('[data-discovery-result]');const actions=root.querySelector('[data-discovery-actions]');if(result)result.hidden=true;if(actions)actions.hidden=true;root.querySelector('[data-discovery-submit]')?.scrollIntoView({block:'nearest',behavior:'smooth'});return;}
+      if(event.target.closest('[data-discovery-submit]')){
+        const idea=(root.querySelector('[data-discovery-field="idea"]')?.value||'').trim();
+        const url=(root.querySelector('[data-discovery-field="url"]')?.value||'').trim();
+        const audience=root.querySelector('[data-discovery-field="audience"]')?.value||'';
+        const goal=root.querySelector('[data-discovery-field="goal"]')?.value||'';
+        const files=root.querySelector('[data-discovery-files]')?.files||[];
+        const mode=root.querySelector('[data-discovery-mode].active')?.dataset.discoveryMode||'discover';
+        if(!idea&&!url&&!files.length){const field=root.querySelector('[data-discovery-field="idea"]');if(field){field.focus();field.setCustomValidity('Tell us a little about the video you want to make, or add a link or reference file.');field.reportValidity();field.addEventListener('input',()=>field.setCustomValidity(''),{once:true});}return;}
+        const result=root.querySelector('[data-discovery-result]');const actions=root.querySelector('[data-discovery-actions]');
+        const fileNames=Array.from(files).map(file=>file.name);
+        const suggestedGoal=goal||'Clarify the main message and the action viewers should take';
+        const suggestedAudience=audience||'Identify the audience during discovery';
+        const safeList=items=>items.map(item=>'<li>'+esc(item)+'</li>').join('');
+        result.innerHTML='<h3>'+(mode==='brief'?'Your brief at a glance':'Let\'s shape this idea')+'</h3><p><strong>Starting point:</strong> '+esc(idea||'Review the supplied reference material')+'</p>'+(url?'<p><strong>Product or website:</strong> '+esc(url)+'</p>':'')+'<p><strong>Audience:</strong> '+esc(suggestedAudience)+'</p><p><strong>Objective:</strong> '+esc(suggestedGoal)+'</p>'+(fileNames.length?'<p><strong>Reference files selected:</strong> '+esc(fileNames.join(', '))+'</p>':'')+'<p><strong>Recommended next discovery questions</strong></p><ul>'+safeList([audience?'Confirm what this audience needs to understand':'Who most needs to understand or act on this video?',goal?'Clarify the single most important takeaway':'What should viewers understand, feel or do after watching?',url?'Confirm the key features and claims from the supplied product information':'What makes the product, platform or idea useful or different?'])+'</ul><div class="sv-draft-note">This is a local draft preview only. Files and links have not been uploaded or analysed, and SvaraFlow/OpenAI has not been called yet.</div>';
+        result.hidden=false;actions.hidden=false;result.scrollIntoView({block:'nearest',behavior:'smooth'});
+        const state=root.querySelector('[data-accordion-state="story"]');if(state){state.textContent='Discovery draft';state.classList.remove('complete');}
+        return;
+      }
+      const fileInput=event.target.closest('[data-discovery-files]');
+      if(fileInput){const label=root.querySelector('[data-discovery-file-names]');if(label)label.textContent=fileInput.files.length?Array.from(fileInput.files).map(file=>file.name).join(', '):'No files selected';return;}
       const reviewButton=event.target.closest('[data-section-review]');
       if(reviewButton){const id=reviewButton.dataset.sectionReview;projectReviewed[id]=!projectReviewed[id];const state=root.querySelector('[data-accordion-state="'+id+'"]');if(state){state.textContent=projectReviewed[id]?'Reviewed':'In progress';state.classList.toggle('complete',projectReviewed[id]);}reviewButton.textContent=projectReviewed[id]?'Mark incomplete':'Mark reviewed';return;}
       const modeButton=event.target.closest('[data-mode]');if(modeButton){mode=modeButton.dataset.mode;root.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',b===modeButton));setStatus(mode==='director'?'Director mode: approve each scene before generation.':mode==='hybrid'?'Hybrid mode: review key decisions and let SvaraFlow assist.':'Automatic mode selected. Automated orchestration is a planned feature.');return;}
@@ -298,6 +344,7 @@
       const card=event.target.closest('[data-scene]');if(card)selectScene(card.dataset.scene);
     });
     root.addEventListener('change',event=>{
+      if(event.target.matches('[data-discovery-files]')){const label=root.querySelector('[data-discovery-file-names]');if(label)label.textContent=event.target.files.length?Array.from(event.target.files).map(file=>file.name).join(', '):'No files selected';return;}
       const bind=event.target.dataset.bind;if(bind){const s=selected();s[bind]=bind==='duration'?Number(event.target.value):event.target.value;if(bind==='status')renderScenes();if(bind==='title'||bind==='description'||bind==='duration'||bind==='ratio')renderScenes();renderPreview();return;}
       if(event.target.matches('[data-image-input]')){const file=event.target.files&&event.target.files[0];if(file){const s=selected();s.imageFile=file;s.image=URL.createObjectURL(file);s.status='Ready to generate';renderScenes();renderSettings();renderPreview();}}
     });
