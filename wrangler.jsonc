@@ -28,7 +28,10 @@
     "SVARAONE_PRO_VOICES": "90",
     "SVARAONE_STUDIO_PRICE": "840",
     "SVARAONE_STUDIO_CREDITS": "1500000",
-    "SVARAONE_STUDIO_VOICES": "90"
+    "SVARAONE_STUDIO_VOICES": "90",
+    "VIDEO_PROVIDER": "runway",
+    "VIDEO_API_URL": "https://api.dev.runwayml.com",
+    "VIDEO_MODEL": "gen4_turbo"
   },
   "d1_databases": [
     {
