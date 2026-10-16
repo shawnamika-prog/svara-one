@@ -1,3 +1,8 @@
+## Creative Discovery initialization fix (2026-10-16)
+
+- Fixed a stale `actions` reference left behind when the concept renderer was extracted for reuse during refinements. It could throw a temporal-dead-zone error before the concept was displayed.
+- Renderer now resolves its own result-action element; frontend syntax check passed. Cache version updated to `20261016-17`. Live browser/API verification remains pending.
+
 ## Creative Discovery iterative refinement (2026-10-16)
 
 - Added an authenticated `POST /api/video/refine` endpoint using the existing strict structured concept schema and configured OpenAI model.
