@@ -11,6 +11,9 @@
     .sv-actions{display:flex;gap:7px;flex-wrap:wrap}.sv-btn{border:1px solid #ffffff16;border-radius:9px;background:#101a29;color:#c4d3e4;padding:9px 12px;font:700 10px Inter,system-ui;cursor:pointer}.sv-btn:hover{border-color:#4c8cff88;color:white}.sv-btn.primary{border-color:#4c8cff;background:linear-gradient(110deg,#2675ee,#438dff);color:white}.sv-btn:disabled{opacity:.5;cursor:wait}
     .sv-mode{display:flex;gap:3px;background:#080e18;border:1px solid #ffffff14;border-radius:10px;padding:3px}.sv-mode button{border:0;background:transparent;color:#8da0b5;border-radius:7px;padding:8px 10px;font:600 9px Inter;cursor:pointer}.sv-mode button.active{background:#183d73;color:#bcd9ff;box-shadow:inset 0 0 0 1px #4b8cff66}
     .sv-steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;padding:14px 16px}.sv-step{display:flex;align-items:center;gap:8px;min-width:0;color:#8092a8;font-size:10px}.sv-step b{display:grid;place-items:center;width:27px;height:27px;flex:none;border-radius:50%;background:#263448;color:#bdcce0}.sv-step.active b,.sv-step.done b{background:#277cf5;color:#fff}.sv-step span{display:block;min-width:0}.sv-step strong{display:block;color:#dbe7f6;font-size:10px}.sv-step small{display:block;color:#73879d;font-size:8px;margin-top:3px}
+    .sv-workflow{padding:13px 16px 15px;display:grid;gap:10px}.sv-workflow-label{font-size:9px;letter-spacing:.14em;font-weight:800;color:#778ba7}.sv-workflow-rail{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0;align-items:start}.sv-workflow-step{position:relative;display:grid;justify-items:center;align-content:start;gap:6px;padding:0 4px;border:0;background:none;color:#74869e;cursor:pointer;min-width:0;text-align:center}.sv-workflow-step:before{content:'';position:absolute;height:2px;background:#273449;left:-50%;right:50%;top:14px;z-index:0}.sv-workflow-step:first-child:before{display:none}.sv-workflow-step.done:before,.sv-workflow-step.active:before{background:#635bdf}.sv-workflow-dot{position:relative;z-index:1;display:grid;place-items:center;width:29px;height:29px;border-radius:50%;border:1px solid #35445c;background:#0a1220;color:#91a2ba;font-size:10px;font-weight:800}.sv-workflow-step.active .sv-workflow-dot{border-color:#8b83ff;background:#5146c9;color:white;box-shadow:0 0 0 4px #635bdf22}.sv-workflow-step.done .sv-workflow-dot{border-color:#327f75;background:#123c3b;color:#7ee7d0}.sv-workflow-step strong{display:block;font-size:9px;line-height:1.25;color:#b8c5d7;font-weight:650;overflow-wrap:anywhere}.sv-workflow-step.active strong{color:#e4e5ff}.sv-workflow-step:disabled{cursor:not-allowed;opacity:.55}.sv-workflow-step:disabled .sv-workflow-dot{background:#080d15}.sv-workflow-status{font-size:9px;color:#8ea0b6;line-height:1.4}.sv-workflow-status strong{color:#cbd5e1;font-weight:700}.sv-accordion.workflow-locked{display:none!important}.sv-accordion.workflow-current{border-color:#635bdf55}.sv-workflow-actions{display:flex;gap:8px;flex-wrap:wrap}.sv-workflow-actions .sv-btn{font-size:10px}.sv-workflow-actions .sv-btn.skip{background:transparent;border-color:#ffffff20;color:#9eacc0}
+    @media(max-width:760px){.sv-workflow{padding:12px}.sv-workflow-rail{grid-template-columns:repeat(7,minmax(80px,1fr));overflow-x:auto;padding:2px 0 7px}.sv-workflow-step strong{font-size:9px}.sv-workflow-status{font-size:9px}}
+
     .sv-main{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(310px,.85fr);gap:14px;align-items:start}.sv-scenes{display:grid;gap:10px}.sv-scene{display:grid;grid-template-columns:minmax(190px,29%) minmax(0,1fr) 112px;gap:12px;padding:10px;border:1px solid #ffffff12;background:#0a1220;border-radius:12px;cursor:pointer;min-width:0}.sv-scene.selected{border-color:#428bff99;box-shadow:inset 0 0 0 1px #428bff24}.sv-thumb{position:relative;display:grid;place-items:center;aspect-ratio:16/9;min-height:110px;border-radius:8px;overflow:hidden;background:radial-gradient(ellipse at 65% 15%,#284c7b,#111f37 45%,#070d18 80%);border:1px solid #ffffff10;color:#7c9fc9}.sv-thumb img,.sv-thumb video{width:100%;height:100%;position:absolute;inset:0;object-fit:cover}.sv-thumb span{position:relative;font-size:28px;z-index:1;text-shadow:0 2px 15px #000}.sv-number{position:absolute;z-index:2;left:7px;top:7px;background:#267cf5;color:#fff;border-radius:6px;padding:5px 7px;font-size:10px;font-weight:800}.sv-scene-info{min-width:0;padding:3px 0}.sv-scene-info h3{font-size:12px;margin:0 0 7px;line-height:1.4;color:#edf4ff}.sv-scene-info p{font-size:10px;color:#8da0b5;line-height:1.5;margin:0 0 9px}.sv-meta{display:flex;gap:5px;flex-wrap:wrap}.sv-chip{padding:5px 7px;border-radius:6px;background:#101d2d;border:1px solid #ffffff0b;color:#8fa7c0;font-size:8px;white-space:nowrap}.sv-chip.status{color:#e4c48a}.sv-chip.ready{color:#60e0c9}.sv-mini-assets{display:flex;gap:5px;margin-top:9px;flex-wrap:wrap}.sv-mini-assets button{border:1px solid #ffffff12;border-radius:7px;background:#0c1725;color:#9aadc1;padding:6px 7px;font-size:8px;cursor:pointer}.sv-mini-assets button:hover{color:#fff;border-color:#428bff66}.sv-scene-actions{display:grid;align-content:start;gap:5px}.sv-scene-actions .sv-btn{padding:8px 5px;font-size:9px}.sv-add{border:1px dashed #3984fa88;border-radius:10px;background:#0b1422;color:#81b5ff;padding:13px;text-align:center;width:100%;cursor:pointer;font:700 10px Inter}.sv-add:hover{background:#10203a}
     .sv-right{display:grid;gap:12px;min-width:0}.sv-preview{padding:12px}.sv-preview-head{display:flex;align-items:center;justify-content:space-between;padding:2px 2px 10px}.sv-preview-head strong{font-size:12px}.sv-preview-stage{aspect-ratio:16/9;display:grid;place-items:center;position:relative;overflow:hidden;border-radius:9px;background:radial-gradient(ellipse at 50% 15%,#244a79,#101a2b 55%,#050a12);border:1px solid #ffffff12}.sv-preview-stage img,.sv-preview-stage video{width:100%;height:100%;object-fit:contain}.sv-preview-placeholder{text-align:center;padding:20px;color:#8ea5c0}.sv-preview-placeholder b{font-size:25px;display:block;margin-bottom:10px}.sv-preview-placeholder span{display:block;font-size:10px;line-height:1.5}
     .sv-tabs{display:flex;border-bottom:1px solid #ffffff12;overflow:auto}.sv-tabs button{flex:1;min-width:64px;padding:11px 7px;border:0;border-bottom:2px solid transparent;background:transparent;color:#8194aa;font:600 9px Inter;cursor:pointer}.sv-tabs button.active{color:#8fc0ff;border-bottom-color:#3987ff;background:#0d1727}
@@ -180,6 +183,19 @@
             
           </div>
         </section>
+        <section class="sv-card sv-workflow" aria-label="Video workflow">
+          <div class="sv-workflow-label">YOUR CREATIVE WORKFLOW</div>
+          <nav class="sv-workflow-rail" data-workflow-rail aria-label="Workflow stages">
+            <button class="sv-workflow-step active" type="button" data-workflow-step="0" aria-current="step"><span class="sv-workflow-dot">1</span><strong>Story &amp; Concept</strong></button>
+            <button class="sv-workflow-step" type="button" data-workflow-step="1" disabled><span class="sv-workflow-dot">2</span><strong>Branding</strong></button>
+            <button class="sv-workflow-step" type="button" data-workflow-step="2" disabled><span class="sv-workflow-dot">3</span><strong>Characters</strong></button>
+            <button class="sv-workflow-step" type="button" data-workflow-step="3" disabled><span class="sv-workflow-dot">4</span><strong>Environments</strong></button>
+            <button class="sv-workflow-step" type="button" data-workflow-step="4" disabled><span class="sv-workflow-dot">5</span><strong>Visual Style</strong></button>
+            <button class="sv-workflow-step" type="button" data-workflow-step="5" disabled><span class="sv-workflow-dot">6</span><strong>Storyboard</strong></button>
+            <button class="sv-workflow-step" type="button" data-workflow-step="6" disabled><span class="sv-workflow-dot">7</span><strong>Production</strong></button>
+          </nav>
+          <div class="sv-workflow-status" data-workflow-status><strong>Step 1 of 7</strong> · Develop and approve your creative direction to continue.</div>
+        </section>
         <section class="sv-card sv-accordion sv-discovery" data-accordion="story">
           <button class="sv-accordion-head" type="button" data-accordion-toggle="story" aria-expanded="false"><span class="sv-accordion-number">01</span><span class="sv-accordion-title"><strong>Creative Discovery</strong><small>Start with an idea. SvaraFlow<sup>™</sup> helps shape the video.</small></span><span class="sv-accordion-state" data-accordion-state="story">Ready to explore</span><span class="sv-accordion-chevron">⌄</span></button>
           <div class="sv-accordion-body" data-accordion-body="story" hidden>
@@ -216,7 +232,7 @@
               <label class="sv-field"><span>Brand guidelines / notes</span><textarea data-project-field="brandNotes" rows="2" placeholder="Logo usage, clear space, tone, do's and don'ts..."></textarea></label>
             </div>
             <div class="sv-brand-preview" data-brand-preview hidden><img data-brand-logo-preview alt="Uploaded brand logo preview"><span>Logo preview</span></div>
-            <div class="sv-accordion-foot"><span class="sv-setup-note">Brand assets can later be reused across scenes and exports.</span><button class="sv-btn" type="button" data-section-review="branding">Mark reviewed</button></div>
+            <div class="sv-accordion-foot"><span class="sv-setup-note">Brand assets can later be reused across scenes and exports.</span><div class="sv-workflow-actions"><button class="sv-btn primary" type="button" data-section-review="branding">Approve &amp; continue →</button> <button class="sv-btn skip" type="button" data-workflow-skip="branding">Skip branding</button></div></div>
           </div>
         </section>
         <section class="sv-card sv-accordion" data-accordion="characters">
@@ -224,30 +240,30 @@
           <div class="sv-accordion-body" data-accordion-body="characters" hidden>
             <p class="sv-accordion-intro">Create or select the main characters and mascots. Approved references can be reused across scenes to help maintain visual continuity.</p>
             <div class="sv-asset-placeholder"><strong>Character library · planned</strong><br>Reusable character references, identity notes and approved looks will live here.</div>
-            <div class="sv-accordion-foot"><span class="sv-setup-note">Character assets will be connected in a later phase.</span><button class="sv-btn" type="button" data-section-review="characters">Mark reviewed</button></div>
+            <div class="sv-accordion-foot"><span class="sv-setup-note">Character assets will be connected in a later phase.</span><div class="sv-workflow-actions"><button class="sv-btn primary" type="button" data-section-review="characters">Approve &amp; continue →</button></div></div>
           </div>
         </section>
         <section class="sv-card sv-accordion" data-accordion="environment">
-          <button class="sv-accordion-head" type="button" data-accordion-toggle="environment" aria-expanded="false"><span class="sv-accordion-number">03</span><span class="sv-accordion-title"><strong>Environments</strong><small>Locations, backgrounds, lighting and atmosphere</small></span><span class="sv-accordion-state" data-accordion-state="environment">Not started</span><span class="sv-accordion-chevron">⌄</span></button>
+          <button class="sv-accordion-head" type="button" data-accordion-toggle="environment" aria-expanded="false"><span class="sv-accordion-number">04</span><span class="sv-accordion-title"><strong>Environments</strong><small>Locations, backgrounds, lighting and atmosphere</small></span><span class="sv-accordion-state" data-accordion-state="environment">Not started</span><span class="sv-accordion-chevron">⌄</span></button>
           <div class="sv-accordion-body" data-accordion-body="environment" hidden>
             <p class="sv-accordion-intro">Define the places and settings where your story takes place. Reuse approved environment references across scenes.</p>
             <div class="sv-asset-placeholder"><strong>Environment library · planned</strong><br>Locations, background references and lighting setups will live here.</div>
-            <div class="sv-accordion-foot"><span class="sv-setup-note">Environment assets will be connected in a later phase.</span><button class="sv-btn" type="button" data-section-review="environment">Mark reviewed</button></div>
+            <div class="sv-accordion-foot"><span class="sv-setup-note">Environment assets will be connected in a later phase.</span><div class="sv-workflow-actions"><button class="sv-btn primary" type="button" data-section-review="environment">Approve &amp; continue →</button></div></div>
           </div>
         </section>
         <section class="sv-card sv-accordion" data-accordion="style">
-          <button class="sv-accordion-head" type="button" data-accordion-toggle="style" aria-expanded="false"><span class="sv-accordion-number">04</span><span class="sv-accordion-title"><strong>Visual Style</strong><small>Look, palette, mood and cinematic direction</small></span><span class="sv-accordion-state" data-accordion-state="style">Not started</span><span class="sv-accordion-chevron">⌄</span></button>
+          <button class="sv-accordion-head" type="button" data-accordion-toggle="style" aria-expanded="false"><span class="sv-accordion-number">05</span><span class="sv-accordion-title"><strong>Visual Style</strong><small>Look, palette, mood and cinematic direction</small></span><span class="sv-accordion-state" data-accordion-state="style">Not started</span><span class="sv-accordion-chevron">⌄</span></button>
           <div class="sv-accordion-body" data-accordion-body="style" hidden>
             <div class="sv-setup-grid">
               <label class="sv-field"><span>Visual direction</span><select data-project-field="visualStyle"><option value="">Choose a visual style</option><option>Cinematic realism</option><option>3D animation</option><option>Stylised illustration</option><option>Anime</option><option>Mixed media</option></select></label>
               <label class="sv-field"><span>Colour palette</span><input data-project-field="palette" placeholder="e.g. midnight blue, violet, warm gold"></label>
               <label class="sv-field sv-field-wide"><span>Visual notes</span><textarea data-project-field="visualNotes" rows="2" placeholder="Lighting, camera language, texture and mood..."></textarea></label>
             </div>
-            <div class="sv-accordion-foot"><span class="sv-setup-note">You can change the visual direction later.</span><button class="sv-btn" type="button" data-section-review="style">Mark reviewed</button></div>
+            <div class="sv-accordion-foot"><span class="sv-setup-note">You can change the visual direction later.</span><div class="sv-workflow-actions"><button class="sv-btn primary" type="button" data-section-review="style">Approve &amp; continue →</button></div></div>
           </div>
         </section>
         <section class="sv-card sv-accordion" data-accordion="storyboard">
-          <button class="sv-accordion-head" type="button" data-accordion-toggle="storyboard" aria-expanded="false"><span class="sv-accordion-number">05</span><span class="sv-accordion-title"><strong>Storyboard</strong><small>Your scenes, shots and camera direction</small></span><span class="sv-accordion-state" data-accordion-state="storyboard">0 scenes</span><span class="sv-accordion-chevron">⌄</span></button>
+          <button class="sv-accordion-head" type="button" data-accordion-toggle="storyboard" aria-expanded="false"><span class="sv-accordion-number">06</span><span class="sv-accordion-title"><strong>Storyboard &amp; Concept Reel</strong><small>Your scenes, shots and camera direction</small></span><span class="sv-accordion-state" data-accordion-state="storyboard">0 scenes</span><span class="sv-accordion-chevron">⌄</span></button>
           <div class="sv-accordion-body" data-accordion-body="storyboard" hidden>
             <span class="sv-hidden" data-count>(0)</span>
             <div class="sv-scenes" data-scenes style="padding:10px"></div>
@@ -255,11 +271,12 @@
           </div>
         </section>
         <section class="sv-card sv-accordion" data-accordion="production">
-          <button class="sv-accordion-head" type="button" data-accordion-toggle="production" aria-expanded="false"><span class="sv-accordion-number">06</span><span class="sv-accordion-title"><strong>Generate &amp; Assemble</strong><small>Generate, review, edit and export</small></span><span class="sv-accordion-state">Planned</span><span class="sv-accordion-chevron">⌄</span></button>
+          <button class="sv-accordion-head" type="button" data-accordion-toggle="production" aria-expanded="false"><span class="sv-accordion-number">07</span><span class="sv-accordion-title"><strong>Generate &amp; Assemble</strong><small>Generate, review, edit and export</small></span><span class="sv-accordion-state">Planned</span><span class="sv-accordion-chevron">⌄</span></button>
           <div class="sv-accordion-body" data-accordion-body="production" hidden>
             <p class="sv-accordion-intro">Once your scenes are ready, generate clips, review results, and assemble the finished production with dialogue, music, sound effects and transitions.</p>
             <div class="sv-asset-row"><div class="sv-asset-icon">▣</div><div class="sv-asset-copy"><strong>Video scenes</strong><small>Scene clips, approvals and transitions · planned</small></div><span class="sv-chip">Future phase</span></div>
             <div class="sv-asset-row"><div class="sv-asset-icon">♫</div><div class="sv-asset-copy"><strong>Voice, music &amp; sound</strong><small>Audio lanes, sync controls and export · planned</small></div><span class="sv-chip">Future phase</span></div>
+            <div class="sv-accordion-foot"><span class="sv-setup-note">Production tools will become available as the generation pipeline is implemented.</span><button class="sv-btn primary" type="button" data-section-review="production">Mark stage reviewed</button></div>
           </div>
         </section>
         <div class="sv-hidden" aria-hidden="true"><div class="sv-right"><section class="sv-card sv-preview"><div class="sv-preview-head"><strong>Scene Preview</strong><span class="sv-chip" data-preview-state>Baseline needed</span></div><div class="sv-preview-stage" data-preview><div class="sv-preview-placeholder"><b>▶</b><span>Add a scene to see its preview here.</span></div></div><div class="sv-status" style="margin-top:10px" data-global-status role="status">UI foundation ready. Generation remains scene-by-scene.</div></section><section class="sv-card"><div class="sv-tabs" role="tablist"><button class="active" data-tab="settings">Scene Settings</button><button data-tab="assets">Assets</button><button data-tab="prompt">Prompt</button><button data-tab="advanced">Advanced</button></div><div class="sv-settings" data-settings></div></section></div></div>
@@ -357,7 +374,43 @@
       const note=root.querySelector('[data-discovery-result-note]');if(note)note.textContent='Review the concept. Approving it creates editable storyboard scene cards; it does not generate media.';
       const state=root.querySelector('[data-accordion-state="story"]');if(state){state.textContent='Concept ready for review';state.classList.remove('complete');}
     };
+    const workflowStages=[{id:'story',label:'Story & Concept',heading:'Creative Discovery'},{id:'branding',label:'Branding',heading:'Branding'},{id:'characters',label:'Characters',heading:'Characters & Mascots'},{id:'environment',label:'Environments',heading:'Environments'},{id:'style',label:'Visual Style',heading:'Visual Style'},{id:'storyboard',label:'Storyboard',heading:'Storyboard & Concept Reel'},{id:'production',label:'Production',heading:'Generate & Assemble'}];
+    let workflowCurrent=0,workflowApproved=[];
+    try{const saved=JSON.parse(localStorage.getItem('svara-video-workflow-v1')||'null');if(saved&&Number.isInteger(saved.current)&&Array.isArray(saved.approved)){workflowCurrent=Math.max(0,Math.min(6,saved.current));workflowApproved=saved.approved.filter(n=>Number.isInteger(n)&&n>=0&&n<=6);}}catch(_){}
+    const saveWorkflow=()=>{try{localStorage.setItem('svara-video-workflow-v1',JSON.stringify({current:workflowCurrent,approved:workflowApproved}));}catch(_){}};
+    const renderWorkflow=()=>{
+      const status=root.querySelector('[data-workflow-status]');
+      workflowStages.forEach((stage,index)=>{
+        const panel=root.querySelector('[data-accordion="'+stage.id+'"]'),button=root.querySelector('[data-workflow-step="'+index+'"]'),available=index===0||workflowApproved.includes(index-1)||workflowCurrent>=index,done=workflowApproved.includes(index);
+        if(panel){panel.classList.toggle('workflow-locked',!available);panel.classList.toggle('workflow-current',index===workflowCurrent);if(!available){const body=panel.querySelector('[data-accordion-body]');if(body)body.hidden=true;const head=panel.querySelector('[data-accordion-toggle]');if(head)head.setAttribute('aria-expanded','false');}}
+        if(button){button.disabled=!available;button.classList.toggle('active',index===workflowCurrent);button.classList.toggle('done',done);button.removeAttribute('aria-current');if(index===workflowCurrent)button.setAttribute('aria-current','step');const dot=button.querySelector('.sv-workflow-dot');if(dot)dot.textContent=done?'✓':String(index+1);}
+      });
+      if(status){const stage=workflowStages[workflowCurrent],done=workflowApproved.includes(workflowCurrent);status.innerHTML='<strong>Step '+(workflowCurrent+1)+' of 7 · '+esc(stage.label)+'</strong> · '+(done?'Approved. You can revisit this stage from the timeline.':workflowCurrent===0?'Develop and approve your creative direction to continue.':workflowCurrent===5?'Review your scenes and approve the storyboard to continue.':workflowCurrent===6?'Review this stage. Production tools will be enabled as they are implemented.':'Complete this stage, then approve to unlock the next step.');}
+      const state=root.querySelector('[data-accordion-state="'+workflowStages[workflowCurrent].id+'"]');if(state&&!workflowApproved.includes(workflowCurrent)&&workflowCurrent!==0&&state.textContent==='Not started')state.textContent='In progress';
+      saveWorkflow();
+    };
+    const goWorkflowStage=(index,scroll=true)=>{
+      if(index<0||index>6)return;
+      if(index>workflowCurrent&&!workflowApproved.includes(index-1))return;
+      workflowCurrent=index;renderWorkflow();
+      const stage=workflowStages[index],panel=root.querySelector('[data-accordion="'+stage.id+'"]'),body=root.querySelector('[data-accordion-body="'+stage.id+'"]'),head=root.querySelector('[data-accordion-toggle="'+stage.id+'"]');
+      if(index===5){const state=root.querySelector('[data-accordion-state="storyboard"]');if(state)state.textContent=scenes.length+' scenes'+(workflowApproved.includes(5)?' · approved':'');}
+      if(body){body.hidden=false;if(head){head.setAttribute('aria-expanded','true');const chev=head.querySelector('.sv-accordion-chevron');if(chev)chev.textContent='⌃';}}
+      if(scroll)panel?.scrollIntoView({block:'start',behavior:'smooth'});
+    };
+    const approveWorkflowStage=(id,skipped=false)=>{
+      const index=workflowStages.findIndex(stage=>stage.id===id);if(index<0)return;
+      if(id==='story'&&!discoveryConcept){setStatus('Develop and review a concept before approving this stage.','error');return;}
+      if(id==='storyboard'&&!scenes.length){setStatus('Create or approve your concept before approving the storyboard.','error');return;}
+      if(!workflowApproved.includes(index))workflowApproved.push(index);
+      const state=root.querySelector('[data-accordion-state="'+id+'"]');if(state){state.textContent=skipped?'Skipped':id==='story'?'Concept approved':id==='storyboard'?'Storyboard approved':'Approved';state.classList.add('complete');}
+      if(index<6){goWorkflowStage(index+1);setStatus((skipped?'Branding skipped':workflowStages[index].heading+' approved')+'. '+workflowStages[index+1].heading+' is now available.','success');}
+      else{renderWorkflow();setStatus('Workflow review complete. Production capabilities will be enabled as they are implemented.','success');}
+    };
     root.addEventListener('click',async event=>{
+      const workflowStep=event.target.closest('[data-workflow-step]');if(workflowStep){const index=Number(workflowStep.dataset.workflowStep);if(!workflowStep.disabled)goWorkflowStage(index);return;}
+      const workflowSkip=event.target.closest('[data-workflow-skip]');if(workflowSkip){approveWorkflowStage('branding',true);return;}
+      const sectionReview=event.target.closest('[data-section-review]');if(sectionReview){approveWorkflowStage(sectionReview.dataset.sectionReview);return;}
       const accordionToggle=event.target.closest('[data-accordion-toggle]');
       if(accordionToggle){const id=accordionToggle.dataset.accordionToggle;const body=root.querySelector('[data-accordion-body="'+id+'"]');if(body){const open=body.hidden;body.hidden=!open;accordionToggle.setAttribute('aria-expanded',String(open));const chevron=accordionToggle.querySelector('.sv-accordion-chevron');if(chevron)chevron.textContent=open?'⌃':'⌄';}return;}
       const brandInput=event.target.closest('[data-brand-upload]');
@@ -371,7 +424,9 @@
         if(!discoveryConcept){setStatus('Develop a concept before refining it.','error');return;}
         if(!request){const field=root.querySelector('[data-refine-request]');if(field){field.focus();field.setCustomValidity('Tell SvaraFlow what you would like to change.');field.reportValidity();field.addEventListener('input',()=>field.setCustomValidity(''),{once:true});}return;}
         if(refinementBusy)return;refinementBusy=true;button.disabled=true;button.textContent='Refining…';if(status)status.textContent='SvaraFlow is refining your concept…';setStatus('Refining the creative direction. No media is being generated.');
-        try{const response=await fetch('/api/video/refine',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({request,scope,sceneIndex,concept:discoveryConcept})}),data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||('Creative refinement failed ('+response.status+')'));if(!data.concept||!Array.isArray(data.concept.sceneOutline))throw new Error('SvaraFlow returned an incomplete revision. Please try again.');discoveryHistory.push(JSON.parse(JSON.stringify(discoveryConcept)));if(discoveryHistory.length>10)discoveryHistory.shift();discoveryConcept=data.concept;if(result){renderDiscoveryConcept(discoveryConcept,result);const field=root.querySelector('[data-refine-request]');if(field)field.value='';}setStatus('Revision ready. Review it, refine again, undo, or approve when satisfied. No media credits were used.','success');}
+        try{const response=await fetch('/api/video/refine',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({request,scope,sceneIndex,concept:discoveryConcept})}),data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||('Creative refinement failed ('+response.status+')'));if(!data.concept||!Array.isArray(data.concept.sceneOutline))throw new Error('SvaraFlow returned an incomplete revision. Please try again.');discoveryHistory.push(JSON.parse(JSON.stringify(discoveryConcept)));if(discoveryHistory.length>10)discoveryHistory.shift();discoveryConcept=data.concept;
+          if(workflowApproved.includes(0)){workflowApproved=workflowApproved.filter(index=>index===0);workflowCurrent=0;for(const stage of workflowStages.slice(1)){const state=root.querySelector('[data-accordion-state="'+stage.id+'"]');if(state&&state.classList.contains('complete')){state.textContent='Review needed';state.classList.remove('complete');}}renderWorkflow();}
+          if(result){renderDiscoveryConcept(discoveryConcept,result);const field=root.querySelector('[data-refine-request]');if(field)field.value='';}setStatus('Revision ready. Review it, refine again, undo, or approve when satisfied. No media credits were used.','success');}
         catch(error){if(status)status.textContent='Your current concept is unchanged. You can try again.';setStatus(String(error?.message||error),'error');}
         finally{refinementBusy=false;const current=root.querySelector('[data-refine-submit]');if(current){current.disabled=false;current.textContent='Refine concept →';}}
         return;
@@ -413,6 +468,7 @@
       }
       if(event.target.closest('[data-discovery-approve]')){
         if(!discoveryConcept){setStatus('Develop a concept before approving it.','error');return;}
+        approveWorkflowStage('story');
         const c=discoveryConcept;
         scenes=c.sceneOutline.map((scene,index)=>({
           id:'scene-'+Date.now()+'-'+index,
@@ -429,11 +485,11 @@
         selectedId=scenes[0]?.id||null;
         const storyboard=root.querySelector('[data-accordion-body="storyboard"]');
         const storyboardHead=root.querySelector('[data-accordion-toggle="storyboard"]');
-        if(storyboard){storyboard.hidden=false;if(storyboardHead)storyboardHead.setAttribute('aria-expanded','true');const chev=storyboardHead?.querySelector('.sv-accordion-chevron');if(chev)chev.textContent='⌃';}
+        if(storyboard){storyboard.hidden=true;if(storyboardHead)storyboardHead.setAttribute('aria-expanded','false');const chev=storyboardHead?.querySelector('.sv-accordion-chevron');if(chev)chev.textContent='⌄';}
         const state=root.querySelector('[data-accordion-state="storyboard"]');if(state)state.textContent=scenes.length+' scenes · concept approved';
         renderScenes();renderSettings();renderPreview();
         setStatus('Concept approved. '+scenes.length+' editable storyboard scenes created. Add or generate reference images in the next step.','success');
-        storyboard?.scrollIntoView({block:'nearest',behavior:'smooth'});
+
         return;
       }
       const fileInput=event.target.closest('[data-discovery-files]');
@@ -453,7 +509,8 @@
       if(event.target.matches('[data-image-input]')){const file=event.target.files&&event.target.files[0];if(file){const s=selected();s.imageFile=file;s.image=URL.createObjectURL(file);s.status='Ready to generate';renderScenes();renderSettings();renderPreview();}}
     });
     root.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target.matches('[data-scene]')){event.preventDefault();selectScene(event.target.dataset.scene);}});
-    renderScenes();renderSettings();renderPreview();
+    renderScenes();renderSettings();renderPreview();renderWorkflow();
+    const currentPanel=root.querySelector('[data-accordion="'+workflowStages[workflowCurrent].id+'"]'),currentBody=currentPanel?.querySelector('[data-accordion-body]'),currentHead=currentPanel?.querySelector('[data-accordion-toggle]');if(currentBody){currentBody.hidden=false;if(currentHead){currentHead.setAttribute('aria-expanded','true');const chev=currentHead.querySelector('.sv-accordion-chevron');if(chev)chev.textContent='⌃';}}
     root.dataset.videoWorkspaceInitialized='1';
   }
   window.SvaraVideoWorkspace={render};
