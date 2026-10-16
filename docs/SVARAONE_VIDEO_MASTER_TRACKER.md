@@ -1,3 +1,14 @@
+## Guided Video Workflow Timeline (2026-10-16)
+
+- Added a seven-stage timeline below the existing Video header: Story & Concept, Branding, Characters, Environments, Visual Style, Storyboard & Concept Reel, and Generate & Assemble.
+- Future stage panels remain hidden until the preceding stage is approved. Timeline steps let users revisit available stages; current and approved states are reflected in the timeline.
+- Added explicit stage approval/continue controls. Branding can be skipped for non-branded projects.
+- Workflow stage and approval state persist in browser local storage. Project-level multi-device persistence is not yet implemented.
+- Concept approval creates editable scene data but keeps the storyboard panel gated until Branding, Characters, Environments and Visual Style are approved or branding is skipped. No media is generated during workflow progression.
+- Refining an already-approved concept clears downstream approvals and returns the user to the concept stage for review.
+- Cache version updated to `20261016-18`. Frontend syntax check passed. Live browser interaction tests were not run.
+
+
 ## Creative Discovery initialization fix (2026-10-16)
 
 - Fixed a stale `actions` reference left behind when the concept renderer was extracted for reuse during refinements. It could throw a temporal-dead-zone error before the concept was displayed.
