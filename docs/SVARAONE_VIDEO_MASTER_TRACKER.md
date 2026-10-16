@@ -1,3 +1,11 @@
+## Creative Discovery section hierarchy correction (2026-10-16)
+
+- Renamed the three inner section markers from numeric labels to A, B and C.
+- Section A (Discover your idea) remains visible and open by default. Section B (Creative concept) is hidden until a successful concept is generated, then opens while A collapses.
+- Section C (Refine with SvaraFlow) is relocated out of the concept canvas into its own sibling section within Panel 1. It becomes visible after successful concept generation and is independently collapsible.
+- Existing discovery/refinement requests, undo behaviour, approval controls and media credit protections are unchanged. Cache version updated to `20261016-21`. Frontend syntax check passed; live browser test not run.
+
+
 ## Creative Discovery collapsible sections (2026-10-16)
 
 - Restructured Panel 1 into three collapsible sections inside the existing panel: Discover Your Idea, Creative Concept, and Refine with SvaraFlow.
