@@ -376,8 +376,8 @@
     };
     const workflowStages=[{id:'story',label:'Story & Concept',heading:'Creative Discovery'},{id:'branding',label:'Branding',heading:'Branding'},{id:'characters',label:'Characters',heading:'Characters & Mascots'},{id:'environment',label:'Environments',heading:'Environments'},{id:'style',label:'Visual Style',heading:'Visual Style'},{id:'storyboard',label:'Storyboard',heading:'Storyboard & Concept Reel'},{id:'production',label:'Production',heading:'Generate & Assemble'}];
     let workflowCurrent=0,workflowApproved=[];
-    try{const saved=JSON.parse(localStorage.getItem('svara-video-workflow-v1')||'null');if(saved&&Number.isInteger(saved.current)&&Array.isArray(saved.approved)){workflowCurrent=Math.max(0,Math.min(6,saved.current));workflowApproved=saved.approved.filter(n=>Number.isInteger(n)&&n>=0&&n<=6);}}catch(_){}
-    const saveWorkflow=()=>{try{localStorage.setItem('svara-video-workflow-v1',JSON.stringify({current:workflowCurrent,approved:workflowApproved}));}catch(_){}};
+    // Workflow state is intentionally session-scoped until concept, scene and asset persistence are connected.
+    const saveWorkflow=()=>{};
     const renderWorkflow=()=>{
       const status=root.querySelector('[data-workflow-status]');
       workflowStages.forEach((stage,index)=>{
