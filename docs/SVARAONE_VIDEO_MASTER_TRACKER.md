@@ -1,3 +1,10 @@
+## Header and refinement visibility fix (2026-10-16)
+
+- Removed the workflow status sentence beneath the seven-step timeline from the Video header.
+- Fixed Section C visibility after discovery: the refinement section is moved to its stable sibling host, made visible after successful concept generation, and remains independently collapsed until opened by the user.
+- Cache version updated to `20261016-22`. Frontend syntax check passed; live browser test not run.
+
+
 ## Creative Discovery section hierarchy correction (2026-10-16)
 
 - Renamed the three inner section markers from numeric labels to A, B and C.
