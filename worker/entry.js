@@ -57,6 +57,28 @@ const VIDEO_DISCOVERY_SCHEMA = {
   }
 };
 
+async function createVideoRefinement(body, env) {
+ const request=String(body?.request||"").trim(),scope=["whole","scene","visuals","narration"].includes(body?.scope)?body.scope:"whole",concept=body?.concept;
+ if(!request)throw Object.assign(new Error("Tell SvaraFlow what you'd like to refine."),{status:400});
+ if(request.length>1200)throw Object.assign(new Error("Keep each refinement request to 1,200 characters or fewer."),{status:400});
+ if(!concept||typeof concept!=="object"||!Array.isArray(concept.sceneOutline)||concept.sceneOutline.length<3||concept.sceneOutline.length>6)throw Object.assign(new Error("The current concept is missing or incomplete. Develop the concept again before refining it."),{status:400});
+ const sceneIndex=Number.isInteger(body?.sceneIndex)?body.sceneIndex:-1;
+ if(scope==="scene"&&(sceneIndex<0||sceneIndex>=concept.sceneOutline.length))throw Object.assign(new Error("Choose a scene to refine."),{status:400});
+ const apiKey=String(env.OPENAI_API_KEY||"").trim();if(!apiKey)throw Object.assign(new Error("Creative refinement is not configured yet. The OpenAI API key is missing from Cloudflare."),{status:503});
+ const model=String(env.SVARAFLOW_VIDEO_MODEL||env.SVARAFLOW_MODEL||"gpt-5-mini").trim(),controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),45000);
+ try{
+  const instructions=["You are SvaraFlow™, a thoughtful creative director refining an existing video concept with its human creator.","The current concept is the source of truth. Treat the user's request as a targeted edit, not permission to start over.","Preserve all unaffected creative choices, factual details, tone, audience, story beats, duration and scene order. Do not rewrite fields that do not need to change.","If scope is one scene, keep every other scene semantically unchanged. If scope is narration, preserve visual and camera direction. If scope is visuals, preserve narration and story meaning.","Only adjust connected fields when necessary for coherence. Do not introduce unsupported claims, new facts, or media-generation claims.","Return the complete revised concept in the required schema. Keep all fields concise and human-facing. Empty narration is valid.","This response does not approve the concept, create a storyboard, generate media, or spend media credits."].join("\n");
+  const response=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"content-type":"application/json",authorization:`Bearer ${apiKey}`},signal:controller.signal,body:JSON.stringify({model,instructions,input:JSON.stringify({refinementRequest:request,scope,targetScene:scope==="scene"?concept.sceneOutline[sceneIndex]:null,currentConcept:concept}),text:{format:{type:"json_schema",name:"svaraone_video_concept_revision",strict:true,schema:VIDEO_DISCOVERY_SCHEMA}},max_output_tokens:5000})});
+  if(!response.ok){const detail=await response.text().catch(()=>"");console.error("video_refinement_openai_error",{status:response.status,detail:detail.slice(0,500)});throw Object.assign(new Error("SvaraFlow couldn't refine the concept right now. Please try again."),{status:502});}
+  const payload=await response.json(),outputText=typeof payload.output_text==="string"?payload.output_text:(Array.isArray(payload.output)?payload.output:[]).flatMap(item=>Array.isArray(item.content)?item.content:[]).map(item=>typeof item.text==="string"?item.text:"").join("");
+  let revised;try{revised=JSON.parse(outputText)}catch{throw Object.assign(new Error("SvaraFlow returned an unreadable revision. Please try again."),{status:502});}
+  if(!revised||!Array.isArray(revised.sceneOutline)||revised.sceneOutline.length<3||revised.sceneOutline.length>6)throw Object.assign(new Error("SvaraFlow returned an incomplete revision. Please try again."),{status:502});
+  revised.durationSeconds=Number.isInteger(revised.durationSeconds)?Math.min(180,Math.max(15,revised.durationSeconds)):concept.durationSeconds;
+  revised.sceneOutline=revised.sceneOutline.map((scene,index)=>({...scene,title:String(scene.title||`Scene ${index+1}`).slice(0,120),durationSeconds:Math.min(30,Math.max(2,Number.isInteger(scene.durationSeconds)?scene.durationSeconds:5))}));
+  return {ok:true,concept:revised,meta:{provider:"openai",model,refinement:true,mediaGenerated:false}};
+ }catch(error){if(error?.name==="AbortError")throw Object.assign(new Error("Creative refinement timed out. Please try again."),{status:504});throw error;}finally{clearTimeout(timeout);}
+}
+
 async function createVideoDiscovery(body, env) {
   const idea = String(body?.idea || "").trim();
   const productUrl = String(body?.url || "").trim();
@@ -583,6 +605,19 @@ export default {
     if (payfastResponse) return payfastResponse;
 
     const url = new URL(request.url);
+
+    if (request.method === "POST" && url.pathname === "/api/video/refine") {
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return json({ error: "Authentication required." }, 401);
+      let body = {};
+      try { body = await request.json(); } catch { return json({ error: "Send refinement details as JSON." }, 400); }
+      try { return json(await createVideoRefinement(body, env)); }
+      catch (error) {
+        const status = Number.isInteger(error?.status) ? error.status : 502;
+        console.error("video_refinement_error", { status, message: String(error?.message || "Refinement failed").slice(0, 300) });
+        return json({ error: String(error?.message || "Creative refinement failed. Please try again.").slice(0, 300) }, status);
+      }
+    }
 
     if (request.method === "POST" && url.pathname === "/api/video/discovery") {
       const userId = await authenticatedUserId(request, env);
