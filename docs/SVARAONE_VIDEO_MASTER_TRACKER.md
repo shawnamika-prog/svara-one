@@ -1,3 +1,11 @@
+## Creative Discovery collapsible sections (2026-10-16)
+
+- Restructured Panel 1 into three collapsible sections inside the existing panel: Discover Your Idea, Creative Concept, and Refine with SvaraFlow.
+- Removed the nested-card feel by using flat section headers, numbered markers, subtle separators and shared panel background.
+- Discovery opens by default. When a concept is generated, the input section collapses and the concept section opens to give the visual canvas more room. Users can expand/collapse each section independently; “Edit my answers” returns focus to discovery.
+- No changes to discovery/refinement API contracts, approval behavior or media credit handling. Cache version updated to `20261016-20`. Frontend syntax check passed; live browser interaction tests not run.
+
+
 ## Video header timeline polish (2026-10-16)
 
 - Moved the seven-step workflow timeline inside the existing Video header card so the header and timeline read as one cohesive panel.
