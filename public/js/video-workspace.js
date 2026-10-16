@@ -353,8 +353,6 @@
         const visual=result.querySelector('[data-canvas-visual]');if(visual)visual.textContent=scene.visualDescription;
         const detail=result.querySelector('[data-canvas-detail]');if(detail)detail.innerHTML=sceneDetail(scene,index);
       }));
-      if(actions)actions.hidden=false;
-      
       const actions=root.querySelector('[data-discovery-actions]');if(actions)actions.hidden=false;
       const note=root.querySelector('[data-discovery-result-note]');if(note)note.textContent='Review the concept. Approving it creates editable storyboard scene cards; it does not generate media.';
       const state=root.querySelector('[data-accordion-state="story"]');if(state){state.textContent='Concept ready for review';state.classList.remove('complete');}
