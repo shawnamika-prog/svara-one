@@ -62,6 +62,15 @@ Concept → Storyboard → Assets → Generate → Assemble
 - Verification: frontend JavaScript syntax passed; Worker entrypoint syntax passed after removing ES-module import/export declarations for the check. No live OpenAI request or deployed browser test has been run.
 - Commits: backend prompt/schema `f0eee99f1781e76af8dc53bd05398aba5fb7e7f2`; concept UI `525b380dca431be8c5b456672677b04f623c70f2`; typography `8ebe6ce092520081cd8f63e7c3ab8459be9d2499`; cache bust `05d3757b14c7273af26eeb252f0fbfaec95c227f`.
 
+## Creative Discovery — Option C Creative Canvas (2026-10-16)
+
+- Replaced the text-heavy concept response with a focused creative canvas: title and concise logline, compact metadata chips, a visual-style/tone strip, one large selected-scene preview, a five-scene thumbnail rail, and a compact selected-scene details panel.
+- Selecting a scene updates its title, duration, visual description, camera direction and narration in place. The user can scan the story without seeing every scene's full text at once.
+- Reduced repeated metadata and moved questions/assumptions into a collapsed disclosure. The takeaway and call to action are kept in a single compact footer.
+- Scene thumbnails and the large preview are clearly marked as illustrative UI; no generated image/video or reference-file analysis is claimed. Real scene-image generation remains a future implementation.
+- Responsive layout stacks the preview, scene rail and details on narrower screens.
+- Verification: JavaScript syntax parse and responsive CSS review performed; no live OpenAI request or deployed browser/device visual test performed.
+
 ## Current foundation notes
 
 - Video workspace entry point: `public/js/video-workspace.js`.
