@@ -1,3 +1,10 @@
+## Creative Canvas header layout correction (2026-10-16)
+
+- Changed the concept header from a side-by-side title/metadata layout to a full-width vertical hierarchy.
+- Title and logline now occupy the full available width; duration, format and audience chips sit in a separate row below them and wrap only as needed.
+- Existing visual style/tone strip and storyboard canvas are unchanged.
+- Cache version updated to `20261016-15`. JavaScript syntax check passed; live browser visual verification remains pending.
+
 ## Creative Canvas detail refinement (2026-10-16)
 
 - Removed the repeated visual-description row from the selected-scene detail panel because the large visual preview already displays that description.
