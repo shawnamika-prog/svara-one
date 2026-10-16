@@ -1,3 +1,11 @@
+## Creative Canvas detail refinement (2026-10-16)
+
+- Removed the repeated visual-description row from the selected-scene detail panel because the large visual preview already displays that description.
+- Replaced the still-camera icon with a camcorder/video-camera SVG.
+- Combined camera direction and narration into one shared, visually grouped panel with clear labels and a divider.
+- Empty narration is represented compactly as “No narration for this scene” rather than an oversized empty card.
+- Cache-busted video workspace assets to `20261016-14`. JavaScript syntax validation passed; browser rendering not independently verified.
+
 # SvaraONE Video Workspace — Master Tracker
 
 **Last updated:** 2026-10-15  
