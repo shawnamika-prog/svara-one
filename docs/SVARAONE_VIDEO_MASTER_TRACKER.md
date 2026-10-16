@@ -1,3 +1,10 @@
+## Video header timeline polish (2026-10-16)
+
+- Moved the seven-step workflow timeline inside the existing Video header card so the header and timeline read as one cohesive panel.
+- Corrected connector positioning so timeline lines run only between the circular step markers, with opaque marker backgrounds to prevent line bleed behind disabled/current buttons.
+- Frontend syntax check passed; cache version updated to `20261016-19`. Live browser verification not performed.
+
+
 ## Guided Video Workflow Timeline (2026-10-16)
 
 - Added a seven-stage timeline below the existing Video header: Story & Concept, Branding, Characters, Environments, Visual Style, Storyboard & Concept Reel, and Generate & Assemble.
