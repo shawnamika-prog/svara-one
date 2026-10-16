@@ -1,3 +1,13 @@
+## Creative Discovery iterative refinement (2026-10-16)
+
+- Added an authenticated `POST /api/video/refine` endpoint using the existing strict structured concept schema and configured OpenAI model.
+- Added an in-canvas “Refine with SvaraFlow” panel for overall concept, one selected scene, visual style/camera, or narration/messaging refinement.
+- Each request includes the current structured concept and explicit scope-preservation instructions. The model returns a revised concept without approving it or launching media generation.
+- The frontend keeps up to 10 previous concept snapshots in the current workspace session and supports undoing the latest refinement. Durable project persistence is not part of this phase.
+- Text-only refinement does not call image/video providers or deduct media-generation credits. Explicit approval remains separate.
+- Cache version updated to `20261016-16`. JavaScript syntax checks passed; live API/browser tests were not run.
+
+
 ## Creative Canvas header layout correction (2026-10-16)
 
 - Changed the concept header from a side-by-side title/metadata layout to a full-width vertical hierarchy.
