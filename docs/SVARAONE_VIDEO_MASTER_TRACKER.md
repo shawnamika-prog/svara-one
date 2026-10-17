@@ -1,3 +1,9 @@
+## Remove redundant Section A divider (2026-10-17)
+
+- Removed the top border and extra top margin from Section A only, preventing it from clashing with the main Creative Discovery panel divider.
+- Sections B and C retain their separators.
+- Cache version updated to `20261017-16`. Frontend JavaScript syntax passed; live browser verification remains outstanding.
+
 ## Panel-level Collapse / Expand labels (2026-10-17)
 
 - Replaced the panel-level standalone arrow visually with a subtle text control: “Collapse ↑” while expanded and “Expand ↓” while collapsed.
