@@ -453,7 +453,7 @@
         Object.assign(projectReviewed,data.projectReviewed||{});
         workflowApproved=Array.isArray(project.approvedStages)?project.approvedStages.map(Number).filter(n=>Number.isInteger(n)&&n>=0&&n<=6):[];
         workflowCurrent=Number.isInteger(project.currentStage)?Math.max(0,Math.min(6,project.currentStage)):0;
-        if(discoveryConcept){const result=root.querySelector('[data-discovery-result]');if(result)renderDiscoveryConcept(discoveryConcept,result);}
+        if(discoveryConcept){const result=root.querySelector('[data-discovery-result]');if(result){result.hidden=false;renderDiscoveryConcept(discoveryConcept,result);}const actions=root.querySelector('[data-discovery-actions]');if(actions)actions.hidden=false;}
         renderScenes();renderSettings();renderPreview();renderWorkflow();
         workflowStages.forEach((stage,index)=>{const state=root.querySelector('[data-accordion-state="'+stage.id+'"]');if(state&&workflowApproved.includes(index)){state.textContent=index===0?'Concept approved':index===5?'Storyboard approved':'Approved';state.classList.add('complete');}});
         goWorkflowStage(workflowCurrent,false);
