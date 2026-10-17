@@ -1,3 +1,9 @@
+## Refinement panel and Edit my answers behavior (2026-10-17)
+
+- Removed the static “Text-only refinement · no media credits used” line; the live status region remains available for progress feedback during refinement.
+- “Edit my answers” now reopens Section A, collapses Section B, hides the current concept/actions and hides/collapses Section C until a fresh concept is generated. Existing form answers remain in place for editing.
+- Frontend JavaScript syntax passed. Cache version updated to `20261017-03`. Live browser interaction test remains outstanding.
+
 ## Remove duplicate refinement heading (2026-10-17)
 
 - Removed the redundant inner “Refine with SvaraFlow” title, subtitle and icon from the refinement form.
