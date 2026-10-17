@@ -1,3 +1,15 @@
+## D1-backed Video project persistence (2026-10-17)
+
+- Added migration `0017_video_projects.sql` for per-user Video projects, current workflow stage, approved stage list, and a versioned JSON project snapshot.
+- Added authenticated `GET /api/video/projects/current` and `PUT /api/video/projects/current` routes. Projects are scoped to the signed-in user; payload size and stage values are validated.
+- Creative Discovery now autosaves text/control changes and generated/refined concepts; approval persists the concept, editable storyboard scene data, stage approvals and next stage before advancing.
+- Progressive stage approval saves to D1 before unlocking the next panel. Save failures leave the user in the current stage and report an error instead of marking the stage approved.
+- Added a short inspirational quote under each downstream stage heading. Branding can still be skipped, and no media generation is triggered by saving/approval.
+- On workspace initialization, the latest saved project is loaded and its concept, scene list, editable form values and workflow progress are restored.
+- Important persistence boundary: browser-selected files and blob-preview URLs are not durable uploads. File names are retained as UI metadata, but logo/reference files and generated media must be uploaded to R2 or another persistent asset store in a later step.
+- Verification: frontend JavaScript syntax and Worker entrypoint syntax checks passed. No live D1 migration, deployed API, or browser refresh/recovery test has been executed in this environment. Apply migration `0017_video_projects.sql` to the configured `svaraone-db` D1 database before expecting the new API to save/load successfully.
+- Frontend cache version: `20261017-17`.
+
 ## Remove redundant Section A divider (2026-10-17)
 
 - Removed the top border and extra top margin from Section A only, preventing it from clashing with the main Creative Discovery panel divider.
