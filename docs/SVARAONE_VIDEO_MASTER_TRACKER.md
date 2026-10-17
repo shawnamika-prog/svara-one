@@ -249,3 +249,12 @@ The earlier **V1.1 — UI cleanup and baseline lock** remains a separate verific
 - Remove the unwanted “Scene (1)” label/overlay.
 - Rework scene-card layout so video/image placeholders cannot overlap the scene title or description, including at mobile widths.
 - Verify desktop, tablet and mobile layouts, and confirm the latest workspace initialization/state-preservation behavior remains intact.
+
+
+## My Video Projects — saved draft management (2026-10-17)
+
+- Added a dedicated **My Video Projects** panel above Creative Discovery with saved project title, status, workflow stage and last-updated time.
+- Added authenticated API operations to list projects, open a project by ID, and delete a project by ID. All reads/deletes are scoped to the authenticated user; the existing D1 `video_projects` table is reused.
+- Open restores the selected project's concept, discovery answers, workflow approvals and storyboard. Delete requires confirmation and removes only the selected project.
+- Deleting the currently open project resets the workspace for a new idea and refreshes the project list.
+- Verification performed: frontend JavaScript syntax parse passed. Live deployed-browser and API tests remain pending.
