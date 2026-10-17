@@ -1,3 +1,9 @@
+## Confirm before restarting Creative Discovery (2026-10-17)
+
+- “Edit my answers” now opens a confirmation dialog explaining that the current creative direction, refinements and approval will be cleared while the discovery answers are retained for editing.
+- Cancel closes the dialog without changing the concept. Confirm clears the current concept/history, hides and clears Section B, removes Section C, hides the approval actions, and reopens Section A.
+- Frontend JavaScript syntax passed. Cache version updated to `20261017-04`. Live browser interaction test remains outstanding.
+
 ## Refinement panel and Edit my answers behavior (2026-10-17)
 
 - Removed the static “Text-only refinement · no media credits used” line; the live status region remains available for progress feedback during refinement.
