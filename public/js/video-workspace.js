@@ -217,7 +217,7 @@
             <div class="sv-accordion-foot"><span class="sv-setup-note"></span><button class="sv-btn primary" type="button" data-discovery-submit>Shape my idea <span aria-hidden="true">→</span></button></div></div></details>
             <details class="sv-work-section" data-work-section="concept" hidden><summary><span class="sv-work-index">B</span><span><strong>Creative concept</strong><small>Review the direction and scene previews.</small></span><span class="sv-work-chevron">⌄</span></summary><div class="sv-work-section-content">
             <div class="sv-discovery-result" data-discovery-result hidden aria-live="polite"></div>
-            <div class="sv-accordion-foot sv-discovery-result-actions" data-discovery-actions hidden><span class="sv-setup-note" data-discovery-result-note>AI concept draft · references are not yet analysed.</span><button class="sv-btn" type="button" data-discovery-edit>Edit my answers</button><button class="sv-btn primary" type="button" data-discovery-approve>Approve concept &amp; create storyboard →</button></div></div></details>
+            <div class="sv-accordion-foot sv-discovery-result-actions" data-discovery-actions hidden><span class="sv-setup-note" data-discovery-result-note>AI concept draft · references are not yet analysed.</span><button class="sv-btn" type="button" data-discovery-edit-preserve>Edit my answers</button><button class="sv-btn" type="button" data-discovery-edit>Generate a new idea</button><button class="sv-btn primary" type="button" data-discovery-approve>Approve concept &amp; create storyboard →</button></div></div></details>
           </div>
         </section>
         <section class="sv-card sv-accordion" data-accordion="branding">
@@ -450,11 +450,17 @@
         finally{refinementBusy=false;const current=root.querySelector('[data-refine-submit]');if(current){current.disabled=false;current.textContent='Refine concept →';}}
         return;
       }
+      if(event.target.closest('[data-discovery-edit-preserve]')){
+        const discoverSection=root.querySelector('[data-work-section="discover"]');
+        if(discoverSection)discoverSection.open=true;
+        root.querySelector('[data-discovery-submit]')?.scrollIntoView({block:'nearest',behavior:'smooth'});
+        return;
+      }
       if(event.target.closest('[data-discovery-edit]')){
         if(root.querySelector('[data-edit-concept-confirm]'))return;
         const wrap=document.createElement('div');
         wrap.className='sv-modal-backdrop';
-        wrap.innerHTML='<section class="sv-modal" role="dialog" aria-modal="true" aria-labelledby="sv-edit-confirm-title"><h3 id="sv-edit-confirm-title">Start over with your creative direction?</h3><p style="font-size:11px;line-height:1.6;color:#aebbd0">Your current creative concept, refinements and approval will be cleared. Your answers in Discover your idea will be kept so you can edit them. Do you want to continue?</p><div class="sv-modal-foot"><button class="sv-btn" type="button" data-edit-concept-cancel>Cancel</button><button class="sv-btn primary" type="button" data-edit-concept-confirm>OK, start over</button></div></section>';
+        wrap.innerHTML='<section class="sv-modal" role="dialog" aria-modal="true" aria-labelledby="sv-edit-confirm-title"><h3 id="sv-edit-confirm-title">Start over with your creative direction?</h3><p style="font-size:11px;line-height:1.6;color:#aebbd0">Your current creative concept, refinements and approval will be cleared. Your answers in Discover your idea will be kept so you can edit them. Do you want to continue?</p><div class="sv-modal-foot"><button class="sv-btn" type="button" data-edit-concept-cancel>Cancel</button><button class="sv-btn primary" type="button" data-edit-concept-confirm>Generate new idea</button></div></section>';
         root.appendChild(wrap);
         wrap.addEventListener('click',e=>{
           if(e.target===wrap||e.target.closest('[data-edit-concept-cancel]')){wrap.remove();return;}
