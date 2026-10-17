@@ -1,3 +1,9 @@
+## Remove duplicate refinement heading (2026-10-17)
+
+- Removed the redundant inner “Refine with SvaraFlow” title, subtitle and icon from the refinement form.
+- The centered Section C heading remains the single heading; refinement controls follow directly beneath it.
+- Frontend JavaScript syntax passed. Cache version updated to `20261017-02`. Live browser verification remains outstanding.
+
 ## Section C duplicate and alignment fix (2026-10-17)
 
 - Centered the Section C heading while keeping the C marker and chevron anchored at the left and right edges.
