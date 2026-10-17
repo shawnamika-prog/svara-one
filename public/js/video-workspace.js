@@ -81,7 +81,7 @@
     .sv-accordion-title small{font-size:11px;color:#8294aa;font-weight:400}
     .sv-accordion-state{font-size:10px;color:#91a4b8;padding:5px 8px;border:1px solid #ffffff12;border-radius:7px;background:#0a1422;white-space:nowrap}
     .sv-accordion-state.complete{color:#67e8c5;border-color:#22665b;background:#102822}
-    .sv-accordion-chevron{font-size:17px;color:#A5B4FC;width:18px;text-align:center}
+    .sv-accordion-chevron{display:inline-flex;align-items:center;justify-content:center;min-width:70px;padding:6px 0;box-sizing:border-box;font-size:0;line-height:1;color:#a5b4fc;text-align:right;white-space:nowrap}.sv-accordion-head[aria-expanded="true"] .sv-accordion-chevron:after{content:"Collapse ↑";font-size:11px;font-weight:600;letter-spacing:.01em}.sv-accordion-head[aria-expanded="false"] .sv-accordion-chevron:after{content:"Expand ↓";font-size:11px;font-weight:600;letter-spacing:.01em}.sv-accordion-head:hover .sv-accordion-chevron:after{color:#c7c5ff}.sv-accordion-head:focus-visible .sv-accordion-chevron{outline:1px solid #6259c9;outline-offset:3px;border-radius:4px}
     .sv-accordion-body{padding:0 22px 20px;border-top:1px solid #ffffff0c}
     /* Consistent compact label/control rows across all setup panels */
     .sv-setup-grid .sv-field,.sv-brand-grid .sv-field{grid-template-columns:155px minmax(0,1fr);align-items:start;column-gap:12px}
