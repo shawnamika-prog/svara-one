@@ -1,3 +1,9 @@
+## Section C rendering-order fix (2026-10-17)
+
+- Root cause: the renderer queried for Section C before assigning the generated concept HTML, so the element did not exist yet and relocation never ran.
+- Moved Section C lookup/relocation until after the concept markup is rendered; C is then moved to the stable sibling host, unhidden and left collapsed.
+- Frontend JavaScript syntax check passed. Cache version updated to `20261016-23`. Live browser verification is still required.
+
 ## Header and refinement visibility fix (2026-10-16)
 
 - Removed the workflow status sentence beneath the seven-step timeline from the Video header.
