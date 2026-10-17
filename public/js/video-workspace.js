@@ -514,7 +514,7 @@
         if(refinementBusy)return;refinementBusy=true;button.disabled=true;button.textContent='Refining…';if(status)status.textContent='SvaraFlow is refining your concept…';setStatus('Refining the creative direction. No media is being generated.');
         try{const response=await fetch('/api/video/refine',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({request,scope,sceneIndex,concept:discoveryConcept})}),data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||('Creative refinement failed ('+response.status+')'));if(!data.concept||!Array.isArray(data.concept.sceneOutline))throw new Error('SvaraFlow returned an incomplete revision. Please try again.');discoveryHistory.push(JSON.parse(JSON.stringify(discoveryConcept)));if(discoveryHistory.length>10)discoveryHistory.shift();discoveryConcept=data.concept;
           if(workflowApproved.includes(0)){workflowApproved=workflowApproved.filter(index=>index===0);workflowCurrent=0;for(const stage of workflowStages.slice(1)){const state=root.querySelector('[data-accordion-state="'+stage.id+'"]');if(state&&state.classList.contains('complete')){state.textContent='Review needed';state.classList.remove('complete');}}renderWorkflow();}
-          if(result){renderDiscoveryConcept(discoveryConcept,result);const field=root.querySelector('[data-refine-request]');if(field)field.value='';}setStatus('Revision ready. Review it, refine again, undo, or approve when satisfied. No media credits were used.','success');}
+          if(result){renderDiscoveryConcept(discoveryConcept,result);scheduleProjectSave();const field=root.querySelector('[data-refine-request]');if(field)field.value='';}setStatus('Revision ready. Review it, refine again, undo, or approve when satisfied. No media credits were used.','success');}
         catch(error){if(status)status.textContent='Your current concept is unchanged. You can try again.';setStatus(String(error?.message||error),'error');}
         finally{refinementBusy=false;const current=root.querySelector('[data-refine-submit]');if(current){current.disabled=false;current.textContent='Refine concept →';}}
         return;
@@ -576,6 +576,7 @@
           discoveryConcept=data.concept;
           const c=discoveryConcept;
           renderDiscoveryConcept(c,result);
+          scheduleProjectSave();
           result.scrollIntoView({block:'nearest',behavior:'smooth'});
           setStatus('Concept ready for your review. Nothing advances until you approve it.','success');
         }catch(error){
