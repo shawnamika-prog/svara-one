@@ -1,3 +1,10 @@
+## Separate Edit my answers and Generate a new idea (2026-10-17)
+
+- “Edit my answers” now simply reopens Section A while preserving the current concept and refinement history, so users can adjust inputs without losing their work.
+- Added “Generate a new idea” as a separate action that opens the confirmation dialog. Confirming clears the concept and refinement history, hides/clears Section B and removes Section C while retaining discovery answers.
+- The confirmation action is labelled “Generate new idea”. Cache version updated to `20261017-05`.
+- Frontend JavaScript syntax passed; live browser interaction test remains outstanding.
+
 ## Confirm before restarting Creative Discovery (2026-10-17)
 
 - “Edit my answers” now opens a confirmation dialog explaining that the current creative direction, refinements and approval will be cleared while the discovery answers are retained for editing.
