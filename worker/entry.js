@@ -632,6 +632,49 @@ export default {
         }) });
       } catch (error) { console.error("video_projects_list_error", error); return json({ error: "Saved Video projects could not be listed." }, 500); }
     }
+    const videoReferenceMatch = url.pathname.match(/^\/api\/video\/projects\/([a-zA-Z0-9_-]+)\/references(?:\/([a-zA-Z0-9_-]+))?$/);
+    if (videoReferenceMatch && ["POST","GET","DELETE"].includes(request.method)) {
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return json({ error: "Authentication required." }, 401);
+      if (!env.DB || !env.GENERATED_AUDIO) return json({ error: "Video reference storage is not configured." }, 503);
+      const projectId = videoReferenceMatch[1], assetId = videoReferenceMatch[2] || "";
+      try {
+        const project = await env.DB.prepare("SELECT id, project_data_json FROM video_projects WHERE id = ? AND user_id = ? LIMIT 1").bind(projectId, userId).first();
+        if (!project) return json({ error: "Project not found." }, 404);
+        let data = {}; try { data = JSON.parse(project.project_data_json || "{}"); } catch {}
+        const references = Array.isArray(data.discoveryReferences) ? data.discoveryReferences : [];
+        if (request.method === "POST") {
+          if (assetId) return json({ error: "Invalid reference upload route." }, 404);
+          const form = await request.formData(), file = form.get("file");
+          if (!(file instanceof File) || !file.size) return json({ error: "Choose a non-empty reference file." }, 400);
+          if (file.size > 10 * 1024 * 1024) return json({ error: "Each reference file must be 10 MB or smaller." }, 413);
+          const name = String(file.name || "reference").replace(/[^a-zA-Z0-9._ -]/g, "_").slice(0, 120) || "reference";
+          const extension = (name.split(".").pop() || "").toLowerCase();
+          if (!new Set(["pdf","doc","docx","txt","md","ppt","pptx","png","jpg","jpeg","webp"]).has(extension)) return json({ error: "This reference file type is not supported." }, 415);
+          const id = crypto.randomUUID(), key = "video-project-assets/" + userId + "/" + projectId + "/references/" + id + "-" + name.replace(/\s+/g, "_");
+          const contentType = String(file.type || "application/octet-stream").slice(0, 120);
+          await env.GENERATED_AUDIO.put(key, file.stream(), { httpMetadata: { contentType }, customMetadata: { userId, projectId, assetId: id, originalName: name } });
+          return json({ ok: true, reference: { id, name, size: file.size, type: contentType, key, uploadedAt: new Date().toISOString() } });
+        }
+        const reference = references.find(item => item && item.id === assetId && typeof item.key === "string" && item.key.startsWith("video-project-assets/" + userId + "/" + projectId + "/references/"));
+        if (!reference) return json({ error: "Reference file not found." }, 404);
+        if (request.method === "DELETE") {
+          await env.GENERATED_AUDIO.delete(reference.key);
+          data.discoveryReferences = references.filter(item => item.id !== assetId);
+          const updated = await env.DB.prepare("UPDATE video_projects SET project_data_json = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND user_id = ?").bind(JSON.stringify(data), projectId, userId).run();
+          if (!updated.meta?.changes) return json({ error: "Reference file metadata could not be updated." }, 500);
+          return json({ ok: true, id: assetId });
+        }
+        const object = await env.GENERATED_AUDIO.get(reference.key);
+        if (!object) return json({ error: "The stored reference file could not be found." }, 404);
+        const headers = new Headers(); object.writeHttpMetadata(headers);
+        headers.set("content-type", reference.type || "application/octet-stream");
+        headers.set("content-disposition", "attachment; filename*=UTF-8''" + encodeURIComponent(reference.name || "reference"));
+        headers.set("cache-control", "private, no-store");
+        return new Response(object.body, { headers });
+      } catch (error) { console.error("video_reference_error", { message: String(error?.message || error).slice(0, 240) }); return json({ error: "Video reference file operation failed." }, 500); }
+    }
+
     const videoProjectMatch = url.pathname.match(/^\/api\/video\/projects\/([a-zA-Z0-9_-]+)$/);
     if (videoProjectMatch && (request.method === "GET" || request.method === "DELETE")) {
       const userId = await authenticatedUserId(request, env);
@@ -640,8 +683,19 @@ export default {
       const id = videoProjectMatch[1];
       if (request.method === "DELETE") {
         try {
+          const existing = await env.DB.prepare("SELECT id FROM video_projects WHERE id = ? AND user_id = ? LIMIT 1").bind(id, userId).first();
+          if (!existing) return json({ error: "Project not found or you do not have permission to delete it." }, 404);
+          if (env.GENERATED_AUDIO) {
+            const prefix = "video-project-assets/" + userId + "/" + id + "/references/";
+            let cursor;
+            do {
+              const page = await env.GENERATED_AUDIO.list({ prefix, cursor, limit: 1000 });
+              if (page.objects?.length) await env.GENERATED_AUDIO.delete(page.objects.map(object => object.key));
+              cursor = page.truncated ? page.cursor : undefined;
+            } while (cursor);
+          }
           const result = await env.DB.prepare("DELETE FROM video_projects WHERE id = ? AND user_id = ?").bind(id, userId).run();
-          if (!result.meta?.changes) return json({ error: "Project not found or you do not have permission to delete it." }, 404);
+          if (!result.meta?.changes) return json({ error: "Project could not be deleted." }, 500);
           return json({ ok: true, id });
         } catch (error) { console.error("video_project_delete_error", error); return json({ error: "The Video project could not be deleted." }, 500); }
       }
