@@ -1,3 +1,9 @@
+## Discovery section navigation behavior (2026-10-17)
+
+- “Edit my answers” opens Section A and explicitly closes Sections B and C while keeping their concept/refinement content intact for return.
+- “Generate a new idea” still asks for confirmation. On confirmation, it clears the creative concept and refinements, hides Sections B and C, opens Section A, and scrolls to Section A's heading automatically.
+- Cache version updated to `20261017-08`; frontend JavaScript syntax passed. Live browser test remains outstanding.
+
 ## Separate Edit my answers and Generate a new idea (2026-10-17)
 
 - “Edit my answers” now simply reopens Section A while preserving the current concept and refinement history, so users can adjust inputs without losing their work.
