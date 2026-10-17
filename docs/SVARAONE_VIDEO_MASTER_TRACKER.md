@@ -1,3 +1,9 @@
+## Panel 1 accordion control styling (2026-10-17)
+
+- Styled A/B/C collapse chevrons as consistent 30×30 px bordered controls with a dark SvaraONE background, rounded corners, and subtle indigo hover/focus states.
+- Matched Section C's right offset to the same inset as the standard section summaries.
+- Cache version updated to `20261017-12`. Frontend JavaScript syntax passed; browser visual verification remains outstanding.
+
 ## Discovery section navigation behavior (2026-10-17)
 
 - “Edit my answers” opens Section A and explicitly closes Sections B and C while keeping their concept/refinement content intact for return.
