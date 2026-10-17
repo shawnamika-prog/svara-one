@@ -619,6 +619,64 @@ export default {
       }
     }
 
+    if ((request.method === "GET" || request.method === "PUT") && url.pathname === "/api/video/projects/current") {
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return json({ error: "Authentication required." }, 401);
+      if (!env.DB) return json({ error: "Video project storage is not configured." }, 503);
+      if (request.method === "GET") {
+        try {
+          const row = await env.DB.prepare(`
+            SELECT id, title, current_stage, approved_stages_json, project_data_json, created_at, updated_at
+            FROM video_projects WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1
+          `).bind(userId).first();
+          if (!row) return json({ ok: true, project: null });
+          let projectData = {}, approvedStages = [];
+          try { projectData = JSON.parse(row.project_data_json || "{}"); } catch {}
+          try { approvedStages = JSON.parse(row.approved_stages_json || "[]"); } catch {}
+          return json({ ok: true, project: { id: row.id, title: row.title, currentStage: row.current_stage, approvedStages, data: projectData, createdAt: row.created_at, updatedAt: row.updated_at } });
+        } catch (error) {
+          console.error("video_project_load_error", error);
+          return json({ error: "The saved Video project could not be loaded." }, 500);
+        }
+      }
+      let body = {};
+      try { body = await request.json(); } catch { return json({ error: "Send project data as JSON." }, 400); }
+      const id = String(body.id || "").trim();
+      const currentStage = Number(body.currentStage);
+      const title = String(body.title || "Untitled video project").trim().slice(0, 180) || "Untitled video project";
+      const approvedStages = Array.isArray(body.approvedStages) ? [...new Set(body.approvedStages.map(Number).filter(n => Number.isInteger(n) && n >= 0 && n <= 6))].sort((a,b)=>a-b) : [];
+      const projectData = body.data && typeof body.data === "object" && !Array.isArray(body.data) ? body.data : null;
+      if (!id || id.length > 80 || !/^[a-zA-Z0-9_-]+$/.test(id)) return json({ error: "A valid project ID is required." }, 400);
+      if (!Number.isInteger(currentStage) || currentStage < 0 || currentStage > 6) return json({ error: "The current workflow stage is invalid." }, 400);
+      if (!projectData) return json({ error: "Project data is missing or invalid." }, 400);
+      const projectDataJson = JSON.stringify(projectData);
+      if (projectDataJson.length > 180000) return json({ error: "This project is too large to save. Reduce the amount of text or remove unsupported file data." }, 413);
+      const approvedJson = JSON.stringify(approvedStages);
+      try {
+        const result = await env.DB.prepare(`
+          INSERT INTO video_projects (id, user_id, title, current_stage, approved_stages_json, project_data_json)
+          VALUES (?, ?, ?, ?, ?, ?)
+          ON CONFLICT(id) DO UPDATE SET
+            title = excluded.title,
+            current_stage = excluded.current_stage,
+            approved_stages_json = excluded.approved_stages_json,
+            project_data_json = excluded.project_data_json,
+            updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+          WHERE video_projects.user_id = excluded.user_id
+        `).bind(id, userId, title, currentStage, approvedJson, projectDataJson).run();
+        if (!result.meta?.changes) {
+          const existing = await env.DB.prepare("SELECT id FROM video_projects WHERE id = ?").bind(id).first();
+          if (existing) return json({ error: "This project cannot be updated from the current account." }, 403);
+        }
+        const saved = await env.DB.prepare("SELECT updated_at FROM video_projects WHERE id = ? AND user_id = ?").bind(id, userId).first();
+        if (!saved) return json({ error: "The Video project could not be saved." }, 500);
+        return json({ ok: true, id, updatedAt: saved.updated_at });
+      } catch (error) {
+        console.error("video_project_save_error", error);
+        return json({ error: "The Video project could not be saved. Your current work is still open; please retry." }, 500);
+      }
+    }
+
     if (request.method === "POST" && url.pathname === "/api/video/discovery") {
       const userId = await authenticatedUserId(request, env);
       if (!userId) return json({ error: "Authentication required." }, 401);
