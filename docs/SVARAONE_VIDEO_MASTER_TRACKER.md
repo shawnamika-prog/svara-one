@@ -258,3 +258,13 @@ The earlier **V1.1 — UI cleanup and baseline lock** remains a separate verific
 - Open restores the selected project's concept, discovery answers, workflow approvals and storyboard. Delete requires confirmation and removes only the selected project.
 - Deleting the currently open project resets the workspace for a new idea and refreshes the project list.
 - Verification performed: frontend JavaScript syntax parse passed. Live deployed-browser and API tests remain pending.
+
+
+## Creative Discovery input and reference persistence (2026-10-17)
+
+- Project JSON explicitly stores the original Creative Discovery prompt, website URL, audience, goal, and selected discovery mode. These are restored into Panel 1A when reopening a saved project.
+- Reference uploads are saved in the existing R2 `GENERATED_AUDIO` bucket under an isolated `video-project-assets/{userId}/{projectId}/references/` prefix. Each file is limited to 10 MB and allowlisted document/image extensions.
+- D1 project JSON records the reference metadata and R2 object key. Saved references are shown after reopening, with download and remove actions. Deleting a project cleans up its reference objects.
+- Reference persistence is not equivalent to file analysis: the current Creative Discovery API still does not ingest or analyse uploaded file contents.
+- Validation: frontend JavaScript syntax and Worker syntax passed. Live R2/API/browser tests remain pending.
+- Existing projects created before this change may not contain their original prompt because those fields were not previously saved; the original text cannot be reconstructed reliably from the generated concept.
