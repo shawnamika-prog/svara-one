@@ -401,8 +401,66 @@
       const state=root.querySelector('[data-accordion-state="story"]');if(state){state.textContent='Concept ready for review';state.classList.remove('complete');}
     };
     const workflowStages=[{id:'story',label:'Story & Concept',heading:'Creative Discovery'},{id:'branding',label:'Branding',heading:'Branding'},{id:'characters',label:'Characters',heading:'Characters & Mascots'},{id:'environment',label:'Environments',heading:'Environments'},{id:'style',label:'Visual Style',heading:'Visual Style'},{id:'storyboard',label:'Storyboard',heading:'Storyboard & Concept Reel'},{id:'production',label:'Production',heading:'Generate & Assemble'}];
-    let workflowCurrent=0,workflowApproved=[];
-    // Workflow state is intentionally session-scoped until concept, scene and asset persistence are connected.
+    const workflowQuotes=['','Give your story an identity that people will remember.','Every memorable story begins with someone worth following.','Build a world your audience wants to step into.','The way a story looks shapes how it feels.','Every great film begins one scene at a time.','Bring every element together. Let your vision come alive.'];
+    let workflowCurrent=0,workflowApproved=[],projectId=crypto.randomUUID(),projectSaveTimer=null,projectSaveBusy=false,projectSaveQueued=false,projectLoading=false;
+    const projectControlKey=el=>el.dataset.persistKey||el.id||el.name||'';
+    const collectProjectData=()=>{
+      const fields={};
+      root.querySelectorAll('[data-accordion] input:not([type=file]),[data-accordion] textarea,[data-accordion] select').forEach(el=>{const key=projectControlKey(el);if(!key)return;fields[key]={value:el.value,checked:el.type==='checkbox'||el.type==='radio'?el.checked:undefined};});
+      const safeScenes=scenes.map(scene=>({...scene,imageFile:undefined,image:typeof scene.image==='string'&&scene.image.startsWith('blob:')?'':scene.image,video:typeof scene.video==='string'&&scene.video.startsWith('blob:')?'':scene.video}));
+      return {version:1,discoveryConcept,discoveryHistory,fields,scenes:safeScenes,selectedId,tab,mode,projectReviewed,brandFileNames:Object.fromEntries(['logo','reference'].map(kind=>[kind,root.querySelector('[data-brand-file="'+kind+'"]')?.textContent||'']))};
+    };
+    const persistVideoProject=async({currentStage=workflowCurrent,approvedStages=workflowApproved,concept=discoveryConcept,sceneList=scenes}={})=>{
+      if(projectLoading)return false;
+      if(projectSaveBusy){projectSaveQueued=true;return false;}
+      projectSaveBusy=true;
+      try{
+        const data=collectProjectData();data.discoveryConcept=concept;data.scenes=sceneList.map(scene=>({...scene,imageFile:undefined,image:typeof scene.image==='string'&&scene.image.startsWith('blob:')?'':scene.image,video:typeof scene.video==='string'&&scene.video.startsWith('blob:')?'':scene.video}));
+        const response=await fetch('/api/video/projects/current',{method:'PUT',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({id:projectId,title:concept?.title||'Untitled video project',currentStage,approvedStages,data})});
+        const result=await response.json().catch(()=>({}));
+        if(!response.ok||!result.ok)throw new Error(result.error||'Project save failed.');
+        projectId=result.id||projectId;
+        const savedAt=result.updatedAt?new Date(result.updatedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):'';
+        setStatus('Project saved to your library'+(savedAt?' at '+savedAt:'')+'.','success');
+        return true;
+      }catch(error){setStatus('Could not save this project. Your work remains open; retry before moving on. '+String(error?.message||''),'error');return false;}
+      finally{projectSaveBusy=false;if(projectSaveQueued){projectSaveQueued=false;scheduleProjectSave();}}
+    };
+    const scheduleProjectSave=()=>{
+      if(projectLoading)return;
+      clearTimeout(projectSaveTimer);
+      projectSaveTimer=setTimeout(()=>{if(!projectSaveBusy)persistVideoProject();else projectSaveQueued=true;},800);
+    };
+    const restoreProjectData=project=>{
+      if(!project?.data)return;
+      projectLoading=true;
+      try{
+        projectId=project.id||projectId;
+        const data=project.data;
+        if(data.fields&&typeof data.fields==='object'){
+          root.querySelectorAll('[data-accordion] input:not([type=file]),[data-accordion] textarea,[data-accordion] select').forEach(el=>{const key=projectControlKey(el),saved=data.fields[key];if(!key||!saved)return;el.value=saved.value??'';if(typeof saved.checked==='boolean')el.checked=saved.checked;});
+        }
+        discoveryConcept=data.discoveryConcept&&Array.isArray(data.discoveryConcept.sceneOutline)?data.discoveryConcept:null;
+        discoveryHistory.splice(0,discoveryHistory.length,...(Array.isArray(data.discoveryHistory)?data.discoveryHistory.slice(-10):[]));
+        scenes=Array.isArray(data.scenes)?data.scenes.map(scene=>({...scene,imageFile:null,image:typeof scene.image==='string'&&scene.image.startsWith('blob:')?'':scene.image,video:typeof scene.video==='string'&&scene.video.startsWith('blob:')?'':scene.video})):seedScenes();
+        selectedId=data.selectedId&&scenes.some(scene=>scene.id===data.selectedId)?data.selectedId:scenes[0]?.id||null;
+        tab=data.tab||'settings';mode=data.mode||'director';
+        Object.assign(projectReviewed,data.projectReviewed||{});
+        workflowApproved=Array.isArray(project.approvedStages)?project.approvedStages.map(Number).filter(n=>Number.isInteger(n)&&n>=0&&n<=6):[];
+        workflowCurrent=Number.isInteger(project.currentStage)?Math.max(0,Math.min(6,project.currentStage)):0;
+        if(discoveryConcept){const result=root.querySelector('[data-discovery-result]');if(result)renderDiscoveryConcept(discoveryConcept,result);}
+        renderScenes();renderSettings();renderPreview();renderWorkflow();
+        workflowStages.forEach((stage,index)=>{const state=root.querySelector('[data-accordion-state="'+stage.id+'"]');if(state&&workflowApproved.includes(index)){state.textContent=index===0?'Concept approved':index===5?'Storyboard approved':'Approved';state.classList.add('complete');}});
+        goWorkflowStage(workflowCurrent,false);
+        setStatus('Saved Video project restored from the database.','success');
+      }finally{projectLoading=false;}
+    };
+    const loadSavedProject=async()=>{
+      projectLoading=true;
+      try{const response=await fetch('/api/video/projects/current',{credentials:'same-origin'}),data=await response.json().catch(()=>({}));if(response.ok&&data.project)restoreProjectData(data.project);else if(!response.ok&&response.status!==404)setStatus(data.error||'Saved project could not be loaded.','error');}
+      catch(error){setStatus('Saved project could not be loaded. You can continue, but save before leaving.','error');}
+      finally{projectLoading=false;}
+    };
     const saveWorkflow=()=>{};
     const renderWorkflow=()=>{
       const status=root.querySelector('[data-workflow-status]');
@@ -424,14 +482,18 @@
       if(body){body.hidden=false;if(head){head.setAttribute('aria-expanded','true');const chev=head.querySelector('.sv-accordion-chevron');if(chev)chev.textContent='⌃';}}
       if(scroll)panel?.scrollIntoView({block:'start',behavior:'smooth'});
     };
-    const approveWorkflowStage=(id,skipped=false)=>{
+    const approveWorkflowStage=async(id,skipped=false)=>{
       const index=workflowStages.findIndex(stage=>stage.id===id);if(index<0)return;
       if(id==='story'&&!discoveryConcept){setStatus('Develop and review a concept before approving this stage.','error');return;}
       if(id==='storyboard'&&!scenes.length){setStatus('Create or approve your concept before approving the storyboard.','error');return;}
-      if(!workflowApproved.includes(index))workflowApproved.push(index);
-      const state=root.querySelector('[data-accordion-state="'+id+'"]');if(state){state.textContent=skipped?'Skipped':id==='story'?'Concept approved':id==='storyboard'?'Storyboard approved':'Approved';state.classList.add('complete');}
-      if(index<6){goWorkflowStage(index+1);setStatus((skipped?'Branding skipped':workflowStages[index].heading+' approved')+'. '+workflowStages[index+1].heading+' is now available.','success');}
-      else{renderWorkflow();setStatus('Workflow review complete. Production capabilities will be enabled as they are implemented.','success');}
+      const nextApproved=[...new Set([...workflowApproved,index])].sort((a,b)=>a-b),nextStage=index<6?index+1:index;
+      const state=root.querySelector('[data-accordion-state="'+id+'"]');
+      const saveOk=await persistVideoProject({currentStage:nextStage,approvedStages:nextApproved});
+      if(!saveOk)return;
+      workflowApproved=nextApproved;
+      if(state){state.textContent=skipped?'Skipped':id==='story'?'Concept approved':id==='storyboard'?'Storyboard approved':'Approved';state.classList.add('complete');}
+      if(index<6){goWorkflowStage(index+1);setStatus((skipped?'Branding skipped':workflowStages[index].heading+' approved')+'. Saved. '+workflowStages[index+1].heading+' is now available.','success');}
+      else{renderWorkflow();setStatus('Workflow review complete. Project saved. Production capabilities will be enabled as they are implemented.','success');}
     };
     root.addEventListener('click',async event=>{
       const workflowStep=event.target.closest('[data-workflow-step]');if(workflowStep){const index=Number(workflowStep.dataset.workflowStep);if(!workflowStep.disabled)goWorkflowStage(index);return;}
@@ -526,7 +588,6 @@
       }
       if(event.target.closest('[data-discovery-approve]')){
         if(!discoveryConcept){setStatus('Develop a concept before approving it.','error');return;}
-        approveWorkflowStage('story');
         const c=discoveryConcept;
         scenes=c.sceneOutline.map((scene,index)=>({
           id:'scene-'+Date.now()+'-'+index,
@@ -546,8 +607,8 @@
         if(storyboard){storyboard.hidden=true;if(storyboardHead)storyboardHead.setAttribute('aria-expanded','false');const chev=storyboardHead?.querySelector('.sv-accordion-chevron');if(chev)chev.textContent='⌄';}
         const state=root.querySelector('[data-accordion-state="storyboard"]');if(state)state.textContent=scenes.length+' scenes · concept approved';
         renderScenes();renderSettings();renderPreview();
-        setStatus('Concept approved. '+scenes.length+' editable storyboard scenes created. Add or generate reference images in the next step.','success');
-
+        await approveWorkflowStage('story');
+        if(workflowApproved.includes(0))setStatus('Concept saved and approved. '+scenes.length+' editable storyboard scenes created. No media generated.','success');
         return;
       }
       const fileInput=event.target.closest('[data-discovery-files]');
@@ -567,9 +628,14 @@
       if(event.target.matches('[data-image-input]')){const file=event.target.files&&event.target.files[0];if(file){const s=selected();s.imageFile=file;s.image=URL.createObjectURL(file);s.status='Ready to generate';renderScenes();renderSettings();renderPreview();}}
     });
     root.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target.matches('[data-scene]')){event.preventDefault();selectScene(event.target.dataset.scene);}});
+    workflowStages.forEach((stage,index)=>{const panel=root.querySelector('[data-accordion="'+stage.id+'"]'),head=panel?.querySelector('[data-accordion-toggle]');if(!panel||!head||!workflowQuotes[index])return;const quote=document.createElement('p');quote.className='sv-workflow-quote';quote.textContent='“'+workflowQuotes[index]+'”';head.insertAdjacentElement('afterend',quote);});
+    if(!document.querySelector('#svVideoPersistenceStyles')){const persistenceStyle=document.createElement('style');persistenceStyle.id='svVideoPersistenceStyles';persistenceStyle.textContent='.sv-workflow-quote{margin:0;padding:0 18px 13px 62px;color:#8ea9cb;font-size:11px;font-style:italic;line-height:1.5;letter-spacing:.01em}.sv-workflow-quote[hidden]{display:none}@media(max-width:600px){.sv-workflow-quote{padding-left:18px}}';document.head.appendChild(persistenceStyle);}
+    root.addEventListener('input',event=>{if(projectLoading||event.target.matches('input[type=file]'))return;if(event.target.closest('[data-accordion]'))scheduleProjectSave();});
+    root.addEventListener('change',event=>{if(projectLoading||event.target.matches('input[type=file]'))return;if(event.target.closest('[data-accordion]'))scheduleProjectSave();});
     renderScenes();renderSettings();renderPreview();renderWorkflow();
     const currentPanel=root.querySelector('[data-accordion="'+workflowStages[workflowCurrent].id+'"]'),currentBody=currentPanel?.querySelector('[data-accordion-body]'),currentHead=currentPanel?.querySelector('[data-accordion-toggle]');if(currentBody){currentBody.hidden=false;if(currentHead){currentHead.setAttribute('aria-expanded','true');const chev=currentHead.querySelector('.sv-accordion-chevron');if(chev)chev.textContent='⌃';}}
     root.dataset.videoWorkspaceInitialized='1';
+    loadSavedProject();
   }
   window.SvaraVideoWorkspace={render};
 })();
