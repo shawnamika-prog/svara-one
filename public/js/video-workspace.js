@@ -15,6 +15,7 @@
     @media(max-width:760px){.sv-workflow{padding:12px}.sv-workflow-rail{grid-template-columns:repeat(7,minmax(80px,1fr));overflow-x:auto;padding:2px 0 7px}.sv-workflow-step strong{font-size:9px}.sv-workflow-status{font-size:9px}}
 
     .sv-projects-panel .sv-vhead{border-bottom:1px solid #ffffff0c}.sv-projects-list{display:grid;gap:8px;padding:14px 16px}.sv-project-row{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #ffffff12;border-radius:10px;background:#0a1220;min-width:0}.sv-project-icon{display:grid;place-items:center;flex:none;width:38px;height:38px;border-radius:9px;background:#25234b;color:#c7d2fe;font-size:17px}.sv-project-copy{min-width:0;flex:1}.sv-project-copy strong{display:block;font-size:12px;color:#e5edf8;overflow-wrap:anywhere}.sv-project-copy small{display:block;margin-top:5px;color:#879ab1;font-size:9px;line-height:1.5}.sv-project-actions{display:flex;gap:6px;flex-wrap:wrap}.sv-project-actions .sv-btn{padding:8px 10px}.sv-project-empty{padding:18px;border:1px dashed #ffffff1f;border-radius:10px;color:#8ea0b6;font-size:11px;line-height:1.6;text-align:center}.sv-project-actions .danger{border-color:#6e303b;color:#ffb7c0}.sv-delete-project-modal{max-width:440px;border-color:#75404a;box-shadow:0 25px 90px #000d,0 0 35px #5b233522}.sv-delete-project-mark{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:#4a202b;border:1px solid #a84858;color:#ffb7c0;font-size:21px;font-weight:800;margin-bottom:14px}.sv-delete-project-modal h3{font-size:17px;color:#f1f5ff}.sv-delete-project-modal p{margin:0;color:#a8b6c9;font-size:12px;line-height:1.7}.sv-delete-project-modal p strong{color:#f1f5ff;overflow-wrap:anywhere}.sv-delete-project-modal .sv-modal-foot{margin-top:22px}.sv-btn-danger{background:#7f2635!important;border:1px solid #b84b5d!important;color:#fff!important}.sv-btn-danger:hover{background:#9b2e40!important}
+.sv-saved-reference-list{display:grid;gap:6px;margin-top:8px}.sv-saved-reference-list>small{font-size:9px;color:#93a6bd}.sv-saved-reference{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:7px 9px;border:1px solid #ffffff12;border-radius:8px;background:#0a1220}.sv-saved-reference span{flex:1;min-width:120px;font-size:10px;color:#cbd5e1;overflow-wrap:anywhere}.sv-saved-reference .sv-btn{padding:6px 8px;font-size:9px;text-decoration:none}
 .sv-project-actions .danger:hover{border-color:#bd485a}
     .sv-main{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(310px,.85fr);gap:14px;align-items:start}.sv-scenes{display:grid;gap:10px}.sv-scene{display:grid;grid-template-columns:minmax(190px,29%) minmax(0,1fr) 112px;gap:12px;padding:10px;border:1px solid #ffffff12;background:#0a1220;border-radius:12px;cursor:pointer;min-width:0}.sv-scene.selected{border-color:#428bff99;box-shadow:inset 0 0 0 1px #428bff24}.sv-thumb{position:relative;display:grid;place-items:center;aspect-ratio:16/9;min-height:110px;border-radius:8px;overflow:hidden;background:radial-gradient(ellipse at 65% 15%,#284c7b,#111f37 45%,#070d18 80%);border:1px solid #ffffff10;color:#7c9fc9}.sv-thumb img,.sv-thumb video{width:100%;height:100%;position:absolute;inset:0;object-fit:cover}.sv-thumb span{position:relative;font-size:28px;z-index:1;text-shadow:0 2px 15px #000}.sv-number{position:absolute;z-index:2;left:7px;top:7px;background:#267cf5;color:#fff;border-radius:6px;padding:5px 7px;font-size:10px;font-weight:800}.sv-scene-info{min-width:0;padding:3px 0}.sv-scene-info h3{font-size:12px;margin:0 0 7px;line-height:1.4;color:#edf4ff}.sv-scene-info p{font-size:10px;color:#8da0b5;line-height:1.5;margin:0 0 9px}.sv-meta{display:flex;gap:5px;flex-wrap:wrap}.sv-chip{padding:5px 7px;border-radius:6px;background:#101d2d;border:1px solid #ffffff0b;color:#8fa7c0;font-size:8px;white-space:nowrap}.sv-chip.status{color:#e4c48a}.sv-chip.ready{color:#60e0c9}.sv-mini-assets{display:flex;gap:5px;margin-top:9px;flex-wrap:wrap}.sv-mini-assets button{border:1px solid #ffffff12;border-radius:7px;background:#0c1725;color:#9aadc1;padding:6px 7px;font-size:8px;cursor:pointer}.sv-mini-assets button:hover{color:#fff;border-color:#428bff66}.sv-scene-actions{display:grid;align-content:start;gap:5px}.sv-scene-actions .sv-btn{padding:8px 5px;font-size:9px}.sv-add{border:1px dashed #3984fa88;border-radius:10px;background:#0b1422;color:#81b5ff;padding:13px;text-align:center;width:100%;cursor:pointer;font:700 10px Inter}.sv-add:hover{background:#10203a}
     .sv-right{display:grid;gap:12px;min-width:0}.sv-preview{padding:12px}.sv-preview-head{display:flex;align-items:center;justify-content:space-between;padding:2px 2px 10px}.sv-preview-head strong{font-size:12px}.sv-preview-stage{aspect-ratio:16/9;display:grid;place-items:center;position:relative;overflow:hidden;border-radius:9px;background:radial-gradient(ellipse at 50% 15%,#244a79,#101a2b 55%,#050a12);border:1px solid #ffffff12}.sv-preview-stage img,.sv-preview-stage video{width:100%;height:100%;object-fit:contain}.sv-preview-placeholder{text-align:center;padding:20px;color:#8ea5c0}.sv-preview-placeholder b{font-size:25px;display:block;margin-bottom:10px}.sv-preview-placeholder span{display:block;font-size:10px;line-height:1.5}
@@ -409,12 +410,16 @@
     const workflowStages=[{id:'story',label:'Story & Concept',heading:'Creative Discovery'},{id:'branding',label:'Branding',heading:'Branding'},{id:'characters',label:'Characters',heading:'Characters & Mascots'},{id:'environment',label:'Environments',heading:'Environments'},{id:'style',label:'Visual Style',heading:'Visual Style'},{id:'storyboard',label:'Storyboard',heading:'Storyboard & Concept Reel'},{id:'production',label:'Production',heading:'Generate & Assemble'}];
     const workflowQuotes=['','Give your story an identity that people will remember.','Every memorable story begins with someone worth following.','Build a world your audience wants to step into.','The way a story looks shapes how it feels.','Every great film begins one scene at a time.','Bring every element together. Let your vision come alive.'];
     let workflowCurrent=0,workflowApproved=[],projectId=crypto.randomUUID(),projectSaveTimer=null,projectSaveBusy=false,projectSaveQueued=false,projectLoading=false;
+    let discoveryReferences=[];
     const projectControlKey=el=>el.dataset.persistKey||el.id||el.name||'';
     const collectProjectData=()=>{
       const fields={};
       root.querySelectorAll('[data-accordion] input:not([type=file]),[data-accordion] textarea,[data-accordion] select').forEach(el=>{const key=projectControlKey(el);if(!key)return;fields[key]={value:el.value,checked:el.type==='checkbox'||el.type==='radio'?el.checked:undefined};});
       const safeScenes=scenes.map(scene=>({...scene,imageFile:undefined,image:typeof scene.image==='string'&&scene.image.startsWith('blob:')?'':scene.image,video:typeof scene.video==='string'&&scene.video.startsWith('blob:')?'':scene.video}));
-      return {version:1,discoveryConcept,discoveryHistory,fields,scenes:safeScenes,selectedId,tab,mode,projectReviewed,brandFileNames:Object.fromEntries(['logo','reference'].map(kind=>[kind,root.querySelector('[data-brand-file="'+kind+'"]')?.textContent||'']))};
+      const discoveryFields={};
+      ['idea','url','audience','goal'].forEach(key=>{discoveryFields[key]=root.querySelector('[data-discovery-field="'+key+'"]')?.value||'';});
+      discoveryFields.mode=root.querySelector('[data-discovery-mode].active')?.dataset.discoveryMode||'discover';
+      return {version:2,discoveryFields,discoveryReferences,discoveryConcept,discoveryHistory,fields,scenes:safeScenes,selectedId,tab,mode,projectReviewed,brandFileNames:Object.fromEntries(['logo','reference'].map(kind=>[kind,root.querySelector('[data-brand-file="'+kind+'"]')?.textContent||'']))};
     };
     const persistVideoProject=async({currentStage=workflowCurrent,approvedStages=workflowApproved,concept=discoveryConcept,sceneList=scenes}={})=>{
       if(projectLoading)return false;
@@ -446,6 +451,16 @@
         if(data.fields&&typeof data.fields==='object'){
           root.querySelectorAll('[data-accordion] input:not([type=file]),[data-accordion] textarea,[data-accordion] select').forEach(el=>{const key=projectControlKey(el),saved=data.fields[key];if(!key||!saved)return;el.value=saved.value??'';if(typeof saved.checked==='boolean')el.checked=saved.checked;});
         }
+        const savedDiscovery=data.discoveryFields&&typeof data.discoveryFields==='object'?data.discoveryFields:{};
+        ['idea','url','audience','goal'].forEach(key=>{const field=root.querySelector('[data-discovery-field="'+key+'"]');if(field&&typeof savedDiscovery[key]==='string')field.value=savedDiscovery[key];});
+        const savedMode=savedDiscovery.mode==='brief'?'brief':'discover';
+        root.querySelectorAll('[data-discovery-mode]').forEach(button=>{const active=button.dataset.discoveryMode===savedMode;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});
+        const submitButton=root.querySelector('[data-discovery-submit]');if(submitButton)submitButton.innerHTML=savedMode==='brief'?'Review my brief →':'Shape my idea →';
+        discoveryReferences=Array.isArray(data.discoveryReferences)?data.discoveryReferences.filter(item=>item&&item.id&&item.name):[];
+        const fileLabel=root.querySelector('[data-discovery-file-names]');if(fileLabel)fileLabel.textContent=discoveryReferences.length?discoveryReferences.map(item=>item.name).join(', '):'No files selected';
+        let savedReferencesLabel=root.querySelector('[data-discovery-saved-files]');
+        if(!savedReferencesLabel){savedReferencesLabel=document.createElement('div');savedReferencesLabel.dataset.discoverySavedFiles='1';savedReferencesLabel.className='sv-saved-reference-list';root.querySelector('[data-discovery-files]')?.closest('.sv-discovery-upload-field')?.appendChild(savedReferencesLabel);}
+        renderSavedDiscoveryReferences();
         discoveryConcept=data.discoveryConcept&&Array.isArray(data.discoveryConcept.sceneOutline)?data.discoveryConcept:null;
         discoveryHistory.splice(0,discoveryHistory.length,...(Array.isArray(data.discoveryHistory)?data.discoveryHistory.slice(-10):[]));
         scenes=Array.isArray(data.scenes)?data.scenes.map(scene=>({...scene,imageFile:null,image:typeof scene.image==='string'&&scene.image.startsWith('blob:')?'':scene.image,video:typeof scene.video==='string'&&scene.video.startsWith('blob:')?'':scene.video})):seedScenes();
@@ -460,6 +475,42 @@
         goWorkflowStage(workflowCurrent,false);
         setStatus('Saved Video project restored from the database.','success');
       }finally{projectLoading=false;}
+    };
+    const renderSavedDiscoveryReferences=()=>{
+      const host=root.querySelector('[data-discovery-saved-files]');if(!host)return;
+      host.innerHTML=discoveryReferences.length?'<small>Saved references</small>'+discoveryReferences.map(item=>'<div class="sv-saved-reference"><span>'+esc(item.name)+'</span><a class="sv-btn" href="/api/video/projects/'+encodeURIComponent(projectId)+'/references/'+encodeURIComponent(item.id)+'" target="_blank" rel="noopener">Download</a><button class="sv-btn" type="button" data-reference-remove="'+esc(item.id)+'">Remove</button></div>').join(''):'';
+    };
+    const uploadDiscoveryReferences=async files=>{
+      const valid=files.filter(file=>file.size>0&&file.size<=10*1024*1024);
+      if(valid.length!==files.length)setStatus('Each reference file must be 10 MB or smaller.','error');
+      if(!valid.length)return;
+      if(!await persistVideoProject()){setStatus('Save the project before uploading reference files.','error');return;}
+      for(const file of valid){
+        try{
+          const form=new FormData();form.append('file',file,file.name);
+          const response=await fetch('/api/video/projects/'+encodeURIComponent(projectId)+'/references',{method:'POST',credentials:'same-origin',body:form});
+          const result=await response.json().catch(()=>({}));
+          if(!response.ok||!result.reference)throw new Error(result.error||('Upload failed for '+file.name));
+          discoveryReferences=discoveryReferences.filter(item=>item.name!==result.reference.name);
+          discoveryReferences.push(result.reference);
+        }catch(error){setStatus(error.message||('Could not save reference '+file.name),'error');}
+      }
+      const input=root.querySelector('[data-discovery-files]');if(input)input.value='';
+      const label=root.querySelector('[data-discovery-file-names]');if(label)label.textContent=discoveryReferences.length?discoveryReferences.map(item=>item.name).join(', '):'No files saved';
+      await persistVideoProject();renderSavedDiscoveryReferences();await refreshVideoProjects();
+      setStatus('Reference files saved with this project.','success');
+    };
+    const removeDiscoveryReference=async id=>{
+      const item=discoveryReferences.find(ref=>ref.id===id);if(!item)return;
+      if(!await confirmVideoProjectDelete('reference file "'+item.name+'"'))return;
+      try{
+        const response=await fetch('/api/video/projects/'+encodeURIComponent(projectId)+'/references/'+encodeURIComponent(id),{method:'DELETE',credentials:'same-origin'});
+        const result=await response.json().catch(()=>({}));
+        if(!response.ok)throw new Error(result.error||'Reference file could not be removed.');
+        discoveryReferences=discoveryReferences.filter(ref=>ref.id!==id);
+        await persistVideoProject();renderSavedDiscoveryReferences();
+        const label=root.querySelector('[data-discovery-file-names]');if(label)label.textContent=discoveryReferences.length?discoveryReferences.map(ref=>ref.name).join(', '):'No files selected';
+      }catch(error){setStatus(error.message||'Reference file could not be removed.','error');}
     };
     const projectStatusLabel=project=>{
       const approved=Array.isArray(project.approvedStages)?project.approvedStages:[];
@@ -551,6 +602,7 @@
       else{renderWorkflow();setStatus('Workflow review complete. Project saved. Production capabilities will be enabled as they are implemented.','success');}
     };
     root.addEventListener('click',async event=>{
+      const removeReferenceButton=event.target.closest('[data-reference-remove]');if(removeReferenceButton){removeDiscoveryReference(removeReferenceButton.dataset.referenceRemove);return;}
       if(event.target.closest('[data-projects-refresh]')){refreshVideoProjects();return;}
       const openProjectButton=event.target.closest('[data-project-open]');if(openProjectButton){openVideoProject(openProjectButton.dataset.projectOpen);return;}
       const deleteProjectButton=event.target.closest('[data-project-delete]');if(deleteProjectButton){deleteVideoProject(deleteProjectButton.dataset.projectDelete);return;}
@@ -685,7 +737,7 @@
       const card=event.target.closest('[data-scene]');if(card)selectScene(card.dataset.scene);
     });
     root.addEventListener('change',event=>{
-      if(event.target.matches('[data-discovery-files]')){const label=root.querySelector('[data-discovery-file-names]');if(label)label.textContent=event.target.files.length?Array.from(event.target.files).map(file=>file.name).join(', '):'No files selected';return;}
+      if(event.target.matches('[data-discovery-files]')){const label=root.querySelector('[data-discovery-file-names]');if(label)label.textContent=event.target.files.length?Array.from(event.target.files).map(file=>file.name).join(', '):'No new files selected';if(event.target.files.length)uploadDiscoveryReferences(Array.from(event.target.files));return;}
       const bind=event.target.dataset.bind;if(bind){const s=selected();s[bind]=bind==='duration'?Number(event.target.value):event.target.value;if(bind==='status')renderScenes();if(bind==='title'||bind==='description'||bind==='duration'||bind==='ratio')renderScenes();renderPreview();scheduleProjectSave();return;}
       if(event.target.matches('[data-image-input]')){const file=event.target.files&&event.target.files[0];if(file){const s=selected();s.imageFile=file;s.image=URL.createObjectURL(file);s.status='Ready to generate';renderScenes();renderSettings();renderPreview();}}
     });
