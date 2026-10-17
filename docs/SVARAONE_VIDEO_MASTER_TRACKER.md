@@ -1,3 +1,9 @@
+## Accordion chevron alignment and contrast (2026-10-17)
+
+- Changed the collapse control to inline-flex with explicit center alignment, zero padding/margin and centered text.
+- Brightened the default indigo fill and border so the control is more visible at rest; hover/focus states remain brighter.
+- Cache version updated to `20261017-13`. JavaScript syntax passed; visual browser verification remains outstanding.
+
 ## Panel 1 accordion control styling (2026-10-17)
 
 - Styled A/B/C collapse chevrons as consistent 30×30 px bordered controls with a dark SvaraONE background, rounded corners, and subtle indigo hover/focus states.
