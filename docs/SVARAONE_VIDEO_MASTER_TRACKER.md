@@ -1,3 +1,9 @@
+## Panel-level Collapse / Expand labels (2026-10-17)
+
+- Replaced the panel-level standalone arrow visually with a subtle text control: “Collapse ↑” while expanded and “Expand ↓” while collapsed.
+- Section-level A/B/C controls remain bordered indigo chevron buttons and are unaffected.
+- Cache version updated to `20261017-15`. Frontend JavaScript syntax passed; live browser verification remains outstanding.
+
 ## Accordion chevron alignment and contrast (2026-10-17)
 
 - Changed the collapse control to inline-flex with explicit center alignment, zero padding/margin and centered text.
