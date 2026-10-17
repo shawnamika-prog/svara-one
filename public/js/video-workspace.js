@@ -451,14 +451,27 @@
         return;
       }
       if(event.target.closest('[data-discovery-edit]')){
-        const discoverSection=root.querySelector('[data-work-section="discover"]'),conceptSection=root.querySelector('[data-work-section="concept"]'),refineHost=root.querySelector('[data-refine-section-host]'),refineSection=refineHost?.querySelector('[data-work-section="refine"]');
-        if(discoverSection)discoverSection.open=true;
-        if(conceptSection)conceptSection.open=false;
-        if(refineSection){refineSection.hidden=true;refineSection.open=false;}
-        const result=root.querySelector('[data-discovery-result]'),actions=root.querySelector('[data-discovery-actions]');
-        if(result)result.hidden=true;
-        if(actions)actions.hidden=true;
-        root.querySelector('[data-discovery-submit]')?.scrollIntoView({block:'nearest',behavior:'smooth'});
+        if(root.querySelector('[data-edit-concept-confirm]'))return;
+        const wrap=document.createElement('div');
+        wrap.className='sv-modal-backdrop';
+        wrap.innerHTML='<section class="sv-modal" role="dialog" aria-modal="true" aria-labelledby="sv-edit-confirm-title"><h3 id="sv-edit-confirm-title">Start over with your creative direction?</h3><p style="font-size:11px;line-height:1.6;color:#aebbd0">Your current creative concept, refinements and approval will be cleared. Your answers in Discover your idea will be kept so you can edit them. Do you want to continue?</p><div class="sv-modal-foot"><button class="sv-btn" type="button" data-edit-concept-cancel>Cancel</button><button class="sv-btn primary" type="button" data-edit-concept-confirm>OK, start over</button></div></section>';
+        root.appendChild(wrap);
+        wrap.addEventListener('click',e=>{
+          if(e.target===wrap||e.target.closest('[data-edit-concept-cancel]')){wrap.remove();return;}
+          if(!e.target.closest('[data-edit-concept-confirm]'))return;
+          discoveryConcept=null;
+          discoveryHistory.length=0;
+          const discoverSection=root.querySelector('[data-work-section="discover"]'),conceptSection=root.querySelector('[data-work-section="concept"]'),refineHost=root.querySelector('[data-refine-section-host]'),result=root.querySelector('[data-discovery-result]'),actions=root.querySelector('[data-discovery-actions]');
+          if(discoverSection)discoverSection.open=true;
+          if(conceptSection){conceptSection.open=false;conceptSection.hidden=true;}
+          if(refineHost){refineHost.querySelectorAll('[data-work-section="refine"]').forEach(section=>section.remove());refineHost.hidden=true;}
+          if(result){result.hidden=true;result.innerHTML='';}
+          if(actions)actions.hidden=true;
+          const state=root.querySelector('[data-accordion-state="story"]');if(state)state.textContent='Ready to explore';
+          wrap.remove();
+          root.querySelector('[data-discovery-submit]')?.scrollIntoView({block:'nearest',behavior:'smooth'});
+          setStatus('Creative direction cleared. Your discovery answers are ready to edit.');
+        });
         return;
       }
       if(event.target.closest('[data-discovery-submit]')){
