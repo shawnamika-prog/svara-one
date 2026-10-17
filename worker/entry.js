@@ -619,6 +619,42 @@ export default {
       }
     }
 
+    if (url.pathname === "/api/video/projects" && request.method === "GET") {
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return json({ error: "Authentication required." }, 401);
+      if (!env.DB) return json({ error: "Video project storage is not configured." }, 503);
+      try {
+        const rows = await env.DB.prepare(`SELECT id, title, current_stage, approved_stages_json, created_at, updated_at FROM video_projects WHERE user_id = ? ORDER BY updated_at DESC LIMIT 100`).bind(userId).all();
+        return json({ ok: true, projects: (rows.results || []).map(row => {
+          let approvedStages = [];
+          try { approvedStages = JSON.parse(row.approved_stages_json || "[]"); } catch {}
+          return { id: row.id, title: row.title, currentStage: row.current_stage, approvedStages, createdAt: row.created_at, updatedAt: row.updated_at };
+        }) });
+      } catch (error) { console.error("video_projects_list_error", error); return json({ error: "Saved Video projects could not be listed." }, 500); }
+    }
+    const videoProjectMatch = url.pathname.match(/^\/api\/video\/projects\/([a-zA-Z0-9_-]+)$/);
+    if (videoProjectMatch && (request.method === "GET" || request.method === "DELETE")) {
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return json({ error: "Authentication required." }, 401);
+      if (!env.DB) return json({ error: "Video project storage is not configured." }, 503);
+      const id = videoProjectMatch[1];
+      if (request.method === "DELETE") {
+        try {
+          const result = await env.DB.prepare("DELETE FROM video_projects WHERE id = ? AND user_id = ?").bind(id, userId).run();
+          if (!result.meta?.changes) return json({ error: "Project not found or you do not have permission to delete it." }, 404);
+          return json({ ok: true, id });
+        } catch (error) { console.error("video_project_delete_error", error); return json({ error: "The Video project could not be deleted." }, 500); }
+      }
+      try {
+        const row = await env.DB.prepare("SELECT id, title, current_stage, approved_stages_json, project_data_json, created_at, updated_at FROM video_projects WHERE id = ? AND user_id = ? LIMIT 1").bind(id, userId).first();
+        if (!row) return json({ error: "Project not found." }, 404);
+        let projectData = {}, approvedStages = [];
+        try { projectData = JSON.parse(row.project_data_json || "{}"); } catch {}
+        try { approvedStages = JSON.parse(row.approved_stages_json || "[]"); } catch {}
+        return json({ ok: true, project: { id: row.id, title: row.title, currentStage: row.current_stage, approvedStages, data: projectData, createdAt: row.created_at, updatedAt: row.updated_at } });
+      } catch (error) { console.error("video_project_open_error", error); return json({ error: "The saved Video project could not be opened." }, 500); }
+    }
+
     if ((request.method === "GET" || request.method === "PUT") && url.pathname === "/api/video/projects/current") {
       const userId = await authenticatedUserId(request, env);
       if (!userId) return json({ error: "Authentication required." }, 401);
