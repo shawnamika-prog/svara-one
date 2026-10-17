@@ -8,7 +8,8 @@
 - On workspace initialization, the latest saved project is loaded and its concept, scene list, editable form values and workflow progress are restored.
 - Important persistence boundary: browser-selected files and blob-preview URLs are not durable uploads. File names are retained as UI metadata, but logo/reference files and generated media must be uploaded to R2 or another persistent asset store in a later step.
 - Verification: frontend JavaScript syntax and Worker entrypoint syntax checks passed. No live D1 migration, deployed API, or browser refresh/recovery test has been executed in this environment. Apply migration `0017_video_projects.sql` to the configured `svaraone-db` D1 database before expecting the new API to save/load successfully.
-- Frontend cache version: `20261017-17`.
+- Frontend cache version: `20261017-18`.
+- Follow-up hardening: approval waits for any in-flight autosave, scene additions/edits/deletions schedule saves, starting a new idea clears prior approvals, and refining an approved concept requires approval again.
 
 ## Remove redundant Section A divider (2026-10-17)
 
