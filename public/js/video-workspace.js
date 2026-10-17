@@ -451,8 +451,10 @@
         return;
       }
       if(event.target.closest('[data-discovery-edit-preserve]')){
-        const discoverSection=root.querySelector('[data-work-section="discover"]');
-        if(discoverSection)discoverSection.open=true;
+        const discoverSection=root.querySelector('[data-work-section="discover"]'),conceptSection=root.querySelector('[data-work-section="concept"]'),refineHost=root.querySelector('[data-refine-section-host]'),refineSection=refineHost?.querySelector('[data-work-section="refine"]');
+        if(discoverSection){discoverSection.hidden=false;discoverSection.open=true;}
+        if(conceptSection){conceptSection.open=false;conceptSection.hidden=false;}
+        if(refineSection){refineSection.open=false;refineSection.hidden=false;}
         root.querySelector('[data-discovery-submit]')?.scrollIntoView({block:'nearest',behavior:'smooth'});
         return;
       }
@@ -468,14 +470,15 @@
           discoveryConcept=null;
           discoveryHistory.length=0;
           const discoverSection=root.querySelector('[data-work-section="discover"]'),conceptSection=root.querySelector('[data-work-section="concept"]'),refineHost=root.querySelector('[data-refine-section-host]'),result=root.querySelector('[data-discovery-result]'),actions=root.querySelector('[data-discovery-actions]');
-          if(discoverSection)discoverSection.open=true;
+          if(discoverSection){discoverSection.hidden=false;discoverSection.open=true;}
           if(conceptSection){conceptSection.open=false;conceptSection.hidden=true;}
           if(refineHost){refineHost.querySelectorAll('[data-work-section="refine"]').forEach(section=>section.remove());refineHost.hidden=true;}
           if(result){result.hidden=true;result.innerHTML='';}
           if(actions)actions.hidden=true;
           const state=root.querySelector('[data-accordion-state="story"]');if(state)state.textContent='Ready to explore';
           wrap.remove();
-          root.querySelector('[data-discovery-submit]')?.scrollIntoView({block:'nearest',behavior:'smooth'});
+          const discoverSummary=discoverSection?.querySelector('summary');
+          if(discoverSummary)discoverSummary.scrollIntoView({block:'start',behavior:'smooth'});
           setStatus('Creative direction cleared. Your discovery answers are ready to edit.');
         });
         return;
