@@ -1,3 +1,9 @@
+## Section C duplicate and alignment fix (2026-10-17)
+
+- Centered the Section C heading while keeping the C marker and chevron anchored at the left and right edges.
+- Fixed duplicate Section C creation: before rebuilding the concept during refinement or undo, remove the previous C element from its stable host. The newly rendered C is then moved into that host, so repeated interactions leave exactly one section.
+- Frontend JavaScript syntax passed. Cache version updated to `20261017-01`. Browser interaction test remains outstanding.
+
 ## Section C rendering-order fix (2026-10-17)
 
 - Root cause: the renderer queried for Section C before assigning the generated concept HTML, so the element did not exist yet and relocation never ran.
