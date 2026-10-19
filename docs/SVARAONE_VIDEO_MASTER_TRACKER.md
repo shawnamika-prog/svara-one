@@ -268,3 +268,11 @@ The earlier **V1.1 — UI cleanup and baseline lock** remains a separate verific
 - Reference persistence is not equivalent to file analysis: the current Creative Discovery API still does not ingest or analyse uploaded file contents.
 - Validation: frontend JavaScript syntax and Worker syntax passed. Live R2/API/browser tests remain pending.
 - Existing projects created before this change may not contain their original prompt because those fields were not previously saved; the original text cannot be reconstructed reliably from the generated concept.
+
+
+## Creative Discovery autosave fix (2026-10-19)
+
+- Fixed a persistence gap: the shared autosave listeners previously scheduled saves only for controls inside `[data-accordion]`. The Creative Discovery prompt, website URL, audience, and goal controls are not reliably covered by that selector, so typing there could update the UI without scheduling a save.
+- Autosave now explicitly watches `[data-discovery-field]` controls on both input and change, and changing the discovery mode also schedules a save. The existing project JSON collector and restore logic continue to save and restore the exact prompt text.
+- Added a cache-busting version for the video workspace script so browsers request the updated JavaScript.
+- Validation: inspected the targeted event handlers and confirmed the changes were committed to `main`. Live browser/API persistence and D1 migration/deployment are still not verified; existing projects whose original prompt was never saved cannot have that text reconstructed automatically.
