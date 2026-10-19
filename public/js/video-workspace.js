@@ -326,6 +326,7 @@
     let refinementBusy=false;
     const projectReviewed={story:false,characters:false,branding:false,environment:false,style:false};
     const brandFiles={logo:null,reference:null};
+    let brandAssets={};
     const selected=()=>scenes.find(s=>s.id===selectedId)||null;
     const setStatus=(message,type='')=>{globalStatus.textContent=message;globalStatus.className='sv-status'+(type?' '+type:'');};
     const renderScenes=()=>{
@@ -436,7 +437,7 @@
       const discoveryFields={};
       ['idea','url','audience','goal'].forEach(key=>{discoveryFields[key]=root.querySelector('[data-discovery-field="'+key+'"]')?.value||'';});
       discoveryFields.mode=root.querySelector('[data-discovery-mode].active')?.dataset.discoveryMode||'discover';
-      return {version:2,discoveryFields,discoveryReferences,discoveryConcept,discoveryHistory,fields,scenes:safeScenes,selectedId,tab,mode,projectReviewed,brandFileNames:Object.fromEntries(['logo','reference'].map(kind=>[kind,root.querySelector('[data-brand-file="'+kind+'"]')?.textContent||'']))};
+      return {version:2,discoveryFields,discoveryReferences,discoveryConcept,discoveryHistory,fields,scenes:safeScenes,selectedId,tab,mode,projectReviewed,brandAssets,brandFileNames:Object.fromEntries(['logo','reference'].map(kind=>[kind,root.querySelector('[data-brand-file="'+kind+'"]')?.textContent||'']))};
     };
     const persistVideoProject=async({currentStage=workflowCurrent,approvedStages=workflowApproved,concept=discoveryConcept,sceneList=scenes}={})=>{
       if(projectLoading)return false;
@@ -469,6 +470,7 @@
           root.querySelectorAll('[data-accordion] input:not([type=file]),[data-accordion] textarea,[data-accordion] select').forEach(el=>{const key=projectControlKey(el),saved=data.fields[key];if(!key||!saved)return;el.value=saved.value??'';if(typeof saved.checked==='boolean')el.checked=saved.checked;});
         }
         const savedBrandAssets=data.brandAssets&&typeof data.brandAssets==='object'?data.brandAssets:{};
+        brandAssets={...savedBrandAssets};
         ['logo','reference'].forEach(kind=>{
           const asset=savedBrandAssets[kind],label=root.querySelector('[data-brand-file="'+kind+'"]');
           if(asset&&asset.id&&label){
@@ -809,6 +811,7 @@
             const response=await fetch('/api/video/projects/'+encodeURIComponent(projectId)+'/brand-assets/'+kind,{method:'POST',credentials:'same-origin',body:form});
             const result=await response.json().catch(()=>({}));
             if(!response.ok||!result.ok)throw new Error(result.error||'Brand asset upload failed.');
+            brandAssets[kind]=result.asset;
             setStatus('Brand asset saved to your profile.','success');
             await persistVideoProject();
           })().catch(error=>setStatus(String(error?.message||'Brand asset upload failed.'),'error'));
@@ -824,7 +827,7 @@
       const kind=remove.dataset.brandRemove,input=root.querySelector('[data-brand-upload="'+kind+'"]'),thumb=root.querySelector('[data-brand-thumb="'+kind+'"]'),img=thumb?.querySelector('img'),label=root.querySelector('[data-brand-file="'+kind+'"]');
       if(input)input.value='';
       brandFiles[kind]=null;
-      fetch('/api/video/projects/'+encodeURIComponent(projectId)+'/brand-assets/'+kind,{method:'DELETE',credentials:'same-origin'}).then(async response=>{if(!response.ok){const result=await response.json().catch(()=>({}));if(response.status!==404)setStatus(result.error||'Could not remove the saved brand asset.','error');}}).catch(()=>setStatus('Could not remove the saved brand asset.','error'));
+      fetch('/api/video/projects/'+encodeURIComponent(projectId)+'/brand-assets/'+kind,{method:'DELETE',credentials:'same-origin'}).then(async response=>{if(!response.ok){const result=await response.json().catch(()=>({}));if(response.status!==404){setStatus(result.error||'Could not remove the saved brand asset.','error');return;}}delete brandAssets[kind];await persistVideoProject();}).catch(()=>setStatus('Could not remove the saved brand asset.','error'));
       if(img){if(img.dataset.objectUrl)URL.revokeObjectURL(img.dataset.objectUrl);img.removeAttribute('src');delete img.dataset.objectUrl;img.onload=null;img.onerror=null;img.style.removeProperty('width');img.style.removeProperty('height');img.style.removeProperty('max-width');img.style.removeProperty('max-height');img.style.removeProperty('object-fit');img.hidden=true;}
       if(thumb)thumb.classList.remove('has-image');
       remove.hidden=true;
