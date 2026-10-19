@@ -285,8 +285,10 @@
             <p class="sv-accordion-intro">Describe the character in your own words. SvaraFlow will shape the brief and generate three visual options for you to review. Only the approved character is saved to your project.</p>
             <div class="sv-settings sv-brand-grid" style="padding:0;gap:14px">
               <label class="sv-field"><span>Character or mascot name</span><input data-character-name maxlength="100" placeholder="e.g. Kito the curious meerkat"></label>
-              <label class="sv-field sv-character-field"><span>Describe the character</span><textarea data-character-description maxlength="1800" rows="4" placeholder="Appearance, personality, age, clothing, distinctive features, cultural details and the feeling they should convey…"></textarea></label>
-              <label class="sv-field sv-character-field"><span>Important details to preserve (optional)</span><textarea data-character-notes maxlength="1000" rows="2" placeholder="Colours, accessories, proportions, or anything that must remain consistent in future scenes…"></textarea></label>
+              <label class="sv-field"><span>Describe the character</span><textarea data-character-description maxlength="1800" rows="4" placeholder="Appearance, personality, age, clothing, distinctive features, cultural details and the feeling they should convey…"></textarea></label>
+              <label class="sv-field"><span>Important details to preserve (optional)</span><textarea data-character-notes maxlength="1000" rows="2" placeholder="Colours, accessories, proportions, or anything that must remain consistent in future scenes…"></textarea></label>
+            </div>
+            <div class="sv-settings" style="padding:14px 0 0;gap:12px">
               <div class="sv-workflow-actions sv-character-actions"><span class="sv-setup-note">Each generation round uses credits, including rotations.</span><button class="sv-btn primary" type="button" data-character-generate>Generate 3 options</button></div>
               <div data-character-status class="sv-status" role="status" aria-live="polite">Describe your character to begin. Your options will appear here.</div>
               <div data-character-candidates class="sv-character-candidates" aria-live="polite"></div>
