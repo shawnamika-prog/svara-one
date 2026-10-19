@@ -31,7 +31,11 @@
     "SVARAONE_STUDIO_VOICES": "90",
     "VIDEO_PROVIDER": "runway",
     "VIDEO_API_URL": "https://api.dev.runwayml.com",
-    "VIDEO_MODEL": "gen4_turbo"
+    "VIDEO_MODEL": "gen4_turbo",
+    "IMAGE_PROVIDER": "openai",
+    "IMAGE_API_URL": "https://api.openai.com/v1/images/generations",
+    "IMAGE_MODEL": "gpt-image-1",
+    "SVARAONE_CHARACTER_ROUND_CREDITS": "500"
   },
   "d1_databases": [
     {
