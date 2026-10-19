@@ -1,17 +1,17 @@
 (()=> {
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const seedScenes = () => [];
-  // Explicitly scale uploaded brand images from their intrinsic dimensions into the fixed thumbnail.
-  const fitBrandThumbnail = (img, thumb) => {
-    if (!img || !thumb || !img.naturalWidth || !img.naturalHeight) return;
-    const availableWidth = Math.max(1, thumb.clientWidth - 16);
-    const availableHeight = Math.max(1, thumb.clientHeight - 16);
-    const scale = Math.min(availableWidth / img.naturalWidth, availableHeight / img.naturalHeight, 1);
-    img.style.setProperty('width', Math.round(img.naturalWidth * scale) + 'px', 'important');
-    img.style.setProperty('height', Math.round(img.naturalHeight * scale) + 'px', 'important');
-    img.style.setProperty('max-width', 'none', 'important');
-    img.style.setProperty('max-height', 'none', 'important');
+  // Let CSS constrain the image to its thumbnail; avoid intrinsic-pixel sizing
+  // that can leave a successfully loaded blob invisible in the grid layout.
+  const fitBrandThumbnail = (img) => {
+    if (!img) return;
+    img.style.setProperty('display', 'block', 'important');
+    img.style.setProperty('width', '100%', 'important');
+    img.style.setProperty('height', '100%', 'important');
+    img.style.setProperty('max-width', '100%', 'important');
+    img.style.setProperty('max-height', '100%', 'important');
     img.style.setProperty('object-fit', 'contain', 'important');
+    img.style.setProperty('object-position', 'center', 'important');
   };
   const style = document.createElement('style');
   style.id='svaraVideoWorkspaceStyle';
@@ -85,7 +85,7 @@
     .sv-brand-upload-icon{display:grid;place-items:center;width:28px;height:28px;border-radius:7px;background:#242454;color:#A5B4FC;font-size:18px}
     .sv-brand-upload strong{font-size:12px}.sv-brand-upload small,.sv-brand-file{font-size:10px;color:#8294aa;overflow-wrap:anywhere}
     .sv-brand-thumb{width:100%;height:94px;display:grid;place-items:center;overflow:hidden;border:1px solid #ffffff12;border-radius:8px;background-color:#080e18;background-image:linear-gradient(45deg,#ffffff08 25%,transparent 25%),linear-gradient(-45deg,#ffffff08 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#ffffff08 75%),linear-gradient(-45deg,transparent 75%,#ffffff08 75%);background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0}
-    .sv-brand-thumb img{display:block;width:auto;height:auto;max-width:none;max-height:none;object-fit:contain;object-position:center center;padding:0;box-sizing:border-box}.sv-brand-thumb img[hidden]{display:none}
+    .sv-brand-thumb img{display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;object-position:center center;padding:8px;box-sizing:border-box;min-width:0;min-height:0}.sv-brand-thumb img[hidden]{display:none!important}
     .sv-brand-thumb-placeholder{font-size:22px;color:#8d8ce8}.sv-brand-thumb-remove{position:absolute;top:6px;right:6px;z-index:2;display:grid;place-items:center;width:28px;height:28px;padding:0;border:1px solid #71313b;border-radius:8px;background:#261418;color:#ff9aa5;cursor:pointer}.sv-brand-thumb-remove:hover{background:#401c24;border-color:#a84858}.sv-brand-thumb-remove[hidden]{display:none!important}.sv-brand-thumb-remove svg{width:14px;height:14px;pointer-events:none}
     .sv-brand-thumb.has-image .sv-brand-thumb-placeholder{display:none}
     .sv-brand-upload .sv-brand-file{margin-top:auto}
@@ -490,7 +490,7 @@
                   if(projectId!==project.id){URL.revokeObjectURL(objectUrl);return;}
                   img.dataset.savedObjectUrl=objectUrl;
                   await new Promise((resolve,reject)=>{
-                    img.onload=()=>{fitBrandThumbnail(img,thumb);img.hidden=false;thumb.classList.add('has-image');if(remove)remove.hidden=false;resolve();};
+                    img.onload=()=>{img.hidden=false;fitBrandThumbnail(img);thumb.classList.add('has-image');if(remove)remove.hidden=false;resolve();};
                     img.onerror=()=>reject(new Error('The downloaded file is not a displayable image.'));
                     img.src=objectUrl;
                   });
