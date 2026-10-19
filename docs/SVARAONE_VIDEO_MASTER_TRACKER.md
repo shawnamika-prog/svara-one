@@ -1,3 +1,10 @@
+## Correct intrinsic image sizing in Branding thumbnails (2026-10-20)
+
+- Follow-up to the previous thumbnail fit attempt: changed the preview images from fixed 100% width/height to intrinsic proportional sizing with maximum width and height constrained by the thumbnail. This makes the whole uploaded logo/reference image fit inside the fixed thumbnail rather than letting the image element fill and crop the preview area.
+- Both image types now share the same contain-fit behavior; the thumbnail container, checkerboard, and upload/remove controls remain unchanged.
+- Updated Video workspace cache version to `20261020-01`.
+- Validation: source and cache version checked on `main`; live browser visual verification remains outstanding.
+
 ## Branding thumbnail image fit (2026-10-19)
 
 - Updated both Panel 2 Branding thumbnails (Logo and Brand imagery) to use centered `object-fit: contain`, explicit maximum dimensions, and consistent padding so the entire uploaded image remains visible without cropping or distortion.
