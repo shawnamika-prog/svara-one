@@ -370,3 +370,10 @@ The earlier **V1.1 — UI cleanup and baseline lock** remains a separate verific
 - Added a trash-can control to each thumbnail. Removing clears the selected file input and local preview, revokes its object URL, resets the empty-state label and updates the Branding state. The control prevents the surrounding upload label from reopening the file picker.
 - Updated Video workspace cache version to `20261019-30`.
 - Validation: source and JavaScript syntax checks performed; live browser interaction test not performed. This is still a local preview/removal UI, not persistent Brand Kit asset storage.
+
+## Brand Kit durable storage and current-project route fix (2026-10-19)
+
+- Brand Kit uploads are stored in R2 under the authenticated user's project namespace: `users/{userId}/video-projects/{projectId}/brand-assets/{kind}/...`. D1 stores the associated metadata, and retrieval/deletion checks project ownership.
+- Fixed a route-matching collision in `worker/entry.js`: the generic `GET /api/video/projects/:id` handler previously matched the literal ID `current` and returned 404 before the dedicated `GET /api/video/projects/current` handler could run.
+- The generic project-ID matcher now explicitly excludes `current`. This allows the current-project endpoint to return the saved project snapshot (including `brandAssets` metadata), after which the Branding panel restores thumbnails from the authenticated R2 asset routes.
+- Validation: route-matcher checks confirm `/api/video/projects/current` is excluded from the generic handler and normal project IDs still match. The code change is committed to `main`; live Worker deployment and browser/R2 verification remain to be confirmed.
