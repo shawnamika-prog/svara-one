@@ -276,3 +276,11 @@ The earlier **V1.1 — UI cleanup and baseline lock** remains a separate verific
 - Autosave now explicitly watches `[data-discovery-field]` controls on both input and change, and changing the discovery mode also schedules a save. The existing project JSON collector and restore logic continue to save and restore the exact prompt text.
 - Added a cache-busting version for the video workspace script so browsers request the updated JavaScript.
 - Validation: inspected the targeted event handlers and confirmed the changes were committed to `main`. Live browser/API persistence and D1 migration/deployment are still not verified; existing projects whose original prompt was never saved cannot have that text reconstructed automatically.
+
+
+## Cross-workspace layout isolation fix (2026-10-19)
+
+- Fixed a CSS scoping bug where the Video workspace's spacious-layout selector used `main.workspace:has(.sv-video)`. Because the Video DOM remains mounted while hidden, that selector continued matching when users switched to Voice, changing the shared `main.workspace` layout and causing Voice panels/controls to stretch.
+- Scoped the main layout override to the active, visible `#studioPlaceholder` containing `.sv-video`, and scoped the placeholder display/width rule to `#studioPlaceholder:not([hidden])`. Video-specific layout rules should no longer override Voice when Video is hidden.
+- Updated the Video script cache version to `20261019-24`.
+- Validation: inspected the offending selectors and confirmed the corrected selectors are committed. Live browser regression test not performed; verify switching Video → Voice and Voice → Video after deployment.
