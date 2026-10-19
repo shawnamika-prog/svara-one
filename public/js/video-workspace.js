@@ -73,7 +73,7 @@
     .sv-brand-upload-icon{display:grid;place-items:center;width:28px;height:28px;border-radius:7px;background:#242454;color:#A5B4FC;font-size:18px}
     .sv-brand-upload strong{font-size:12px}.sv-brand-upload small,.sv-brand-file{font-size:10px;color:#8294aa;overflow-wrap:anywhere}
     .sv-brand-thumb{width:100%;height:94px;display:grid;place-items:center;overflow:hidden;border:1px solid #ffffff12;border-radius:8px;background-color:#080e18;background-image:linear-gradient(45deg,#ffffff08 25%,transparent 25%),linear-gradient(-45deg,#ffffff08 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#ffffff08 75%),linear-gradient(-45deg,transparent 75%,#ffffff08 75%);background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0}
-    .sv-brand-thumb img{display:block;width:100%;height:100%;object-fit:contain;padding:7px}
+    .sv-brand-thumb img{display:block;width:100%;height:100%;object-fit:contain;padding:7px}.sv-brand-thumb img[hidden]{display:none}
     .sv-brand-thumb[data-brand-thumb="reference"] img{object-fit:cover;padding:0}
     .sv-brand-thumb-placeholder{font-size:22px;color:#8d8ce8}
     .sv-brand-thumb.has-image .sv-brand-thumb-placeholder{display:none}
