@@ -323,3 +323,11 @@ The earlier **V1.1 — UI cleanup and baseline lock** remains a separate verific
 - Reordered Panel 2 actions so **Skip branding** is first and **Approve & continue** is on the right. Button behavior is unchanged.
 - Updated Video workspace cache version to `20261019-29`.
 - Validation: JavaScript syntax and source/cache checks passed; live browser visual and persistence tests not performed.
+
+## Brand Kit immediate thumbnail refresh and removal (2026-10-19)
+
+- Fixed upload handling to run on the file input's `change` event (rather than the pre-selection click), so both logo and brand imagery thumbnails refresh immediately after choosing a file.
+- Thumbnail visibility now waits for the image to load successfully, with a clear error status if previewing fails. Replacing an image revokes the previous object URL.
+- Added a trash-can control to each thumbnail. Removing clears the selected file input and local preview, revokes its object URL, resets the empty-state label and updates the Branding state. The control prevents the surrounding upload label from reopening the file picker.
+- Updated Video workspace cache version to `20261019-30`.
+- Validation: source and JavaScript syntax checks performed; live browser interaction test not performed. This is still a local preview/removal UI, not persistent Brand Kit asset storage.
