@@ -291,3 +291,8 @@ The earlier **V1.1 — UI cleanup and baseline lock** remains a separate verific
 - Added a matching hover state. Delete confirmation behavior and project deletion logic are unchanged.
 - Updated the Video workspace cache version to `20261019-25`.
 - Validation: checked the targeted selector and asset version in source. Live browser visual verification not performed.
+
+## My Video Projects Delete button sizing correction (2026-10-19)
+
+- Kept the revised burgundy fill, red border, pink label and hover treatment for the project-list Delete button, while removing the custom padding, font-size and border-radius overrides so the button retains its existing dimensions.
+- Delete confirmation and deletion behavior remain unchanged. Live browser visual verification not performed.
