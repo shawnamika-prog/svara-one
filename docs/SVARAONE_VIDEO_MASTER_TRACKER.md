@@ -1,3 +1,12 @@
+## Save Video workspace progress on Approve & Continue (2026-10-20)
+
+- Fixed the project field-key resolver to include `data-project-field`, so Branding and other workflow controls are collected into the project snapshot and restored on reopening. Previously these controls were skipped because they had no `id`, `name`, or explicit persistence key.
+- Workflow approval now treats **Approve & continue** as an explicit save boundary: it disables the clicked action, displays “Saving progress…”, persists the current form values together with the approved-stage list and next workflow stage, and advances only when the save succeeds. On failure, the user remains on the current stage and the action is re-enabled for retry. The same save boundary applies to Skip branding.
+- Restored project snapshots show previously selected branding filenames with “re-upload required” rather than implying local browser files were durably stored.
+- Updated Video workspace cache version to `20261020-03`.
+- Persistence boundary remains: the current Brand Kit logo/reference binary files are not yet uploaded to durable storage. This change preserves their metadata and all form fields; persistent Brand Kit asset storage is a separate follow-up.
+- Validation: source and cache version checked on `main`; live browser/API save-and-reload verification remains outstanding.
+
 ## Explicit intrinsic scaling for Branding thumbnails (2026-10-20)
 
 - Replaced CSS-only sizing with explicit scaling after each uploaded image loads. The script reads the image's intrinsic width/height and computes a scale factor that fits both the thumbnail's available width and height while preserving aspect ratio and avoiding unnecessary upscaling.
