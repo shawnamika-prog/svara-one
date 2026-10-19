@@ -302,3 +302,10 @@ The earlier **V1.1 — UI cleanup and baseline lock** remains a separate verific
 - Removed the decorative exclamation mark and its icon element from the Delete video project confirmation dialog. The dialog title, explanatory copy, Cancel/Delete project actions and deletion behavior are unchanged.
 - Updated Video workspace cache version to `20261019-26`.
 - Validation: source checked and JavaScript syntax revalidated; live browser visual verification not performed.
+
+## Workflow panel transition on concept approval (2026-10-19)
+
+- Updated the guided workflow stage transition so the active panel opens while all other workflow panels collapse. On successful approval of Creative Discovery, Panel 1 (Creative Discovery) now collapses and Panel 2 (Branding) opens and scrolls into view.
+- The transition still occurs only after the project save succeeds; a failed save leaves the user on the current stage. No media generation is triggered by approval.
+- Updated Video workspace cache version to `20261019-27`.
+- Validation: JavaScript syntax passed and transition logic verified in source. Live browser interaction test not performed.
