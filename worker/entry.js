@@ -727,7 +727,7 @@ export default {
       } catch (error) { console.error("video_reference_error", { message: String(error?.message || error).slice(0, 240) }); return json({ error: "Video reference file operation failed." }, 500); }
     }
 
-    const videoProjectMatch = url.pathname.match(/^\/api\/video\/projects\/([a-zA-Z0-9_-]+)$/);
+    const videoProjectMatch = url.pathname.match(/^\/api\/video\/projects\/(?!current$)([a-zA-Z0-9_-]+)$/);
     if (videoProjectMatch && (request.method === "GET" || request.method === "DELETE")) {
       const userId = await authenticatedUserId(request, env);
       if (!userId) return json({ error: "Authentication required." }, 401);
