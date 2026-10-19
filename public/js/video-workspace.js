@@ -275,20 +275,16 @@
         <section class="sv-card sv-accordion" data-accordion="characters">
           <style>
             [data-accordion="characters"] .sv-accordion-intro{margin:18px 0 22px}
-            [data-accordion="characters"] .sv-character-field{display:grid;grid-template-columns:minmax(190px,30%) minmax(0,1fr);align-items:start;gap:16px;width:100%}
-            [data-accordion="characters"] .sv-character-field>span{padding-top:10px}
-            [data-accordion="characters"] .sv-character-field>input,[data-accordion="characters"] .sv-character-field>textarea{width:100%;min-width:0;box-sizing:border-box}
             [data-accordion="characters"] .sv-character-actions{display:flex;justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap}
             [data-accordion="characters"] .sv-character-actions .sv-setup-note{margin-right:auto}
             [data-accordion="characters"] .sv-character-actions button{margin-left:auto}
             [data-accordion="characters"] .sv-character-actions--choices button{margin-left:0}
-            @media(max-width:600px){[data-accordion="characters"] .sv-character-field{grid-template-columns:1fr;gap:6px}[data-accordion="characters"] .sv-character-field>span{padding-top:0}}
           </style>
           <button class="sv-accordion-head" type="button" data-accordion-toggle="characters" aria-expanded="false"><span class="sv-accordion-number">03</span><span class="sv-accordion-title"><strong>Characters &amp; Mascots</strong><small>Design reusable characters and keep their look consistent</small></span><span class="sv-accordion-state" data-accordion-state="characters">Not started</span><span class="sv-accordion-chevron">⌄</span></button>
           <div class="sv-accordion-body" data-accordion-body="characters" hidden>
             <p class="sv-accordion-intro">Describe the character in your own words. SvaraFlow will shape the brief and generate three visual options for you to review. Only the approved character is saved to your project.</p>
-            <div class="sv-settings sv-character-fields" style="padding:0;gap:14px">
-              <label class="sv-field sv-character-field"><span>Character or mascot name</span><input data-character-name maxlength="100" placeholder="e.g. Kito the curious meerkat"></label>
+            <div class="sv-settings sv-brand-grid" style="padding:0;gap:14px">
+              <label class="sv-field"><span>Character or mascot name</span><input data-character-name maxlength="100" placeholder="e.g. Kito the curious meerkat"></label>
               <label class="sv-field sv-character-field"><span>Describe the character</span><textarea data-character-description maxlength="1800" rows="4" placeholder="Appearance, personality, age, clothing, distinctive features, cultural details and the feeling they should convey…"></textarea></label>
               <label class="sv-field sv-character-field"><span>Important details to preserve (optional)</span><textarea data-character-notes maxlength="1000" rows="2" placeholder="Colours, accessories, proportions, or anything that must remain consistent in future scenes…"></textarea></label>
               <div class="sv-workflow-actions sv-character-actions"><span class="sv-setup-note">Each generation round uses credits, including rotations.</span><button class="sv-btn primary" type="button" data-character-generate>Generate 3 options</button></div>
