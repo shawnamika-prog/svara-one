@@ -1,3 +1,10 @@
+## Explicit intrinsic scaling for Branding thumbnails (2026-10-20)
+
+- Replaced CSS-only sizing with explicit scaling after each uploaded image loads. The script reads the image's intrinsic width/height and computes a scale factor that fits both the thumbnail's available width and height while preserving aspect ratio and avoiding unnecessary upscaling.
+- Applies calculated pixel width and height to the rendered image, then reveals the preview; removal clears the inline sizing so the next upload is measured fresh.
+- Updated Video workspace cache version to `20261020-02`.
+- Validation: source and cache version checked on `main`; live browser visual verification remains outstanding.
+
 ## Correct intrinsic image sizing in Branding thumbnails (2026-10-20)
 
 - Follow-up to the previous thumbnail fit attempt: changed the preview images from fixed 100% width/height to intrinsic proportional sizing with maximum width and height constrained by the thumbnail. This makes the whole uploaded logo/reference image fit inside the fixed thumbnail rather than letting the image element fill and crop the preview area.
