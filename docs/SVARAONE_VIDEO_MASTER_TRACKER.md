@@ -309,3 +309,9 @@ The earlier **V1.1 — UI cleanup and baseline lock** remains a separate verific
 - The transition still occurs only after the project save succeeds; a failed save leaves the user on the current stage. No media generation is triggered by approval.
 - Updated Video workspace cache version to `20261019-27`.
 - Validation: JavaScript syntax passed and transition logic verified in source. Live browser interaction test not performed.
+
+## Branding panel divider spacing (2026-10-19)
+
+- Added 16px of top padding specifically to Panel 2's Branding accordion body so the explanatory paragraph has clear breathing room below the header divider.
+- Other workflow panels and Branding content/layout are unchanged. Video script cache version updated to `20261019-28`.
+- Validation: source selector and cache version checked; live browser visual verification not performed.
