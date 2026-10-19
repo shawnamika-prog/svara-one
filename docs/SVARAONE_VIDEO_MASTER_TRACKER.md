@@ -296,3 +296,9 @@ The earlier **V1.1 — UI cleanup and baseline lock** remains a separate verific
 
 - Kept the revised burgundy fill, red border, pink label and hover treatment for the project-list Delete button, while removing the custom padding, font-size and border-radius overrides so the button retains its existing dimensions.
 - Delete confirmation and deletion behavior remain unchanged. Live browser visual verification not performed.
+
+## Video project delete dialog icon removal (2026-10-19)
+
+- Removed the decorative exclamation mark and its icon element from the Delete video project confirmation dialog. The dialog title, explanatory copy, Cancel/Delete project actions and deletion behavior are unchanged.
+- Updated Video workspace cache version to `20261019-26`.
+- Validation: source checked and JavaScript syntax revalidated; live browser visual verification not performed.
