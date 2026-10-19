@@ -792,10 +792,30 @@ export default {
       if (!id || id.length > 80 || !/^[a-zA-Z0-9_-]+$/.test(id)) return json({ error: "A valid project ID is required." }, 400);
       if (!Number.isInteger(currentStage) || currentStage < 0 || currentStage > 6) return json({ error: "The current workflow stage is invalid." }, 400);
       if (!projectData) return json({ error: "Project data is missing or invalid." }, 400);
-      const projectDataJson = JSON.stringify(projectData);
-      if (projectDataJson.length > 180000) return json({ error: "This project is too large to save. Reduce the amount of text or remove unsupported file data." }, 413);
       const approvedJson = JSON.stringify(approvedStages);
       try {
+        // Brand Kit metadata is managed by the dedicated R2 upload/delete routes.
+        // Preserve it from the latest D1 row so a concurrent ordinary autosave
+        // cannot overwrite an upload that completed moments earlier.
+        const existingProject = await env.DB.prepare(
+          "SELECT project_data_json FROM video_projects WHERE id = ? AND user_id = ? LIMIT 1"
+        ).bind(id, userId).first();
+        let existingData = {};
+        try { existingData = JSON.parse(existingProject?.project_data_json || "{}"); } catch {}
+        if (existingData.brandAssets && typeof existingData.brandAssets === "object") {
+          projectData.brandAssets = {
+            ...existingData.brandAssets,
+            ...(projectData.brandAssets && typeof projectData.brandAssets === "object" ? projectData.brandAssets : {})
+          };
+          for (const kind of ["logo", "reference"]) {
+            const savedAsset = existingData.brandAssets[kind];
+            const incomingAsset = projectData.brandAssets?.[kind];
+            // An empty/stale client snapshot must not erase a valid server asset.
+            if (savedAsset?.key && (!incomingAsset || !incomingAsset.key)) projectData.brandAssets[kind] = savedAsset;
+          }
+        }
+        const projectDataJson = JSON.stringify(projectData);
+        if (projectDataJson.length > 180000) return json({ error: "This project is too large to save. Reduce the amount of text or remove unsupported file data." }, 413);
         const result = await env.DB.prepare(`
           INSERT INTO video_projects (id, user_id, title, current_stage, approved_stages_json, project_data_json)
           VALUES (?, ?, ?, ?, ?, ?)
