@@ -1,3 +1,10 @@
+## Branding thumbnail image fit (2026-10-19)
+
+- Updated both Panel 2 Branding thumbnails (Logo and Brand imagery) to use centered `object-fit: contain`, explicit maximum dimensions, and consistent padding so the entire uploaded image remains visible without cropping or distortion.
+- Removed the Brand imagery-specific `object-fit: cover` override; the logo and reference image now follow the same fit-to-thumbnail behavior. Thumbnail containers, checkerboard background, upload/remove behavior, and surrounding layout are unchanged.
+- Updated Video workspace cache version to `20261019-31`.
+- Validation: source and cache version checked. Live browser visual verification remains outstanding.
+
 ## D1-backed Video project persistence (2026-10-17)
 
 - Added migration `0017_video_projects.sql` for per-user Video projects, current workflow stage, approved stage list, and a versioned JSON project snapshot.
