@@ -284,3 +284,10 @@ The earlier **V1.1 — UI cleanup and baseline lock** remains a separate verific
 - Scoped the main layout override to the active, visible `#studioPlaceholder` containing `.sv-video`, and scoped the placeholder display/width rule to `#studioPlaceholder:not([hidden])`. Video-specific layout rules should no longer override Voice when Video is hidden.
 - Updated the Video script cache version to `20261019-24`.
 - Validation: inspected the offending selectors and confirmed the corrected selectors are committed. Live browser regression test not performed; verify switching Video → Voice and Voice → Video after deployment.
+
+## My Video Projects Delete button styling (2026-10-19)
+
+- Updated the Delete action in the My Video Projects list to match the established SvaraONE dark-red button treatment: filled burgundy background, muted red border, pink label, and larger rounded shape.
+- Added a matching hover state. Delete confirmation behavior and project deletion logic are unchanged.
+- Updated the Video workspace cache version to `20261019-25`.
+- Validation: checked the targeted selector and asset version in source. Live browser visual verification not performed.
