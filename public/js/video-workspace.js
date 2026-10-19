@@ -129,8 +129,8 @@
     .sv-right{display:none!important}
     /* Compose-inspired spacious panel sizing */
     /* Match Compose's content alignment: start close to the sidebar, not centered in a narrow column */
-    main.workspace:has(.sv-video){display:block;grid-template-columns:minmax(0,1fr);max-width:none;width:100%;margin:0;padding:26px 38px}
-    .studio-domain-placeholder:has(.sv-video){display:block;width:100%;max-width:none;margin:0;padding:0;justify-self:stretch}
+    main.workspace:has(> #studioPlaceholder:not([hidden]) .sv-video){display:block;grid-template-columns:minmax(0,1fr);max-width:none;width:100%;margin:0;padding:26px 38px}
+    #studioPlaceholder:not([hidden]):has(.sv-video){display:block;width:100%;max-width:none;margin:0;padding:0;justify-self:stretch}
     .sv-video{width:100%;max-width:none;margin:0}
     .sv-video{gap:20px}
     .sv-card{border-radius:20px}
