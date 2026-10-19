@@ -540,7 +540,7 @@
     const confirmVideoProjectDelete=title=>new Promise(resolve=>{
       const backdrop=document.createElement('div');
       backdrop.className='sv-modal-backdrop';
-      backdrop.innerHTML='<section class="sv-modal sv-delete-project-modal" role="alertdialog" aria-modal="true" aria-labelledby="sv-delete-project-title" aria-describedby="sv-delete-project-description"><div class="sv-delete-project-mark" aria-hidden="true">!</div><h3 id="sv-delete-project-title">Delete video project?</h3><p id="sv-delete-project-description">You are about to permanently delete <strong class="sv-delete-project-name"></strong> and its saved storyboard. This action cannot be undone.</p><div class="sv-modal-foot"><button class="sv-btn" type="button" data-delete-cancel>Cancel</button><button class="sv-btn sv-btn-danger" type="button" data-delete-confirm>Delete project</button></div></section>';
+      backdrop.innerHTML='<section class="sv-modal sv-delete-project-modal" role="alertdialog" aria-modal="true" aria-labelledby="sv-delete-project-title" aria-describedby="sv-delete-project-description"><h3 id="sv-delete-project-title">Delete video project?</h3><p id="sv-delete-project-description">You are about to permanently delete <strong class="sv-delete-project-name"></strong> and its saved storyboard. This action cannot be undone.</p><div class="sv-modal-foot"><button class="sv-btn" type="button" data-delete-cancel>Cancel</button><button class="sv-btn sv-btn-danger" type="button" data-delete-confirm>Delete project</button></div></section>';
       backdrop.querySelector('.sv-delete-project-name').textContent=title;
       let settled=false;
       const onKey=event=>{if(event.key==='Escape')finish(false);};
