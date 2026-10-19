@@ -632,6 +632,58 @@ export default {
         }) });
       } catch (error) { console.error("video_projects_list_error", error); return json({ error: "Saved Video projects could not be listed." }, 500); }
     }
+    const videoBrandAssetMatch = url.pathname.match(/^\/api\/video\/projects\/([a-zA-Z0-9_-]+)\/brand-assets\/(logo|reference)$/);
+    if (videoBrandAssetMatch && ["POST","GET","DELETE"].includes(request.method)) {
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return json({ error: "Authentication required." }, 401);
+      if (!env.DB || !env.GENERATED_AUDIO) return json({ error: "Brand Kit storage is not configured." }, 503);
+      const projectId = videoBrandAssetMatch[1], kind = videoBrandAssetMatch[2];
+      try {
+        const project = await env.DB.prepare("SELECT id, project_data_json FROM video_projects WHERE id = ? AND user_id = ? LIMIT 1").bind(projectId, userId).first();
+        if (!project) return json({ error: "Project not found." }, 404);
+        let data = {}; try { data = JSON.parse(project.project_data_json || "{}"); } catch {}
+        const assets = data.brandAssets && typeof data.brandAssets === "object" ? data.brandAssets : {};
+        const prefix = "users/" + userId + "/video-projects/" + projectId + "/brand-assets/" + kind + "/";
+        if (request.method === "POST") {
+          const form = await request.formData(), file = form.get("file");
+          if (!(file instanceof File) || !file.size) return json({ error: "Choose a non-empty image file." }, 400);
+          if (file.size > 10 * 1024 * 1024) return json({ error: "Brand images must be 10 MB or smaller." }, 413);
+          const allowed = kind === "logo" ? new Set(["image/png","image/jpeg","image/webp","image/svg+xml"]) : new Set(["image/png","image/jpeg","image/webp"]);
+          const contentType = String(file.type || "").toLowerCase();
+          if (!allowed.has(contentType)) return json({ error: "This image type is not supported." }, 415);
+          const name = String(file.name || (kind + ".img")).replace(/[^a-zA-Z0-9._ -]/g, "_").slice(0, 120) || (kind + ".img");
+          const id = crypto.randomUUID(), key = prefix + id + "-" + name.replace(/\s+/g, "_");
+          await env.GENERATED_AUDIO.put(key, file.stream(), { httpMetadata: { contentType }, customMetadata: { userId, projectId, assetKind: kind, assetId: id, originalName: name } });
+          const previous = assets[kind];
+          assets[kind] = { id, kind, name, size: file.size, type: contentType, key, uploadedAt: new Date().toISOString() };
+          data.brandAssets = assets;
+          const saved = await env.DB.prepare("UPDATE video_projects SET project_data_json = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND user_id = ?").bind(JSON.stringify(data), projectId, userId).run();
+          if (!saved.meta?.changes) { await env.GENERATED_AUDIO.delete(key); return json({ error: "Brand asset metadata could not be saved." }, 500); }
+          if (previous?.key && previous.key.startsWith(prefix)) await env.GENERATED_AUDIO.delete(previous.key);
+          return json({ ok: true, asset: assets[kind] });
+        }
+        const asset = assets[kind];
+        if (!asset || typeof asset.key !== "string" || !asset.key.startsWith(prefix)) return json({ error: "Brand asset not found." }, 404);
+        if (request.method === "DELETE") {
+          await env.GENERATED_AUDIO.delete(asset.key);
+          delete assets[kind]; data.brandAssets = assets;
+          const saved = await env.DB.prepare("UPDATE video_projects SET project_data_json = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND user_id = ?").bind(JSON.stringify(data), projectId, userId).run();
+          if (!saved.meta?.changes) return json({ error: "Brand asset metadata could not be updated." }, 500);
+          return json({ ok: true, kind });
+        }
+        const object = await env.GENERATED_AUDIO.get(asset.key);
+        if (!object) return json({ error: "The stored brand image could not be found." }, 404);
+        const headers = new Headers(); object.writeHttpMetadata(headers);
+        headers.set("content-type", asset.type || "application/octet-stream");
+        headers.set("content-disposition", "inline; filename*=UTF-8''" + encodeURIComponent(asset.name || (kind + ".img")));
+        headers.set("cache-control", "private, no-store");
+        return new Response(object.body, { headers });
+      } catch (error) {
+        console.error("video_brand_asset_error", { message: String(error?.message || error).slice(0, 240) });
+        return json({ error: "Brand asset operation failed." }, 500);
+      }
+    }
+
     const videoReferenceMatch = url.pathname.match(/^\/api\/video\/projects\/([a-zA-Z0-9_-]+)\/references(?:\/([a-zA-Z0-9_-]+))?$/);
     if (videoReferenceMatch && ["POST","GET","DELETE"].includes(request.method)) {
       const userId = await authenticatedUserId(request, env);
@@ -686,13 +738,14 @@ export default {
           const existing = await env.DB.prepare("SELECT id FROM video_projects WHERE id = ? AND user_id = ? LIMIT 1").bind(id, userId).first();
           if (!existing) return json({ error: "Project not found or you do not have permission to delete it." }, 404);
           if (env.GENERATED_AUDIO) {
-            const prefix = "video-project-assets/" + userId + "/" + id + "/references/";
-            let cursor;
-            do {
-              const page = await env.GENERATED_AUDIO.list({ prefix, cursor, limit: 1000 });
-              if (page.objects?.length) await env.GENERATED_AUDIO.delete(page.objects.map(object => object.key));
-              cursor = page.truncated ? page.cursor : undefined;
-            } while (cursor);
+            for (const prefix of ["video-project-assets/" + userId + "/" + id + "/references/", "users/" + userId + "/video-projects/" + id + "/brand-assets/"]) {
+              let cursor;
+              do {
+                const page = await env.GENERATED_AUDIO.list({ prefix, cursor, limit: 1000 });
+                if (page.objects?.length) await env.GENERATED_AUDIO.delete(page.objects.map(object => object.key));
+                cursor = page.truncated ? page.cursor : undefined;
+              } while (cursor);
+            }
           }
           const result = await env.DB.prepare("DELETE FROM video_projects WHERE id = ? AND user_id = ?").bind(id, userId).run();
           if (!result.meta?.changes) return json({ error: "Project could not be deleted." }, 500);
