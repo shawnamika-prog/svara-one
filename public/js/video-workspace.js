@@ -249,7 +249,7 @@
             <div class="sv-accordion-foot"><span class="sv-setup-note"></span><button class="sv-btn primary" type="button" data-discovery-submit>Shape my idea <span aria-hidden="true">→</span></button></div></div></details>
             <details class="sv-work-section" data-work-section="concept" hidden><summary><span class="sv-work-index">B</span><span><strong>Creative concept</strong><small>Review the direction and scene previews.</small></span><span class="sv-work-chevron">⌄</span></summary><div class="sv-work-section-content">
             <div class="sv-discovery-result" data-discovery-result hidden aria-live="polite"></div>
-            <div class="sv-accordion-foot sv-discovery-result-actions" data-discovery-actions hidden><span class="sv-setup-note" data-discovery-result-note>AI concept draft · references are not yet analysed.</span><div class="sv-discovery-action-buttons"><button class="sv-btn" type="button" data-discovery-edit-preserve>Edit my answers</button><button class="sv-btn" type="button" data-discovery-edit>Generate a new idea</button><button class="sv-btn primary" type="button" data-discovery-approve>Approve concept &amp; create storyboard →</button></div></div></div></details>
+            <div class="sv-accordion-foot sv-discovery-result-actions" data-discovery-actions hidden><span class="sv-setup-note" data-discovery-result-note>AI concept draft · references are not yet analysed.</span><div class="sv-discovery-action-buttons"><button class="sv-btn" type="button" data-discovery-edit-preserve>Edit my answers</button><button class="sv-btn" type="button" data-discovery-edit>Generate a new idea</button><button class="sv-btn primary" type="button" data-discovery-approve>Approve concept</button></div></div></div></details>
           </div>
         </section>
         <section class="sv-card sv-accordion" data-accordion="branding">
@@ -658,7 +658,7 @@
       const nextApproved=[...new Set([...workflowApproved,index])].sort((a,b)=>a-b),nextStage=index<6?index+1:index;
       const state=root.querySelector('[data-accordion-state="'+id+'"]');
       const originalButtonText=triggerButton?.innerHTML;
-      if(triggerButton){triggerButton.disabled=true;triggerButton.setAttribute('aria-busy','true');triggerButton.textContent='Saving progress…';}
+      if(triggerButton){triggerButton.disabled=true;triggerButton.setAttribute('aria-busy','true');triggerButton.textContent='Saving…';}
       try{
         // Approval is a save boundary: persist all current form values and the next workflow stage before advancing.
         const saveOk=await persistVideoProject({currentStage:nextStage,approvedStages:nextApproved});
@@ -769,7 +769,8 @@
         }
         return;
       }
-      if(event.target.closest('[data-discovery-approve]')){
+      const approveConceptButton=event.target.closest('[data-discovery-approve]');
+      if(approveConceptButton){
         if(!discoveryConcept){setStatus('Develop a concept before approving it.','error');return;}
         const c=discoveryConcept;
         scenes=c.sceneOutline.map((scene,index)=>({
@@ -790,7 +791,7 @@
         if(storyboard){storyboard.hidden=true;if(storyboardHead)storyboardHead.setAttribute('aria-expanded','false');const chev=storyboardHead?.querySelector('.sv-accordion-chevron');if(chev)chev.textContent='⌄';}
         const state=root.querySelector('[data-accordion-state="storyboard"]');if(state)state.textContent=scenes.length+' scenes · concept approved';
         renderScenes();renderSettings();renderPreview();
-        await approveWorkflowStage('story');
+        await approveWorkflowStage('story',false,approveConceptButton);
         if(workflowApproved.includes(0))setStatus('Concept saved and approved. '+scenes.length+' editable storyboard scenes created. No media generated.','success');
         return;
       }
