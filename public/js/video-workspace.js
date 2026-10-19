@@ -428,7 +428,7 @@
     const workflowQuotes=['','Give your story an identity that people will remember.','Every memorable story begins with someone worth following.','Build a world your audience wants to step into.','The way a story looks shapes how it feels.','Every great film begins one scene at a time.','Bring every element together. Let your vision come alive.'];
     let workflowCurrent=0,workflowApproved=[],projectId=crypto.randomUUID(),projectSaveTimer=null,projectSaveBusy=false,projectSaveQueued=false,projectLoading=false;
     let discoveryReferences=[];
-    const projectControlKey=el=>el.dataset.persistKey||el.id||el.name||'';
+    const projectControlKey=el=>el.dataset.persistKey||el.dataset.projectField||el.id||el.name||'';
     const collectProjectData=()=>{
       const fields={};
       root.querySelectorAll('[data-accordion] input:not([type=file]),[data-accordion] textarea,[data-accordion] select').forEach(el=>{const key=projectControlKey(el);if(!key)return;fields[key]={value:el.value,checked:el.type==='checkbox'||el.type==='radio'?el.checked:undefined};});
@@ -467,6 +467,13 @@
         const data=project.data;
         if(data.fields&&typeof data.fields==='object'){
           root.querySelectorAll('[data-accordion] input:not([type=file]),[data-accordion] textarea,[data-accordion] select').forEach(el=>{const key=projectControlKey(el),saved=data.fields[key];if(!key||!saved)return;el.value=saved.value??'';if(typeof saved.checked==='boolean')el.checked=saved.checked;});
+        }
+        // Browser-selected branding files are not durable uploads yet; restore their names honestly without pretending the files are available.
+        if(data.brandFileNames&&typeof data.brandFileNames==='object'){
+          ['logo','reference'].forEach(kind=>{
+            const name=String(data.brandFileNames[kind]||''),label=root.querySelector('[data-brand-file="'+kind+'"]');
+            if(label&&name&&!/^No (logo uploaded|imagery uploaded|imagery selected)/i.test(name))label.textContent=name+' · re-upload required';
+          });
         }
         const savedDiscovery=data.discoveryFields&&typeof data.discoveryFields==='object'?data.discoveryFields:{};
         ['idea','url','audience','goal'].forEach(key=>{const field=root.querySelector('[data-discovery-field="'+key+'"]');if(field&&typeof savedDiscovery[key]==='string')field.value=savedDiscovery[key];});
@@ -612,18 +619,25 @@
       if(index===5){const state=root.querySelector('[data-accordion-state="storyboard"]');if(state)state.textContent=scenes.length+' scenes'+(workflowApproved.includes(5)?' · approved':'');}
       if(scroll)panel?.scrollIntoView({block:'start',behavior:'smooth'});
     };
-    const approveWorkflowStage=async(id,skipped=false)=>{
+    const approveWorkflowStage=async(id,skipped=false,triggerButton=null)=>{
       const index=workflowStages.findIndex(stage=>stage.id===id);if(index<0)return;
       if(id==='story'&&!discoveryConcept){setStatus('Develop and review a concept before approving this stage.','error');return;}
       if(id==='storyboard'&&!scenes.length){setStatus('Create or approve your concept before approving the storyboard.','error');return;}
       const nextApproved=[...new Set([...workflowApproved,index])].sort((a,b)=>a-b),nextStage=index<6?index+1:index;
       const state=root.querySelector('[data-accordion-state="'+id+'"]');
-      const saveOk=await persistVideoProject({currentStage:nextStage,approvedStages:nextApproved});
-      if(!saveOk)return;
-      workflowApproved=nextApproved;
-      if(state){state.textContent=skipped?'Skipped':id==='story'?'Concept approved':id==='storyboard'?'Storyboard approved':'Approved';state.classList.add('complete');}
-      if(index<6){goWorkflowStage(index+1);setStatus((skipped?'Branding skipped':workflowStages[index].heading+' approved')+'. Saved. '+workflowStages[index+1].heading+' is now available.','success');}
-      else{renderWorkflow();setStatus('Workflow review complete. Project saved. Production capabilities will be enabled as they are implemented.','success');}
+      const originalButtonText=triggerButton?.innerHTML;
+      if(triggerButton){triggerButton.disabled=true;triggerButton.setAttribute('aria-busy','true');triggerButton.textContent='Saving progress…';}
+      try{
+        // Approval is a save boundary: persist all current form values and the next workflow stage before advancing.
+        const saveOk=await persistVideoProject({currentStage:nextStage,approvedStages:nextApproved});
+        if(!saveOk)return;
+        workflowApproved=nextApproved;
+        if(state){state.textContent=skipped?'Skipped':id==='story'?'Concept approved':id==='storyboard'?'Storyboard approved':'Approved';state.classList.add('complete');}
+        if(index<6){goWorkflowStage(index+1);setStatus((skipped?'Branding skipped':workflowStages[index].heading+' approved')+'. Progress saved. '+workflowStages[index+1].heading+' is now available.','success');}
+        else{renderWorkflow();setStatus('Workflow review complete. Project saved. Production capabilities will be enabled as they are implemented.','success');}
+      }finally{
+        if(triggerButton){triggerButton.disabled=false;triggerButton.removeAttribute('aria-busy');triggerButton.innerHTML=originalButtonText||'Approve & continue →';}
+      }
     };
     root.addEventListener('click',async event=>{
       const removeReferenceButton=event.target.closest('[data-reference-remove]');if(removeReferenceButton){removeDiscoveryReference(removeReferenceButton.dataset.referenceRemove);return;}
@@ -631,8 +645,8 @@
       const openProjectButton=event.target.closest('[data-project-open]');if(openProjectButton){openVideoProject(openProjectButton.dataset.projectOpen);return;}
       const deleteProjectButton=event.target.closest('[data-project-delete]');if(deleteProjectButton){deleteVideoProject(deleteProjectButton.dataset.projectDelete);return;}
       const workflowStep=event.target.closest('[data-workflow-step]');if(workflowStep){const index=Number(workflowStep.dataset.workflowStep);if(!workflowStep.disabled)goWorkflowStage(index);return;}
-      const workflowSkip=event.target.closest('[data-workflow-skip]');if(workflowSkip){approveWorkflowStage('branding',true);return;}
-      const sectionReview=event.target.closest('[data-section-review]');if(sectionReview){approveWorkflowStage(sectionReview.dataset.sectionReview);return;}
+      const workflowSkip=event.target.closest('[data-workflow-skip]');if(workflowSkip){approveWorkflowStage('branding',true,workflowSkip);return;}
+      const sectionReview=event.target.closest('[data-section-review]');if(sectionReview){approveWorkflowStage(sectionReview.dataset.sectionReview,false,sectionReview);return;}
       const accordionToggle=event.target.closest('[data-accordion-toggle]');
       if(accordionToggle){const id=accordionToggle.dataset.accordionToggle;const body=root.querySelector('[data-accordion-body="'+id+'"]');if(body){const open=body.hidden;body.hidden=!open;accordionToggle.setAttribute('aria-expanded',String(open));const chevron=accordionToggle.querySelector('.sv-accordion-chevron');if(chevron)chevron.textContent=open?'⌃':'⌄';}return;}
 
