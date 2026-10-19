@@ -44,6 +44,9 @@
     @media(max-width:1050px){.sv-main{grid-template-columns:1fr}.sv-right{grid-template-columns:1fr 1fr;align-items:start}.sv-steps{gap:5px}.sv-step{gap:5px}}
     @media(max-width:700px){.sv-scene{grid-template-columns:110px minmax(0,1fr);gap:9px}.sv-scene-actions{grid-column:1/-1;grid-template-columns:repeat(4,minmax(0,1fr))}.sv-thumb{min-height:75px}.sv-right{grid-template-columns:1fr}.sv-steps{grid-template-columns:repeat(5,minmax(68px,1fr));overflow:auto}.sv-step small{display:none}.sv-vhead{padding:14px}.sv-vhead h2{font-size:19px}}
     @media(max-width:420px){.sv-scene{grid-template-columns:1fr}.sv-thumb{min-height:130px}.sv-scene-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.sv-mode button{padding:7px 6px;font-size:8px}.sv-two{grid-template-columns:1fr}}
+    
+    .sv-character-candidates{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px}.sv-character-option{position:relative;min-width:0;border:1px solid #ffffff1a;border-radius:10px;padding:6px;background:#080e18;cursor:pointer;text-align:left;color:#dbeafe}.sv-character-option[aria-pressed="true"]{border-color:#8b83ff;box-shadow:0 0 0 2px #635bdf44}.sv-character-option img{display:block;width:100%;aspect-ratio:3/4;object-fit:contain;background:#111827;border-radius:6px}.sv-character-option span{display:block;padding:8px 3px 4px;font-size:10px}.sv-character-option[aria-pressed="true"] span{color:#c7d2fe}.sv-character-option .sv-character-check{position:absolute;top:11px;right:11px;display:grid;place-items:center;width:23px;height:23px;border-radius:50%;background:#5146c9;color:white;padding:0;font-weight:800}.sv-character-candidates:empty{display:none}@media(max-width:560px){.sv-character-candidates{grid-template-columns:1fr}.sv-character-option img{aspect-ratio:4/3}}
+
     /* Video workspace accent theme: indigo */
     .sv-discovery-result{text-align:left!important}.sv-discovery-result *{text-align:left}.sv-concept-kicker{font-size:9px;font-weight:800;letter-spacing:.15em;color:#a5a6ff;margin-bottom:8px}.sv-concept-kicker span{opacity:.5}.sv-discovery-result h3{font-size:20px;line-height:1.3;margin:5px 0 7px;color:#f2f5ff}.sv-discovery-result h4{font-size:12px;margin:0;color:#e0e7ff}.sv-discovery-result p,.sv-discovery-result li{font-size:11px;line-height:1.55;color:#aebbd0}.sv-concept-logline{font-size:13px!important;line-height:1.6!important;color:#e0e7ff!important;max-width:850px;margin:0 0 15px!important}.sv-concept-icon{width:15px;height:15px;flex:0 0 15px;color:#a5b4fc}.sv-concept-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:14px 0 18px}.sv-concept-meta>div{display:flex;align-items:flex-start;gap:9px;padding:10px;border:1px solid #ffffff12;border-radius:8px;background:#0b1422;min-width:0}.sv-concept-meta span{font-size:10px;line-height:1.5;color:#d7e1f1}.sv-concept-direction{padding:14px;border:1px solid #ffffff12;border-radius:10px;background:#11172a;margin:0 0 17px}.sv-concept-section-title{display:flex;align-items:center;gap:8px;margin-bottom:9px}.sv-concept-section-title>span{margin-left:auto;font-size:9px;color:#a5b4fc}.sv-concept-direction>p{margin:0 0 10px}.sv-concept-tags{display:flex;gap:6px;flex-wrap:wrap}.sv-concept-tags span{font-size:9px;color:#c7d2fe;border:1px solid #6366f144;background:#27254a;padding:4px 7px;border-radius:5px}.sv-concept-story{margin-top:2px}.sv-concept-scenes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.sv-concept-scene{padding:11px;border:1px solid #ffffff12;background:#0a1321;border-radius:9px;min-width:0}.sv-concept-scene-head{display:flex;justify-content:space-between;gap:8px;align-items:center}.sv-concept-scene-title{display:flex;align-items:center;gap:7px;min-width:0}.sv-concept-scene-title strong{font-size:11px;line-height:1.4;color:#e2e8f0}.sv-concept-scene-number{font-size:9px;color:#a5b4fc;font-variant-numeric:tabular-nums}.sv-concept-duration{display:flex;align-items:center;gap:4px;white-space:nowrap;color:#a5b4fc;font-size:9px}.sv-concept-duration .sv-concept-icon{width:12px;height:12px;flex-basis:12px}.sv-concept-purpose{margin:8px 0!important;color:#d7e1f1!important}.sv-concept-detail{display:flex;align-items:flex-start;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid #ffffff0c}.sv-concept-detail .sv-concept-icon{margin-top:1px}.sv-concept-detail p{margin:0!important;flex:1}.sv-concept-narration{background:#12192a;border-radius:6px;padding:8px;margin-top:9px}.sv-concept-bottom{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}.sv-concept-bottom>div{padding:10px;border:1px solid #ffffff12;border-radius:8px}.sv-concept-bottom small{font-size:8px;letter-spacing:.1em;color:#8795bd}.sv-concept-bottom p{margin:5px 0 0!important;color:#d7e1f1!important}.sv-concept-more{margin-top:12px;border-top:1px solid #ffffff12;padding-top:10px}.sv-concept-more summary{display:flex;align-items:center;gap:8px;cursor:pointer;color:#aebbd0;font-size:10px;list-style:none}.sv-concept-more summary::-webkit-details-marker{display:none}.sv-concept-more>div{padding:8px 0}.sv-concept-more strong{font-size:10px;color:#d7e1f1}.sv-concept-more ul{margin:5px 0 10px;padding-left:17px}.sv-concept-more li{margin:3px 0}.sv-discovery-result .sv-draft-note{padding:8px 10px;border-radius:7px;background:#241f12;border:1px solid #8a6d2d55;color:#e9d5a2;font-size:9px;line-height:1.5;margin-top:12px}.sv-discovery-result-actions{display:flex;flex-direction:column;align-items:stretch;gap:12px}.sv-discovery-result-actions [data-discovery-result-note]{display:block;flex:none;text-align:right;width:100%}.sv-discovery-action-buttons{display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap;width:100%}.sv-discovery-action-buttons>.sv-btn{flex:none}.sv-discovery-result h3{font-size:20px!important;line-height:1.3!important;margin:5px 0 7px!important}.sv-discovery-result .sv-concept-logline{font-size:13px!important;line-height:1.6!important;margin:0 0 15px!important}.sv-discovery-result .sv-concept-direction>p{margin:0 0 10px!important}.sv-discovery-result .sv-concept-bottom p{margin:5px 0 0!important}
 /* Option C Creative Canvas */
@@ -270,11 +273,18 @@
           </div>
         </section>
         <section class="sv-card sv-accordion" data-accordion="characters">
-          <button class="sv-accordion-head" type="button" data-accordion-toggle="characters" aria-expanded="false"><span class="sv-accordion-number">03</span><span class="sv-accordion-title"><strong>Characters &amp; Mascots</strong><small>Reusable character identity and references</small></span><span class="sv-accordion-state" data-accordion-state="characters">Not started</span><span class="sv-accordion-chevron">⌄</span></button>
+          <button class="sv-accordion-head" type="button" data-accordion-toggle="characters" aria-expanded="false"><span class="sv-accordion-number">03</span><span class="sv-accordion-title"><strong>Characters &amp; Mascots</strong><small>Design reusable characters and keep their look consistent</small></span><span class="sv-accordion-state" data-accordion-state="characters">Not started</span><span class="sv-accordion-chevron">⌄</span></button>
           <div class="sv-accordion-body" data-accordion-body="characters" hidden>
-            <p class="sv-accordion-intro">Create or select the main characters and mascots. Approved references can be reused across scenes to help maintain visual continuity.</p>
-            <div class="sv-asset-placeholder"><strong>Character library · planned</strong><br>Reusable character references, identity notes and approved looks will live here.</div>
-            <div class="sv-accordion-foot"><span class="sv-setup-note">Character assets will be connected in a later phase.</span><div class="sv-workflow-actions"><button class="sv-btn primary" type="button" data-section-review="characters">Approve &amp; continue →</button></div></div>
+            <p class="sv-accordion-intro">Describe the character in your own words. SvaraFlow will shape the brief and generate three visual options for you to review. Only the approved character is saved to your project.</p>
+            <div class="sv-settings" style="padding:0;gap:12px">
+              <label class="sv-field"><span>Character or mascot name</span><input data-character-name maxlength="100" placeholder="e.g. Kito the curious meerkat"></label>
+              <label class="sv-field"><span>Describe the character</span><textarea data-character-description maxlength="1800" rows="4" placeholder="Appearance, personality, age, clothing, distinctive features, cultural details and the feeling they should convey…"></textarea></label>
+              <label class="sv-field"><span>Important details to preserve (optional)</span><textarea data-character-notes maxlength="1000" rows="2" placeholder="Colours, accessories, proportions, or anything that must remain consistent in future scenes…"></textarea></label>
+              <div class="sv-workflow-actions"><button class="sv-btn primary" type="button" data-character-generate>Generate 3 options</button><span class="sv-setup-note">Each generation round uses credits, including rotations.</span></div>
+              <div data-character-status class="sv-status" role="status" aria-live="polite">Describe your character to begin. Your options will appear here.</div>
+              <div data-character-candidates class="sv-character-candidates" aria-live="polite"></div>
+              <div class="sv-workflow-actions"><button class="sv-btn primary" type="button" data-character-approve disabled>Approve character →</button><button class="sv-btn" type="button" data-character-rotate disabled>Generate 3 more</button></div>
+            </div>
           </div>
         </section>
         <section class="sv-card sv-accordion" data-accordion="environment">
@@ -671,7 +681,54 @@
         if(triggerButton){triggerButton.disabled=false;triggerButton.removeAttribute('aria-busy');triggerButton.innerHTML=originalButtonText||'Approve & continue →';}
       }
     };
+    let characterCandidates=[],selectedCharacterCandidate=-1,characterRoundBusy=false;
+    const characterStatus=(message,type='')=>{const el=root.querySelector('[data-character-status]');if(el){el.textContent=message;el.className='sv-status'+(type?' '+type:'');}};
+    const renderCharacterCandidates=()=>{
+      const grid=root.querySelector('[data-character-candidates]');if(!grid)return;
+      grid.innerHTML=characterCandidates.map((item,index)=>'<button type="button" class="sv-character-option" data-character-option="'+index+'" aria-pressed="'+(index===selectedCharacterCandidate?'true':'false')+'"><img src="'+esc(item.imageUrl)+'" alt="Character option '+(index+1)+'"><span>Option '+(index+1)+'</span>'+(index===selectedCharacterCandidate?'<span class="sv-character-check" aria-hidden="true">✓</span>':'')+'</button>').join('');
+      const approve=root.querySelector('[data-character-approve]'),rotate=root.querySelector('[data-character-rotate]');
+      if(approve)approve.disabled=selectedCharacterCandidate<0||characterRoundBusy;
+      if(rotate)rotate.disabled=characterRoundBusy;
+    };
+    const generateCharacterRound=async button=>{
+      if(characterRoundBusy)return;
+      const name=String(root.querySelector('[data-character-name]')?.value||'').trim(),description=String(root.querySelector('[data-character-description]')?.value||'').trim(),notes=String(root.querySelector('[data-character-notes]')?.value||'').trim();
+      if(!description){characterStatus('Describe your character before generating options.','error');root.querySelector('[data-character-description]')?.focus();return;}
+      characterRoundBusy=true;const original=button?.textContent;if(button){button.disabled=true;button.textContent='Generating…';}
+      const approve=root.querySelector('[data-character-approve]'),rotate=root.querySelector('[data-character-rotate]');if(approve)approve.disabled=true;if(rotate)rotate.disabled=true;
+      characterStatus('SvaraFlow is preparing three options. Credits are charged for this round.','');
+      try{
+        const response=await fetch('/api/video/characters/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({projectId,name,description,notes})});
+        const result=await response.json().catch(()=>({}));
+        if(!response.ok||!result.ok)throw new Error(result.error||'Character generation failed.');
+        characterCandidates=result.candidates||[];selectedCharacterCandidate=-1;renderCharacterCandidates();
+        characterStatus('Choose the look that best fits your story. Generate 3 more to rotate through another set.','success');
+        if(result.creditsRemaining!==undefined){const creditNode=document.getElementById('topCredits');if(creditNode)creditNode.textContent=Number(result.creditsRemaining).toLocaleString();}
+      }catch(error){characterStatus(String(error?.message||'Character generation failed. Credits are refunded if generation fails.').slice(0,350),'error');}
+      finally{characterRoundBusy=false;if(button){button.disabled=false;button.textContent=original||'Generate 3 options';}renderCharacterCandidates();}
+    };
+    const approveCharacter=async button=>{
+      if(selectedCharacterCandidate<0||!characterCandidates[selectedCharacterCandidate]||characterRoundBusy)return;
+      characterRoundBusy=true;const original=button.textContent;button.disabled=true;button.textContent='Saving…';
+      try{
+        const response=await fetch('/api/video/characters/approve',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({projectId,name:String(root.querySelector('[data-character-name]')?.value||'').trim(),description:String(root.querySelector('[data-character-description]')?.value||'').trim(),notes:String(root.querySelector('[data-character-notes]')?.value||'').trim(),imageData:characterCandidates[selectedCharacterCandidate].imageUrl})});
+        const result=await response.json().catch(()=>({}));
+        if(!response.ok||!result.ok)throw new Error(result.error||'The character could not be saved.');
+        characterCandidates=[];selectedCharacterCandidate=-1;renderCharacterCandidates();
+        const state=root.querySelector('[data-accordion-state="characters"]');if(state){state.textContent='Character approved';state.classList.add('complete');}
+        projectReviewed.characters=true;
+        const nextApproved=[...new Set([...workflowApproved,2])].sort((a,b)=>a-b);
+        const saveOk=await persistVideoProject({currentStage:3,approvedStages:nextApproved});
+        if(!saveOk)throw new Error('Character saved, but workflow progress could not be saved. Please retry approval.');
+        workflowApproved=nextApproved;goWorkflowStage(3);setStatus('Character approved and saved. Environments is now available.','success');
+      }catch(error){characterStatus(String(error?.message||'The character could not be saved.').slice(0,350),'error');}
+      finally{characterRoundBusy=false;button.disabled=selectedCharacterCandidate<0;button.textContent=original||'Approve character →';}
+    };
     root.addEventListener('click',async event=>{
+      const characterOption=event.target.closest('[data-character-option]');if(characterOption){selectedCharacterCandidate=Number(characterOption.dataset.characterOption);renderCharacterCandidates();return;}
+      const characterGenerate=event.target.closest('[data-character-generate]');if(characterGenerate){generateCharacterRound(characterGenerate);return;}
+      const characterRotate=event.target.closest('[data-character-rotate]');if(characterRotate){generateCharacterRound(characterRotate);return;}
+      const characterApprove=event.target.closest('[data-character-approve]');if(characterApprove){approveCharacter(characterApprove);return;}
       const removeReferenceButton=event.target.closest('[data-reference-remove]');if(removeReferenceButton){removeDiscoveryReference(removeReferenceButton.dataset.referenceRemove);return;}
       if(event.target.closest('[data-projects-refresh]')){refreshVideoProjects();return;}
       const openProjectButton=event.target.closest('[data-project-open]');if(openProjectButton){openVideoProject(openProjectButton.dataset.projectOpen);return;}
