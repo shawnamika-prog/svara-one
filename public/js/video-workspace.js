@@ -472,18 +472,39 @@
         const savedBrandAssets=data.brandAssets&&typeof data.brandAssets==='object'?data.brandAssets:{};
         brandAssets={...savedBrandAssets};
         ['logo','reference'].forEach(kind=>{
-          const asset=savedBrandAssets[kind],label=root.querySelector('[data-brand-file="'+kind+'"]');
+          const asset=savedBrandAssets[kind],label=root.querySelector('[data-brand-file="'+kind+'"]'),thumb=root.querySelector('[data-brand-thumb="'+kind+'"]'),img=thumb?.querySelector('img'),remove=root.querySelector('[data-brand-remove="'+kind+'"]');
+          if(img&&thumb){
+            if(img.dataset.savedObjectUrl){URL.revokeObjectURL(img.dataset.savedObjectUrl);delete img.dataset.savedObjectUrl;}
+            img.onload=null;img.onerror=null;img.removeAttribute('src');img.hidden=true;thumb.classList.remove('has-image');if(remove)remove.hidden=true;
+          }
           if(asset&&asset.id&&label){
-            label.textContent=String(asset.name||kind)+' · saved';
-            const thumb=root.querySelector('[data-brand-thumb="'+kind+'"]'),img=thumb?.querySelector('img'),remove=root.querySelector('[data-brand-remove="'+kind+'"]');
+            label.textContent=String(asset.name||kind)+' · loading…';
             if(img&&thumb){
-              img.hidden=true;img.onload=()=>{fitBrandThumbnail(img,thumb);img.hidden=false;thumb.classList.add('has-image');if(remove)remove.hidden=false;};
-              img.onerror=()=>{img.hidden=true;thumb.classList.remove('has-image');if(remove)remove.hidden=true;setStatus('A saved brand image could not be loaded. Try replacing it.','error');};
-              img.src='/api/video/projects/'+encodeURIComponent(projectId)+'/brand-assets/'+kind+'?v='+encodeURIComponent(asset.id);
+              (async()=>{
+                try{
+                  const response=await fetch('/api/video/projects/'+encodeURIComponent(projectId)+'/brand-assets/'+kind,{credentials:'same-origin',cache:'no-store'});
+                  if(!response.ok){const detail=await response.json().catch(()=>({}));throw new Error((detail.error||'Image request failed')+' (HTTP '+response.status+')');}
+                  const blob=await response.blob();
+                  if(!blob.size)throw new Error('The server returned an empty image.');
+                  const objectUrl=URL.createObjectURL(blob);
+                  if(projectId!==project.id){URL.revokeObjectURL(objectUrl);return;}
+                  img.dataset.savedObjectUrl=objectUrl;
+                  await new Promise((resolve,reject)=>{
+                    img.onload=()=>{fitBrandThumbnail(img,thumb);img.hidden=false;thumb.classList.add('has-image');if(remove)remove.hidden=false;resolve();};
+                    img.onerror=()=>reject(new Error('The downloaded file is not a displayable image.'));
+                    img.src=objectUrl;
+                  });
+                  label.textContent=String(asset.name||kind)+' · saved';
+                }catch(error){
+                  img.hidden=true;thumb.classList.remove('has-image');if(remove)remove.hidden=true;
+                  label.textContent=String(asset.name||kind)+' · unavailable';
+                  setStatus('Could not reload '+(kind==='logo'?'logo':'brand imagery')+': '+String(error?.message||error),'error');
+                }
+              })();
             }
           } else {
-            const name=String((data.brandFileNames||{})[kind]||''),label=root.querySelector('[data-brand-file="'+kind+'"]');
-            if(label&&name&&!/^No (logo uploaded|imagery uploaded|imagery selected)/i.test(name))label.textContent=name+' · re-upload required';
+            const name=String((data.brandFileNames||{})[kind]||'');
+            if(label)label.textContent=name&&!/^No (logo uploaded|imagery uploaded|imagery selected)/i.test(name)?name+' · re-upload required':(kind==='logo'?'No logo uploaded · click to choose':'No imagery uploaded · click to choose');
           }
         });
         const savedDiscovery=data.discoveryFields&&typeof data.discoveryFields==='object'?data.discoveryFields:{};
@@ -844,7 +865,6 @@
     renderScenes();renderSettings();renderPreview();renderWorkflow();
     const currentPanel=root.querySelector('[data-accordion="'+workflowStages[workflowCurrent].id+'"]'),currentBody=currentPanel?.querySelector('[data-accordion-body]'),currentHead=currentPanel?.querySelector('[data-accordion-toggle]');if(currentBody){currentBody.hidden=false;if(currentHead){currentHead.setAttribute('aria-expanded','true');const chev=currentHead.querySelector('.sv-accordion-chevron');if(chev)chev.textContent='⌃';}}
     root.dataset.videoWorkspaceInitialized='1';
-    loadSavedProject();
     refreshVideoProjects();
   }
   window.SvaraVideoWorkspace={render};
