@@ -1,3 +1,12 @@
+## Persistent user-scoped Brand Kit assets (2026-10-20)
+
+- Added authenticated Brand Kit asset endpoints for upload, restore and deletion for the Logo and Brand imagery slots. The Worker verifies the authenticated user owns the project before every operation.
+- Stores image objects in the existing `GENERATED_AUDIO` R2 bucket under `users/{userId}/video-projects/{projectId}/brand-assets/{kind}/...`, keeping each asset under the owner's profile namespace and project. D1 project JSON stores the asset metadata and R2 key.
+- Uploads enforce a 10 MB limit and type allowlists (logo: PNG/JPEG/WebP/SVG; brand imagery: PNG/JPEG/WebP). Replacing an asset deletes the previous object only after the new object and metadata are saved. Removing an asset clears its metadata and object. Deleting a project now cleans up both reference uploads and Brand Kit assets.
+- Frontend uploads the chosen file, saves returned asset metadata with the project snapshot, restores thumbnails through the authenticated asset endpoint after reopening, and deletes persistent assets when the trash-can control is used.
+- Updated Video workspace cache version to `20261020-04`.
+- Validation: source files and cache version checked on `main`. Live browser/R2/D1 end-to-end verification and deployment status are not confirmed; test upload, approve, refresh, reopen, replace, remove and cross-user access before treating this phase as verified.
+
 ## Save Video workspace progress on Approve & Continue (2026-10-20)
 
 - Fixed the project field-key resolver to include `data-project-field`, so Branding and other workflow controls are collected into the project snapshot and restored on reopening. Previously these controls were skipped because they had no `id`, `name`, or explicit persistence key.
