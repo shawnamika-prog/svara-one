@@ -758,6 +758,38 @@ export default {
         let projectData = {}, approvedStages = [];
         try { projectData = JSON.parse(row.project_data_json || "{}"); } catch {}
         try { approvedStages = JSON.parse(row.approved_stages_json || "[]"); } catch {}
+        // Repair legacy projects whose Brand Kit metadata was lost by an older
+        // autosave: recover the matching objects from R2's authoritative prefix.
+        if (env.GENERATED_AUDIO) {
+          const assets = projectData.brandAssets && typeof projectData.brandAssets === "object" ? projectData.brandAssets : {};
+          let repaired = false;
+          for (const kind of ["logo", "reference"]) {
+            if (assets[kind]?.key) continue;
+            const prefix = "users/" + userId + "/video-projects/" + row.id + "/brand-assets/" + kind + "/";
+            const page = await env.GENERATED_AUDIO.list({ prefix, limit: 100 });
+            const candidate = (page.objects || []).filter(object =>
+              object.customMetadata?.userId === userId &&
+              object.customMetadata?.projectId === row.id &&
+              object.customMetadata?.assetKind === kind
+            ).sort((a, b) => String(b.uploaded || "").localeCompare(String(a.uploaded || "")))[0];
+            if (!candidate) continue;
+            assets[kind] = {
+              id: candidate.customMetadata.assetId || candidate.key.split("/").pop().split("-")[0],
+              kind,
+              name: candidate.customMetadata.originalName || candidate.key.split("/").pop(),
+              size: candidate.size,
+              type: candidate.httpMetadata?.contentType || (kind === "logo" ? "image/png" : "image/png"),
+              key: candidate.key,
+              uploadedAt: candidate.uploaded ? new Date(candidate.uploaded).toISOString() : null
+            };
+            repaired = true;
+          }
+          if (repaired) {
+            projectData.brandAssets = assets;
+            await env.DB.prepare("UPDATE video_projects SET project_data_json = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND user_id = ?")
+              .bind(JSON.stringify(projectData), row.id, userId).run();
+          }
+        }
         return json({ ok: true, project: { id: row.id, title: row.title, currentStage: row.current_stage, approvedStages, data: projectData, createdAt: row.created_at, updatedAt: row.updated_at } });
       } catch (error) { console.error("video_project_open_error", error); return json({ error: "The saved Video project could not be opened." }, 500); }
     }
