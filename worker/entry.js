@@ -606,6 +606,100 @@ export default {
 
     const url = new URL(request.url);
 
+    if (url.pathname === "/api/video/characters/generate" && request.method === "POST") {
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return json({ error: "Authentication required." }, 401);
+      if (!env.DB || !env.GENERATED_AUDIO) return json({ error: "Character generation storage is not configured." }, 503);
+      let body = {}; try { body = await request.json(); } catch { return json({ error: "Send character details as JSON." }, 400); }
+      const projectId = String(body.projectId || "").trim(), name = String(body.name || "").trim().slice(0,100), description = String(body.description || "").trim(), notes = String(body.notes || "").trim();
+      if (!projectId || !/^[a-zA-Z0-9_-]{1,80}$/.test(projectId)) return json({ error: "Save or open a valid Video project before generating characters." }, 400);
+      if (!description || description.length > 1800 || notes.length > 1000) return json({ error: "Add a character description (maximum 1,800 characters) and keep notes under 1,000 characters." }, 400);
+      const project = await env.DB.prepare("SELECT id FROM video_projects WHERE id=? AND user_id=? LIMIT 1").bind(projectId,userId).first();
+      if (!project) return json({ error: "Save the Video project before generating character options." }, 404);
+      const provider = String(env.IMAGE_PROVIDER || "openai").trim().toLowerCase();
+      const apiUrl = String(env.IMAGE_API_URL || "https://api.openai.com/v1/images/generations").trim();
+      const apiKey = String(env.IMAGE_API_KEY || "").trim();
+      const model = String(env.IMAGE_MODEL || "gpt-image-1").trim();
+      const rawCost = String(env.SVARAONE_CHARACTER_ROUND_CREDITS || "").trim();
+      const cost = /^[1-9]\d*$/.test(rawCost) ? Number(rawCost) : NaN;
+      if (!apiKey || !apiUrl || !Number.isSafeInteger(cost) || cost <= 0) return json({ error: "Character image generation is not configured. Set IMAGE_API_KEY, IMAGE_API_URL, IMAGE_MODEL and SVARAONE_CHARACTER_ROUND_CREDITS in Cloudflare." }, 503);
+      if (!/^https:\/\//i.test(apiUrl)) return json({ error: "IMAGE_API_URL must use HTTPS." }, 503);
+      if (provider !== "openai" && !apiUrl) return json({ error: "The configured image provider is not supported." }, 503);
+      const referenceId = crypto.randomUUID(), debitId = crypto.randomUUID();
+      const debit = await env.DB.prepare(`INSERT INTO credit_ledger (id,user_id,amount,balance_after,reason,reference_id,period_key)
+        SELECT ?, ?, ?, balance_after - ?, 'character_image_round', ?, 'character_image_round'
+        FROM credit_ledger WHERE user_id=? AND balance_after >= ? ORDER BY created_at DESC,rowid DESC LIMIT 1`).bind(debitId,userId,-cost,cost,referenceId,userId,cost).run();
+      if (!debit.meta?.changes) return json({ error: "You do not have enough credits for another character image round." }, 402);
+      const balance = await env.DB.prepare("SELECT balance_after FROM credit_ledger WHERE id=?").bind(debitId).first("balance_after");
+      let refundNeeded = true;
+      try {
+        const prompt = [
+          "Create one polished character concept image on a simple neutral studio background. No text, captions, labels, collage, multiple views, or watermark.",
+          "Character name: " + (name || "Unnamed character"),
+          "Creator's description: " + description,
+          notes ? "Details to preserve: " + notes : "",
+          "Prioritize a distinctive silhouette, clear readable facial expression, appealing professional art direction, and a complete visible character. This is one candidate in a set; make a coherent interpretation of the brief."
+        ].filter(Boolean).join("\n");
+        const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 90000);
+        let providerResponse;
+        try {
+          providerResponse = await fetch(apiUrl, { method:"POST", headers:{"content-type":"application/json",authorization:"Bearer "+apiKey}, signal:controller.signal, body:JSON.stringify({model,prompt,n:3,size:"1024x1024",quality:"medium"}) });
+        } finally { clearTimeout(timeout); }
+        if (!providerResponse.ok) {
+          const detail = await providerResponse.text().catch(() => "");
+          console.error("character_image_provider_error",{provider,status:providerResponse.status,detail:detail.slice(0,350)});
+          throw Object.assign(new Error(providerResponse.status===401?"The image provider rejected its API key. Check the Cloudflare secret.":"The image provider could not generate character options. Please try again."),{status:502});
+        }
+        const payload = await providerResponse.json();
+        const items = Array.isArray(payload.data) ? payload.data : Array.isArray(payload.images) ? payload.images : [];
+        const candidates = items.map(item => {
+          if (typeof item.b64_json === "string" && item.b64_json) return "data:image/png;base64,"+item.b64_json;
+          if (typeof item.url === "string" && item.url.startsWith("https://")) return item.url;
+          if (typeof item.image_url === "string" && item.image_url.startsWith("https://")) return item.image_url;
+          return "";
+        }).filter(Boolean).slice(0,3);
+        if (candidates.length !== 3) throw new Error("The configured provider did not return three usable image candidates.");
+        refundNeeded = false;
+        return json({ok:true,candidates:candidates.map(imageUrl=>({imageUrl})),creditsRemaining:Number(balance||0),provider,model});
+      } catch(error) {
+        if (refundNeeded) {
+          try {
+            await env.DB.prepare(`INSERT INTO credit_ledger (id,user_id,amount,balance_after,reason,reference_id,period_key)
+              SELECT ?, ?, ?, balance_after + ?, 'character_image_round_refund', ?, 'character_image_round'
+              FROM credit_ledger WHERE user_id=? ORDER BY created_at DESC,rowid DESC LIMIT 1`).bind(crypto.randomUUID(),userId,cost,cost,referenceId,userId).run();
+          } catch(refundError) { console.error("character_image_refund_error",refundError); }
+        }
+        const status=Number.isInteger(error?.status)?error.status:502;
+        console.error("character_image_generation_error",{message:String(error?.message||error).slice(0,250)});
+        return json({error:String(error?.message||"Character generation failed. Your credits have been refunded.").slice(0,300)},status);
+      }
+    }
+
+    if (url.pathname === "/api/video/characters/approve" && request.method === "POST") {
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return json({ error: "Authentication required." }, 401);
+      if (!env.DB || !env.GENERATED_AUDIO) return json({ error: "Character storage is not configured." }, 503);
+      let body = {}; try { body = await request.json(); } catch { return json({ error: "Send character details as JSON." }, 400); }
+      const projectId=String(body.projectId||"").trim(),name=String(body.name||"").trim().slice(0,100),description=String(body.description||"").trim(),notes=String(body.notes||"").trim(),imageData=String(body.imageData||"");
+      if (!projectId || !/^[a-zA-Z0-9_-]{1,80}$/.test(projectId)) return json({error:"A valid Video project is required."},400);
+      if (!description || description.length>1800 || notes.length>1000) return json({error:"The character description or notes are invalid."},400);
+      const match=/^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$/.exec(imageData);
+      if (!match || imageData.length>18_000_000) return json({error:"Select one of the generated image options before approving."},400);
+      const project=await env.DB.prepare("SELECT project_data_json FROM video_projects WHERE id=? AND user_id=? LIMIT 1").bind(projectId,userId).first();
+      if(!project)return json({error:"Project not found."},404);
+      const bytes=Uint8Array.from(atob(match[2]),c=>c.charCodeAt(0));
+      if(!bytes.length||bytes.length>12*1024*1024)return json({error:"The selected character image is too large."},413);
+      let data={};try{data=JSON.parse(project.project_data_json||"{}")}catch{}
+      const id=crypto.randomUUID(),extension=match[1]==="jpeg"?"jpg":match[1],key="users/"+userId+"/video-projects/"+projectId+"/characters/"+id+"."+extension;
+      await env.GENERATED_AUDIO.put(key,bytes,{httpMetadata:{contentType:"image/"+match[1],cacheControl:"private, no-store"},customMetadata:{userId,projectId,assetKind:"character",assetId:id}});
+      const character={id,name:name||"Untitled character",description,notes,key,type:"image/"+match[1],approvedAt:new Date().toISOString()};
+      const characters=Array.isArray(data.characters)?data.characters:[];
+      characters.push(character);data.characters=characters;
+      const saved=await env.DB.prepare("UPDATE video_projects SET project_data_json=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=? AND user_id=?").bind(JSON.stringify(data),projectId,userId).run();
+      if(!saved.meta?.changes){await env.GENERATED_AUDIO.delete(key);return json({error:"The approved character could not be saved to the project."},500);}
+      return json({ok:true,character:{id,name:character.name,description,notes,approvedAt:character.approvedAt}});
+    }
+
     if (request.method === "POST" && url.pathname === "/api/video/refine") {
       const userId = await authenticatedUserId(request, env);
       if (!userId) return json({ error: "Authentication required." }, 401);
