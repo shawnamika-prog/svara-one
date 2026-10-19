@@ -69,13 +69,13 @@
     .sv-brand-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding-top:18px}
     .sv-brand-upload{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:7px;padding:16px;border:1px dashed #6366F188;border-radius:10px;background:#0a1220;color:#e5edf8;cursor:pointer;min-height:190px}
     .sv-brand-upload:hover{background:#14152c;border-color:#818CF8}
-    .sv-brand-upload input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+    .sv-brand-upload input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden}
     .sv-brand-upload-icon{display:grid;place-items:center;width:28px;height:28px;border-radius:7px;background:#242454;color:#A5B4FC;font-size:18px}
     .sv-brand-upload strong{font-size:12px}.sv-brand-upload small,.sv-brand-file{font-size:10px;color:#8294aa;overflow-wrap:anywhere}
     .sv-brand-thumb{width:100%;height:94px;display:grid;place-items:center;overflow:hidden;border:1px solid #ffffff12;border-radius:8px;background-color:#080e18;background-image:linear-gradient(45deg,#ffffff08 25%,transparent 25%),linear-gradient(-45deg,#ffffff08 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#ffffff08 75%),linear-gradient(-45deg,transparent 75%,#ffffff08 75%);background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0}
     .sv-brand-thumb img{display:block;width:100%;height:100%;object-fit:contain;padding:7px}.sv-brand-thumb img[hidden]{display:none}
     .sv-brand-thumb[data-brand-thumb="reference"] img{object-fit:cover;padding:0}
-    .sv-brand-thumb-placeholder{font-size:22px;color:#8d8ce8}
+    .sv-brand-thumb-placeholder{font-size:22px;color:#8d8ce8}.sv-brand-thumb-remove{position:absolute;top:6px;right:6px;z-index:2;display:grid;place-items:center;width:28px;height:28px;padding:0;border:1px solid #71313b;border-radius:8px;background:#261418;color:#ff9aa5;cursor:pointer}.sv-brand-thumb-remove:hover{background:#401c24;border-color:#a84858}.sv-brand-thumb-remove[hidden]{display:none!important}.sv-brand-thumb-remove svg{width:14px;height:14px;pointer-events:none}
     .sv-brand-thumb.has-image .sv-brand-thumb-placeholder{display:none}
     .sv-brand-upload .sv-brand-file{margin-top:auto}
     .sv-brand-preview{display:flex;align-items:center;gap:12px;padding:12px;margin-top:14px;border:1px solid #ffffff12;border-radius:9px;background:#080e18}
@@ -246,8 +246,8 @@
           <div class="sv-accordion-body" data-accordion-body="branding" hidden>
             <p class="sv-accordion-intro">Upload your brand assets so scenes can reflect your identity. These selections are currently held in this workspace only; persistent storage and automatic application to generated scenes will be connected in a later phase.</p>
             <div class="sv-brand-grid">
-              <label class="sv-brand-upload"><input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-brand-upload="logo"><strong>Logo</strong><div class="sv-brand-thumb" data-brand-thumb="logo"><img alt="Uploaded logo thumbnail" hidden><span class="sv-brand-thumb-placeholder" aria-hidden="true">＋</span></div><small>PNG, JPG, WebP or SVG</small><span class="sv-brand-file" data-brand-file="logo">No logo uploaded · click to choose</span></label>
-              <label class="sv-brand-upload"><input type="file" accept="image/png,image/jpeg,image/webp" data-brand-upload="reference"><strong>Brand imagery</strong><div class="sv-brand-thumb" data-brand-thumb="reference"><img alt="Uploaded brand imagery thumbnail" hidden><span class="sv-brand-thumb-placeholder" aria-hidden="true">＋</span></div><small>Campaign images or visual references</small><span class="sv-brand-file" data-brand-file="reference">No imagery uploaded · click to choose</span></label>
+              <label class="sv-brand-upload"><input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-brand-upload="logo"><strong>Logo</strong><div class="sv-brand-thumb" data-brand-thumb="logo"><img alt="Uploaded logo thumbnail" hidden><span class="sv-brand-thumb-placeholder" aria-hidden="true">＋</span><button class="sv-brand-thumb-remove" type="button" data-brand-remove="logo" aria-label="Remove uploaded logo" title="Remove logo" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6"/></svg></button></div><small>PNG, JPG, WebP or SVG</small><span class="sv-brand-file" data-brand-file="logo">No logo uploaded · click to choose</span></label>
+              <label class="sv-brand-upload"><input type="file" accept="image/png,image/jpeg,image/webp" data-brand-upload="reference"><strong>Brand imagery</strong><div class="sv-brand-thumb" data-brand-thumb="reference"><img alt="Uploaded brand imagery thumbnail" hidden><span class="sv-brand-thumb-placeholder" aria-hidden="true">＋</span><button class="sv-brand-thumb-remove" type="button" data-brand-remove="reference" aria-label="Remove uploaded brand imagery" title="Remove image" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6"/></svg></button></div><small>Campaign images or visual references</small><span class="sv-brand-file" data-brand-file="reference">No imagery uploaded · click to choose</span></label>
               <label class="sv-field"><span>Primary brand colour</span><input type="color" value="#6366F1" data-project-field="brandPrimary"></label>
               <label class="sv-field"><span>Secondary brand colour</span><input type="color" value="#818CF8" data-project-field="brandSecondary"></label>
               <label class="sv-field"><span>Brand font / typography notes</span><input data-project-field="brandFont" placeholder="e.g. Inter, bold geometric sans"></label>
@@ -624,8 +624,7 @@
       const sectionReview=event.target.closest('[data-section-review]');if(sectionReview){approveWorkflowStage(sectionReview.dataset.sectionReview);return;}
       const accordionToggle=event.target.closest('[data-accordion-toggle]');
       if(accordionToggle){const id=accordionToggle.dataset.accordionToggle;const body=root.querySelector('[data-accordion-body="'+id+'"]');if(body){const open=body.hidden;body.hidden=!open;accordionToggle.setAttribute('aria-expanded',String(open));const chevron=accordionToggle.querySelector('.sv-accordion-chevron');if(chevron)chevron.textContent=open?'⌃':'⌄';}return;}
-      const brandInput=event.target.closest('[data-brand-upload]');
-      if(brandInput){const kind=brandInput.dataset.brandUpload;const file=brandInput.files&&brandInput.files[0];if(file){brandFiles[kind]=file;const label=root.querySelector('[data-brand-file="'+kind+'"]');if(label)label.textContent=file.name;const state=root.querySelector('[data-accordion-state="branding"]');if(state){state.textContent='Assets added';state.classList.add('complete');}if(file.type.startsWith('image/')){const thumb=root.querySelector('[data-brand-thumb="'+kind+'"]'),img=thumb?.querySelector('img');if(img){if(img.dataset.objectUrl)URL.revokeObjectURL(img.dataset.objectUrl);img.dataset.objectUrl=URL.createObjectURL(file);img.src=img.dataset.objectUrl;img.hidden=false;thumb.classList.add('has-image');}}scheduleProjectSave();}return;}
+
       const discoveryMode=event.target.closest('[data-discovery-mode]');
       if(discoveryMode){root.querySelectorAll('[data-discovery-mode]').forEach(button=>{const active=button===discoveryMode;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});const submit=root.querySelector('[data-discovery-submit]');if(submit)submit.textContent=discoveryMode.dataset.discoveryMode==='brief'?'Review my brief →':'Shape my idea →';const intro=root.querySelector('.sv-discovery .sv-accordion-intro');if(intro)intro.innerHTML=discoveryMode.dataset.discoveryMode==='brief'?'Add the material you already have. SvaraFlow<sup>™</sup> can organise your brief, identify gaps and help turn it into a clear creative direction.':'You don\'t need a finished script or a detailed brief. Tell SvaraFlow<sup>™</sup> what you\'re trying to achieve, and we\'ll help you discover the story, format and visual direction.';scheduleProjectSave();return;}
       const refineScope=event.target.closest('[data-refine-scope]');if(refineScope){const wrap=root.querySelector('[data-refine-scene-wrap]');if(wrap)wrap.hidden=refineScope.value!=='scene';return;}
@@ -753,6 +752,41 @@
       if(event.target.matches('[data-discovery-files]')){const label=root.querySelector('[data-discovery-file-names]');if(label)label.textContent=event.target.files.length?Array.from(event.target.files).map(file=>file.name).join(', '):'No new files selected';if(event.target.files.length)uploadDiscoveryReferences(Array.from(event.target.files));return;}
       const bind=event.target.dataset.bind;if(bind){const s=selected();s[bind]=bind==='duration'?Number(event.target.value):event.target.value;if(bind==='status')renderScenes();if(bind==='title'||bind==='description'||bind==='duration'||bind==='ratio')renderScenes();renderPreview();scheduleProjectSave();return;}
       if(event.target.matches('[data-image-input]')){const file=event.target.files&&event.target.files[0];if(file){const s=selected();s.imageFile=file;s.image=URL.createObjectURL(file);s.status='Ready to generate';renderScenes();renderSettings();renderPreview();}}
+    });
+    root.addEventListener('change',event=>{
+      const brandInput=event.target.closest('[data-brand-upload]');
+      if(brandInput){
+        const kind=brandInput.dataset.brandUpload,file=brandInput.files&&brandInput.files[0];
+        if(!file)return;
+        brandFiles[kind]=file;
+        const label=root.querySelector('[data-brand-file="'+kind+'"]'),thumb=root.querySelector('[data-brand-thumb="'+kind+'"]'),img=thumb?.querySelector('img'),remove=root.querySelector('[data-brand-remove="'+kind+'"]'),state=root.querySelector('[data-accordion-state="branding"]');
+        if(label)label.textContent=file.name;
+        if(state){state.textContent='Assets added';state.classList.add('complete');}
+        if(file.type.startsWith('image/')&&img&&thumb){
+          if(img.dataset.objectUrl)URL.revokeObjectURL(img.dataset.objectUrl);
+          img.dataset.objectUrl=URL.createObjectURL(file);
+          img.onload=()=>{img.hidden=false;thumb.classList.add('has-image');if(remove)remove.hidden=false;};
+          img.onerror=()=>{img.hidden=true;thumb.classList.remove('has-image');if(remove)remove.hidden=true;setStatus('This image could not be previewed. Please try another file.','error');};
+          img.hidden=true;img.src=img.dataset.objectUrl;
+        }
+        scheduleProjectSave();
+        return;
+      }
+    });
+    root.addEventListener('click',event=>{
+      const remove=event.target.closest('[data-brand-remove]');
+      if(!remove)return;
+      event.preventDefault();event.stopPropagation();
+      const kind=remove.dataset.brandRemove,input=root.querySelector('[data-brand-upload="'+kind+'"]'),thumb=root.querySelector('[data-brand-thumb="'+kind+'"]'),img=thumb?.querySelector('img'),label=root.querySelector('[data-brand-file="'+kind+'"]');
+      if(input)input.value='';
+      brandFiles[kind]=null;
+      if(img){if(img.dataset.objectUrl)URL.revokeObjectURL(img.dataset.objectUrl);img.removeAttribute('src');delete img.dataset.objectUrl;img.onload=null;img.onerror=null;img.hidden=true;}
+      if(thumb)thumb.classList.remove('has-image');
+      remove.hidden=true;
+      if(label)label.textContent=kind==='logo'?'No logo uploaded · click to choose':'No imagery selected · click to choose';
+      const state=root.querySelector('[data-accordion-state="branding"]');
+      if(state){const hasLogo=!!brandFiles.logo,hasReference=!!brandFiles.reference;state.textContent=hasLogo||hasReference?'Assets added':'Not started';state.classList.toggle('complete',hasLogo||hasReference);}
+      scheduleProjectSave();
     });
     root.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target.matches('[data-scene]')){event.preventDefault();selectScene(event.target.dataset.scene);}});
     workflowStages.forEach((stage,index)=>{const panel=root.querySelector('[data-accordion="'+stage.id+'"]'),head=panel?.querySelector('[data-accordion-toggle]');if(!panel||!head||!workflowQuotes[index])return;const quote=document.createElement('p');quote.className='sv-workflow-quote';quote.textContent='“'+workflowQuotes[index]+'”';head.insertAdjacentElement('afterend',quote);});
