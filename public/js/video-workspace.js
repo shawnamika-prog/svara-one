@@ -583,9 +583,16 @@
       if(index<0||index>6)return;
       if(index>workflowCurrent&&!workflowApproved.includes(index-1))return;
       workflowCurrent=index;renderWorkflow();
-      const stage=workflowStages[index],panel=root.querySelector('[data-accordion="'+stage.id+'"]'),body=root.querySelector('[data-accordion-body="'+stage.id+'"]'),head=root.querySelector('[data-accordion-toggle="'+stage.id+'"]');
+      const stage=workflowStages[index];
+      workflowStages.forEach((item,itemIndex)=>{
+        const itemBody=root.querySelector('[data-accordion-body="'+item.id+'"]');
+        const itemHead=root.querySelector('[data-accordion-toggle="'+item.id+'"]');
+        const isCurrent=itemIndex===index;
+        if(itemBody)itemBody.hidden=!isCurrent;
+        if(itemHead){itemHead.setAttribute('aria-expanded',String(isCurrent));const chev=itemHead.querySelector('.sv-accordion-chevron');if(chev)chev.textContent=isCurrent?'⌃':'⌄';}
+      });
+      const panel=root.querySelector('[data-accordion="'+stage.id+'"]');
       if(index===5){const state=root.querySelector('[data-accordion-state="storyboard"]');if(state)state.textContent=scenes.length+' scenes'+(workflowApproved.includes(5)?' · approved':'');}
-      if(body){body.hidden=false;if(head){head.setAttribute('aria-expanded','true');const chev=head.querySelector('.sv-accordion-chevron');if(chev)chev.textContent='⌃';}}
       if(scroll)panel?.scrollIntoView({block:'start',behavior:'smooth'});
     };
     const approveWorkflowStage=async(id,skipped=false)=>{
