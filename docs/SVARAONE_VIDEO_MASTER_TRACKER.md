@@ -377,3 +377,11 @@ The earlier **V1.1 — UI cleanup and baseline lock** remains a separate verific
 - Fixed a route-matching collision in `worker/entry.js`: the generic `GET /api/video/projects/:id` handler previously matched the literal ID `current` and returned 404 before the dedicated `GET /api/video/projects/current` handler could run.
 - The generic project-ID matcher now explicitly excludes `current`. This allows the current-project endpoint to return the saved project snapshot (including `brandAssets` metadata), after which the Branding panel restores thumbnails from the authenticated R2 asset routes.
 - Validation: route-matcher checks confirm `/api/video/projects/current` is excluded from the generic handler and normal project IDs still match. The code change is committed to `main`; live Worker deployment and browser/R2 verification remain to be confirmed.
+
+## Explicit project opening and Brand Kit image reload diagnostics (2026-10-19)
+
+- Removed automatic restoration of the most recently updated Video project during workspace initialization. Startup now initializes a fresh workspace and only loads the saved-project list; the user must select **Open** to restore a project.
+- Reworked saved Brand Kit thumbnail restoration to fetch the authenticated asset endpoint explicitly with same-origin credentials and no-store caching, then display the returned blob. This avoids relying on an opaque direct `img.src` failure and allows the UI to report the actual HTTP status/error.
+- When opening another project, old thumbnail URLs and visibility are cleared first so the previous project's image cannot remain visible when the newly selected project has no matching asset.
+- Added cleanup for generated thumbnail object URLs and bumped the Video workspace script cache version to `20261020-05`.
+- Validation: source inspection confirms startup no longer calls `loadSavedProject()`, explicit project opening still calls `restoreProjectData()`, and thumbnail fetch errors now surface the endpoint's response details. Live Worker/R2/browser verification remains outstanding.
