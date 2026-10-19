@@ -940,6 +940,11 @@ export default {
             if (savedAsset?.key && (!incomingAsset || !incomingAsset.key)) projectData.brandAssets[kind] = savedAsset;
           }
         }
+        // Character images and profiles are persisted by the dedicated approval route.
+        // Preserve these server-owned assets when the regular workspace autosaves.
+        if (Array.isArray(existingData.characters)) {
+          projectData.characters = existingData.characters;
+        }
         const projectDataJson = JSON.stringify(projectData);
         if (projectDataJson.length > 180000) return json({ error: "This project is too large to save. Reduce the amount of text or remove unsupported file data." }, 413);
         const result = await env.DB.prepare(`
