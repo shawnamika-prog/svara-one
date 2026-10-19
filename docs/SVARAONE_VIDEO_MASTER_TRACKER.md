@@ -315,3 +315,11 @@ The earlier **V1.1 — UI cleanup and baseline lock** remains a separate verific
 - Added 16px of top padding specifically to Panel 2's Branding accordion body so the explanatory paragraph has clear breathing room below the header divider.
 - Other workflow panels and Branding content/layout are unchanged. Video script cache version updated to `20261019-28`.
 - Validation: source selector and cache version checked; live browser visual verification not performed.
+
+## Brand Kit thumbnails and action order (2026-10-19)
+
+- Added always-visible thumbnail holders to both existing Branding uploads. The logo thumbnail uses contain-fit over a subtle checkerboard to support transparent logos; brand imagery uses a cover-fit preview. Uploading/replacing an image updates its local preview and filename, and schedules the existing project autosave for associated project fields/metadata.
+- Removed the separate duplicate logo-preview strip; the preview now lives directly in the corresponding upload card. This remains a local, in-workspace file preview, not durable asset storage: actual Brand Kit file upload/persistence is still a separate planned phase.
+- Reordered Panel 2 actions so **Skip branding** is first and **Approve & continue** is on the right. Button behavior is unchanged.
+- Updated Video workspace cache version to `20261019-29`.
+- Validation: JavaScript syntax and source/cache checks passed; live browser visual and persistence tests not performed.
