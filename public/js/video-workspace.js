@@ -468,13 +468,22 @@
         if(data.fields&&typeof data.fields==='object'){
           root.querySelectorAll('[data-accordion] input:not([type=file]),[data-accordion] textarea,[data-accordion] select').forEach(el=>{const key=projectControlKey(el),saved=data.fields[key];if(!key||!saved)return;el.value=saved.value??'';if(typeof saved.checked==='boolean')el.checked=saved.checked;});
         }
-        // Browser-selected branding files are not durable uploads yet; restore their names honestly without pretending the files are available.
-        if(data.brandFileNames&&typeof data.brandFileNames==='object'){
-          ['logo','reference'].forEach(kind=>{
-            const name=String(data.brandFileNames[kind]||''),label=root.querySelector('[data-brand-file="'+kind+'"]');
+        const savedBrandAssets=data.brandAssets&&typeof data.brandAssets==='object'?data.brandAssets:{};
+        ['logo','reference'].forEach(kind=>{
+          const asset=savedBrandAssets[kind],label=root.querySelector('[data-brand-file="'+kind+'"]');
+          if(asset&&asset.id&&label){
+            label.textContent=String(asset.name||kind)+' · saved';
+            const thumb=root.querySelector('[data-brand-thumb="'+kind+'"]'),img=thumb?.querySelector('img'),remove=root.querySelector('[data-brand-remove="'+kind+'"]');
+            if(img&&thumb){
+              img.hidden=true;img.onload=()=>{fitBrandThumbnail(img,thumb);img.hidden=false;thumb.classList.add('has-image');if(remove)remove.hidden=false;};
+              img.onerror=()=>{img.hidden=true;thumb.classList.remove('has-image');if(remove)remove.hidden=true;setStatus('A saved brand image could not be loaded. Try replacing it.','error');};
+              img.src='/api/video/projects/'+encodeURIComponent(projectId)+'/brand-assets/'+kind+'?v='+encodeURIComponent(asset.id);
+            }
+          } else {
+            const name=String((data.brandFileNames||{})[kind]||''),label=root.querySelector('[data-brand-file="'+kind+'"]');
             if(label&&name&&!/^No (logo uploaded|imagery uploaded|imagery selected)/i.test(name))label.textContent=name+' · re-upload required';
-          });
-        }
+          }
+        });
         const savedDiscovery=data.discoveryFields&&typeof data.discoveryFields==='object'?data.discoveryFields:{};
         ['idea','url','audience','goal'].forEach(key=>{const field=root.querySelector('[data-discovery-field="'+key+'"]');if(field&&typeof savedDiscovery[key]==='string')field.value=savedDiscovery[key];});
         const savedMode=savedDiscovery.mode==='brief'?'brief':'discover';
@@ -793,6 +802,16 @@
           img.onload=()=>{fitBrandThumbnail(img,thumb);img.hidden=false;thumb.classList.add('has-image');if(remove)remove.hidden=false;};
           img.onerror=()=>{img.hidden=true;thumb.classList.remove('has-image');if(remove)remove.hidden=true;setStatus('This image could not be previewed. Please try another file.','error');};
           img.hidden=true;img.src=img.dataset.objectUrl;
+          (async()=>{
+            const saved=await persistVideoProject();
+            if(!saved)throw new Error('Save the project before uploading a Brand Kit asset.');
+            const form=new FormData();form.append('file',file);
+            const response=await fetch('/api/video/projects/'+encodeURIComponent(projectId)+'/brand-assets/'+kind,{method:'POST',credentials:'same-origin',body:form});
+            const result=await response.json().catch(()=>({}));
+            if(!response.ok||!result.ok)throw new Error(result.error||'Brand asset upload failed.');
+            setStatus('Brand asset saved to your profile.','success');
+            await persistVideoProject();
+          })().catch(error=>setStatus(String(error?.message||'Brand asset upload failed.'),'error'));
         }
         scheduleProjectSave();
         return;
@@ -805,6 +824,7 @@
       const kind=remove.dataset.brandRemove,input=root.querySelector('[data-brand-upload="'+kind+'"]'),thumb=root.querySelector('[data-brand-thumb="'+kind+'"]'),img=thumb?.querySelector('img'),label=root.querySelector('[data-brand-file="'+kind+'"]');
       if(input)input.value='';
       brandFiles[kind]=null;
+      fetch('/api/video/projects/'+encodeURIComponent(projectId)+'/brand-assets/'+kind,{method:'DELETE',credentials:'same-origin'}).then(async response=>{if(!response.ok){const result=await response.json().catch(()=>({}));if(response.status!==404)setStatus(result.error||'Could not remove the saved brand asset.','error');}}).catch(()=>setStatus('Could not remove the saved brand asset.','error'));
       if(img){if(img.dataset.objectUrl)URL.revokeObjectURL(img.dataset.objectUrl);img.removeAttribute('src');delete img.dataset.objectUrl;img.onload=null;img.onerror=null;img.style.removeProperty('width');img.style.removeProperty('height');img.style.removeProperty('max-width');img.style.removeProperty('max-height');img.style.removeProperty('object-fit');img.hidden=true;}
       if(thumb)thumb.classList.remove('has-image');
       remove.hidden=true;
