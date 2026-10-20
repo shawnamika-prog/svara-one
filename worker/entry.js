@@ -620,26 +620,36 @@ export default {
       const apiUrl = String(env.IMAGE_API_URL || "https://api.openai.com/v1/images/generations").trim();
       const apiKey = String(env.IMAGE_API_KEY || "").trim();
       const model = String(env.IMAGE_MODEL || "gpt-image-1").trim();
-      const rawCost = String(env.SVARAONE_CHARACTER_ROUND_CREDITS || "").trim();
-      const cost = /^[1-9]\d*$/.test(rawCost) ? Number(rawCost) : NaN;
-      if (!apiKey || !apiUrl || !Number.isSafeInteger(cost) || cost <= 0) return json({ error: "Character image generation is not configured. Set IMAGE_API_KEY, IMAGE_API_URL, IMAGE_MODEL and SVARAONE_CHARACTER_ROUND_CREDITS in Cloudflare." }, 503);
+      const factor = Number(env.SVARAONE_CREDIT_FACTOR);
+      const safeFactor = Number.isFinite(factor) && factor > 0 ? factor : NaN;
+      const modelRates = {
+        "gpt-image-1": { textInputPerMillion: 5, imageOutputPerMillion: 40, mediumSquarePerImage: 0.042 },
+        "gpt-image-1.5": { textInputPerMillion: 5, imageOutputPerMillion: 32, mediumSquarePerImage: 0.034 }
+      };
+      const rates = modelRates[model];
+      if (!apiKey || !apiUrl || !Number.isFinite(safeFactor) || !rates) return json({ error: "Character generation requires IMAGE_API_KEY, IMAGE_API_URL, IMAGE_MODEL (gpt-image-1 or gpt-image-1.5), and the existing SVARAONE_CREDIT_FACTOR in Cloudflare." }, 503);
+      if (provider !== "openai") return json({ error: "Character generation currently supports the OpenAI image API only." }, 503);
       if (!/^https:\/\//i.test(apiUrl)) return json({ error: "IMAGE_API_URL must use HTTPS." }, 503);
-      if (provider !== "openai" && !apiUrl) return json({ error: "The configured image provider is not supported." }, 503);
+      const prompt = [
+        "Create one polished character concept image on a simple neutral studio background. No text, captions, labels, collage, multiple views, or watermark.",
+        "Character name: " + (name || "Unnamed character"),
+        "Creator's description: " + description,
+        notes ? "Details to preserve: " + notes : "",
+        "Prioritize a distinctive silhouette, clear readable facial expression, appealing professional art direction, and a complete visible character. This is one candidate in a set; make a coherent interpretation of the brief."
+      ].filter(Boolean).join("\n");
+      // Reserve a conservative amount for three medium square images and prompt tokens,
+      // then settle to the actual usage reported by OpenAI.
+      const promptTokensEstimate = Math.ceil(prompt.length / 3);
+      const estimatedUsd = (3 * rates.mediumSquarePerImage) + (promptTokensEstimate * rates.textInputPerMillion / 1_000_000);
+      const reservedCredits = Math.max(1, Math.ceil(estimatedUsd * safeFactor));
+      if (!Number.isSafeInteger(reservedCredits)) return json({ error: "The configured credit factor produces an invalid reservation." }, 503);
       const referenceId = crypto.randomUUID(), debitId = crypto.randomUUID();
       const debit = await env.DB.prepare(`INSERT INTO credit_ledger (id,user_id,amount,balance_after,reason,reference_id,period_key)
-        SELECT ?, ?, ?, balance_after - ?, 'character_image_round', ?, 'character_image_round'
-        FROM credit_ledger WHERE user_id=? AND balance_after >= ? ORDER BY created_at DESC,rowid DESC LIMIT 1`).bind(debitId,userId,-cost,cost,referenceId,userId,cost).run();
-      if (!debit.meta?.changes) return json({ error: "You do not have enough credits for another character image round." }, 402);
-      const balance = await env.DB.prepare("SELECT balance_after FROM credit_ledger WHERE id=?").bind(debitId).first("balance_after");
+        SELECT ?, ?, ?, balance_after - ?, 'character_image_reservation', ?, 'character_image'
+        FROM credit_ledger WHERE user_id=? AND balance_after >= ? ORDER BY created_at DESC,rowid DESC LIMIT 1`).bind(debitId,userId,-reservedCredits,reservedCredits,referenceId,userId,reservedCredits).run();
+      if (!debit.meta?.changes) return json({ error: "You do not have enough credits to generate three character options." }, 402);
       let refundNeeded = true;
       try {
-        const prompt = [
-          "Create one polished character concept image on a simple neutral studio background. No text, captions, labels, collage, multiple views, or watermark.",
-          "Character name: " + (name || "Unnamed character"),
-          "Creator's description: " + description,
-          notes ? "Details to preserve: " + notes : "",
-          "Prioritize a distinctive silhouette, clear readable facial expression, appealing professional art direction, and a complete visible character. This is one candidate in a set; make a coherent interpretation of the brief."
-        ].filter(Boolean).join("\n");
         const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 90000);
         let providerResponse;
         try {
@@ -659,14 +669,38 @@ export default {
           return "";
         }).filter(Boolean).slice(0,3);
         if (candidates.length !== 3) throw new Error("The configured provider did not return three usable image candidates.");
+        const usage = payload.usage || {};
+        const inputTextTokens = Number(usage.input_tokens_details?.text_tokens ?? usage.input_tokens);
+        const outputImageTokens = Number(usage.output_tokens_details?.image_tokens ?? usage.output_tokens);
+        if (!Number.isFinite(inputTextTokens) || inputTextTokens < 0 || !Number.isFinite(outputImageTokens) || outputImageTokens <= 0) {
+          throw new Error("OpenAI did not return the usage details required to calculate the actual generation cost. No credits were charged.");
+        }
+        const actualUsd = (inputTextTokens * rates.textInputPerMillion + outputImageTokens * rates.imageOutputPerMillion) / 1_000_000;
+        const actualCredits = Math.max(1, Math.ceil(actualUsd * safeFactor));
+        const settleDelta = reservedCredits - actualCredits;
+        let balance = await env.DB.prepare("SELECT balance_after FROM credit_ledger WHERE id=?").bind(debitId).first("balance_after");
+        if (settleDelta > 0) {
+          const settled = await env.DB.prepare(`INSERT INTO credit_ledger (id,user_id,amount,balance_after,reason,reference_id,period_key)
+            SELECT ?, ?, ?, balance_after + ?, 'character_image_cost_adjustment', ?, 'character_image'
+            FROM credit_ledger WHERE user_id=? ORDER BY created_at DESC,rowid DESC LIMIT 1`).bind(crypto.randomUUID(),userId,settleDelta,settleDelta,referenceId,userId).run();
+          if (!settled.meta?.changes) throw new Error("Could not reconcile the character-generation credit reservation.");
+          balance = await env.DB.prepare("SELECT balance_after FROM credit_ledger WHERE user_id=? ORDER BY created_at DESC,rowid DESC LIMIT 1").bind(userId).first("balance_after");
+        } else if (settleDelta < 0) {
+          const extra = -settleDelta;
+          const settled = await env.DB.prepare(`INSERT INTO credit_ledger (id,user_id,amount,balance_after,reason,reference_id,period_key)
+            SELECT ?, ?, ?, balance_after - ?, 'character_image_cost_adjustment', ?, 'character_image'
+            FROM credit_ledger WHERE user_id=? AND balance_after >= ? ORDER BY created_at DESC,rowid DESC LIMIT 1`).bind(crypto.randomUUID(),userId,-extra,extra,referenceId,userId,extra).run();
+          if (!settled.meta?.changes) throw new Error("The actual generation cost exceeded the reservation and there are not enough credits to settle it.");
+          balance = await env.DB.prepare("SELECT balance_after FROM credit_ledger WHERE user_id=? ORDER BY created_at DESC,rowid DESC LIMIT 1").bind(userId).first("balance_after");
+        }
         refundNeeded = false;
-        return json({ok:true,candidates:candidates.map(imageUrl=>({imageUrl})),creditsRemaining:Number(balance||0),provider,model});
+        return json({ok:true,candidates:candidates.map(imageUrl=>({imageUrl})),creditsRemaining:Number(balance?.balance_after ?? balance ?? 0),creditsCharged:actualCredits,provider,model});
       } catch(error) {
         if (refundNeeded) {
           try {
             await env.DB.prepare(`INSERT INTO credit_ledger (id,user_id,amount,balance_after,reason,reference_id,period_key)
-              SELECT ?, ?, ?, balance_after + ?, 'character_image_round_refund', ?, 'character_image_round'
-              FROM credit_ledger WHERE user_id=? ORDER BY created_at DESC,rowid DESC LIMIT 1`).bind(crypto.randomUUID(),userId,cost,cost,referenceId,userId).run();
+              SELECT ?, ?, ?, balance_after + ?, 'character_image_refund', ?, 'character_image'
+              FROM credit_ledger WHERE user_id=? ORDER BY created_at DESC,rowid DESC LIMIT 1`).bind(crypto.randomUUID(),userId,reservedCredits,reservedCredits,referenceId,userId).run();
           } catch(refundError) { console.error("character_image_refund_error",refundError); }
         }
         const status=Number.isInteger(error?.status)?error.status:502;
