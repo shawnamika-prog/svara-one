@@ -122,7 +122,7 @@ async function executeApprovedSound(env, userId, body) {
   const parameters = normalizeSoundParameters(body.parameters ?? null, { durationSeconds });
   const approvedSpecification = validateSoundSvaraFlowSpecification(body.currentSpecification, { sourceScript: existingVoice?.script || null, sourceAssetId: existingVoice?.assetId || sourceAssetId || null });
   if (approvedSpecification.constraints.duration_seconds !== null && Number(approvedSpecification.constraints.duration_seconds) !== Number(durationSeconds)) throw new Error("Approved Sound specification duration does not match the generation duration");
-  const configuredProvider = String(env.SVARAONE_SOUND_PROVIDER || "").trim().toLowerCase();
+  const configuredProvider = String(env.SOUND_PROVIDER || "").trim().toLowerCase();
   if (!configuredProvider) return json({ svaraflow: "sound", status: "failed", error: "Sound provider is not configured." }, 503);
   const creativeDirection = svaraFlowCreativeDirection(approvedSpecification);
   const executionPrompt = buildApprovedSoundPrompt(body.prompt, creativeDirection, existingVoice);
@@ -171,7 +171,7 @@ export async function handleSoundGenerate(request, env, userId) {
       let existingSource = null;
       if (sourceType === "voice") existingSource = await resolveExistingVoiceInput(env, userId, sourceAssetId);
       const parameters = normalizeSoundParameters(context.parameters ?? null, { durationSeconds });
-      const provider = String(env.SVARAONE_SOUND_PROVIDER || "").trim().toLowerCase();
+      const provider = String(env.SOUND_PROVIDER || "").trim().toLowerCase();
       const cached = provider ? await getCachedSoundCapabilities(env, provider) : null;
       const capabilities = cached?.capabilities || null;
       const agent = await runSvaraFlowSoundAgent({ message, conversation: body.conversation, currentSpecification: body.currentSpecification || null, context: { prompt: String(context.prompt || message).trim(), type, format, durationSeconds, sourceType: existingSource?.inputType || sourceType, sourceAssetId: existingSource?.assetId || sourceAssetId || null, sourceScript: existingSource?.script || null, parameters }, capabilities }, env);
@@ -231,7 +231,7 @@ export async function handleSoundGenerate(request, env, userId) {
     } catch (error) { console.error("svaraflow_sound_analysis_error", error); return json({ svaraflow: "sound", status: "failed", error: String(error?.message || "SvaraFlow Sound analysis failed").slice(0, 300) }, 502); }
   }
   if (body.resultOnly === true) return handleSoundResult(env, userId, body);
-  if (body.capabilitiesOnly === true) { const provider = String(env.SVARAONE_SOUND_PROVIDER || "").trim().toLowerCase(); if (!provider) return json({ error: "Sound provider is not configured." }, 503); const cached = await getCachedSoundCapabilities(env, provider); if (!cached) return json({ error: "Sound provider capabilities are not available." }, 503); return json({ provider: cached.provider, providerVersion: cached.provider_version, status: cached.status, lastVerifiedAt: cached.last_verified_at, capabilities: cached.capabilities }); }
+  if (body.capabilitiesOnly === true) { const provider = String(env.SOUND_PROVIDER || "").trim().toLowerCase(); if (!provider) return json({ error: "Sound provider is not configured." }, 503); const cached = await getCachedSoundCapabilities(env, provider); if (!cached) return json({ error: "Sound provider capabilities are not available." }, 503); return json({ provider: cached.provider, providerVersion: cached.provider_version, status: cached.status, lastVerifiedAt: cached.last_verified_at, capabilities: cached.capabilities }); }
   if (!env.GENERATED_AUDIO) return json({ error: "Sound generation storage is not configured." }, 503);
   const prompt = String(body.prompt ?? "").trim();
   if (!prompt) return json({ error: "Prompt is required." }, 400);
@@ -246,7 +246,7 @@ export async function handleSoundGenerate(request, env, userId) {
   if (!SOUND_SOURCE_TYPES.has(sourceType)) return json({ error: "Invalid Sound source type." }, 400);
   let existingVoice = null;
   if (sourceType === "voice") { try { existingVoice = await resolveExistingVoiceInput(env, userId, sourceAssetId); } catch (error) { return json({ error: String(error?.message || error) }, 400); } }
-  const provider = String(env.SVARAONE_SOUND_PROVIDER || "").trim().toLowerCase();
+  const provider = String(env.SOUND_PROVIDER || "").trim().toLowerCase();
   if (!provider) return json({ error: "Sound provider is not configured." }, 503);
   const cost = soundCreditCost(env, durationSeconds);
   if (cost === null) return json({ error: "Sound credit pricing is not configured." }, 503);
