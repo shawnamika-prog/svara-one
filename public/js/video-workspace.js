@@ -45,6 +45,7 @@
     @media(max-width:700px){.sv-scene{grid-template-columns:110px minmax(0,1fr);gap:9px}.sv-scene-actions{grid-column:1/-1;grid-template-columns:repeat(4,minmax(0,1fr))}.sv-thumb{min-height:75px}.sv-right{grid-template-columns:1fr}.sv-steps{grid-template-columns:repeat(5,minmax(68px,1fr));overflow:auto}.sv-step small{display:none}.sv-vhead{padding:14px}.sv-vhead h2{font-size:19px}}
     @media(max-width:420px){.sv-scene{grid-template-columns:1fr}.sv-thumb{min-height:130px}.sv-scene-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.sv-mode button{padding:7px 6px;font-size:8px}.sv-two{grid-template-columns:1fr}}
     
+    .sv-character-stage-label{display:flex;align-items:center;gap:11px;margin:18px 0 10px;padding:0 1px}.sv-character-stage-number{display:grid;place-items:center;width:30px;height:30px;flex:none;border-radius:9px;background:linear-gradient(135deg,#35317b,#171d3a);border:1px solid #8177f755;color:#c9c6ff;font-size:10px;font-weight:800}.sv-character-stage-label>div{min-width:0;flex:1}.sv-character-stage-label strong{display:block;font-size:13px;color:#edf0ff;letter-spacing:-.02em}.sv-character-stage-label small{display:block;margin-top:3px;font-size:9px;color:#8492ae}.sv-character-stage-state{font-size:9px;color:#a5a6ff;border:1px solid #7770d633;background:#28254b;padding:5px 8px;border-radius:999px}.sv-character-stage-state.complete{color:#78e2cf;border-color:#2e8b7a55;background:#10332f}.sv-character-direction,.sv-character-casting{padding:16px;border:1px solid #7770d633;border-radius:14px;background:radial-gradient(ellipse at 100% 0%,#29245455,transparent 45%),linear-gradient(145deg,#11182b,#0a101d 75%);box-shadow:inset 0 1px #ffffff08}.sv-character-direction-heading,.sv-character-casting-intro{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:17px}.sv-character-direction-heading h3,.sv-character-casting-intro h3{margin:5px 0 7px;font-size:18px;line-height:1.3;letter-spacing:-.035em;color:#f2f3ff}.sv-character-direction-heading p,.sv-character-casting-intro p{max-width:650px;margin:0;color:#9ba9c2;font-size:10px;line-height:1.65}.sv-character-kicker{font-size:8px;letter-spacing:.16em;font-weight:800;color:#aaa7ff}.sv-character-orbit{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:14px;border:1px solid #8b83ff40;background:radial-gradient(circle,#6259ba55,#24214633);color:#c6c2ff;font-size:22px}.sv-character-direction-foot{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:13px 0 14px;padding-top:12px;border-top:1px solid #ffffff10;color:#8191aa;font-size:9px;line-height:1.5}.sv-character-direction-foot b{color:#c9c8ff}.sv-character-direction .sv-character-actions{justify-content:flex-end}.sv-character-casting[hidden]{display:none!important}.sv-character-casting-intro{margin-bottom:10px}.sv-character-casting .sv-character-candidates{margin:12px 0}.sv-character-casting .sv-character-option{padding:7px;border-radius:12px;background:linear-gradient(180deg,#111a2c,#080e18);transition:border-color .16s,transform .16s,box-shadow .16s}.sv-character-casting .sv-character-option:hover{transform:translateY(-2px);border-color:#7d78e977}.sv-character-casting .sv-character-option img{aspect-ratio:4/5;background:radial-gradient(ellipse at 50% 20%,#273459,#0a101c 72%);border-radius:8px}.sv-character-casting .sv-character-option span{font-size:10px;font-weight:650;padding:10px 5px 5px}.sv-character-casting .sv-character-option[aria-pressed="true"]{border-color:#938bff;box-shadow:0 0 0 2px #7168e844,0 12px 30px #0004}.sv-character-casting .sv-character-actions{margin-top:14px;justify-content:space-between}.sv-character-casting .sv-character-actions .sv-btn.primary{margin-left:auto}.sv-character-stage-label--casting{margin-top:23px}.sv-character-direction textarea{min-height:130px!important}.sv-character-direction [data-character-notes]{min-height:78px!important}@media(max-width:560px){.sv-character-direction,.sv-character-casting{padding:12px}.sv-character-direction-heading h3,.sv-character-casting-intro h3{font-size:16px}.sv-character-direction-foot{display:grid}.sv-character-casting .sv-character-candidates{grid-template-columns:1fr}.sv-character-casting .sv-character-option img{aspect-ratio:4/3}}
     .sv-character-candidates{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px}.sv-character-option{position:relative;min-width:0;border:1px solid #ffffff1a;border-radius:10px;padding:6px;background:#080e18;cursor:pointer;text-align:left;color:#dbeafe}.sv-character-option[aria-pressed="true"]{border-color:#8b83ff;box-shadow:0 0 0 2px #635bdf44}.sv-character-option img{display:block;width:100%;aspect-ratio:3/4;object-fit:contain;background:#111827;border-radius:6px}.sv-character-option span{display:block;padding:8px 3px 4px;font-size:10px}.sv-character-option[aria-pressed="true"] span{color:#c7d2fe}.sv-character-option .sv-character-check{position:absolute;top:11px;right:11px;display:grid;place-items:center;width:23px;height:23px;border-radius:50%;background:#5146c9;color:white;padding:0;font-weight:800}.sv-character-candidates:empty{display:none}@media(max-width:560px){.sv-character-candidates{grid-template-columns:1fr}.sv-character-option img{aspect-ratio:4/3}}
 
     /* Video workspace accent theme: indigo */
@@ -288,15 +289,21 @@
           </style>
           <button class="sv-accordion-head" type="button" data-accordion-toggle="characters" aria-expanded="false"><span class="sv-accordion-number">03</span><span class="sv-accordion-title"><strong>Characters &amp; Mascots</strong><small>Design reusable characters and keep their look consistent</small></span><span class="sv-accordion-state" data-accordion-state="characters">Not started</span><span class="sv-accordion-chevron">⌄</span></button>
           <div class="sv-accordion-body" data-accordion-body="characters" hidden>
-            <p class="sv-accordion-intro">Describe the character in your own words. SvaraFlow will shape the brief and generate three visual options for you to review. Only the approved character is saved to your project.</p>
-            <div class="sv-settings sv-brand-grid" style="padding:0;gap:14px">
-              <label class="sv-field"><span>Character or mascot name</span><input data-character-name maxlength="100" placeholder="e.g. Kito the curious meerkat"></label>
-              <label class="sv-field"><span>Describe the character</span><textarea data-character-description maxlength="1800" rows="4" placeholder="Appearance, personality, age, clothing, distinctive features, cultural details and the feeling they should convey…"></textarea></label>
-              <label class="sv-field"><span>Important details to preserve (optional)</span><textarea data-character-notes maxlength="1000" rows="2" placeholder="Colours, accessories, proportions, or anything that must remain consistent in future scenes…"></textarea></label>
+            <div class="sv-character-stage-label"><span class="sv-character-stage-number">01</span><div><strong>Direction</strong><small>Shape the character before spending credits</small></div><span class="sv-character-stage-state" data-character-direction-state>Draft</span></div>
+            <div class="sv-character-direction">
+              <div class="sv-character-direction-heading"><div><span class="sv-character-kicker">SVARAFLOW CREATIVE DIRECTION</span><h3>Define the character’s identity</h3><p>Use the brief to describe what must be true. The visual interpretation can be refined later; the identity and must-keep details should stay consistent.</p></div><span class="sv-character-orbit" aria-hidden="true">✦</span></div>
+              <div class="sv-settings sv-brand-grid" style="padding:0;gap:14px">
+                <label class="sv-field"><span>Character or mascot name</span><input data-character-name maxlength="100" placeholder="e.g. Kito the curious meerkat"></label>
+                <label class="sv-field"><span>Creative Direction Brief</span><textarea data-character-description maxlength="1800" rows="5" placeholder="Describe the character’s role in the story, personality, signature features, materials, outfit and overall feeling…"></textarea></label>
+                <label class="sv-field"><span>Details SvaraFlow must preserve</span><textarea data-character-notes maxlength="1000" rows="2" placeholder="Signature colours, proportions, accessories, logo placement or other non-negotiables…"></textarea></label>
+              </div>
+              <div class="sv-character-direction-foot"><span><b>Approval gate</b> · no images are generated until you approve this direction.</span><span>Each casting round uses credits.</span></div>
+              <div class="sv-workflow-actions sv-character-actions"><button class="sv-btn primary" type="button" data-character-generate>Approve direction &amp; generate 3 concepts →</button></div>
             </div>
-            <div class="sv-settings" style="padding:14px 0 0;gap:12px">
-              <div class="sv-workflow-actions sv-character-actions"><span class="sv-setup-note">Each generation round uses credits, including rotations.</span><button class="sv-btn primary" type="button" data-character-generate>Generate 3 options</button></div>
-              <div data-character-status class="sv-status" role="status" aria-live="polite">Describe your character to begin. Your options will appear here.</div>
+            <div class="sv-character-stage-label sv-character-stage-label--casting"><span class="sv-character-stage-number">02</span><div><strong>Casting</strong><small>Review three visual interpretations</small></div><span class="sv-character-stage-state" data-character-casting-state>Waiting for direction</span></div>
+            <div class="sv-character-casting" data-character-casting hidden>
+              <div class="sv-character-casting-intro"><div><span class="sv-character-kicker">THE CASTING ROOM</span><h3>Meet your candidates</h3><p>Choose the look that best carries the story. Your approved direction remains the reference for every new round.</p></div></div>
+              <div data-character-status class="sv-status" role="status" aria-live="polite">Approve the direction above to begin casting.</div>
               <div data-character-candidates class="sv-character-candidates" aria-live="polite"></div>
               <div class="sv-workflow-actions sv-character-actions sv-character-actions--choices"><button class="sv-btn" type="button" data-character-rotate disabled>Generate 3 more</button><button class="sv-btn primary" type="button" data-character-approve disabled>Approve character →</button></div>
             </div>
@@ -696,7 +703,7 @@
         if(triggerButton){triggerButton.disabled=false;triggerButton.removeAttribute('aria-busy');triggerButton.innerHTML=originalButtonText||'Approve & continue →';}
       }
     };
-    let characterCandidates=[],selectedCharacterCandidate=-1,characterRoundBusy=false;
+    let characterCandidates=[],selectedCharacterCandidate=-1,characterRoundBusy=false,characterDirectionApproved=false;
     const characterStatus=(message,type='')=>{const el=root.querySelector('[data-character-status]');if(el){el.textContent=message;el.className='sv-status'+(type?' '+type:'');}};
     const renderCharacterCandidates=()=>{
       const grid=root.querySelector('[data-character-candidates]');if(!grid)return;
@@ -709,18 +716,27 @@
       if(characterRoundBusy)return;
       const name=String(root.querySelector('[data-character-name]')?.value||'').trim(),description=String(root.querySelector('[data-character-description]')?.value||'').trim(),notes=String(root.querySelector('[data-character-notes]')?.value||'').trim();
       if(!description){characterStatus('Describe your character before generating options.','error');root.querySelector('[data-character-description]')?.focus();return;}
-      characterRoundBusy=true;const original=button?.textContent;if(button){button.disabled=true;button.textContent='Generating…';}
-      const approve=root.querySelector('[data-character-approve]'),rotate=root.querySelector('[data-character-rotate]');if(approve)approve.disabled=true;if(rotate)rotate.disabled=true;
-      characterStatus('SvaraFlow is preparing three options. Credits are charged for this round.','');
+      const casting=root.querySelector('[data-character-casting]');
+      if(button?.matches('[data-character-generate]')){
+        characterDirectionApproved=true;
+        const directionState=root.querySelector('[data-character-direction-state]'),castingState=root.querySelector('[data-character-casting-state]');
+        if(directionState){directionState.textContent='Approved';directionState.classList.add('complete');}
+        if(castingState)castingState.textContent='Casting in progress';
+        if(casting)casting.hidden=false;
+      }
+      characterRoundBusy=true;const original=button?.textContent;if(button){button.disabled=true;button.textContent='Generating concepts…';}
+      const approve=root.querySelector('[data-character-approve]'),rotate=root.querySelector('[data-character-rotate]'),generate=root.querySelector('[data-character-generate]');if(approve)approve.disabled=true;if(rotate)rotate.disabled=true;if(generate)generate.disabled=true;
+      characterStatus('Casting is underway. Three visual concepts are being created from the approved direction.','');
       try{
         const response=await fetch('/api/video/characters/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({projectId,name,description,notes})});
         const result=await response.json().catch(()=>({}));
         if(!response.ok||!result.ok)throw new Error(result.error||'Character generation failed.');
         characterCandidates=result.candidates||[];selectedCharacterCandidate=-1;renderCharacterCandidates();
-        characterStatus('Choose the look that best fits your story. Generate 3 more to rotate through another set.','success');
+        const castingState=root.querySelector('[data-character-casting-state]');if(castingState){castingState.textContent='Choose a candidate';castingState.classList.add('complete');}
+        characterStatus('Choose the look that best fits your story. Generate 3 more to explore another direction.','success');
         if(result.creditsRemaining!==undefined){const creditNode=document.getElementById('topCredits');if(creditNode)creditNode.textContent=Number(result.creditsRemaining).toLocaleString();}
       }catch(error){characterStatus(String(error?.message||'Character generation failed. Credits are refunded if generation fails.').slice(0,350),'error');}
-      finally{characterRoundBusy=false;if(button){button.disabled=false;button.textContent=original||'Generate 3 options';}renderCharacterCandidates();}
+      finally{characterRoundBusy=false;if(button){button.disabled=false;button.textContent=button.matches('[data-character-generate]')?'Direction approved · Generate 3 more':'Generate 3 more';}if(generate)generate.disabled=false;renderCharacterCandidates();}
     };
     const approveCharacter=async button=>{
       if(selectedCharacterCandidate<0||!characterCandidates[selectedCharacterCandidate]||characterRoundBusy)return;
@@ -913,6 +929,18 @@
         scheduleProjectSave();
         return;
       }
+    });
+    root.addEventListener('input',event=>{
+      if(!event.target.matches('[data-character-name],[data-character-description],[data-character-notes]'))return;
+      if(!characterDirectionApproved)return;
+      characterDirectionApproved=false;
+      characterCandidates=[];selectedCharacterCandidate=-1;
+      const directionState=root.querySelector('[data-character-direction-state]'),castingState=root.querySelector('[data-character-casting-state]'),casting=root.querySelector('[data-character-casting]');
+      if(directionState){directionState.textContent='Revised · approval needed';directionState.classList.remove('complete');}
+      if(castingState){castingState.textContent='Direction changed';castingState.classList.remove('complete');}
+      if(casting)casting.hidden=true;
+      renderCharacterCandidates();
+      characterStatus('Your direction changed. Approve it again to generate a fresh casting round.','');
     });
     root.addEventListener('click',event=>{
       const remove=event.target.closest('[data-brand-remove]');
