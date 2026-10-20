@@ -612,6 +612,16 @@ export default {
       if (!env.DB || !env.GENERATED_AUDIO) return json({ error: "Character generation storage is not configured." }, 503);
       let body = {}; try { body = await request.json(); } catch { return json({ error: "Send character details as JSON." }, 400); }
       const projectId = String(body.projectId || "").trim(), name = String(body.name || "").trim().slice(0,100), description = String(body.description || "").trim(), notes = String(body.notes || "").trim();
+      const rawPreferences = body.preferences && typeof body.preferences === "object" && !Array.isArray(body.preferences) ? body.preferences : {};
+      const allowedPreferences = {
+        foundation: ["Mascot / brand character","Human character","Animal character","Fantasy / imaginary being","No recurring character"],
+        style: ["Cinematic 3D animation","Stylised animated film","Photorealistic live action","Illustrated / graphic","Anime-inspired","Stop-motion / handcrafted","Let SvaraFlow decide"],
+        world: ["Futuristic / technology","Modern / contemporary","Natural / outdoors","Fantasy / surreal","Historical / period","Everyday / relatable","Let SvaraFlow decide"],
+        palette: ["Indigo, blue and cool white","Warm / golden","Earthy / natural","Bold / vibrant","Monochrome / minimal","Let SvaraFlow decide"],
+        mood: ["Confident and inspiring","Warm and friendly","Bold and dramatic","Playful and energetic","Calm and thoughtful","Mysterious and atmospheric","Let SvaraFlow decide"],
+        rendering: ["Stylised","Semi-realistic","Photorealistic","Let SvaraFlow decide"]
+      };
+      const preferences = Object.fromEntries(Object.entries(allowedPreferences).map(([key, options]) => [key, options.includes(String(rawPreferences[key] || "")) ? String(rawPreferences[key]) : "Let SvaraFlow decide"]));
       if (!projectId || !/^[a-zA-Z0-9_-]{1,80}$/.test(projectId)) return json({ error: "Save or open a valid Video project before generating characters." }, 400);
       if (!description || description.length > 1800 || notes.length > 1000) return json({ error: "Add a character description (maximum 1,800 characters) and keep notes under 1,000 characters." }, 400);
       const project = await env.DB.prepare("SELECT id FROM video_projects WHERE id=? AND user_id=? LIMIT 1").bind(projectId,userId).first();
@@ -633,9 +643,16 @@ export default {
       const prompt = [
         "Create one polished character concept image on a simple neutral studio background. No text, captions, labels, collage, multiple views, or watermark.",
         "Character name: " + (name || "Unnamed character"),
-        "Creator's description: " + description,
-        notes ? "Details to preserve: " + notes : "",
-        "Prioritize a distinctive silhouette, clear readable facial expression, appealing professional art direction, and a complete visible character. This is one candidate in a set; make a coherent interpretation of the brief."
+        "Creator's description and project-specific direction: " + description,
+        notes ? "Details that must be preserved: " + notes : "",
+        "Character foundation: " + preferences.foundation,
+        "Visual style: " + preferences.style,
+        "World and environment direction: " + preferences.world,
+        "Colour direction: " + preferences.palette,
+        "Emotional tone: " + preferences.mood,
+        "Character rendering: " + preferences.rendering,
+        "Treat these preferences as creative guidance, not permission to contradict the project-specific description or must-preserve details. When a preference says Let SvaraFlow decide, choose the interpretation that best serves the project brief.",
+        "Create a deliberate, professional interpretation with a distinctive readable silhouette, expressive face, and coherent materials and styling. Do not rely on superficial outfit changes as the only source of variation between candidates."
       ].filter(Boolean).join("\n");
       // Reserve a conservative amount for three medium square images and prompt tokens,
       // then settle to the actual usage reported by OpenAI.
