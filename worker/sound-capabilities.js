@@ -14,7 +14,7 @@ function json(data, status = 200) {
 }
 
 function configuredProvider(env) {
-  return String(env.SVARAONE_SOUND_PROVIDER || "").trim().toLowerCase();
+  return String(env.SOUND_PROVIDER || "").trim().toLowerCase();
 }
 
 async function hashCapabilities(capabilities) {
