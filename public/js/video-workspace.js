@@ -298,7 +298,7 @@
               <div class="sv-workflow-actions sv-character-actions"><span class="sv-setup-note">Each generation round uses credits, including rotations.</span><button class="sv-btn primary" type="button" data-character-generate>Generate 3 options</button></div>
               <div data-character-status class="sv-status" role="status" aria-live="polite">Describe your character to begin. Your options will appear here.</div>
               <div data-character-candidates class="sv-character-candidates" aria-live="polite"></div>
-              <div class="sv-workflow-actions sv-character-actions sv-character-actions--choices"><button class="sv-btn primary" type="button" data-character-approve disabled>Approve character →</button><button class="sv-btn" type="button" data-character-rotate disabled>Generate 3 more</button></div>
+              <div class="sv-workflow-actions sv-character-actions sv-character-actions--choices"><button class="sv-btn" type="button" data-character-rotate disabled>Generate 3 more</button><button class="sv-btn primary" type="button" data-character-approve disabled>Approve character →</button></div>
             </div>
           </div>
         </section>
