@@ -275,6 +275,12 @@
         <section class="sv-card sv-accordion" data-accordion="characters">
           <style>
             [data-accordion="characters"] .sv-accordion-intro{margin:18px 0 22px}
+            [data-accordion="characters"] .sv-brand-grid{display:flex;flex-direction:column;gap:18px}
+            [data-accordion="characters"] .sv-brand-grid .sv-field{display:flex;flex-direction:column;align-items:stretch;gap:8px;width:100%}
+            [data-accordion="characters"] .sv-brand-grid .sv-field>span{display:block;text-align:left;padding:0}
+            [data-accordion="characters"] .sv-brand-grid .sv-field>input,[data-accordion="characters"] .sv-brand-grid .sv-field>textarea{display:block;width:100%;min-width:0;box-sizing:border-box}
+            [data-accordion="characters"] .sv-brand-grid [data-character-description]{min-height:180px}
+            [data-accordion="characters"] .sv-brand-grid [data-character-notes]{min-height:130px}
             [data-accordion="characters"] .sv-character-actions{display:flex;justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap}
             [data-accordion="characters"] .sv-character-actions .sv-setup-note{margin-right:auto}
             [data-accordion="characters"] .sv-character-actions button{margin-left:auto}
