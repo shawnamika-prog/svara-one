@@ -723,6 +723,7 @@
         if(directionState){directionState.textContent='Approved';directionState.classList.add('complete');}
         if(castingState)castingState.textContent='Casting in progress';
         if(casting)casting.hidden=false;
+        if(button)button.hidden=true;
       }
       characterRoundBusy=true;const original=button?.textContent;if(button){button.disabled=true;button.textContent='Generating concepts…';}
       const approve=root.querySelector('[data-character-approve]'),rotate=root.querySelector('[data-character-rotate]'),generate=root.querySelector('[data-character-generate]');if(approve)approve.disabled=true;if(rotate)rotate.disabled=true;if(generate)generate.disabled=true;
@@ -935,7 +936,8 @@
       if(!characterDirectionApproved)return;
       characterDirectionApproved=false;
       characterCandidates=[];selectedCharacterCandidate=-1;
-      const directionState=root.querySelector('[data-character-direction-state]'),castingState=root.querySelector('[data-character-casting-state]'),casting=root.querySelector('[data-character-casting]');
+      const directionState=root.querySelector('[data-character-direction-state]'),castingState=root.querySelector('[data-character-casting-state]'),casting=root.querySelector('[data-character-casting]'),generate=root.querySelector('[data-character-generate]');
+      if(generate){generate.hidden=false;generate.textContent='Approve revised direction & generate 3 concepts →';}
       if(directionState){directionState.textContent='Revised · approval needed';directionState.classList.remove('complete');}
       if(castingState){castingState.textContent='Direction changed';castingState.classList.remove('complete');}
       if(casting)casting.hidden=true;
