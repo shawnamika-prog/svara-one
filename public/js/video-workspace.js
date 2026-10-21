@@ -329,7 +329,7 @@
                 <label class="sv-field"><span>Creative Direction Brief</span><textarea data-character-description maxlength="1800" rows="5" placeholder="Describe the character’s role in the story, personality, signature features, materials, outfit and overall feeling…"></textarea></label>
                 <label class="sv-field"><span>Details SvaraFlow must preserve</span><textarea data-character-notes maxlength="1000" rows="2" placeholder="Signature colours, proportions, accessories, logo placement or other non-negotiables…"></textarea></label>
               </div>
-              <div class="sv-character-direction-foot"><span><b>Approval gate</b> · no images are generated until you approve this direction.</span><span>Each casting round uses credits.</span></div>
+              
               <div class="sv-workflow-actions sv-character-actions"><button class="sv-btn primary" type="button" data-character-generate>Approve direction &amp; generate 3 concepts →</button></div>
               </div>
             </details>
