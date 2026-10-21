@@ -833,6 +833,7 @@
         if(!response.ok||!result.ok)throw new Error(result.error||'Character generation failed.');
         characterCandidates=result.candidates||[];selectedCharacterCandidate=-1;renderCharacterCandidates();
         if(casting)casting.hidden=false;
+        if(isInitialApproval&&button)button.hidden=true;
         const sectionA=root.querySelector('[data-character-work-section="a"]'),sectionB=root.querySelector('[data-character-work-section="b"]');
         if(sectionA)sectionA.open=false;
         if(sectionB)sectionB.open=true;
