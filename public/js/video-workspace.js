@@ -655,9 +655,36 @@
         if(!projects.length){list.innerHTML='<div class="sv-project-empty">No saved projects yet. Start with Creative Discovery below; your work will appear here after it is saved.</div>';return;}
         list.innerHTML=projects.map(project=>{
           const updated=project.updatedAt?new Date(project.updatedAt).toLocaleString([], {dateStyle:'medium',timeStyle:'short'}):'';
-          return '<article class="sv-project-row" data-project-row="'+esc(project.id)+'"><div class="sv-project-icon" aria-hidden="true">▣</div><div class="sv-project-copy"><strong>'+esc(project.title||'Untitled video project')+'</strong><small>'+esc(projectStatusLabel(project))+' · Updated '+esc(updated)+' · Stage '+(Number(project.currentStage)+1)+'</small></div><div class="sv-project-actions"><button class="sv-btn primary" type="button" data-project-open="'+esc(project.id)+'">Open</button><button class="sv-btn danger" type="button" data-project-delete="'+esc(project.id)+'">Delete</button></div></article>';
+          return '<article class="sv-project-row" data-project-row="'+esc(project.id)+'"><div class="sv-project-icon" aria-hidden="true">▣</div><div class="sv-project-copy"><strong>'+esc(project.title||'Untitled video project')+'</strong><small>'+esc(projectStatusLabel(project))+' · Updated '+esc(updated)+' · Stage '+(Number(project.currentStage)+1)+'</small></div><div class="sv-project-actions"><button class="sv-btn" type="button" data-project-save-close="'+esc(project.id)+'">Save &amp; Close</button><button class="sv-btn primary" type="button" data-project-open="'+esc(project.id)+'">Open</button><button class="sv-btn danger" type="button" data-project-delete="'+esc(project.id)+'">Delete</button></div></article>';
         }).join('');
       }catch(error){list.innerHTML='<div class="sv-status error">'+esc(error.message||'Projects could not be loaded.')+'</div>';}
+    };
+    const closeVideoWorkspace=()=>{
+      const headingCopy=root.querySelector('[data-video-heading-copy]'),headingToggle=root.querySelector('[data-video-heading-toggle]');
+      if(headingCopy)headingCopy.hidden=false;
+      if(headingToggle){headingToggle.setAttribute('aria-expanded','true');headingToggle.querySelector('span:first-child').textContent='Collapse';headingToggle.querySelector('.sv-collapse-arrow').textContent='↑';}
+      const projectList=root.querySelector('[data-projects-list]'),projectToggle=root.querySelector('[data-projects-toggle]');
+      if(projectList)projectList.hidden=false;
+      if(projectToggle){projectToggle.setAttribute('aria-expanded','true');projectToggle.querySelector('span:first-child').textContent='Collapse';projectToggle.querySelector('.sv-collapse-arrow').textContent='↑';}
+      const projectsPanel=root.querySelector('[data-video-projects-panel]');if(projectsPanel)projectsPanel.dataset.projectsCollapsed='false';
+      root.querySelectorAll('[data-accordion]').forEach(panel=>{if(panel.dataset.accordion==='story')panel.hidden=true;});
+      root.querySelectorAll('[data-accordion-body]').forEach(body=>{body.hidden=true;});
+      root.querySelectorAll('[data-accordion-toggle]').forEach(toggle=>toggle.setAttribute('aria-expanded','false'));
+      root.querySelector('[data-video-header-panel]')?.scrollIntoView({block:'start',behavior:'smooth'});
+    };
+    const saveAndCloseVideoProject=async id=>{
+      const button=root.querySelector('[data-project-save-close="'+CSS.escape(id)+'"]');
+      if(button){button.disabled=true;button.textContent='Saving…';}
+      try{
+        if(String(id)===String(projectId)){
+          const saved=await persistVideoProject();
+          if(!saved)throw new Error('Project could not be saved. It remains open so you can retry.');
+        }
+        closeVideoWorkspace();
+        setStatus('Project saved and closed.','success');
+        refreshVideoProjects();
+      }catch(error){setStatus(error.message||'Project could not be saved.','error');}
+      finally{if(button&&button.isConnected){button.disabled=false;button.textContent='Save & Close';}}
     };
     const openVideoProject=async id=>{
       setStatus('Opening saved project…');
@@ -803,6 +830,7 @@
       const removeReferenceButton=event.target.closest('[data-reference-remove]');if(removeReferenceButton){removeDiscoveryReference(removeReferenceButton.dataset.referenceRemove);return;}
       const headingToggle=event.target.closest('[data-video-heading-toggle]');if(headingToggle){const copy=root.querySelector('[data-video-heading-copy]'),expanded=headingToggle.getAttribute('aria-expanded')==='true';headingToggle.setAttribute('aria-expanded',String(!expanded));headingToggle.querySelector('span:first-child').textContent=expanded?'Expand':'Collapse';headingToggle.querySelector('.sv-collapse-arrow').textContent=expanded?'↓':'↑';if(copy)copy.hidden=expanded;return;}
       const projectsToggle=event.target.closest('[data-projects-toggle]');if(projectsToggle){const list=root.querySelector('[data-projects-list]'),expanded=projectsToggle.getAttribute('aria-expanded')==='true';projectsToggle.setAttribute('aria-expanded',String(!expanded));projectsToggle.querySelector('span:first-child').textContent=expanded?'Expand':'Collapse';projectsToggle.querySelector('.sv-collapse-arrow').textContent=expanded?'↓':'↑';if(list)list.hidden=expanded;const panel=root.querySelector('[data-video-projects-panel]');if(panel)panel.dataset.projectsCollapsed=String(expanded);return;}
+      const saveCloseButton=event.target.closest('[data-project-save-close]');if(saveCloseButton){saveAndCloseVideoProject(saveCloseButton.dataset.projectSaveClose);return;}
       if(event.target.closest('[data-projects-refresh]')){refreshVideoProjects();return;}
       if(event.target.closest('[data-video-new]')){const discovery=root.querySelector('[data-accordion="story"]'),toggle=root.querySelector('[data-accordion-toggle="story"]'),body=root.querySelector('[data-accordion-body="story"]');if(discovery){discovery.hidden=false;discovery.scrollIntoView({block:'start',behavior:'smooth'});}if(toggle)toggle.setAttribute('aria-expanded','true');if(body)body.hidden=false;return;}
       const openProjectButton=event.target.closest('[data-project-open]');if(openProjectButton){openVideoProject(openProjectButton.dataset.projectOpen);return;}
