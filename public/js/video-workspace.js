@@ -302,6 +302,7 @@
             [data-accordion="characters"] .sv-accordion-intro{margin:18px 0 22px}
             [data-accordion="characters"] .sv-brand-grid{display:flex;flex-direction:column;gap:18px}
             [data-accordion="characters"] .sv-brand-grid .sv-field{display:flex;flex-direction:column;align-items:stretch;gap:8px;width:100%}
+            [data-accordion="characters"] .sv-brand-grid .sv-field:has(>input),[data-accordion="characters"] .sv-brand-grid .sv-field:has(>textarea){padding-top:12px}
             [data-accordion="characters"] .sv-brand-grid .sv-field>span{display:block;text-align:left;padding:0}
             [data-accordion="characters"] .sv-brand-grid .sv-field>input,[data-accordion="characters"] .sv-brand-grid .sv-field>textarea{display:block;width:100%;min-width:0;box-sizing:border-box}
             [data-accordion="characters"] .sv-brand-grid [data-character-description]{min-height:180px}
