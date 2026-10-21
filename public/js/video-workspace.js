@@ -952,14 +952,6 @@
         return;
       }
     });
-    root.addEventListener('click',event=>{
-      const toggle=event.target.closest('[data-character-preferences-toggle]');
-      if(!toggle||!root.contains(toggle))return;
-      const content=root.querySelector('[data-character-preferences-content]');
-      const expanded=toggle.getAttribute('aria-expanded')==='true';
-      toggle.setAttribute('aria-expanded',String(!expanded));
-      if(content)content.hidden=expanded;
-    });
     root.addEventListener('input',event=>{
       if(!event.target.matches('[data-character-name],[data-character-description],[data-character-notes]'))return;
       if(!characterDirectionApproved)return;
