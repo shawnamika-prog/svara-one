@@ -246,11 +246,10 @@
           <nav class="sv-workflow-rail" data-workflow-rail aria-label="Workflow stages">
             <button class="sv-workflow-step active" type="button" data-workflow-step="0" aria-current="step"><span class="sv-workflow-dot">1</span><strong>Story &amp; Concept</strong></button>
             <button class="sv-workflow-step" type="button" data-workflow-step="1" disabled><span class="sv-workflow-dot">2</span><strong>Branding</strong></button>
-            <button class="sv-workflow-step" type="button" data-workflow-step="2" disabled><span class="sv-workflow-dot">3</span><strong>Characters</strong></button>
-            <button class="sv-workflow-step" type="button" data-workflow-step="3" disabled><span class="sv-workflow-dot">4</span><strong>Environments</strong></button>
-            <button class="sv-workflow-step" type="button" data-workflow-step="4" disabled><span class="sv-workflow-dot">5</span><strong>Visual Style</strong></button>
-            <button class="sv-workflow-step" type="button" data-workflow-step="5" disabled><span class="sv-workflow-dot">6</span><strong>Storyboard</strong></button>
-            <button class="sv-workflow-step" type="button" data-workflow-step="6" disabled><span class="sv-workflow-dot">7</span><strong>Production</strong></button>
+            <button class="sv-workflow-step" type="button" data-workflow-step="2" disabled><span class="sv-workflow-dot">3</span><strong>Characters &amp; Environments</strong></button>
+            <button class="sv-workflow-step" type="button" data-workflow-step="3" disabled><span class="sv-workflow-dot">4</span><strong>Visual Style</strong></button>
+            <button class="sv-workflow-step" type="button" data-workflow-step="4" disabled><span class="sv-workflow-dot">5</span><strong>Storyboard</strong></button>
+            <button class="sv-workflow-step" type="button" data-workflow-step="5" disabled><span class="sv-workflow-dot">6</span><strong>Production</strong></button>
           </nav>
           </div>
         </section>
@@ -348,16 +347,8 @@
             </div>
           </div>
         </section>
-        <section class="sv-card sv-accordion" data-accordion="environment">
-          <button class="sv-accordion-head" type="button" data-accordion-toggle="environment" aria-expanded="false"><span class="sv-accordion-number">04</span><span class="sv-accordion-title"><strong>Environments</strong><small>Locations, backgrounds, lighting and atmosphere</small></span><span class="sv-accordion-state" data-accordion-state="environment">Not started</span><span class="sv-accordion-chevron">⌄</span></button>
-          <div class="sv-accordion-body" data-accordion-body="environment" hidden>
-            <p class="sv-accordion-intro">Define the places and settings where your story takes place. Reuse approved environment references across scenes.</p>
-            <div class="sv-asset-placeholder"><strong>Environment library · planned</strong><br>Locations, background references and lighting setups will live here.</div>
-            <div class="sv-accordion-foot"><span class="sv-setup-note">Environment assets will be connected in a later phase.</span><div class="sv-workflow-actions"><button class="sv-btn primary" type="button" data-section-review="environment">Approve &amp; continue →</button></div></div>
-          </div>
-        </section>
         <section class="sv-card sv-accordion" data-accordion="style">
-          <button class="sv-accordion-head" type="button" data-accordion-toggle="style" aria-expanded="false"><span class="sv-accordion-number">05</span><span class="sv-accordion-title"><strong>Visual Style</strong><small>Look, palette, mood and cinematic direction</small></span><span class="sv-accordion-state" data-accordion-state="style">Not started</span><span class="sv-accordion-chevron">⌄</span></button>
+          <button class="sv-accordion-head" type="button" data-accordion-toggle="style" aria-expanded="false"><span class="sv-accordion-number">04</span><span class="sv-accordion-title"><strong>Visual Style</strong><small>Look, palette, mood and cinematic direction</small></span><span class="sv-accordion-state" data-accordion-state="style">Not started</span><span class="sv-accordion-chevron">⌄</span></button>
           <div class="sv-accordion-body" data-accordion-body="style" hidden>
             <div class="sv-setup-grid">
               <label class="sv-field"><span>Visual direction</span><select data-project-field="visualStyle"><option value="">Choose a visual style</option><option>Cinematic realism</option><option>3D animation</option><option>Stylised illustration</option><option>Anime</option><option>Mixed media</option></select></label>
@@ -368,7 +359,7 @@
           </div>
         </section>
         <section class="sv-card sv-accordion" data-accordion="storyboard">
-          <button class="sv-accordion-head" type="button" data-accordion-toggle="storyboard" aria-expanded="false"><span class="sv-accordion-number">06</span><span class="sv-accordion-title"><strong>Storyboard &amp; Concept Reel</strong><small>Your scenes, shots and camera direction</small></span><span class="sv-accordion-state" data-accordion-state="storyboard">0 scenes</span><span class="sv-accordion-chevron">⌄</span></button>
+          <button class="sv-accordion-head" type="button" data-accordion-toggle="storyboard" aria-expanded="false"><span class="sv-accordion-number">05</span><span class="sv-accordion-title"><strong>Storyboard &amp; Concept Reel</strong><small>Your scenes, shots and camera direction</small></span><span class="sv-accordion-state" data-accordion-state="storyboard">0 scenes</span><span class="sv-accordion-chevron">⌄</span></button>
           <div class="sv-accordion-body" data-accordion-body="storyboard" hidden>
             <span class="sv-hidden" data-count>(0)</span>
             <div class="sv-scenes" data-scenes style="padding:10px"></div>
@@ -376,7 +367,7 @@
           </div>
         </section>
         <section class="sv-card sv-accordion" data-accordion="production">
-          <button class="sv-accordion-head" type="button" data-accordion-toggle="production" aria-expanded="false"><span class="sv-accordion-number">07</span><span class="sv-accordion-title"><strong>Generate &amp; Assemble</strong><small>Generate, review, edit and export</small></span><span class="sv-accordion-state">Planned</span><span class="sv-accordion-chevron">⌄</span></button>
+          <button class="sv-accordion-head" type="button" data-accordion-toggle="production" aria-expanded="false"><span class="sv-accordion-number">06</span><span class="sv-accordion-title"><strong>Generate &amp; Assemble</strong><small>Generate, review, edit and export</small></span><span class="sv-accordion-state">Planned</span><span class="sv-accordion-chevron">⌄</span></button>
           <div class="sv-accordion-body" data-accordion-body="production" hidden>
             <p class="sv-accordion-intro">Once your scenes are ready, generate clips, review results, and assemble the finished production with dialogue, music, sound effects and transitions.</p>
             <div class="sv-asset-row"><div class="sv-asset-icon">▣</div><div class="sv-asset-copy"><strong>Video scenes</strong><small>Scene clips, approvals and transitions · planned</small></div><span class="sv-chip">Future phase</span></div>
@@ -496,7 +487,7 @@
       const note=root.querySelector('[data-discovery-result-note]');if(note)note.textContent='Review the concept. Approving it creates editable storyboard scene cards. No media generated yet.';
       const state=root.querySelector('[data-accordion-state="story"]');if(state){state.textContent='Concept ready for review';state.classList.remove('complete');}
     };
-    const workflowStages=[{id:'story',label:'Story & Concept',heading:'Creative Discovery'},{id:'branding',label:'Branding',heading:'Branding'},{id:'characters',label:'Characters',heading:'Characters & Mascots'},{id:'environment',label:'Environments',heading:'Environments'},{id:'style',label:'Visual Style',heading:'Visual Style'},{id:'storyboard',label:'Storyboard',heading:'Storyboard & Concept Reel'},{id:'production',label:'Production',heading:'Generate & Assemble'}];
+    const workflowStages=[{id:'story',label:'Story & Concept',heading:'Creative Discovery'},{id:'branding',label:'Branding',heading:'Branding'},{id:'characters',label:'Characters & Environments',heading:'Characters & Environments'},{id:'style',label:'Visual Style',heading:'Visual Style'},{id:'storyboard',label:'Storyboard',heading:'Storyboard & Concept Reel'},{id:'production',label:'Production',heading:'Generate & Assemble'}];
 
     let workflowCurrent=0,workflowApproved=[],workflowProjectActive=false,projectId=crypto.randomUUID(),projectSaveTimer=null,projectSaveBusy=false,projectSaveQueued=false,projectLoading=false;
     let discoveryReferences=[];
