@@ -833,6 +833,8 @@
       if(isInitialApproval&&casting)casting.hidden=true;
       characterStatus('SvaraFlow is composing your creative direction, then generating three distinct character concepts.','');
       try{
+        const projectSaved=await persistVideoProject();
+        if(!projectSaved)throw new Error('Save the Video project before generating character options.');
         const response=await fetch('/api/video/characters/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({projectId,name,description,notes,preferences:Object.fromEntries([...root.querySelectorAll('[data-character-preference]')].map(el=>[el.dataset.characterPreference,el.value]))})});
         const result=await response.json().catch(()=>({}));
         if(!response.ok||!result.ok)throw new Error(result.error||'Character generation failed.');
