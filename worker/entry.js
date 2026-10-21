@@ -785,7 +785,7 @@ export default {
       if (!debit.meta?.changes) return json({ error: "You do not have enough credits to generate three character options." }, 402);
       let refundNeeded = true;
       try {
-        const generated = await Promise.all(candidatePrompts.map(async (prompt, index) => {
+        const generationResults = await Promise.allSettled(candidatePrompts.map(async (prompt, index) => {
           const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 90000);
           let providerResponse;
           try {
@@ -814,6 +814,9 @@ export default {
           }
           return { imageUrl, label:direction.candidateDirections[index].label, direction:direction.candidateDirections[index].variation, inputTextTokens, outputImageTokens };
         }));
+        const failedGeneration = generationResults.find(result => result.status === "rejected");
+        if (failedGeneration) throw failedGeneration.reason;
+        const generated = generationResults.map(result => result.value);
         const inputTextTokens = generated.reduce((total, item) => total + item.inputTextTokens, 0);
         const outputImageTokens = generated.reduce((total, item) => total + item.outputImageTokens, 0);
         const actualUsd = (inputTextTokens * rates.textInputPerMillion + outputImageTokens * rates.imageOutputPerMillion) / 1_000_000;
