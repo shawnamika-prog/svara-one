@@ -308,6 +308,7 @@
             [data-accordion="characters"] .sv-brand-grid [data-character-description]{min-height:180px}
             [data-accordion="characters"] .sv-brand-grid [data-character-notes]{min-height:130px}
             [data-accordion="characters"] .sv-character-actions{display:flex;justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap}
+            [data-accordion="characters"] .sv-character-actions{padding-top:12px}
             [data-accordion="characters"] .sv-character-actions .sv-setup-note{margin-right:auto}
             [data-accordion="characters"] .sv-character-actions button{margin-left:auto}
             [data-accordion="characters"] .sv-character-actions--choices button{margin-left:0}
@@ -331,7 +332,7 @@
                 <label class="sv-field"><span>Details SvaraFlow must preserve</span><textarea data-character-notes maxlength="1000" rows="2" placeholder="Signature colours, proportions, accessories, logo placement or other non-negotiables…"></textarea></label>
               </div>
               
-              <div class="sv-workflow-actions sv-character-actions"><button class="sv-btn primary" type="button" data-character-generate>Approve direction &amp; generate 3 concepts →</button></div>
+              <div class="sv-workflow-actions sv-character-actions"><button class="sv-btn primary" type="button" data-character-generate>Approve &amp; Render →</button></div>
               </div>
             </details>
             <div class="sv-character-casting" data-character-casting hidden>
