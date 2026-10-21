@@ -674,7 +674,7 @@
       root.querySelectorAll('[data-accordion] select').forEach(el=>{el.selectedIndex=0;});
       root.querySelectorAll('[data-discovery-result],[data-discovery-actions]').forEach(el=>{el.hidden=true;});
       root.querySelectorAll('[data-discovery-saved-files]').forEach(el=>{el.innerHTML='';});
-      root.querySelectorAll('[data-character-casting]').forEach(el=>{el.hidden=false;const section=el.querySelector('[data-character-work-section="b"]');if(section)section.open=false;});
+      root.querySelectorAll('[data-character-casting]').forEach(el=>{el.hidden=true;const section=el.querySelector('[data-character-work-section="b"]');if(section)section.open=false;});root.querySelectorAll('[data-character-work-section="a"]').forEach(section=>{section.open=true;});
       root.querySelectorAll('[data-brand-thumb] img').forEach(img=>{if(img.dataset.savedObjectUrl){URL.revokeObjectURL(img.dataset.savedObjectUrl);delete img.dataset.savedObjectUrl;}img.removeAttribute('src');img.hidden=true;});
       root.querySelectorAll('[data-brand-thumb]').forEach(el=>el.classList.remove('has-image'));
       root.querySelectorAll('[data-brand-remove]').forEach(el=>el.hidden=true);
@@ -822,7 +822,6 @@
         const directionState=root.querySelector('[data-character-direction-state]'),castingState=root.querySelector('[data-character-casting-state]');
         if(directionState){directionState.textContent='Approved';directionState.classList.add('complete');}
         if(castingState)castingState.textContent='Casting in progress';
-        if(casting)casting.hidden=false;
         if(button)button.hidden=true;
       }
       characterRoundBusy=true;const original=button?.textContent;if(button){button.disabled=true;button.textContent='Generating concepts…';}
@@ -833,6 +832,10 @@
         const result=await response.json().catch(()=>({}));
         if(!response.ok||!result.ok)throw new Error(result.error||'Character generation failed.');
         characterCandidates=result.candidates||[];selectedCharacterCandidate=-1;renderCharacterCandidates();
+        if(casting)casting.hidden=false;
+        const sectionA=root.querySelector('[data-character-work-section="a"]'),sectionB=root.querySelector('[data-character-work-section="b"]');
+        if(sectionA)sectionA.open=false;
+        if(sectionB)sectionB.open=true;
         const castingState=root.querySelector('[data-character-casting-state]');if(castingState){castingState.textContent='Choose a candidate';castingState.classList.add('complete');}
         characterStatus('Choose the look that best fits your story. Generate 3 more to explore another direction.','success');
         if(result.creditsRemaining!==undefined){const creditNode=document.getElementById('topCredits');if(creditNode)creditNode.textContent=Number(result.creditsRemaining).toLocaleString();}
