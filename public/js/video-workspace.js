@@ -674,7 +674,7 @@
       root.querySelectorAll('[data-accordion] select').forEach(el=>{el.selectedIndex=0;});
       root.querySelectorAll('[data-discovery-result],[data-discovery-actions]').forEach(el=>{el.hidden=true;});
       root.querySelectorAll('[data-discovery-saved-files]').forEach(el=>{el.innerHTML='';});
-      root.querySelectorAll('[data-character-casting]').forEach(el=>{el.hidden=true;});
+      root.querySelectorAll('[data-character-casting]').forEach(el=>{el.hidden=false;const section=el.querySelector('[data-character-work-section="b"]');if(section)section.open=false;});
       root.querySelectorAll('[data-brand-thumb] img').forEach(img=>{if(img.dataset.savedObjectUrl){URL.revokeObjectURL(img.dataset.savedObjectUrl);delete img.dataset.savedObjectUrl;}img.removeAttribute('src');img.hidden=true;});
       root.querySelectorAll('[data-brand-thumb]').forEach(el=>el.classList.remove('has-image'));
       root.querySelectorAll('[data-brand-remove]').forEach(el=>el.hidden=true);
