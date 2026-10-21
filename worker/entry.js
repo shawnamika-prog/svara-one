@@ -648,7 +648,7 @@ export default {
         "Character foundation: " + preferences.foundation,
         "Visual style: " + preferences.style,
         "World and environment direction: " + preferences.world,
-        "Colour direction: " + preferences.palette,
+        "Use the primary and secondary brand colours configured in the project Branding panel. Do not invent or override the brand palette.",
         "Emotional tone: " + preferences.mood,
         "Character rendering: " + preferences.rendering,
         "Treat these preferences as creative guidance, not permission to contradict the project-specific description or must-preserve details. When a preference says Let SvaraFlow decide, choose the interpretation that best serves the project brief.",
