@@ -336,7 +336,7 @@
               </div>
             </details>
             <div class="sv-character-section-divider"></div>
-            <div class="sv-character-casting" data-character-casting>
+            <div class="sv-character-casting" data-character-casting hidden>
               <details class="sv-work-section sv-character-work-section" data-character-work-section="b">
                 <summary><span class="sv-work-index">B</span><span><strong>Casting</strong><small>Review scene concepts and choose your visual direction</small></span><span class="sv-work-chevron">⌄</span></summary>
                 <div class="sv-work-section-content" id="sv-character-section-b">
@@ -817,31 +817,52 @@
       const name=String(root.querySelector('[data-character-name]')?.value||'').trim(),description=String(root.querySelector('[data-character-description]')?.value||'').trim(),notes=String(root.querySelector('[data-character-notes]')?.value||'').trim();
       if(!description){characterStatus('Describe your character before generating options.','error');root.querySelector('[data-character-description]')?.focus();return;}
       const casting=root.querySelector('[data-character-casting]');
-      if(button?.matches('[data-character-generate]')){
+      const isInitialApproval=!!button?.matches('[data-character-generate]');
+      const directionState=root.querySelector('[data-character-direction-state]'),castingState=root.querySelector('[data-character-casting-state]');
+      if(isInitialApproval){
         characterDirectionApproved=true;
-        const directionState=root.querySelector('[data-character-direction-state]'),castingState=root.querySelector('[data-character-casting-state]');
         if(directionState){directionState.textContent='Approved';directionState.classList.add('complete');}
         if(castingState)castingState.textContent='Casting in progress';
-        if(button)button.hidden=true;
       }
       characterRoundBusy=true;const original=button?.textContent;if(button){button.disabled=true;button.textContent='Generating concepts…';}
-      const approve=root.querySelector('[data-character-approve]'),rotate=root.querySelector('[data-character-rotate]'),generate=root.querySelector('[data-character-generate]');if(approve)approve.disabled=true;if(rotate)rotate.disabled=true;if(generate)generate.disabled=true;
+      const approve=root.querySelector('[data-character-approve]'),rotate=root.querySelector('[data-character-rotate]'),generate=root.querySelector('[data-character-generate]');
+      if(approve)approve.disabled=true;if(rotate)rotate.disabled=true;if(generate)generate.disabled=true;
+      if(isInitialApproval&&casting)casting.hidden=true;
       characterStatus('Casting is underway. Three visual concepts are being created from the approved direction.','');
       try{
         const response=await fetch('/api/video/characters/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({projectId,name,description,notes,preferences:Object.fromEntries([...root.querySelectorAll('[data-character-preference]')].map(el=>[el.dataset.characterPreference,el.value]))})});
         const result=await response.json().catch(()=>({}));
         if(!response.ok||!result.ok)throw new Error(result.error||'Character generation failed.');
-        characterCandidates=result.candidates||[];selectedCharacterCandidate=-1;renderCharacterCandidates();
+        const candidates=Array.isArray(result.candidates)?result.candidates.filter(item=>item&&typeof item.imageUrl==='string'&&item.imageUrl.trim()):[];
+        if(!candidates.length)throw new Error('Image generation did not return any usable character images. Please try again.');
+        // Do not reveal Section B until every returned image has actually loaded.
+        await Promise.all(candidates.map(item=>new Promise((resolve,reject)=>{
+          const image=new Image();
+          image.onload=()=>resolve();
+          image.onerror=()=>reject(new Error('One or more generated images could not be loaded. Please try again.'));
+          image.src=item.imageUrl;
+          if(image.complete&&image.naturalWidth>0)resolve();
+        })));
+        characterCandidates=candidates;selectedCharacterCandidate=-1;renderCharacterCandidates();
         if(casting)casting.hidden=false;
         if(isInitialApproval&&button)button.hidden=true;
         const sectionA=root.querySelector('[data-character-work-section="a"]'),sectionB=root.querySelector('[data-character-work-section="b"]');
         if(sectionA)sectionA.open=false;
         if(sectionB)sectionB.open=true;
-        const castingState=root.querySelector('[data-character-casting-state]');if(castingState){castingState.textContent='Choose a candidate';castingState.classList.add('complete');}
+        if(castingState){castingState.textContent='Choose a candidate';castingState.classList.add('complete');}
         characterStatus('Choose the look that best fits your story. Generate 3 more to explore another direction.','success');
         if(result.creditsRemaining!==undefined){const creditNode=document.getElementById('topCredits');if(creditNode)creditNode.textContent=Number(result.creditsRemaining).toLocaleString();}
-      }catch(error){characterStatus(String(error?.message||'Character generation failed. Credits are refunded if generation fails.').slice(0,350),'error');}
-      finally{characterRoundBusy=false;if(button){button.disabled=false;button.textContent=button.matches('[data-character-generate]')?'Direction approved · Generate 3 more':'Generate 3 more';}if(generate)generate.disabled=false;renderCharacterCandidates();}
+      }catch(error){
+        if(isInitialApproval){
+          characterDirectionApproved=false;
+          if(casting)casting.hidden=true;
+          if(button)button.hidden=false;
+          if(directionState){directionState.textContent='Ready for approval';directionState.classList.remove('complete');}
+          if(castingState){castingState.textContent='Not started';castingState.classList.remove('complete');}
+        }
+        characterStatus(String(error?.message||'Character generation failed. Credits are refunded if generation fails.').slice(0,350),'error');
+      }
+      finally{characterRoundBusy=false;if(button){button.disabled=false;button.textContent=button.matches('[data-character-generate]')?'Approve & Render →':'Generate 3 more';}if(generate)generate.disabled=false;renderCharacterCandidates();}
     };
     const approveCharacter=async button=>{
       if(selectedCharacterCandidate<0||!characterCandidates[selectedCharacterCandidate]||characterRoundBusy)return;
