@@ -667,9 +667,13 @@
       if(projectList)projectList.hidden=false;
       if(projectToggle){projectToggle.setAttribute('aria-expanded','true');projectToggle.querySelector('span:first-child').textContent='Collapse';projectToggle.querySelector('.sv-collapse-arrow').textContent='↑';}
       const projectsPanel=root.querySelector('[data-video-projects-panel]');if(projectsPanel)projectsPanel.dataset.projectsCollapsed='false';
-      root.querySelectorAll('[data-accordion]').forEach(panel=>{if(panel.dataset.accordion==='story')panel.hidden=true;});
+      /* Save & Close returns to the landing view: hide every workflow panel, not just discovery. */
+      root.querySelectorAll('[data-accordion]').forEach(panel=>{panel.hidden=true;});
       root.querySelectorAll('[data-accordion-body]').forEach(body=>{body.hidden=true;});
       root.querySelectorAll('[data-accordion-toggle]').forEach(toggle=>toggle.setAttribute('aria-expanded','false'));
+      root.querySelectorAll('[data-work-section]').forEach(section=>{section.open=false;});
+      root.querySelectorAll('[data-character-work-section]').forEach(section=>{section.open=false;});
+      root.querySelectorAll('[data-character-casting]').forEach(section=>{section.hidden=true;});
       root.querySelector('[data-video-header-panel]')?.scrollIntoView({block:'start',behavior:'smooth'});
     };
     const saveAndCloseVideoProject=async id=>{
