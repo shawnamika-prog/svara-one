@@ -673,7 +673,7 @@
     };
     const startNewVideoProject=()=>{
       workflowProjectActive=true;
-      if(projectSaveTimer{clearTimeout(projectSaveTimer);projectSaveTimer=null;}
+      if(projectSaveTimer){clearTimeout(projectSaveTimer);projectSaveTimer=null;}
       projectId=crypto.randomUUID();projectSaveBusy=false;projectSaveQueued=false;projectLoading=false;
       workflowCurrent=0;workflowApproved=[];discoveryConcept=null;discoveryReferences=[];brandAssets={};scenes=[];
       root.querySelectorAll('[data-accordion] input:not([type=file]),[data-accordion] textarea').forEach(el=>{if(el.type==='checkbox'||el.type==='radio')el.checked=false;else el.value='';});
@@ -685,7 +685,7 @@
       root.querySelectorAll('[data-brand-thumb]').forEach(el=>el.classList.remove('has-image'));
       root.querySelectorAll('[data-brand-remove]').forEach(el=>el.hidden=true);
       root.querySelectorAll('[data-accordion-state]').forEach(el=>{el.textContent='Not started';el.classList.remove('complete');});
-      renderScenes();renderSettings();renderPreview();resetWorkflowTimeline();
+      renderScenes();renderSettings();renderPreview();resetWorkflowTimeline();workflowProjectActive=true;renderWorkflow();
       root.querySelectorAll('[data-accordion]').forEach(panel=>{panel.hidden=panel.dataset.accordion!=='story';});
       workflowStages.forEach(stage=>{const body=root.querySelector('[data-accordion-body="'+stage.id+'"]'),toggle=root.querySelector('[data-accordion-toggle="'+stage.id+'"]');if(body)body.hidden=stage.id!=='story';if(toggle)toggle.setAttribute('aria-expanded',String(stage.id==='story'));});
       const headingCopy=root.querySelector('[data-video-heading-copy]'),headingToggle=root.querySelector('[data-video-heading-toggle]');if(headingCopy)headingCopy.hidden=true;if(headingToggle){headingToggle.setAttribute('aria-expanded','false');headingToggle.querySelector('span:first-child').textContent='Expand';headingToggle.querySelector('.sv-collapse-arrow').textContent='↓';}
