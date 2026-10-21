@@ -745,14 +745,6 @@ export default {
       preferences.palette = String(projectFields.palette?.value || "").trim().slice(0, 300) || "No saved project palette; choose one that best serves the brief.";
       preferences.projectVisualStyle = String(projectFields.visualStyle?.value || "").trim().slice(0, 160);
       preferences.projectVisualNotes = String(projectFields.visualNotes?.value || "").trim().slice(0, 1000);
-      let direction;
-      try {
-        direction = await composeCharacterDirection({ env, projectTitle: project.title, projectData, name, description, notes, preferences });
-      } catch (error) {
-        const status = Number.isInteger(error?.status) ? error.status : 502;
-        console.error("character_direction_error", { status, message: String(error?.message || error).slice(0, 250) });
-        return json({ error: String(error?.message || "SvaraFlow could not prepare the character direction.").slice(0, 300) }, status);
-      }
       const provider = String(env.IMAGE_PROVIDER || "openai").trim().toLowerCase();
       const apiUrl = String(env.IMAGE_API_URL || "https://api.openai.com/v1/images/generations").trim();
       const apiKey = String(env.IMAGE_API_KEY || "").trim();
@@ -767,6 +759,14 @@ export default {
       if (!apiKey || !apiUrl || !Number.isFinite(safeFactor) || !rates) return json({ error: "Character generation requires IMAGE_API_KEY, IMAGE_API_URL, IMAGE_MODEL (gpt-image-1 or gpt-image-1.5), and the existing SVARAONE_CREDIT_FACTOR in Cloudflare." }, 503);
       if (provider !== "openai") return json({ error: "Character generation currently supports the OpenAI image API only." }, 503);
       if (!/^https:\/\//i.test(apiUrl)) return json({ error: "IMAGE_API_URL must use HTTPS." }, 503);
+      let direction;
+      try {
+        direction = await composeCharacterDirection({ env, projectTitle: project.title, projectData, name, description, notes, preferences });
+      } catch (error) {
+        const status = Number.isInteger(error?.status) ? error.status : 502;
+        console.error("character_direction_error", { status, message: String(error?.message || error).slice(0, 250) });
+        return json({ error: String(error?.message || "SvaraFlow could not prepare the character direction.").slice(0, 300) }, status);
+      }
       const candidatePrompts = direction.candidateDirections.map(item => [
         direction.imagePrompt,
         "Distinct candidate art direction: " + item.variation,
