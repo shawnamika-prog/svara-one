@@ -226,6 +226,117 @@ async function resolveProviderVoiceId(body, env) {
   return "";
 }
 
+async function composeCharacterDirection({ env, projectTitle, projectData, name, description, notes, preferences }) {
+  const apiKey = String(env.OPENAI_API_KEY || "").trim();
+  if (!apiKey) throw Object.assign(new Error("SvaraFlow character direction is not configured. The OpenAI API key is missing from Cloudflare."), { status: 503 });
+  const model = String(env.SVARAFLOW_VIDEO_MODEL || env.SVARAFLOW_MODEL || "gpt-5-mini").trim();
+  const fields = projectData?.fields && typeof projectData.fields === "object" ? projectData.fields : {};
+  const fieldValue = key => String(fields[key]?.value ?? "").trim().slice(0, 1200);
+  const concept = projectData?.discoveryConcept && typeof projectData.discoveryConcept === "object" ? projectData.discoveryConcept : null;
+  const storyContext = concept ? {
+    title: String(concept.title || "").slice(0, 180),
+    logline: String(concept.logline || "").slice(0, 500),
+    creativeDirection: String(concept.creativeDirection || "").slice(0, 700),
+    visualStyle: String(concept.visualStyle || "").slice(0, 250),
+    tone: String(concept.tone || "").slice(0, 180),
+    keyMessage: String(concept.keyMessage || "").slice(0, 300),
+    scenes: Array.isArray(concept.sceneOutline) ? concept.sceneOutline.slice(0, 6).map(scene => ({
+      title: String(scene?.title || "").slice(0, 100),
+      purpose: String(scene?.purpose || "").slice(0, 220),
+      visualDescription: String(scene?.visualDescription || "").slice(0, 300),
+      narration: String(scene?.narration || "").slice(0, 180)
+    })) : []
+  } : null;
+  const projectContext = {
+    projectTitle: String(projectTitle || "").slice(0, 180),
+    storyConcept: storyContext,
+    visualStyle: fieldValue("visualStyle"),
+    projectPalette: fieldValue("palette"),
+    visualNotes: fieldValue("visualNotes"),
+    brandLogoAvailable: Boolean(projectData?.brandAssets?.logo?.key || projectData?.brandAssets?.logo?.id),
+    brandReferenceAvailable: Boolean(projectData?.brandAssets?.reference?.key || projectData?.brandAssets?.reference?.id)
+  };
+  const schema = {
+    type: "object",
+    additionalProperties: false,
+    required: ["directionSummary", "imagePrompt", "candidateDirections"],
+    properties: {
+      directionSummary: { type: "string", description: "A concise, human-facing summary of the interpreted character direction, maximum 65 words." },
+      imagePrompt: { type: "string", description: "A concrete, production-ready visual prompt for one character concept image, maximum 1800 words. Include identity, silhouette, face, materials, styling, framing, neutral background and visual consistency. Do not include text in the image." },
+      candidateDirections: {
+        type: "array", minItems: 3, maxItems: 3,
+        items: {
+          type: "object", additionalProperties: false,
+          required: ["label", "variation"],
+          properties: {
+            label: { type: "string", description: "A concise, distinctive candidate title, 2–5 words." },
+            variation: { type: "string", description: "Specific visual choices that make this candidate meaningfully different while preserving the shared identity and all non-negotiables, maximum 90 words." }
+          }
+        }
+      }
+    }
+  };
+  const instructions = [
+    "You are SvaraFlow™, SvaraOne's creative director and orchestration layer.",
+    "Interpret the creator's direction; do not merely concatenate fields or pass their raw wording through. Resolve compatible choices into one coherent character design brief.",
+    "The creator's Creative Direction Brief and explicit must-preserve notes outrank generic defaults. Do not contradict the requested character foundation, valid preferences, saved project story, or brand palette.",
+    "Use the saved project concept and Visual Style panel as context when present. Treat missing context as unknown; do not invent brand facts or claim to have visually inspected uploaded logo/reference files.",
+    "If a project colour palette is present, preserve it. If it is absent, choose a restrained palette that serves the brief and explain it through the imagePrompt, without pretending it came from the brand kit.",
+    "Create exactly three genuinely different candidate directions. Each should share the same core identity and non-negotiables but differ in a meaningful art-direction choice such as silhouette, material treatment, shape language, or styling. Do not vary only the outfit or colour.",
+    "The imagePrompt must request a single polished character concept on a simple neutral studio background, full character visible, clear silhouette and expressive face, no collage, no multiple views, no captions, no lettering, no logo text, and no watermark.",
+    "Each candidate variation will be generated as a separate image request. Make every variation self-contained when appended to the shared imagePrompt.",
+    "Return only JSON matching the supplied schema. Be concise, specific and visually actionable."
+  ].join("\n");
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 45000);
+  try {
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer " + apiKey },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model,
+        instructions,
+        input: JSON.stringify({
+          creator: { name: name || null, creativeDirectionBrief: description, mustPreserve: notes || null, preferences },
+          savedProjectContext: projectContext
+        }),
+        text: { format: { type: "json_schema", name: "svaraone_character_direction", strict: true, schema } },
+        max_output_tokens: 3200
+      })
+    });
+    if (!response.ok) {
+      const detail = await response.text().catch(() => "");
+      console.error("character_direction_openai_error", { status: response.status, detail: detail.slice(0, 400) });
+      throw Object.assign(new Error("SvaraFlow couldn't compose the character direction. Please try again."), { status: 502 });
+    }
+    const payload = await response.json();
+    const outputText = typeof payload.output_text === "string" ? payload.output_text : (Array.isArray(payload.output) ? payload.output : []).flatMap(item => Array.isArray(item.content) ? item.content : []).map(item => typeof item.text === "string" ? item.text : "").join("");
+    let direction;
+    try { direction = JSON.parse(outputText); } catch { throw Object.assign(new Error("SvaraFlow returned an unreadable character direction. Please try again."), { status: 502 }); }
+    if (!direction || typeof direction.imagePrompt !== "string" || !direction.imagePrompt.trim() || !Array.isArray(direction.candidateDirections) || direction.candidateDirections.length !== 3) {
+      throw Object.assign(new Error("SvaraFlow returned an incomplete character direction. Please try again."), { status: 502 });
+    }
+    const candidateDirections = direction.candidateDirections.map((item, index) => ({
+      label: String(item?.label || "Direction " + (index + 1)).trim().slice(0, 80),
+      variation: String(item?.variation || "").trim().slice(0, 900)
+    }));
+    if (candidateDirections.some(item => !item.variation)) throw Object.assign(new Error("SvaraFlow did not provide all three distinct candidate directions. Please try again."), { status: 502 });
+    if (new Set(candidateDirections.map(item => item.label.toLowerCase())).size !== 3) throw Object.assign(new Error("SvaraFlow returned duplicate candidate labels. Please try again."), { status: 502 });
+    return {
+      directionSummary: String(direction.directionSummary || "").trim().slice(0, 500),
+      imagePrompt: direction.imagePrompt.trim().slice(0, 10000),
+      candidateDirections,
+      model
+    };
+  } catch (error) {
+    if (error?.name === "AbortError") throw Object.assign(new Error("SvaraFlow character direction timed out. Please try again."), { status: 504 });
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -617,15 +728,31 @@ export default {
         foundation: ["Mascot / brand character","Human character","Animal character","Fantasy / imaginary being","No recurring character"],
         style: ["Cinematic 3D animation","Stylised animated film","Photorealistic live action","Illustrated / graphic","Anime-inspired","Stop-motion / handcrafted","Let SvaraFlow decide"],
         world: ["Futuristic / technology","Modern / contemporary","Natural / outdoors","Fantasy / surreal","Historical / period","Everyday / relatable","Let SvaraFlow decide"],
-        palette: ["Indigo, blue and cool white","Warm / golden","Earthy / natural","Bold / vibrant","Monochrome / minimal","Let SvaraFlow decide"],
         mood: ["Confident and inspiring","Warm and friendly","Bold and dramatic","Playful and energetic","Calm and thoughtful","Mysterious and atmospheric","Let SvaraFlow decide"],
         rendering: ["Stylised","Semi-realistic","Photorealistic","Let SvaraFlow decide"]
       };
-      const preferences = Object.fromEntries(Object.entries(allowedPreferences).map(([key, options]) => [key, options.includes(String(rawPreferences[key] || "")) ? String(rawPreferences[key]) : "Let SvaraFlow decide"]));
+      const missingPreference = Object.entries(allowedPreferences).find(([key, options]) => !options.includes(String(rawPreferences[key] || "")));
+      if (missingPreference) return json({ error: "Choose a valid option for " + ({foundation:"character foundation",style:"visual style",world:"world and environment",mood:"emotional tone",rendering:"character rendering"}[missingPreference[0]] || missingPreference[0]) + "." }, 400);
+      const preferences = Object.fromEntries(Object.entries(allowedPreferences).map(([key]) => [key, String(rawPreferences[key])]));
       if (!projectId || !/^[a-zA-Z0-9_-]{1,80}$/.test(projectId)) return json({ error: "Save or open a valid Video project before generating characters." }, 400);
-      if (!description || description.length > 1800 || notes.length > 1000) return json({ error: "Add a character description (maximum 1,800 characters) and keep notes under 1,000 characters." }, 400);
-      const project = await env.DB.prepare("SELECT id FROM video_projects WHERE id=? AND user_id=? LIMIT 1").bind(projectId,userId).first();
+      if (!description || description.length > 1800 || notes.length > 1000 || name.length > 100) return json({ error: "Add a character description (maximum 1,800 characters) and keep the name and preservation notes within their limits." }, 400);
+      const project = await env.DB.prepare("SELECT title, project_data_json FROM video_projects WHERE id=? AND user_id=? LIMIT 1").bind(projectId,userId).first();
       if (!project) return json({ error: "Save the Video project before generating character options." }, 404);
+      let projectData = {};
+      try { projectData = JSON.parse(project.project_data_json || "{}"); } catch {}
+      // Project palette and visual notes are authoritative when present; they are not a hidden character dropdown.
+      const projectFields = projectData.fields && typeof projectData.fields === "object" ? projectData.fields : {};
+      preferences.palette = String(projectFields.palette?.value || "").trim().slice(0, 300) || "No saved project palette; choose one that best serves the brief.";
+      preferences.projectVisualStyle = String(projectFields.visualStyle?.value || "").trim().slice(0, 160);
+      preferences.projectVisualNotes = String(projectFields.visualNotes?.value || "").trim().slice(0, 1000);
+      let direction;
+      try {
+        direction = await composeCharacterDirection({ env, projectTitle: project.title, projectData, name, description, notes, preferences });
+      } catch (error) {
+        const status = Number.isInteger(error?.status) ? error.status : 502;
+        console.error("character_direction_error", { status, message: String(error?.message || error).slice(0, 250) });
+        return json({ error: String(error?.message || "SvaraFlow could not prepare the character direction.").slice(0, 300) }, status);
+      }
       const provider = String(env.IMAGE_PROVIDER || "openai").trim().toLowerCase();
       const apiUrl = String(env.IMAGE_API_URL || "https://api.openai.com/v1/images/generations").trim();
       const apiKey = String(env.IMAGE_API_KEY || "").trim();
@@ -640,23 +767,14 @@ export default {
       if (!apiKey || !apiUrl || !Number.isFinite(safeFactor) || !rates) return json({ error: "Character generation requires IMAGE_API_KEY, IMAGE_API_URL, IMAGE_MODEL (gpt-image-1 or gpt-image-1.5), and the existing SVARAONE_CREDIT_FACTOR in Cloudflare." }, 503);
       if (provider !== "openai") return json({ error: "Character generation currently supports the OpenAI image API only." }, 503);
       if (!/^https:\/\//i.test(apiUrl)) return json({ error: "IMAGE_API_URL must use HTTPS." }, 503);
-      const prompt = [
-        "Create one polished character concept image on a simple neutral studio background. No text, captions, labels, collage, multiple views, or watermark.",
-        "Character name: " + (name || "Unnamed character"),
-        "Creator's description and project-specific direction: " + description,
-        notes ? "Details that must be preserved: " + notes : "",
-        "Character foundation: " + preferences.foundation,
-        "Visual style: " + preferences.style,
-        "World and environment direction: " + preferences.world,
-        "Use the primary and secondary brand colours configured in the project Branding panel. Do not invent or override the brand palette.",
-        "Emotional tone: " + preferences.mood,
-        "Character rendering: " + preferences.rendering,
-        "Treat these preferences as creative guidance, not permission to contradict the project-specific description or must-preserve details. When a preference says Let SvaraFlow decide, choose the interpretation that best serves the project brief.",
-        "Create a deliberate, professional interpretation with a distinctive readable silhouette, expressive face, and coherent materials and styling. Do not rely on superficial outfit changes as the only source of variation between candidates."
-      ].filter(Boolean).join("\n");
-      // Reserve a conservative amount for three medium square images and prompt tokens,
-      // then settle to the actual usage reported by OpenAI.
-      const promptTokensEstimate = Math.ceil(prompt.length / 3);
+      const candidatePrompts = direction.candidateDirections.map(item => [
+        direction.imagePrompt,
+        "Distinct candidate art direction: " + item.variation,
+        "This is one image for the named candidate direction. Commit to this direction clearly; do not combine it with the other candidate directions.",
+        "Preserve all core identity, project palette and must-preserve details. Show one full character, centered and clearly readable on a simple neutral studio background. No text, captions, collage, multiple views or watermark."
+      ].join("\n"));
+      // Reserve for all three separate image requests and their separate prompt-token usage.
+      const promptTokensEstimate = candidatePrompts.reduce((total, prompt) => total + Math.ceil(prompt.length / 3), 0);
       const estimatedUsd = (3 * rates.mediumSquarePerImage) + (promptTokensEstimate * rates.textInputPerMillion / 1_000_000);
       const reservedCredits = Math.max(1, Math.ceil(estimatedUsd * safeFactor));
       if (!Number.isSafeInteger(reservedCredits)) return json({ error: "The configured credit factor produces an invalid reservation." }, 503);
@@ -667,31 +785,37 @@ export default {
       if (!debit.meta?.changes) return json({ error: "You do not have enough credits to generate three character options." }, 402);
       let refundNeeded = true;
       try {
-        const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 90000);
-        let providerResponse;
-        try {
-          providerResponse = await fetch(apiUrl, { method:"POST", headers:{"content-type":"application/json",authorization:"Bearer "+apiKey}, signal:controller.signal, body:JSON.stringify({model,prompt,n:3,size:"1024x1024",quality:"medium"}) });
-        } finally { clearTimeout(timeout); }
-        if (!providerResponse.ok) {
-          const detail = await providerResponse.text().catch(() => "");
-          console.error("character_image_provider_error",{provider,status:providerResponse.status,detail:detail.slice(0,350)});
-          throw Object.assign(new Error(providerResponse.status===401?"The image provider rejected its API key. Check the Cloudflare secret.":"The image provider could not generate character options. Please try again."),{status:502});
-        }
-        const payload = await providerResponse.json();
-        const items = Array.isArray(payload.data) ? payload.data : Array.isArray(payload.images) ? payload.images : [];
-        const candidates = items.map(item => {
-          if (typeof item.b64_json === "string" && item.b64_json) return "data:image/png;base64,"+item.b64_json;
-          if (typeof item.url === "string" && item.url.startsWith("https://")) return item.url;
-          if (typeof item.image_url === "string" && item.image_url.startsWith("https://")) return item.image_url;
-          return "";
-        }).filter(Boolean).slice(0,3);
-        if (candidates.length !== 3) throw new Error("The configured provider did not return three usable image candidates.");
-        const usage = payload.usage || {};
-        const inputTextTokens = Number(usage.input_tokens_details?.text_tokens ?? usage.input_tokens);
-        const outputImageTokens = Number(usage.output_tokens_details?.image_tokens ?? usage.output_tokens);
-        if (!Number.isFinite(inputTextTokens) || inputTextTokens < 0 || !Number.isFinite(outputImageTokens) || outputImageTokens <= 0) {
-          throw new Error("OpenAI did not return the usage details required to calculate the actual generation cost. No credits were charged.");
-        }
+        const generated = await Promise.all(candidatePrompts.map(async (prompt, index) => {
+          const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 90000);
+          let providerResponse;
+          try {
+            providerResponse = await fetch(apiUrl, { method:"POST", headers:{ "content-type":"application/json", authorization:"Bearer " + apiKey }, signal:controller.signal, body:JSON.stringify({ model, prompt, n:1, size:"1024x1024", quality:"medium" }) });
+          } catch (error) {
+            if (error?.name === "AbortError") throw new Error("OpenAI image generation timed out for " + direction.candidateDirections[index].label + ".");
+            throw error;
+          } finally { clearTimeout(timeout); }
+          if (!providerResponse.ok) {
+            const detail = await providerResponse.text().catch(() => "");
+            console.error("character_image_provider_error", { provider, status:providerResponse.status, detail:detail.slice(0,350), candidate:index+1 });
+            throw Object.assign(new Error(providerResponse.status === 401 ? "The image provider rejected its API key. Check the Cloudflare secret." : "The image provider could not generate all character options. Please try again."), { status:502 });
+          }
+          const payload = await providerResponse.json();
+          const items = Array.isArray(payload.data) ? payload.data : Array.isArray(payload.images) ? payload.images : [];
+          const item = items[0];
+          const imageUrl = typeof item?.b64_json === "string" && item.b64_json ? "data:image/png;base64," + item.b64_json :
+            typeof item?.url === "string" && item.url.startsWith("https://") ? item.url :
+            typeof item?.image_url === "string" && item.image_url.startsWith("https://") ? item.image_url : "";
+          if (!imageUrl) throw new Error("OpenAI did not return a usable image for " + direction.candidateDirections[index].label + ".");
+          const usage = payload.usage || {};
+          const inputTextTokens = Number(usage.input_tokens_details?.text_tokens ?? usage.input_tokens);
+          const outputImageTokens = Number(usage.output_tokens_details?.image_tokens ?? usage.output_tokens);
+          if (!Number.isFinite(inputTextTokens) || inputTextTokens < 0 || !Number.isFinite(outputImageTokens) || outputImageTokens <= 0) {
+            throw new Error("OpenAI did not return the usage details required to calculate actual generation cost. No credits were charged.");
+          }
+          return { imageUrl, label:direction.candidateDirections[index].label, direction:direction.candidateDirections[index].variation, inputTextTokens, outputImageTokens };
+        }));
+        const inputTextTokens = generated.reduce((total, item) => total + item.inputTextTokens, 0);
+        const outputImageTokens = generated.reduce((total, item) => total + item.outputImageTokens, 0);
         const actualUsd = (inputTextTokens * rates.textInputPerMillion + outputImageTokens * rates.imageOutputPerMillion) / 1_000_000;
         const actualCredits = Math.max(1, Math.ceil(actualUsd * safeFactor));
         const settleDelta = reservedCredits - actualCredits;
@@ -711,7 +835,16 @@ export default {
           balance = await env.DB.prepare("SELECT balance_after FROM credit_ledger WHERE user_id=? ORDER BY created_at DESC,rowid DESC LIMIT 1").bind(userId).first("balance_after");
         }
         refundNeeded = false;
-        return json({ok:true,candidates:candidates.map(imageUrl=>({imageUrl})),creditsRemaining:Number(balance?.balance_after ?? balance ?? 0),creditsCharged:actualCredits,provider,model});
+        return json({
+          ok:true,
+          candidates:generated.map(({imageUrl,label,direction:variation})=>({imageUrl,label,direction:variation})),
+          directionSummary:direction.directionSummary,
+          creditsRemaining:Number(balance?.balance_after ?? balance ?? 0),
+          creditsCharged:actualCredits,
+          provider,
+          model,
+          directionModel:direction.model
+        });
       } catch(error) {
         if (refundNeeded) {
           try {
@@ -720,9 +853,9 @@ export default {
               FROM credit_ledger WHERE user_id=? ORDER BY created_at DESC,rowid DESC LIMIT 1`).bind(crypto.randomUUID(),userId,reservedCredits,reservedCredits,referenceId,userId).run();
           } catch(refundError) { console.error("character_image_refund_error",refundError); }
         }
-        const status=Number.isInteger(error?.status)?error.status:502;
-        console.error("character_image_generation_error",{message:String(error?.message||error).slice(0,250)});
-        return json({error:String(error?.message||"Character generation failed. Your credits have been refunded.").slice(0,300)},status);
+        const status = Number.isInteger(error?.status) ? error.status : 502;
+        console.error("character_image_generation_error", { message:String(error?.message || error).slice(0,250) });
+        return json({ error:String(error?.message || "Character generation failed. Your credits have been refunded.").slice(0,300) }, status);
       }
     }
 
