@@ -333,7 +333,6 @@
               <div class="sv-workflow-actions sv-character-actions"><button class="sv-btn primary" type="button" data-character-generate>Approve direction &amp; generate 3 concepts →</button></div>
               </div>
             </details>
-            <div class="sv-character-section-divider"></div>
             <div class="sv-character-casting" data-character-casting hidden>
               <details class="sv-work-section sv-character-work-section" data-character-work-section="b" open>
                 <summary><span class="sv-work-index">B</span><span><strong>Casting</strong><small>Review scene concepts and choose your visual direction</small></span><span class="sv-work-chevron">⌄</span></summary>
