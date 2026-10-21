@@ -586,8 +586,9 @@
         selectedId=data.selectedId&&scenes.some(scene=>scene.id===data.selectedId)?data.selectedId:scenes[0]?.id||null;
         tab=data.tab||'settings';mode=data.mode||'director';
         Object.assign(projectReviewed,data.projectReviewed||{});
-        workflowApproved=Array.isArray(project.approvedStages)?project.approvedStages.map(Number).filter(n=>Number.isInteger(n)&&n>=0&&n<=6):[];
-        workflowCurrent=Number.isInteger(project.currentStage)?Math.max(0,Math.min(6,project.currentStage)):0;
+        /* Migrate saved progress from the former seven-stage workflow: old Stage 4 (Environment) is removed. */
+        workflowApproved=Array.isArray(project.approvedStages)?[...new Set(project.approvedStages.map(Number).filter(n=>Number.isInteger(n)&&n>=0&&n<=6).map(n=>n>=3?n-1:n))].filter(n=>n<workflowStages.length):[];
+        workflowCurrent=Number.isInteger(project.currentStage)?Math.max(0,Math.min(workflowStages.length-1,project.currentStage>=3?project.currentStage-1:project.currentStage)):0;
         if(discoveryConcept){const result=root.querySelector('[data-discovery-result]');if(result){result.hidden=false;renderDiscoveryConcept(discoveryConcept,result);}const actions=root.querySelector('[data-discovery-actions]');if(actions)actions.hidden=false;}
         renderScenes();renderSettings();renderPreview();renderWorkflow();
         workflowStages.forEach((stage,index)=>{const state=root.querySelector('[data-accordion-state="'+stage.id+'"]');if(state&&workflowApproved.includes(index)){state.textContent=index===0?'Concept approved':index===5?'Storyboard approved':'Approved';state.classList.add('complete');}});
@@ -760,7 +761,7 @@
         if(panel){panel.classList.toggle('workflow-locked',!available);panel.classList.toggle('workflow-current',active);if(!available){const body=panel.querySelector('[data-accordion-body]');if(body)body.hidden=true;const head=panel.querySelector('[data-accordion-toggle]');if(head)head.setAttribute('aria-expanded','false');}}
         if(button){button.disabled=!available;button.classList.toggle('active',active);button.classList.toggle('done',done);button.removeAttribute('aria-current');if(active)button.setAttribute('aria-current','step');const dot=button.querySelector('.sv-workflow-dot');if(dot)dot.textContent=done?'✓':String(index+1);}
       });
-      if(status){if(!workflowProjectActive)status.textContent='Open a saved project or select New Video to begin.';else{const stage=workflowStages[workflowCurrent],done=workflowApproved.includes(workflowCurrent);status.innerHTML='<strong>Step '+(workflowCurrent+1)+' of 7 · '+esc(stage.label)+'</strong> · '+(done?'Approved. You can revisit this stage from the timeline.':workflowCurrent===0?'Develop and approve your creative direction to continue.':workflowCurrent===5?'Review your scenes and approve the storyboard to continue.':workflowCurrent===6?'Review this stage. Production tools will be enabled as they are implemented.':'Complete this stage, then approve to unlock the next step.');}}
+      if(status){if(!workflowProjectActive)status.textContent='Open a saved project or select New Video to begin.';else{const stage=workflowStages[workflowCurrent],done=workflowApproved.includes(workflowCurrent);status.innerHTML='<strong>Step '+(workflowCurrent+1)+' of 7 · '+esc(stage.label)+'</strong> · '+(done?'Approved. You can revisit this stage from the timeline.':workflowCurrent===0?'Develop and approve your creative direction to continue.':workflowCurrent===4?'Review your scenes and approve the storyboard to continue.':workflowCurrent===5?'Review this stage. Production tools will be enabled as they are implemented.':'Complete this stage, then approve to unlock the next step.');}}
       if(workflowProjectActive){const state=root.querySelector('[data-accordion-state="'+workflowStages[workflowCurrent].id+'"]');if(state&&!workflowApproved.includes(workflowCurrent)&&workflowCurrent!==0&&state.textContent==='Not started')state.textContent='In progress';}
       saveWorkflow();
     };
