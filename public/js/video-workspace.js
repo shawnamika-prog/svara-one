@@ -311,7 +311,7 @@
             [data-accordion="characters"] .sv-character-actions button{margin-left:auto}
             [data-accordion="characters"] .sv-character-actions--choices button{margin-left:0}
           </style>
-          <button class="sv-accordion-head" type="button" data-accordion-toggle="characters" aria-expanded="false"><span class="sv-accordion-number">03</span><span class="sv-accordion-title"><strong>Characters &amp; Mascots</strong><small>Design reusable characters and keep their look consistent</small></span><span class="sv-accordion-state" data-accordion-state="characters">Not started</span><span class="sv-accordion-chevron">⌄</span></button>
+          <button class="sv-accordion-head" type="button" data-accordion-toggle="characters" aria-expanded="false"><span class="sv-accordion-number">03</span><span class="sv-accordion-title"><strong>Characters &amp; Environments</strong><small>Design characters and their environments together, scene by scene</small></span><span class="sv-accordion-state" data-accordion-state="characters">Not started</span><span class="sv-accordion-chevron">⌄</span></button>
           <div class="sv-accordion-body" data-accordion-body="characters" hidden>
             <details class="sv-work-section sv-character-work-section" data-character-work-section="a" open>
                 <summary><span class="sv-work-index">A</span><span><strong>Visual Preferences</strong><small>Choose your creative starting point</small></span><span class="sv-work-chevron">⌄</span></summary>
