@@ -335,8 +335,9 @@
               <div class="sv-workflow-actions sv-character-actions"><button class="sv-btn primary" type="button" data-character-generate>Approve &amp; Render →</button></div>
               </div>
             </details>
-            <div class="sv-character-casting" data-character-casting hidden>
-              <details class="sv-work-section sv-character-work-section" data-character-work-section="b" open>
+            <div class="sv-character-section-divider"></div>
+            <div class="sv-character-casting" data-character-casting>
+              <details class="sv-work-section sv-character-work-section" data-character-work-section="b">
                 <summary><span class="sv-work-index">B</span><span><strong>Casting</strong><small>Review scene concepts and choose your visual direction</small></span><span class="sv-work-chevron">⌄</span></summary>
                 <div class="sv-work-section-content" id="sv-character-section-b">
               <div class="sv-character-casting-intro"><div><span class="sv-character-kicker">THE CASTING ROOM</span><h3>Meet your candidates</h3><p>Choose the look that best carries the story. Your approved direction remains the reference for every new round.</p></div></div>
