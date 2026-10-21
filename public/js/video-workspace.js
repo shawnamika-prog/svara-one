@@ -313,22 +313,6 @@
                 <label class="sv-field"><span>Creative Direction Brief</span><textarea data-character-description maxlength="1800" rows="5" placeholder="Describe the character’s role in the story, personality, signature features, materials, outfit and overall feeling…"></textarea></label>
                 <label class="sv-field"><span>Details SvaraFlow must preserve</span><textarea data-character-notes maxlength="1000" rows="2" placeholder="Signature colours, proportions, accessories, logo placement or other non-negotiables…"></textarea></label>
               </div>
-              <div class="sv-visual-direction-summary">
-                <div class="sv-visual-direction-summary-head"><div><span class="sv-character-kicker">THE CREATIVE BLUEPRINT</span><h4>How the story will look and feel</h4><p>A text-first proposal for review. No scene images are generated at this stage.</p></div><span class="sv-visual-no-cost">✦ No image credits</span></div>
-                <div class="sv-visual-direction-pillars">
-                  <div><span class="sv-direction-pillar-icon">◈</span><strong>Character identity</strong><p>Distinctive silhouette, recognisable features and signature details carried consistently across scenes.</p></div>
-                  <div><span class="sv-direction-pillar-icon">⌂</span><strong>World &amp; environment</strong><p>A coherent visual world with locations, architecture, props and atmosphere suited to the story.</p></div>
-                  <div><span class="sv-direction-pillar-icon">◉</span><strong>Cinematography</strong><p>Purposeful framing, lighting and camera language to guide attention and emotion.</p></div>
-                  <div><span class="sv-direction-pillar-icon">✧</span><strong>Art direction</strong><p>A shared palette, materials and rendering style to make the full video feel like one piece.</p></div>
-                </div>
-                <div class="sv-visual-scene-plan-head"><div><span class="sv-character-kicker">PROPOSED STORY FLOW</span><h4>Scene plan</h4></div><span>Editable after direction review</span></div>
-                <div class="sv-visual-scene-plan">
-                  <article><span class="sv-scene-plan-number">01</span><div><strong>Establish the world</strong><p>Introduce the character and set the tone with a clear establishing composition.</p><small>Environment · Wide shot · Opening</small></div></article>
-                  <article><span class="sv-scene-plan-number">02</span><div><strong>Show the story in action</strong><p>Place the character in a purposeful environment interaction that communicates the central idea.</p><small>Interaction · Medium shot · Development</small></div></article>
-                  <article><span class="sv-scene-plan-number">03</span><div><strong>Deliver the defining moment</strong><p>Build to a memorable hero composition that reinforces the message and leaves a strong final impression.</p><small>Hero shot · Brand moment · Closing</small></div></article>
-                </div>
-                <p class="sv-visual-plan-note">These are planning placeholders, not AI-generated scene recommendations. The approved project storyline should inform the final scene-by-scene plan.</p>
-              </div>
               <div class="sv-character-direction-foot"><span><b>Approval gate</b> · no images are generated until you approve this direction.</span><span>Each casting round uses credits.</span></div>
               <div class="sv-workflow-actions sv-character-actions"><button class="sv-btn primary" type="button" data-character-generate>Approve direction &amp; generate 3 concepts →</button></div>
             </div>
