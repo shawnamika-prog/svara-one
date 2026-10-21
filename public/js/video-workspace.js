@@ -659,6 +659,39 @@
         }).join('');
       }catch(error){list.innerHTML='<div class="sv-status error">'+esc(error.message||'Projects could not be loaded.')+'</div>';}
     };
+    const resetWorkflowTimeline=()=>{
+      workflowCurrent=0;workflowApproved=[];
+      workflowStages.forEach((stage,index)=>{
+        const state=root.querySelector('[data-accordion-state="'+stage.id+'"]');
+        if(state){state.textContent=index===0?'Not started':'Not started';state.classList.remove('complete');}
+        const panel=root.querySelector('[data-accordion="'+stage.id+'"]'),button=root.querySelector('[data-workflow-step="'+index+'"]');
+        if(panel){panel.classList.remove('workflow-current');panel.classList.remove('workflow-locked');}
+        if(button){button.classList.remove('active','done');button.disabled=index!==0;button.removeAttribute('aria-current');const dot=button.querySelector('.sv-workflow-dot');if(dot)dot.textContent=String(index+1);}
+      });
+      const status=root.querySelector('[data-workflow-status]');if(status)status.textContent='Start with an idea and work through each stage at your own pace.';
+    };
+    const startNewVideoProject=()=>{
+      if(projectSaveTimer){clearTimeout(projectSaveTimer);projectSaveTimer=null;}
+      projectId=crypto.randomUUID();projectSaveBusy=false;projectSaveQueued=false;projectLoading=false;
+      workflowCurrent=0;workflowApproved=[];discoveryConcept=null;discoveryReferences=[];brandAssets={};scenes=[];
+      root.querySelectorAll('[data-accordion] input:not([type=file]),[data-accordion] textarea').forEach(el=>{if(el.type==='checkbox'||el.type==='radio')el.checked=false;else el.value='';});
+      root.querySelectorAll('[data-accordion] select').forEach(el=>{el.selectedIndex=0;});
+      root.querySelectorAll('[data-discovery-result],[data-discovery-actions]').forEach(el=>{el.hidden=true;});
+      root.querySelectorAll('[data-discovery-saved-files]').forEach(el=>{el.innerHTML='';});
+      root.querySelectorAll('[data-character-casting]').forEach(el=>{el.hidden=true;});
+      root.querySelectorAll('[data-brand-thumb] img').forEach(img=>{if(img.dataset.savedObjectUrl){URL.revokeObjectURL(img.dataset.savedObjectUrl);delete img.dataset.savedObjectUrl;}img.removeAttribute('src');img.hidden=true;});
+      root.querySelectorAll('[data-brand-thumb]').forEach(el=>el.classList.remove('has-image'));
+      root.querySelectorAll('[data-brand-remove]').forEach(el=>el.hidden=true);
+      root.querySelectorAll('[data-accordion-state]').forEach(el=>{el.textContent='Not started';el.classList.remove('complete');});
+      renderScenes();renderSettings();renderPreview();resetWorkflowTimeline();
+      root.querySelectorAll('[data-accordion]').forEach(panel=>{panel.hidden=panel.dataset.accordion!=='story';});
+      workflowStages.forEach(stage=>{const body=root.querySelector('[data-accordion-body="'+stage.id+'"]'),toggle=root.querySelector('[data-accordion-toggle="'+stage.id+'"]');if(body)body.hidden=stage.id!=='story';if(toggle)toggle.setAttribute('aria-expanded',String(stage.id==='story'));});
+      const headingCopy=root.querySelector('[data-video-heading-copy]'),headingToggle=root.querySelector('[data-video-heading-toggle]');if(headingCopy)headingCopy.hidden=true;if(headingToggle){headingToggle.setAttribute('aria-expanded','false');headingToggle.querySelector('span:first-child').textContent='Expand';headingToggle.querySelector('.sv-collapse-arrow').textContent='↓';}
+      const projectList=root.querySelector('[data-projects-list]'),projectToggle=root.querySelector('[data-projects-toggle]');if(projectList)projectList.hidden=false;if(projectToggle){projectToggle.setAttribute('aria-expanded','true');projectToggle.querySelector('span:first-child').textContent='Collapse';projectToggle.querySelector('.sv-collapse-arrow').textContent='↑';}
+      root.querySelector('[data-video-projects-panel]')?.setAttribute('data-projects-collapsed','false');
+      root.querySelector('[data-accordion="story"]')?.scrollIntoView({block:'start',behavior:'smooth'});
+      setStatus('New video project started.','success');
+    };
     const closeVideoWorkspace=()=>{
       const headingCopy=root.querySelector('[data-video-heading-copy]'),headingToggle=root.querySelector('[data-video-heading-toggle]');
       if(headingCopy)headingCopy.hidden=false;
@@ -668,6 +701,7 @@
       if(projectToggle){projectToggle.setAttribute('aria-expanded','true');projectToggle.querySelector('span:first-child').textContent='Collapse';projectToggle.querySelector('.sv-collapse-arrow').textContent='↑';}
       const projectsPanel=root.querySelector('[data-video-projects-panel]');if(projectsPanel)projectsPanel.dataset.projectsCollapsed='false';
       /* Save & Close returns to the landing view: hide every workflow panel, not just discovery. */
+      resetWorkflowTimeline();
       root.querySelectorAll('[data-accordion]').forEach(panel=>{panel.hidden=true;});
       root.querySelectorAll('[data-accordion-body]').forEach(body=>{body.hidden=true;});
       root.querySelectorAll('[data-accordion-toggle]').forEach(toggle=>toggle.setAttribute('aria-expanded','false'));
@@ -836,7 +870,7 @@
       const projectsToggle=event.target.closest('[data-projects-toggle]');if(projectsToggle){const list=root.querySelector('[data-projects-list]'),expanded=projectsToggle.getAttribute('aria-expanded')==='true';projectsToggle.setAttribute('aria-expanded',String(!expanded));projectsToggle.querySelector('span:first-child').textContent=expanded?'Expand':'Collapse';projectsToggle.querySelector('.sv-collapse-arrow').textContent=expanded?'↓':'↑';if(list)list.hidden=expanded;const panel=root.querySelector('[data-video-projects-panel]');if(panel)panel.dataset.projectsCollapsed=String(expanded);return;}
       const saveCloseButton=event.target.closest('[data-project-save-close]');if(saveCloseButton){saveAndCloseVideoProject(saveCloseButton.dataset.projectSaveClose);return;}
       if(event.target.closest('[data-projects-refresh]')){refreshVideoProjects();return;}
-      if(event.target.closest('[data-video-new]')){const discovery=root.querySelector('[data-accordion="story"]'),toggle=root.querySelector('[data-accordion-toggle="story"]'),body=root.querySelector('[data-accordion-body="story"]');if(discovery){discovery.hidden=false;discovery.scrollIntoView({block:'start',behavior:'smooth'});}if(toggle)toggle.setAttribute('aria-expanded','true');if(body)body.hidden=false;return;}
+      if(event.target.closest('[data-video-new]')){startNewVideoProject();return;}
       const openProjectButton=event.target.closest('[data-project-open]');if(openProjectButton){openVideoProject(openProjectButton.dataset.projectOpen);return;}
       const deleteProjectButton=event.target.closest('[data-project-delete]');if(deleteProjectButton){deleteVideoProject(deleteProjectButton.dataset.projectDelete);return;}
       const workflowStep=event.target.closest('[data-workflow-step]');if(workflowStep){const index=Number(workflowStep.dataset.workflowStep);if(!workflowStep.disabled)goWorkflowStage(index);return;}
