@@ -498,7 +498,7 @@
     };
     const workflowStages=[{id:'story',label:'Story & Concept',heading:'Creative Discovery'},{id:'branding',label:'Branding',heading:'Branding'},{id:'characters',label:'Characters',heading:'Characters & Mascots'},{id:'environment',label:'Environments',heading:'Environments'},{id:'style',label:'Visual Style',heading:'Visual Style'},{id:'storyboard',label:'Storyboard',heading:'Storyboard & Concept Reel'},{id:'production',label:'Production',heading:'Generate & Assemble'}];
     const workflowQuotes=['','Give your story an identity that people will remember.','Every memorable story begins with someone worth following.','Build a world your audience wants to step into.','The way a story looks shapes how it feels.','Every great film begins one scene at a time.','Bring every element together. Let your vision come alive.'];
-    let workflowCurrent=0,workflowApproved=[],projectId=crypto.randomUUID(),projectSaveTimer=null,projectSaveBusy=false,projectSaveQueued=false,projectLoading=false;
+    let workflowCurrent=0,workflowApproved=[],workflowProjectActive=false,projectId=crypto.randomUUID(),projectSaveTimer=null,projectSaveBusy=false,projectSaveQueued=false,projectLoading=false;
     let discoveryReferences=[];
     const projectControlKey=el=>el.dataset.persistKey||el.dataset.projectField||el.id||el.name||'';
     const collectProjectData=()=>{
@@ -536,6 +536,7 @@
       projectLoading=true;
       try{
         projectId=project.id||projectId;
+        workflowProjectActive=true;
         const data=project.data;
         if(data.fields&&typeof data.fields==='object'){
           root.querySelectorAll('[data-accordion] input:not([type=file]),[data-accordion] textarea,[data-accordion] select').forEach(el=>{const key=projectControlKey(el),saved=data.fields[key];if(!key||!saved)return;el.value=saved.value??'';if(typeof saved.checked==='boolean')el.checked=saved.checked;});
@@ -660,7 +661,7 @@
       }catch(error){list.innerHTML='<div class="sv-status error">'+esc(error.message||'Projects could not be loaded.')+'</div>';}
     };
     const resetWorkflowTimeline=()=>{
-      workflowCurrent=0;workflowApproved=[];
+      workflowProjectActive=false;workflowCurrent=0;workflowApproved=[];
       workflowStages.forEach((stage,index)=>{
         const state=root.querySelector('[data-accordion-state="'+stage.id+'"]');
         if(state){state.textContent=index===0?'Not started':'Not started';state.classList.remove('complete');}
@@ -671,7 +672,8 @@
       const status=root.querySelector('[data-workflow-status]');if(status)status.textContent='Start with an idea and work through each stage at your own pace.';
     };
     const startNewVideoProject=()=>{
-      if(projectSaveTimer){clearTimeout(projectSaveTimer);projectSaveTimer=null;}
+      workflowProjectActive=true;
+      if(projectSaveTimer{clearTimeout(projectSaveTimer);projectSaveTimer=null;}
       projectId=crypto.randomUUID();projectSaveBusy=false;projectSaveQueued=false;projectLoading=false;
       workflowCurrent=0;workflowApproved=[];discoveryConcept=null;discoveryReferences=[];brandAssets={};scenes=[];
       root.querySelectorAll('[data-accordion] input:not([type=file]),[data-accordion] textarea').forEach(el=>{if(el.type==='checkbox'||el.type==='radio')el.checked=false;else el.value='';});
@@ -763,12 +765,12 @@
     const renderWorkflow=()=>{
       const status=root.querySelector('[data-workflow-status]');
       workflowStages.forEach((stage,index)=>{
-        const panel=root.querySelector('[data-accordion="'+stage.id+'"]'),button=root.querySelector('[data-workflow-step="'+index+'"]'),available=index===0||workflowApproved.includes(index-1)||workflowCurrent>=index,done=workflowApproved.includes(index);
-        if(panel){panel.classList.toggle('workflow-locked',!available);panel.classList.toggle('workflow-current',index===workflowCurrent);if(!available){const body=panel.querySelector('[data-accordion-body]');if(body)body.hidden=true;const head=panel.querySelector('[data-accordion-toggle]');if(head)head.setAttribute('aria-expanded','false');}}
-        if(button){button.disabled=!available;button.classList.toggle('active',index===workflowCurrent);button.classList.toggle('done',done);button.removeAttribute('aria-current');if(index===workflowCurrent)button.setAttribute('aria-current','step');const dot=button.querySelector('.sv-workflow-dot');if(dot)dot.textContent=done?'✓':String(index+1);}
+        const panel=root.querySelector('[data-accordion="'+stage.id+'"]'),button=root.querySelector('[data-workflow-step="'+index+'"]'),available=workflowProjectActive&&(index===0||workflowApproved.includes(index-1)||workflowCurrent>=index),done=workflowProjectActive&&workflowApproved.includes(index),active=workflowProjectActive&&index===workflowCurrent;
+        if(panel){panel.classList.toggle('workflow-locked',!available);panel.classList.toggle('workflow-current',active);if(!available){const body=panel.querySelector('[data-accordion-body]');if(body)body.hidden=true;const head=panel.querySelector('[data-accordion-toggle]');if(head)head.setAttribute('aria-expanded','false');}}
+        if(button){button.disabled=!available;button.classList.toggle('active',active);button.classList.toggle('done',done);button.removeAttribute('aria-current');if(active)button.setAttribute('aria-current','step');const dot=button.querySelector('.sv-workflow-dot');if(dot)dot.textContent=done?'✓':String(index+1);}
       });
-      if(status){const stage=workflowStages[workflowCurrent],done=workflowApproved.includes(workflowCurrent);status.innerHTML='<strong>Step '+(workflowCurrent+1)+' of 7 · '+esc(stage.label)+'</strong> · '+(done?'Approved. You can revisit this stage from the timeline.':workflowCurrent===0?'Develop and approve your creative direction to continue.':workflowCurrent===5?'Review your scenes and approve the storyboard to continue.':workflowCurrent===6?'Review this stage. Production tools will be enabled as they are implemented.':'Complete this stage, then approve to unlock the next step.');}
-      const state=root.querySelector('[data-accordion-state="'+workflowStages[workflowCurrent].id+'"]');if(state&&!workflowApproved.includes(workflowCurrent)&&workflowCurrent!==0&&state.textContent==='Not started')state.textContent='In progress';
+      if(status){if(!workflowProjectActive)status.textContent='Open a saved project or select New Video to begin.';else{const stage=workflowStages[workflowCurrent],done=workflowApproved.includes(workflowCurrent);status.innerHTML='<strong>Step '+(workflowCurrent+1)+' of 7 · '+esc(stage.label)+'</strong> · '+(done?'Approved. You can revisit this stage from the timeline.':workflowCurrent===0?'Develop and approve your creative direction to continue.':workflowCurrent===5?'Review your scenes and approve the storyboard to continue.':workflowCurrent===6?'Review this stage. Production tools will be enabled as they are implemented.':'Complete this stage, then approve to unlock the next step.');}}
+      if(workflowProjectActive){const state=root.querySelector('[data-accordion-state="'+workflowStages[workflowCurrent].id+'"]');if(state&&!workflowApproved.includes(workflowCurrent)&&workflowCurrent!==0&&state.textContent==='Not started')state.textContent='In progress';}
       saveWorkflow();
     };
     const goWorkflowStage=(index,scroll=true)=>{
@@ -1073,8 +1075,10 @@
     if(!document.querySelector('#svVideoPersistenceStyles')){const persistenceStyle=document.createElement('style');persistenceStyle.id='svVideoPersistenceStyles';persistenceStyle.textContent='.sv-workflow-quote{margin:0;padding:0 18px 13px 62px;color:#8ea9cb;font-size:11px;font-style:italic;line-height:1.5;letter-spacing:.01em}.sv-workflow-quote[hidden]{display:none}@media(max-width:600px){.sv-workflow-quote{padding-left:18px}}';document.head.appendChild(persistenceStyle);}
     root.addEventListener('input',event=>{if(projectLoading||event.target.matches('input[type=file]'))return;if(event.target.closest('[data-accordion]')||event.target.matches('[data-discovery-field]'))scheduleProjectSave();});
     root.addEventListener('change',event=>{if(projectLoading||event.target.matches('input[type=file]'))return;if(event.target.closest('[data-accordion]')||event.target.matches('[data-discovery-field]'))scheduleProjectSave();});
-    renderScenes();renderSettings();renderPreview();renderWorkflow();
-    const currentPanel=root.querySelector('[data-accordion="'+workflowStages[workflowCurrent].id+'"]'),currentBody=currentPanel?.querySelector('[data-accordion-body]'),currentHead=currentPanel?.querySelector('[data-accordion-toggle]');if(currentBody){currentBody.hidden=false;if(currentHead){currentHead.setAttribute('aria-expanded','true');const chev=currentHead.querySelector('.sv-accordion-chevron');if(chev)chev.textContent='⌃';}}
+    renderScenes();renderSettings();renderPreview();resetWorkflowTimeline();renderWorkflow();
+    root.querySelectorAll('[data-accordion]').forEach(panel=>{panel.hidden=true;});
+    root.querySelectorAll('[data-accordion-body]').forEach(body=>{body.hidden=true;});
+    root.querySelectorAll('[data-accordion-toggle]').forEach(toggle=>toggle.setAttribute('aria-expanded','false'));
     root.dataset.videoWorkspaceInitialized='1';
     refreshVideoProjects();
   }
