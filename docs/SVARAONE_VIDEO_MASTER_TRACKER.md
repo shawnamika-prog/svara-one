@@ -1,3 +1,13 @@
+## Characters & Environments workflow (2026-10-26)
+
+- Casting UI no longer shows the redundant “THE CASTING ROOM” / “Meet your candidates” introduction. After character approval, the selected character remains visible as the sole approved option.
+- Character approval now keeps the user in Panel 3 and opens Section C — Environments instead of advancing prematurely to Visual Style.
+- Added an authenticated environment-generation endpoint using the configured image provider/model, credit reservation/refund ledger, user/project-scoped R2 storage and D1 metadata. Generated environments use the approved character's saved description and continuity notes as prompt context.
+- Added authenticated character/environment image retrieval endpoints; saved character and environment images can be restored when reopening a project. Regular project autosaves preserve server-owned environment metadata alongside character assets.
+- Section C supports an environment brief, an overall-world/scene scope, generation, saved image preview and explicit approval to continue to Visual Style.
+- Updated Video workspace cache-busting version to `20261026-01`.
+- Validation limitation: source-level changes were committed to `main`; live Cloudflare deployment, image-provider calls, credit settlement under real usage, and browser refresh/reopen tests still need to be run before considering this end-to-end verified.
+
 ## Persistent user-scoped Brand Kit assets (2026-10-20)
 
 - Added authenticated Brand Kit asset endpoints for upload, restore and deletion for the Logo and Brand imagery slots. The Worker verifies the authenticated user owns the project before every operation.
