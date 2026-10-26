@@ -865,6 +865,66 @@ export default {
       }
     }
 
+    if (url.pathname === "/api/video/environments/generate" && request.method === "POST") {
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return json({ error: "Authentication required." }, 401);
+      if (!env.DB || !env.GENERATED_AUDIO) return json({ error: "Environment storage is not configured." }, 503);
+      let body = {}; try { body = await request.json(); } catch { return json({ error: "Send environment details as JSON." }, 400); }
+      const projectId = String(body.projectId || "").trim(), description = String(body.description || "").trim(), scene = String(body.scene || "all").trim().slice(0,120);
+      if (!projectId || !/^[a-zA-Z0-9_-]{1,80}$/.test(projectId)) return json({ error: "A valid Video project is required." }, 400);
+      if (!description || description.length > 1800) return json({ error: "Describe the environment in 1,800 characters or fewer." }, 400);
+      const project = await env.DB.prepare("SELECT title, project_data_json FROM video_projects WHERE id=? AND user_id=? LIMIT 1").bind(projectId,userId).first();
+      if (!project) return json({ error: "Project not found." }, 404);
+      let data = {}; try { data = JSON.parse(project.project_data_json || "{}"); } catch {}
+      const character = Array.isArray(data.characters) ? data.characters[data.characters.length - 1] : null;
+      if (!character || !character.key) return json({ error: "Approve and save a character before generating environments." }, 409);
+      const provider = String(env.IMAGE_PROVIDER || "openai").trim().toLowerCase(), apiUrl = String(env.IMAGE_API_URL || "https://api.openai.com/v1/images/generations").trim(), apiKey = String(env.IMAGE_API_KEY || "").trim();
+      const configuredModel = String(env.IMAGE_MODEL || "gpt-image-2.5-sunburst").trim(), model = configuredModel === "gpt-image-1" ? "gpt-image-2.5-sunburst" : configuredModel, factor = Number(env.SVARAONE_CREDIT_FACTOR);
+      const rates = { "gpt-image-1.5": { text:5, image:32, flat:0.034 }, "gpt-image-2.5-sunburst": { text:5, image:30, flat:0.06 }, "gpt-image-2.5-flare": { text:5, image:30, flat:0.06 } }[model];
+      if (!apiKey || !/^https:\/\//i.test(apiUrl) || provider !== "openai" || !Number.isFinite(factor) || factor <= 0 || !rates) return json({ error: "Environment generation requires the configured OpenAI image provider and credit factor." }, 503);
+      const prompt = ["Create one polished cinematic environment concept image for the video project: "+String(project.title||"Untitled video").slice(0,180)+".","Environment direction: "+description,"Scene scope: "+(scene==="all"?"recurring overall world":scene),"Approved character reference for continuity: "+String(character.name||"Approved character")+". "+String(character.description||"").slice(0,1500)+" "+String(character.notes||"").slice(0,700),"Show one coherent environment with cinematic composition, spatial depth, deliberate lighting and materials. Environment-first composition; include the character only if useful to communicate scale and story. No text, collage or watermark."].join("\n");
+      const reservedCredits=Math.max(1,Math.ceil(rates.flat*factor)),referenceId=crypto.randomUUID(),debitId=crypto.randomUUID();
+      const debit=await env.DB.prepare(`INSERT INTO credit_ledger (id,user_id,amount,balance_after,reason,reference_id,period_key) SELECT ?, ?, ?, balance_after - ?, 'environment_image_reservation', ?, 'environment_image' FROM credit_ledger WHERE user_id=? AND balance_after >= ? ORDER BY created_at DESC,rowid DESC LIMIT 1`).bind(debitId,userId,-reservedCredits,reservedCredits,referenceId,userId,reservedCredits).run();
+      if(!debit.meta?.changes)return json({error:"You do not have enough credits to generate an environment."},402);
+      let storedKey="",savedEnvironment=false;
+      try {
+        const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),90000);let response;
+        try{response=await fetch(apiUrl,{method:"POST",headers:{"content-type":"application/json",authorization:"Bearer "+apiKey},signal:controller.signal,body:JSON.stringify({model,prompt,n:1,size:"1024x1024",quality:"medium"})});}finally{clearTimeout(timeout);}
+        if(!response.ok){const detail=await response.text().catch(()=>"");console.error("environment_image_provider_error",{status:response.status,detail:detail.slice(0,300)});throw new Error("The image provider could not generate this environment. Please try again.");}
+        const payload=await response.json(),item=Array.isArray(payload.data)?payload.data[0]:null;
+        if(!item||typeof item.b64_json!=="string"||!item.b64_json)throw new Error("The image provider returned no usable environment image.");
+        const bytes=Uint8Array.from(atob(item.b64_json),c=>c.charCodeAt(0));if(!bytes.length||bytes.length>12*1024*1024)throw new Error("The generated environment image is too large.");
+        const id=crypto.randomUUID();storedKey="users/"+userId+"/video-projects/"+projectId+"/environments/"+id+".png";
+        await env.GENERATED_AUDIO.put(storedKey,bytes,{httpMetadata:{contentType:"image/png",cacheControl:"private, no-store"},customMetadata:{userId,projectId,assetKind:"environment",assetId:id}});
+        const environment={id,description,scene,key:storedKey,type:"image/png",createdAt:new Date().toISOString(),characterId:character.id||""};
+        const environments=Array.isArray(data.environments)?data.environments:[];environments.push(environment);data.environments=environments;
+        const saved=await env.DB.prepare("UPDATE video_projects SET project_data_json=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=? AND user_id=?").bind(JSON.stringify(data),projectId,userId).run();
+        if(!saved.meta?.changes)throw new Error("The environment could not be saved to the project.");savedEnvironment=true;
+        const usage=payload.usage||{},inputTokens=Number(usage.input_tokens_details?.text_tokens??usage.input_tokens),outputTokens=Number(usage.output_tokens_details?.image_tokens??usage.output_tokens);
+        if(Number.isFinite(inputTokens)&&inputTokens>=0&&Number.isFinite(outputTokens)&&outputTokens>0){const actual=Math.max(1,Math.ceil(((inputTokens*rates.text+outputTokens*rates.image)/1000000)*factor)),delta=reservedCredits-actual;if(delta>0)await env.DB.prepare(`INSERT INTO credit_ledger (id,user_id,amount,balance_after,reason,reference_id,period_key) SELECT ?, ?, ?, balance_after + ?, 'environment_image_cost_adjustment', ?, 'environment_image' FROM credit_ledger WHERE user_id=? ORDER BY created_at DESC,rowid DESC LIMIT 1`).bind(crypto.randomUUID(),userId,delta,delta,referenceId,userId).run();else if(delta<0){const extra=-delta,settled=await env.DB.prepare(`INSERT INTO credit_ledger (id,user_id,amount,balance_after,reason,reference_id,period_key) SELECT ?, ?, ?, balance_after - ?, 'environment_image_cost_adjustment', ?, 'environment_image' FROM credit_ledger WHERE user_id=? AND balance_after >= ? ORDER BY created_at DESC,rowid DESC LIMIT 1`).bind(crypto.randomUUID(),userId,-extra,extra,referenceId,userId,extra).run();if(!settled.meta?.changes)throw new Error("The actual generation cost exceeds the reservation and there are not enough credits to settle it.");}}
+        const balance=await env.DB.prepare("SELECT balance_after FROM credit_ledger WHERE user_id=? ORDER BY created_at DESC,rowid DESC LIMIT 1").bind(userId).first("balance_after");
+        return json({ok:true,environment:{...environment,url:"/api/video/projects/"+encodeURIComponent(projectId)+"/environments/"+encodeURIComponent(id)},creditsRemaining:Number(balance?.balance_after??0)});
+      } catch(error) {
+        if(storedKey&&!savedEnvironment)await env.GENERATED_AUDIO.delete(storedKey).catch(()=>{});
+        try{await env.DB.prepare(`INSERT INTO credit_ledger (id,user_id,amount,balance_after,reason,reference_id,period_key) SELECT ?, ?, ?, balance_after + ?, 'environment_image_refund', ?, 'environment_image' FROM credit_ledger WHERE user_id=? ORDER BY created_at DESC,rowid DESC LIMIT 1`).bind(crypto.randomUUID(),userId,reservedCredits,reservedCredits,referenceId,userId).run();}catch(refundError){console.error("environment_image_refund_error",refundError);}
+        console.error("environment_image_generation_error",{message:String(error?.message||error).slice(0,250)});
+        return json({error:String(error?.message||"Environment generation failed. Credits are refunded if generation fails.").slice(0,300)},502);
+      }
+    }
+
+    const videoEnvironmentMatch = url.pathname.match(/^\/api\/video\/projects\/([a-zA-Z0-9_-]+)\/environments\/([a-zA-Z0-9_-]+)$/);
+    if(videoEnvironmentMatch&&request.method==="GET"){
+      const userId=await authenticatedUserId(request,env);if(!userId)return json({error:"Authentication required."},401);
+      if(!env.DB||!env.GENERATED_AUDIO)return json({error:"Environment storage is not configured."},503);
+      const projectId=videoEnvironmentMatch[1],assetId=videoEnvironmentMatch[2],project=await env.DB.prepare("SELECT project_data_json FROM video_projects WHERE id=? AND user_id=? LIMIT 1").bind(projectId,userId).first();
+      if(!project)return json({error:"Project not found."},404);
+      let data={};try{data=JSON.parse(project.project_data_json||"{}")}catch{}
+      const asset=(Array.isArray(data.environments)?data.environments:[]).find(item=>item&&item.id===assetId&&typeof item.key==="string"&&item.key.startsWith("users/"+userId+"/video-projects/"+projectId+"/environments/"));
+      if(!asset)return json({error:"Environment image not found."},404);
+      const object=await env.GENERATED_AUDIO.get(asset.key);if(!object)return json({error:"The stored environment image could not be found."},404);
+      const headers=new Headers();object.writeHttpMetadata(headers);headers.set("content-type",asset.type||"image/png");headers.set("cache-control","private, no-store");return new Response(object.body,{headers});
+    }
+
     if (url.pathname === "/api/video/characters/approve" && request.method === "POST") {
       const userId = await authenticatedUserId(request, env);
       if (!userId) return json({ error: "Authentication required." }, 401);
