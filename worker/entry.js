@@ -925,6 +925,19 @@ export default {
       const headers=new Headers();object.writeHttpMetadata(headers);headers.set("content-type",asset.type||"image/png");headers.set("cache-control","private, no-store");return new Response(object.body,{headers});
     }
 
+    const videoCharacterMatch = url.pathname.match(/^\/api\/video\/projects\/([a-zA-Z0-9_-]+)\/characters\/([a-zA-Z0-9_-]+)$/);
+    if(videoCharacterMatch&&request.method==="GET"){
+      const userId=await authenticatedUserId(request,env);if(!userId)return json({error:"Authentication required."},401);
+      if(!env.DB||!env.GENERATED_AUDIO)return json({error:"Character storage is not configured."},503);
+      const projectId=videoCharacterMatch[1],assetId=videoCharacterMatch[2],project=await env.DB.prepare("SELECT project_data_json FROM video_projects WHERE id=? AND user_id=? LIMIT 1").bind(projectId,userId).first();
+      if(!project)return json({error:"Project not found."},404);
+      let data={};try{data=JSON.parse(project.project_data_json||"{}")}catch{}
+      const asset=(Array.isArray(data.characters)?data.characters:[]).find(item=>item&&item.id===assetId&&typeof item.key==="string"&&item.key.startsWith("users/"+userId+"/video-projects/"+projectId+"/characters/"));
+      if(!asset)return json({error:"Character image not found."},404);
+      const object=await env.GENERATED_AUDIO.get(asset.key);if(!object)return json({error:"The stored character image could not be found."},404);
+      const headers=new Headers();object.writeHttpMetadata(headers);headers.set("content-type",asset.type||"image/png");headers.set("cache-control","private, no-store");return new Response(object.body,{headers});
+    }
+
     if (url.pathname === "/api/video/characters/approve" && request.method === "POST") {
       const userId = await authenticatedUserId(request, env);
       if (!userId) return json({ error: "Authentication required." }, 401);
