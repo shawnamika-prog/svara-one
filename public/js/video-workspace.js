@@ -821,7 +821,7 @@
       }
     };
     let characterCandidates=[],selectedCharacterCandidate=-1,characterRoundBusy=false,characterDirectionApproved=false,approvedCharacter=null,savedEnvironments=[];
-    const characterStatus=(message,type='')=>{const el=root.querySelector('[data-character-status]');if(el){el.textContent=message;el.className='sv-status'+(type?' '+type:'');}};
+    const characterStatus=(message,type='')=>{const el=root.querySelector('[data-character-status]');if(el){el.textContent=message;el.className='sv-status'+(type?' '+type:'');el.hidden=!message;}};
     const syncEnvironmentSceneOptions=()=>{
       const select=root.querySelector('[data-environment-scene]');if(!select)return;
       const current=select.value||'all';
@@ -830,7 +830,7 @@
       select.innerHTML=unique.map(([value,label])=>'<option value="'+esc(value)+'">'+esc(label)+'</option>').join('');
       if(unique.some(item=>item[0]===current))select.value=current;
     };
-    const environmentStatus=(message,type='')=>{const el=root.querySelector('[data-environment-status]');if(el){el.textContent=message;el.className='sv-status'+(type?' '+type:'');}};
+    const environmentStatus=(message,type='')=>{const el=root.querySelector('[data-environment-status]');if(el){el.textContent=message;el.className='sv-status'+(type?' '+type:'');el.hidden=!message;}};
     const renderApprovedCharacter=async character=>{
       approvedCharacter=character||null;
       const casting=root.querySelector('[data-character-casting]'),grid=root.querySelector('[data-character-candidates]'),approve=root.querySelector('[data-character-approve]'),rotate=root.querySelector('[data-character-rotate]');
