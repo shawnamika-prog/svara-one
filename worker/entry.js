@@ -1208,6 +1208,10 @@ export default {
         if (Array.isArray(existingData.characters)) {
           projectData.characters = existingData.characters;
         }
+        // Generated environment images and metadata are server-owned R2 assets.
+        if (Array.isArray(existingData.environments)) {
+          projectData.environments = existingData.environments;
+        }
         const projectDataJson = JSON.stringify(projectData);
         if (projectDataJson.length > 180000) return json({ error: "This project is too large to save. Reduce the amount of text or remove unsupported file data." }, 413);
         const result = await env.DB.prepare(`
