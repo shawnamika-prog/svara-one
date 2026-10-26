@@ -347,7 +347,6 @@
               </details>
             </div>
           </div>
-        </section>
             <div class="sv-character-section-divider"></div>
             <details class="sv-work-section sv-character-work-section" data-character-work-section="c">
               <summary><span class="sv-work-index">C</span><span><strong>Environments</strong><small>Design the world and settings for your scenes</small></span><span class="sv-work-chevron">⌄</span></summary>
@@ -360,6 +359,7 @@
                 <div class="sv-workflow-actions sv-character-actions"><button class="sv-btn primary" type="button" data-environment-generate disabled>Generate environment →</button><button class="sv-btn" type="button" data-environment-approve hidden disabled>Approve environment &amp; continue →</button></div>
               </div>
             </details>
+        </section>
         <section class="sv-card sv-accordion" data-accordion="style">
           <button class="sv-accordion-head" type="button" data-accordion-toggle="style" aria-expanded="false"><span class="sv-accordion-number">04</span><span class="sv-accordion-title"><strong>Visual Style</strong><small>Look, palette, mood and cinematic direction</small></span><span class="sv-accordion-state" data-accordion-state="style">Not started</span><span class="sv-accordion-chevron">⌄</span></button>
           <div class="sv-accordion-body" data-accordion-body="style" hidden>
