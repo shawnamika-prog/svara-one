@@ -340,7 +340,6 @@
               <details class="sv-work-section sv-character-work-section" data-character-work-section="b">
                 <summary><span class="sv-work-index">B</span><span><strong>Casting</strong><small>Review scene concepts and choose your visual direction</small></span><span class="sv-work-chevron">⌄</span></summary>
                 <div class="sv-work-section-content" id="sv-character-section-b">
-              <div class="sv-character-casting-intro"><div><span class="sv-character-kicker">THE CASTING ROOM</span><h3>Meet your candidates</h3><p>Choose the look that best carries the story. Your approved direction remains the reference for every new round.</p></div></div>
               <div data-character-status class="sv-status" role="status" aria-live="polite">Approve the direction above to begin casting.</div>
               <div data-character-candidates class="sv-character-candidates" aria-live="polite"></div>
               <div class="sv-workflow-actions sv-character-actions sv-character-actions--choices"><button class="sv-btn" type="button" data-character-rotate disabled>Generate 3 more</button><button class="sv-btn primary" type="button" data-character-approve disabled>Approve character →</button></div>
@@ -349,6 +348,18 @@
             </div>
           </div>
         </section>
+            <div class="sv-character-section-divider"></div>
+            <details class="sv-work-section sv-character-work-section" data-character-work-section="c">
+              <summary><span class="sv-work-index">C</span><span><strong>Environments</strong><small>Design the world and settings for your scenes</small></span><span class="sv-work-chevron">⌄</span></summary>
+              <div class="sv-work-section-content" id="sv-character-section-c">
+                <div class="sv-character-direction-heading"><div><span class="sv-character-kicker">ENVIRONMENT DESIGN</span><h3>Build the world around your character</h3><p>SvaraFlow uses the approved character direction and your scene brief to create a setting for your story.</p></div></div>
+                <label class="sv-field"><span>Environment description</span><textarea data-environment-description maxlength="1800" rows="4" placeholder="Describe the location, atmosphere, lighting, time of day, materials and scene details…"></textarea></label>
+                <label class="sv-field"><span>Scene to design</span><select data-environment-scene><option value="all">Overall world / recurring setting</option></select></label>
+                <div data-environment-status class="sv-status" role="status" aria-live="polite">Approve a character first to generate an environment.</div>
+                <div data-environment-preview class="sv-character-candidates" aria-live="polite"></div>
+                <div class="sv-workflow-actions sv-character-actions"><button class="sv-btn primary" type="button" data-environment-generate disabled>Generate environment →</button><button class="sv-btn" type="button" data-environment-approve hidden disabled>Approve environment &amp; continue →</button></div>
+              </div>
+            </details>
         <section class="sv-card sv-accordion" data-accordion="style">
           <button class="sv-accordion-head" type="button" data-accordion-toggle="style" aria-expanded="false"><span class="sv-accordion-number">04</span><span class="sv-accordion-title"><strong>Visual Style</strong><small>Look, palette, mood and cinematic direction</small></span><span class="sv-accordion-state" data-accordion-state="style">Not started</span><span class="sv-accordion-chevron">⌄</span></button>
           <div class="sv-accordion-body" data-accordion-body="style" hidden>
@@ -588,6 +599,10 @@
         selectedId=data.selectedId&&scenes.some(scene=>scene.id===data.selectedId)?data.selectedId:scenes[0]?.id||null;
         tab=data.tab||'settings';mode=data.mode||'director';
         Object.assign(projectReviewed,data.projectReviewed||{});
+        const savedCharacters=Array.isArray(data.characters)?data.characters:[];
+        const restoredCharacter=savedCharacters.length?savedCharacters[savedCharacters.length-1]:null;
+        if(restoredCharacter){renderApprovedCharacter(restoredCharacter);const gen=root.querySelector('[data-environment-generate]');if(gen)gen.disabled=false;}else{approvedCharacter=null;}
+        renderSavedEnvironments(Array.isArray(data.environments)?data.environments:[]);
         /* Migrate saved progress from the former seven-stage workflow: old Stage 4 (Environment) is removed. */
         workflowApproved=Array.isArray(project.approvedStages)?[...new Set(project.approvedStages.map(Number).filter(n=>Number.isInteger(n)&&n>=0&&n<=6).map(n=>n>=3?n-1:n))].filter(n=>n<workflowStages.length):[];
         workflowCurrent=Number.isInteger(project.currentStage)?Math.max(0,Math.min(workflowStages.length-1,project.currentStage>=3?project.currentStage-1:project.currentStage)):0;
@@ -669,7 +684,7 @@
       workflowProjectActive=true;
       if(projectSaveTimer){clearTimeout(projectSaveTimer);projectSaveTimer=null;}
       projectId=crypto.randomUUID();projectSaveBusy=false;projectSaveQueued=false;projectLoading=false;
-      workflowCurrent=0;workflowApproved=[];discoveryConcept=null;discoveryReferences=[];brandAssets={};scenes=[];
+      workflowCurrent=0;workflowApproved=[];discoveryConcept=null;discoveryReferences=[];brandAssets={};scenes=[];approvedCharacter=null;savedEnvironments=[];
       root.querySelectorAll('[data-accordion] input:not([type=file]),[data-accordion] textarea').forEach(el=>{if(el.type==='checkbox'||el.type==='radio')el.checked=false;else el.value='';});
       root.querySelectorAll('[data-accordion] select').forEach(el=>{el.selectedIndex=0;});
       root.querySelectorAll('[data-discovery-result],[data-discovery-actions]').forEach(el=>{el.hidden=true;});
@@ -803,8 +818,45 @@
         if(triggerButton){triggerButton.disabled=false;triggerButton.removeAttribute('aria-busy');triggerButton.innerHTML=originalButtonText||'Approve & continue →';}
       }
     };
-    let characterCandidates=[],selectedCharacterCandidate=-1,characterRoundBusy=false,characterDirectionApproved=false;
+    let characterCandidates=[],selectedCharacterCandidate=-1,characterRoundBusy=false,characterDirectionApproved=false,approvedCharacter=null,savedEnvironments=[];
     const characterStatus=(message,type='')=>{const el=root.querySelector('[data-character-status]');if(el){el.textContent=message;el.className='sv-status'+(type?' '+type:'');}};
+    const environmentStatus=(message,type='')=>{const el=root.querySelector('[data-environment-status]');if(el){el.textContent=message;el.className='sv-status'+(type?' '+type:'');}};
+    const renderApprovedCharacter=async character=>{
+      approvedCharacter=character||null;
+      const casting=root.querySelector('[data-character-casting]'),grid=root.querySelector('[data-character-candidates]'),approve=root.querySelector('[data-character-approve]'),rotate=root.querySelector('[data-character-rotate]');
+      if(!casting||!grid)return;
+      if(!character){casting.hidden=true;grid.innerHTML='';if(approve)approve.hidden=false;if(rotate)rotate.hidden=false;return;}
+      casting.hidden=false;
+      const url='/api/video/projects/'+encodeURIComponent(projectId)+'/characters/'+encodeURIComponent(character.id);
+      grid.innerHTML='<div class="sv-character-option is-approved"><img alt="'+esc(character.name||'Approved character')+'" src="'+esc(url)+'"><span>'+esc(character.name||'Approved character')+' · Approved</span></div>';
+      if(approve)approve.hidden=true;if(rotate)rotate.hidden=true;
+      const b=root.querySelector('[data-character-work-section="b"]');if(b)b.open=true;
+      const gen=root.querySelector('[data-environment-generate]');if(gen)gen.disabled=false;
+    };
+    const renderSavedEnvironments=async environments=>{
+      savedEnvironments=Array.isArray(environments)?environments:[];
+      const preview=root.querySelector('[data-environment-preview]'),approve=root.querySelector('[data-environment-approve]');
+      if(!preview)return;
+      preview.innerHTML=savedEnvironments.map(item=>'<div class="sv-character-option is-approved"><img alt="Generated environment" src="/api/video/projects/'+encodeURIComponent(projectId)+'/environments/'+encodeURIComponent(item.id)+'"><span>'+esc(item.scene==='all'?'Overall world':item.scene||'Environment')+' · Saved</span></div>').join('');
+      if(approve){approve.hidden=!savedEnvironments.length;approve.disabled=!savedEnvironments.length;}
+      if(savedEnvironments.length)environmentStatus('Environment saved. Review it, then approve to continue.','success');
+    };
+    const generateEnvironment=async button=>{
+      if(!approvedCharacter){environmentStatus('Approve a character before generating an environment.','error');return;}
+      const description=String(root.querySelector('[data-environment-description]')?.value||'').trim(),scene=String(root.querySelector('[data-environment-scene]')?.value||'all');
+      if(!description){environmentStatus('Describe the environment before generating.','error');root.querySelector('[data-environment-description]')?.focus();return;}
+      button.disabled=true;const original=button.textContent;button.textContent='Generating…';environmentStatus('SvaraFlow is generating and saving the environment.','');
+      try{
+        if(!await persistVideoProject())throw new Error('Save the Video project before generating an environment.');
+        const response=await fetch('/api/video/environments/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({projectId,description,scene})});
+        const result=await response.json().catch(()=>({}));if(!response.ok||!result.ok)throw new Error(result.error||'Environment generation failed.');
+        savedEnvironments.push(result.environment);await renderSavedEnvironments(savedEnvironments);
+        const saved=await persistVideoProject({currentStage:2,approvedStages:workflowApproved});if(!saved)throw new Error('Environment generated, but workflow progress could not be saved. Please retry.');
+        environmentStatus('Environment generated and saved. Review it, then approve to continue.','success');
+      }catch(error){environmentStatus(String(error?.message||'Environment generation failed.').slice(0,350),'error');}
+      finally{button.disabled=!approvedCharacter;button.textContent=original||'Generate environment →';}
+    };
+
     const renderCharacterCandidates=()=>{
       const grid=root.querySelector('[data-character-candidates]');if(!grid)return;
       grid.innerHTML=characterCandidates.map((item,index)=>'<button type="button" class="sv-character-option" data-character-option="'+index+'" title="'+esc(item.direction||item.label||'')+'" aria-label="'+esc(item.label||'Option '+(index+1))+'" aria-pressed="'+(index===selectedCharacterCandidate?'true':'false')+'"><img src="'+esc(item.imageUrl)+'" alt="'+esc(item.label||'Character option '+(index+1))+'"><span>'+esc(item.label||'Option '+(index+1))+'</span>'+(index===selectedCharacterCandidate?'<span class="sv-character-check" aria-hidden="true">✓</span>':'')+'</button>').join('');
@@ -876,13 +928,17 @@
         const response=await fetch('/api/video/characters/approve',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({projectId,name:String(root.querySelector('[data-character-name]')?.value||'').trim(),description:String(root.querySelector('[data-character-description]')?.value||'').trim(),notes:String(root.querySelector('[data-character-notes]')?.value||'').trim(),imageData:characterCandidates[selectedCharacterCandidate].imageUrl})});
         const result=await response.json().catch(()=>({}));
         if(!response.ok||!result.ok)throw new Error(result.error||'The character could not be saved.');
+        approvedCharacter=result.character;
         characterCandidates=[];selectedCharacterCandidate=-1;renderCharacterCandidates();
-        const state=root.querySelector('[data-accordion-state="characters"]');if(state){state.textContent='Character approved';state.classList.add('complete');}
-        projectReviewed.characters=true;
-        const nextApproved=[...new Set([...workflowApproved,2])].sort((a,b)=>a-b);
-        const saveOk=await persistVideoProject({currentStage:3,approvedStages:nextApproved});
-        if(!saveOk)throw new Error('Character saved, but workflow progress could not be saved. Please retry approval.');
-        workflowApproved=nextApproved;goWorkflowStage(3);setStatus('Character approved and saved. Environments is now available.','success');
+        await renderApprovedCharacter(result.character);
+        const b=root.querySelector('[data-character-work-section="b"]');if(b)b.open=true;
+        const c=root.querySelector('[data-character-work-section="c"]');if(c)c.open=true;
+        const gen=root.querySelector('[data-environment-generate]');if(gen)gen.disabled=false;
+        const state=root.querySelector('[data-accordion-state="characters"]');if(state){state.textContent='Character approved · Environments pending';state.classList.remove('complete');}
+        const saveOk=await persistVideoProject({currentStage:2,approvedStages:workflowApproved});
+        if(!saveOk)throw new Error('Character saved, but project progress could not be saved. Please retry approval.');
+        const panel=root.querySelector('[data-accordion="characters"]'),toggle=root.querySelector('[data-accordion-toggle="characters"]'),body=root.querySelector('[data-accordion-body="characters"]');if(panel)panel.hidden=false;if(toggle)toggle.setAttribute('aria-expanded','true');if(body)body.hidden=false;
+        setStatus('Character approved and saved. Section C — Environments is now open.','success');
       }catch(error){characterStatus(String(error?.message||'The character could not be saved.').slice(0,350),'error');}
       finally{characterRoundBusy=false;button.disabled=selectedCharacterCandidate<0;button.textContent=original||'Approve character →';}
     };
@@ -891,6 +947,8 @@
       const characterGenerate=event.target.closest('[data-character-generate]');if(characterGenerate){generateCharacterRound(characterGenerate);return;}
       const characterRotate=event.target.closest('[data-character-rotate]');if(characterRotate){generateCharacterRound(characterRotate);return;}
       const characterApprove=event.target.closest('[data-character-approve]');if(characterApprove){approveCharacter(characterApprove);return;}
+      const envGenerate=event.target.closest('[data-environment-generate]');if(envGenerate){generateEnvironment(envGenerate);return;}
+      const envApprove=event.target.closest('[data-environment-approve]');if(envApprove){(async()=>{envApprove.disabled=true;const old=envApprove.textContent;envApprove.textContent='Saving progress…';try{projectReviewed.characters=true;const approved=[...new Set([...workflowApproved,2])].sort((a,b)=>a-b);const ok=await persistVideoProject({currentStage:3,approvedStages:approved});if(!ok)throw new Error('Could not save stage approval. Please retry.');workflowApproved=approved;const state=root.querySelector('[data-accordion-state="characters"]');if(state){state.textContent='Characters & environments approved';state.classList.add('complete');}goWorkflowStage(3);setStatus('Characters & Environments approved. Visual Style is now available.','success');}catch(error){environmentStatus(error.message||'Could not approve environments.','error');envApprove.disabled=false;}finally{envApprove.textContent=old;}})();return;}
       const removeReferenceButton=event.target.closest('[data-reference-remove]');if(removeReferenceButton){removeDiscoveryReference(removeReferenceButton.dataset.referenceRemove);return;}
       const headingToggle=event.target.closest('[data-video-heading-toggle]');if(headingToggle){const copy=root.querySelector('[data-video-heading-copy]'),expanded=headingToggle.getAttribute('aria-expanded')==='true';headingToggle.setAttribute('aria-expanded',String(!expanded));headingToggle.querySelector('span:first-child').textContent=expanded?'Expand':'Collapse';headingToggle.querySelector('.sv-collapse-arrow').textContent=expanded?'↓':'↑';if(copy)copy.hidden=expanded;return;}
       const projectsToggle=event.target.closest('[data-projects-toggle]');if(projectsToggle){const list=root.querySelector('[data-projects-list]'),expanded=projectsToggle.getAttribute('aria-expanded')==='true';projectsToggle.setAttribute('aria-expanded',String(!expanded));projectsToggle.querySelector('span:first-child').textContent=expanded?'Expand':'Collapse';projectsToggle.querySelector('.sv-collapse-arrow').textContent=expanded?'↓':'↑';if(list)list.hidden=expanded;const panel=root.querySelector('[data-video-projects-panel]');if(panel)panel.dataset.projectsCollapsed=String(expanded);return;}
