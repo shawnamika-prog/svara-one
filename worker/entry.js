@@ -748,15 +748,18 @@ export default {
       const provider = String(env.IMAGE_PROVIDER || "openai").trim().toLowerCase();
       const apiUrl = String(env.IMAGE_API_URL || "https://api.openai.com/v1/images/generations").trim();
       const apiKey = String(env.IMAGE_API_KEY || "").trim();
-      const model = String(env.IMAGE_MODEL || "gpt-image-1").trim();
+      // GPT Image 1 was shut down on 2026-10-23. Redirect its legacy Cloudflare setting to the current model.
+      const configuredModel = String(env.IMAGE_MODEL || "gpt-image-2.5-sunburst").trim();
+      const model = configuredModel === "gpt-image-1" ? "gpt-image-2.5-sunburst" : configuredModel;
       const factor = Number(env.SVARAONE_CREDIT_FACTOR);
       const safeFactor = Number.isFinite(factor) && factor > 0 ? factor : NaN;
       const modelRates = {
-        "gpt-image-1": { textInputPerMillion: 5, imageOutputPerMillion: 40, mediumSquarePerImage: 0.042 },
-        "gpt-image-1.5": { textInputPerMillion: 5, imageOutputPerMillion: 32, mediumSquarePerImage: 0.034 }
+        "gpt-image-1.5": { textInputPerMillion: 5, imageOutputPerMillion: 32, mediumSquarePerImage: 0.034 },
+        "gpt-image-2.5-sunburst": { textInputPerMillion: 5, imageOutputPerMillion: 30, mediumSquarePerImage: 0.06 },
+        "gpt-image-2.5-flare": { textInputPerMillion: 5, imageOutputPerMillion: 30, mediumSquarePerImage: 0.06 }
       };
       const rates = modelRates[model];
-      if (!apiKey || !apiUrl || !Number.isFinite(safeFactor) || !rates) return json({ error: "Character generation requires IMAGE_API_KEY, IMAGE_API_URL, IMAGE_MODEL (gpt-image-1 or gpt-image-1.5), and the existing SVARAONE_CREDIT_FACTOR in Cloudflare." }, 503);
+      if (!apiKey || !apiUrl || !Number.isFinite(safeFactor) || !rates) return json({ error: "Character generation requires IMAGE_API_KEY, IMAGE_API_URL, IMAGE_MODEL (gpt-image-1.5, gpt-image-2.5-sunburst, or gpt-image-2.5-flare), and the existing SVARAONE_CREDIT_FACTOR in Cloudflare." }, 503);
       if (provider !== "openai") return json({ error: "Character generation currently supports the OpenAI image API only." }, 503);
       if (!/^https:\/\//i.test(apiUrl)) return json({ error: "IMAGE_API_URL must use HTTPS." }, 503);
       let direction;
