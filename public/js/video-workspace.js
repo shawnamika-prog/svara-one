@@ -595,7 +595,7 @@
         renderSavedDiscoveryReferences();
         discoveryConcept=data.discoveryConcept&&Array.isArray(data.discoveryConcept.sceneOutline)?data.discoveryConcept:null;
         discoveryHistory.splice(0,discoveryHistory.length,...(Array.isArray(data.discoveryHistory)?data.discoveryHistory.slice(-10):[]));
-        scenes=Array.isArray(data.scenes)?data.scenes.map(scene=>({...scene,imageFile:null,image:typeof scene.image==='string'&&scene.image.startsWith('blob:')?'':scene.image,video:typeof scene.video==='string'&&scene.video.startsWith('blob:')?'':scene.video})):seedScenes();
+        scenes=Array.isArray(data.scenes)?data.scenes.map(scene=>({...scene,imageFile:null,image:typeof scene.image==='string'&&scene.image.startsWith('blob:')?'':scene.image,video:typeof scene.video==='string'&&scene.video.startsWith('blob:')?'':scene.video})):seedScenes();syncEnvironmentSceneOptions();
         selectedId=data.selectedId&&scenes.some(scene=>scene.id===data.selectedId)?data.selectedId:scenes[0]?.id||null;
         tab=data.tab||'settings';mode=data.mode||'director';
         Object.assign(projectReviewed,data.projectReviewed||{});
@@ -820,6 +820,14 @@
     };
     let characterCandidates=[],selectedCharacterCandidate=-1,characterRoundBusy=false,characterDirectionApproved=false,approvedCharacter=null,savedEnvironments=[];
     const characterStatus=(message,type='')=>{const el=root.querySelector('[data-character-status]');if(el){el.textContent=message;el.className='sv-status'+(type?' '+type:'');}};
+    const syncEnvironmentSceneOptions=()=>{
+      const select=root.querySelector('[data-environment-scene]');if(!select)return;
+      const current=select.value||'all';
+      const options=[['all','Overall world / recurring setting'],...scenes.map((scene,index)=>[String(scene.title||scene.name||('Scene '+(index+1))).slice(0,120),String(scene.title||scene.name||('Scene '+(index+1))).slice(0,120)])];
+      const unique=[...new Map(options.map(item=>[item[0],item])).values()];
+      select.innerHTML=unique.map(([value,label])=>'<option value="'+esc(value)+'">'+esc(label)+'</option>').join('');
+      if(unique.some(item=>item[0]===current))select.value=current;
+    };
     const environmentStatus=(message,type='')=>{const el=root.querySelector('[data-environment-status]');if(el){el.textContent=message;el.className='sv-status'+(type?' '+type:'');}};
     const renderApprovedCharacter=async character=>{
       approvedCharacter=character||null;
@@ -943,6 +951,7 @@
       finally{characterRoundBusy=false;button.disabled=selectedCharacterCandidate<0;button.textContent=original||'Approve character →';}
     };
     root.addEventListener('click',async event=>{
+      if(event.target.closest('[data-accordion-toggle="characters"]'))syncEnvironmentSceneOptions();
       const characterOption=event.target.closest('[data-character-option]');if(characterOption){selectedCharacterCandidate=Number(characterOption.dataset.characterOption);renderCharacterCandidates();return;}
       const characterGenerate=event.target.closest('[data-character-generate]');if(characterGenerate){generateCharacterRound(characterGenerate);return;}
       const characterRotate=event.target.closest('[data-character-rotate]');if(characterRotate){generateCharacterRound(characterRotate);return;}
