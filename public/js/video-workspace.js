@@ -966,7 +966,10 @@
       if(selectedCharacterCandidate<0||!characterCandidates[selectedCharacterCandidate]||characterRoundBusy)return;
       characterRoundBusy=true;const original=button.textContent;button.disabled=true;button.textContent='Saving…';
       try{
-        const response=await fetch('/api/video/characters/approve',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({projectId,name:String(root.querySelector('[data-character-name]')?.value||'').trim(),description:String(root.querySelector('[data-character-description]')?.value||'').trim(),notes:String(root.querySelector('[data-character-notes]')?.value||'').trim(),imageData:characterCandidates[selectedCharacterCandidate].imageUrl})});
+        const candidate=characterCandidates[selectedCharacterCandidate];
+        const response=candidate.id
+          ? await fetch('/api/video/characters/select',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({projectId,characterId:candidate.id})})
+          : await fetch('/api/video/characters/approve',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({projectId,name:String(root.querySelector('[data-character-name]')?.value||'').trim(),description:String(root.querySelector('[data-character-description]')?.value||'').trim(),notes:String(root.querySelector('[data-character-notes]')?.value||'').trim(),imageData:candidate.imageUrl})});
         const result=await response.json().catch(()=>({}));
         if(!response.ok||!result.ok)throw new Error(result.error||'The character could not be saved.');
         approvedCharacter=result.character;
