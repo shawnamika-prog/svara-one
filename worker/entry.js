@@ -869,7 +869,7 @@ export default {
         refundNeeded = false;
         return json({
           ok:true,
-          candidates:savedCandidates.map((item,index)=>({id:item.id,imageUrl:"/api/video/projects/"+encodeURIComponent(projectId)+"/characters/"+encodeURIComponent(item.id),label:item.name,direction:item.direction})),
+          candidates:savedCandidates.map(item=>({id:item.id,name:item.name,imageUrl:"/api/video/projects/"+encodeURIComponent(projectId)+"/characters/"+encodeURIComponent(item.id),label:item.name,direction:item.direction,key:item.key,type:item.type,generatedAt:item.generatedAt,description:item.description,notes:item.notes,approvedAt:item.approvedAt})),
           directionSummary:direction.directionSummary,
           creditsRemaining:Number(balance?.balance_after ?? balance ?? 0),
           creditsCharged:actualCredits,
