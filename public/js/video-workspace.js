@@ -970,7 +970,7 @@
           if(image.complete&&image.naturalWidth>0)resolve();
         })));
         characterCandidates=isInitialApproval?candidates:[];selectedCharacterCandidate=-1;
-        savedCharacters=[...savedCharacters,...candidates.filter(candidate=>candidate.id&&!savedCharacters.some(saved=>saved.id===candidate.id)).map(candidate=>({id:candidate.id,name:candidate.label||'Character option',description,notes,key:'',type:'image/png',generatedAt:new Date().toISOString(),direction:candidate.direction}))];
+        savedCharacters=[...savedCharacters,...candidates.filter(candidate=>candidate.id&&!savedCharacters.some(saved=>saved.id===candidate.id)).map(candidate=>({id:candidate.id,name:candidate.name||candidate.label||'Character option',description:candidate.description||description,notes:candidate.notes||notes,key:candidate.key||'',type:candidate.type||'image/png',generatedAt:candidate.generatedAt||new Date().toISOString(),approvedAt:candidate.approvedAt||null,direction:candidate.direction}))];
         renderCharacterCandidates();renderSavedCharacterGallery();
         if(casting)casting.hidden=false;
         if(isInitialApproval&&button){button.hidden=false;button.textContent='Generate Characters →';}
