@@ -1010,7 +1010,7 @@ export default {
       const object=await env.GENERATED_AUDIO.head(selected.key);
       if(!object)return json({error:"The saved character image could not be found."},404);
       const activated={...selected,approvedAt:new Date().toISOString()};
-      data.characters=[...characters.filter(item=>item.id!==characterId),activated];
+      data.characters=characters.map(item=>item.id===characterId?activated:(item.approvedAt?{...item,approvedAt:null}:item));
       const saved=await env.DB.prepare("UPDATE video_projects SET project_data_json=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=? AND user_id=?").bind(JSON.stringify(data),projectId,userId).run();
       if(!saved.meta?.changes)return json({error:"The selected character could not be made active."},500);
       return json({ok:true,character:{id:activated.id,name:activated.name,description:activated.description||"",notes:activated.notes||"",approvedAt:activated.approvedAt,key:activated.key,type:activated.type||"image/png"}});
