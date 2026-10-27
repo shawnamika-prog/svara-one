@@ -938,6 +938,27 @@ export default {
       const headers=new Headers();object.writeHttpMetadata(headers);headers.set("content-type",asset.type||"image/png");headers.set("cache-control","private, no-store");return new Response(object.body,{headers});
     }
 
+    if (url.pathname === "/api/video/characters/select" && request.method === "POST") {
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return json({ error: "Authentication required." }, 401);
+      if (!env.DB || !env.GENERATED_AUDIO) return json({ error: "Character storage is not configured." }, 503);
+      let body = {}; try { body = await request.json(); } catch { return json({ error: "Send character selection as JSON." }, 400); }
+      const projectId=String(body.projectId||"").trim(), characterId=String(body.characterId||"").trim();
+      if (!/^[a-zA-Z0-9_-]{1,80}$/.test(projectId) || !/^[a-zA-Z0-9_-]{1,80}$/.test(characterId)) return json({error:"A valid project and character are required."},400);
+      const project=await env.DB.prepare("SELECT project_data_json FROM video_projects WHERE id=? AND user_id=? LIMIT 1").bind(projectId,userId).first();
+      if(!project)return json({error:"Project not found."},404);
+      let data={};try{data=JSON.parse(project.project_data_json||"{}")}catch{}
+      const characters=Array.isArray(data.characters)?data.characters:[];
+      const selected=characters.find(item=>item&&item.id===characterId&&typeof item.key==="string"&&item.key.startsWith("users/"+userId+"/video-projects/"+projectId+"/characters/"));
+      if(!selected)return json({error:"This character is not saved in the current project."},404);
+      const object=await env.GENERATED_AUDIO.head(selected.key);
+      if(!object)return json({error:"The saved character image could not be found."},404);
+      data.characters=[...characters.filter(item=>item.id!==characterId),selected];
+      const saved=await env.DB.prepare("UPDATE video_projects SET project_data_json=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=? AND user_id=?").bind(JSON.stringify(data),projectId,userId).run();
+      if(!saved.meta?.changes)return json({error:"The selected character could not be made active."},500);
+      return json({ok:true,character:{id:selected.id,name:selected.name,description:selected.description||"",notes:selected.notes||"",approvedAt:selected.approvedAt||null,key:selected.key,type:selected.type||"image/png"}});
+    }
+
     if (url.pathname === "/api/video/characters/approve" && request.method === "POST") {
       const userId = await authenticatedUserId(request, env);
       if (!userId) return json({ error: "Authentication required." }, 401);
