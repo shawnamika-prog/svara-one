@@ -339,7 +339,7 @@
           <button class="sv-accordion-head" type="button" data-accordion-toggle="characters" aria-expanded="false"><span class="sv-accordion-number">03</span><span class="sv-accordion-title"><strong>Characters &amp; Environments</strong><small>Design characters and their environments together, scene by scene</small></span><span class="sv-accordion-state" data-accordion-state="characters">Not started</span><span class="sv-accordion-chevron">⌄</span></button>
           <div class="sv-accordion-body" data-accordion-body="characters" hidden>
             <details class="sv-work-section sv-character-work-section" data-character-work-section="a" open>
-                <summary><span class="sv-work-index">A</span><span><strong>Visual Preferences</strong><small>Choose your creative starting point</small></span><span class="sv-work-chevron">⌄</span></summary>
+                <summary><span class="sv-work-index">A</span><span><strong>Character Preferences</strong><small>Choose your creative starting point</small></span><span class="sv-work-chevron">⌄</span></summary>
                 <div class="sv-work-section-content" id="sv-character-section-a">
                   <p class="sv-accordion-intro">These choices guide SvaraFlow. Your project brief remains the source of truth.</p>
                   <div class="sv-character-preferences-grid">
@@ -361,7 +361,7 @@
             <div class="sv-character-section-divider"></div>
             <div class="sv-character-casting" data-character-casting hidden>
               <details class="sv-work-section sv-character-work-section" data-character-work-section="b">
-                <summary><span class="sv-work-index">B</span><span><strong>Casting</strong><small>Review scene concepts and choose your visual direction</small></span><span class="sv-work-chevron">⌄</span></summary>
+                <summary><span class="sv-work-index">B</span><span><strong>Character Casting</strong><small>Review scene concepts and choose your visual direction</small></span><span class="sv-work-chevron">⌄</span></summary>
                 <div class="sv-work-section-content" id="sv-character-section-b">
               <div data-character-status class="sv-status" role="status" aria-live="polite" hidden></div>
               <div data-character-approved></div>
@@ -373,7 +373,7 @@
             </div>
             <div class="sv-character-section-divider"></div>
             <details class="sv-work-section sv-character-work-section" data-character-work-section="c">
-              <summary><span class="sv-work-index">C</span><span><strong>Environments</strong><small>Design the world and settings for your scenes</small></span><span class="sv-work-chevron">⌄</span></summary>
+              <summary><span class="sv-work-index">C</span><span><strong>Environment Preferences</strong><small>Design the world and settings for your scenes</small></span><span class="sv-work-chevron">⌄</span></summary>
               <div class="sv-work-section-content" id="sv-character-section-c">
                 <p class="sv-environment-intro">SvaraFlow uses the approved character direction and your scene brief to create a setting for your story.</p>
                 <label class="sv-field"><span>Environment description</span><textarea data-environment-description maxlength="1800" rows="4" placeholder="Describe the location, atmosphere, lighting, time of day, materials and scene details…"></textarea></label>
