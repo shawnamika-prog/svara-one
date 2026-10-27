@@ -840,10 +840,32 @@ export default {
           if (!settled.meta?.changes) throw new Error("The actual generation cost exceeded the reservation and there are not enough credits to settle it.");
           balance = await env.DB.prepare("SELECT balance_after FROM credit_ledger WHERE user_id=? ORDER BY created_at DESC,rowid DESC LIMIT 1").bind(userId).first("balance_after");
         }
+        // Persist every generated option to R2 and the project record, not just the option later approved.
+        const savedCandidates=[];
+        for(const item of generated){
+          let bytes,contentType="image/png";
+          const dataMatch=/^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$/.exec(item.imageUrl);
+          if(dataMatch){contentType="image/"+dataMatch[1];bytes=Uint8Array.from(atob(dataMatch[2]),c=>c.charCodeAt(0));}
+          else if(/^https:\/\//i.test(item.imageUrl)){
+            const imageResponse=await fetch(item.imageUrl);
+            if(!imageResponse.ok)throw new Error("A generated character image could not be retrieved for project storage.");
+            contentType=imageResponse.headers.get("content-type")||"image/png";
+            if(!/^image\/(png|jpeg|webp)$/i.test(contentType))throw new Error("A generated character image had an unsupported format.");
+            bytes=new Uint8Array(await imageResponse.arrayBuffer());
+          }else throw new Error("A generated character image had an unsupported source.");
+          if(!bytes?.length||bytes.length>12*1024*1024)throw new Error("A generated character image exceeded the storage limit.");
+          const id=crypto.randomUUID(),extension=contentType.toLowerCase().includes("jpeg")?"jpg":contentType.toLowerCase().includes("webp")?"webp":"png";
+          const key="users/"+userId+"/video-projects/"+projectId+"/characters/"+id+"."+extension;
+          await env.GENERATED_AUDIO.put(key,bytes,{httpMetadata:{contentType,cacheControl:"private, no-store"},customMetadata:{userId,projectId,assetKind:"character",assetId:id}});
+          savedCandidates.push({id,name:item.label||name||"Character option",description,notes,key,type:contentType,approvedAt:null,generatedAt:new Date().toISOString(),direction:item.direction||"",preferences});
+        }
+        projectData.characters=[...(Array.isArray(projectData.characters)?projectData.characters:[]),...savedCandidates];
+        const savedProject=await env.DB.prepare("UPDATE video_projects SET project_data_json=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=? AND user_id=?").bind(JSON.stringify(projectData),projectId,userId).run();
+        if(!savedProject.meta?.changes)throw new Error("Generated characters could not be attached to the project.");
         refundNeeded = false;
         return json({
           ok:true,
-          candidates:generated.map(({imageUrl,label,direction:variation})=>({imageUrl,label,direction:variation})),
+          candidates:savedCandidates.map((item,index)=>({id:item.id,imageUrl:"/api/video/projects/"+encodeURIComponent(projectId)+"/characters/"+encodeURIComponent(item.id),label:item.name,direction:item.direction})),
           directionSummary:direction.directionSummary,
           creditsRemaining:Number(balance?.balance_after ?? balance ?? 0),
           creditsCharged:actualCredits,
@@ -953,10 +975,11 @@ export default {
       if(!selected)return json({error:"This character is not saved in the current project."},404);
       const object=await env.GENERATED_AUDIO.head(selected.key);
       if(!object)return json({error:"The saved character image could not be found."},404);
-      data.characters=[...characters.filter(item=>item.id!==characterId),selected];
+      const activated={...selected,approvedAt:new Date().toISOString()};
+      data.characters=[...characters.filter(item=>item.id!==characterId),activated];
       const saved=await env.DB.prepare("UPDATE video_projects SET project_data_json=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=? AND user_id=?").bind(JSON.stringify(data),projectId,userId).run();
       if(!saved.meta?.changes)return json({error:"The selected character could not be made active."},500);
-      return json({ok:true,character:{id:selected.id,name:selected.name,description:selected.description||"",notes:selected.notes||"",approvedAt:selected.approvedAt||null,key:selected.key,type:selected.type||"image/png"}});
+      return json({ok:true,character:{id:activated.id,name:activated.name,description:activated.description||"",notes:activated.notes||"",approvedAt:activated.approvedAt,key:activated.key,type:activated.type||"image/png"}});
     }
 
     if (url.pathname === "/api/video/characters/approve" && request.method === "POST") {
