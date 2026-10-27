@@ -321,16 +321,16 @@
                 <div class="sv-work-section-content" id="sv-character-section-a">
                   <p class="sv-accordion-intro">These choices guide SvaraFlow. Your project brief remains the source of truth.</p>
                   <div class="sv-character-preferences-grid">
-                    <label class="sv-field"><span>Character foundation <small>(required)</small></span><select required data-character-preference="foundation"><option value="Mascot / brand character" selected>Mascot / brand character</option><option value="Human character">Human character</option><option value="Animal character">Animal character</option><option value="Fantasy / imaginary being">Fantasy / imaginary being</option><option value="No recurring character">No recurring character</option></select></label>
-                    <label class="sv-field"><span>Visual style <small>(required)</small></span><select required data-character-preference="style"><option value="Cinematic 3D animation" selected>Cinematic 3D animation</option><option value="Stylised animated film">Stylised animated film</option><option value="Photorealistic live action">Photorealistic live action</option><option value="Illustrated / graphic">Illustrated / graphic</option><option value="Anime-inspired">Anime-inspired</option><option value="Stop-motion / handcrafted">Stop-motion / handcrafted</option><option value="Let SvaraFlow decide">Let SvaraFlow decide</option></select></label>
-                    <label class="sv-field"><span>World and environment <small>(required)</small></span><select required data-character-preference="world"><option value="Futuristic / technology" selected>Futuristic / technology</option><option value="Modern / contemporary">Modern / contemporary</option><option value="Natural / outdoors">Natural / outdoors</option><option value="Fantasy / surreal">Fantasy / surreal</option><option value="Historical / period">Historical / period</option><option value="Everyday / relatable">Everyday / relatable</option><option value="Let SvaraFlow decide">Let SvaraFlow decide</option></select></label>
-                    <label class="sv-field"><span>Emotional tone <small>(required)</small></span><select required data-character-preference="mood"><option value="Confident and inspiring" selected>Confident and inspiring</option><option value="Warm and friendly">Warm and friendly</option><option value="Bold and dramatic">Bold and dramatic</option><option value="Playful and energetic">Playful and energetic</option><option value="Calm and thoughtful">Calm and thoughtful</option><option value="Mysterious and atmospheric">Mysterious and atmospheric</option><option value="Let SvaraFlow decide">Let SvaraFlow decide</option></select></label>
-                    <label class="sv-field"><span>Character rendering <small>(required)</small></span><select required data-character-preference="rendering"><option value="Stylised" selected>Stylised</option><option value="Semi-realistic">Semi-realistic</option><option value="Photorealistic">Photorealistic</option><option value="Let SvaraFlow decide">Let SvaraFlow decide</option></select></label>
+                    <label class="sv-field"><span>Character foundation <small>(required)</small></span><select required data-persist-key="character.foundation"><option value="Mascot / brand character" selected>Mascot / brand character</option><option value="Human character">Human character</option><option value="Animal character">Animal character</option><option value="Fantasy / imaginary being">Fantasy / imaginary being</option><option value="No recurring character">No recurring character</option></select></label>
+                    <label class="sv-field"><span>Visual style <small>(required)</small></span><select required data-persist-key="character.style"><option value="Cinematic 3D animation" selected>Cinematic 3D animation</option><option value="Stylised animated film">Stylised animated film</option><option value="Photorealistic live action">Photorealistic live action</option><option value="Illustrated / graphic">Illustrated / graphic</option><option value="Anime-inspired">Anime-inspired</option><option value="Stop-motion / handcrafted">Stop-motion / handcrafted</option><option value="Let SvaraFlow decide">Let SvaraFlow decide</option></select></label>
+                    <label class="sv-field"><span>World and environment <small>(required)</small></span><select required data-persist-key="character.world"><option value="Futuristic / technology" selected>Futuristic / technology</option><option value="Modern / contemporary">Modern / contemporary</option><option value="Natural / outdoors">Natural / outdoors</option><option value="Fantasy / surreal">Fantasy / surreal</option><option value="Historical / period">Historical / period</option><option value="Everyday / relatable">Everyday / relatable</option><option value="Let SvaraFlow decide">Let SvaraFlow decide</option></select></label>
+                    <label class="sv-field"><span>Emotional tone <small>(required)</small></span><select required data-persist-key="character.mood"><option value="Confident and inspiring" selected>Confident and inspiring</option><option value="Warm and friendly">Warm and friendly</option><option value="Bold and dramatic">Bold and dramatic</option><option value="Playful and energetic">Playful and energetic</option><option value="Calm and thoughtful">Calm and thoughtful</option><option value="Mysterious and atmospheric">Mysterious and atmospheric</option><option value="Let SvaraFlow decide">Let SvaraFlow decide</option></select></label>
+                    <label class="sv-field"><span>Character rendering <small>(required)</small></span><select required data-persist-key="character.rendering"><option value="Stylised" selected>Stylised</option><option value="Semi-realistic">Semi-realistic</option><option value="Photorealistic">Photorealistic</option><option value="Let SvaraFlow decide">Let SvaraFlow decide</option></select></label>
                   </div>
               <div class="sv-settings sv-brand-grid" style="padding:0;gap:14px">
-                <label class="sv-field"><span>Character or mascot name <small>(optional)</small></span><input data-character-name maxlength="100" placeholder="e.g. Kito the curious meerkat"></label>
-                <label class="sv-field"><span>Creative Direction Brief <small>(required)</small></span><textarea required data-character-description maxlength="1800" rows="5" placeholder="Describe the character’s role in the story, personality, signature features, materials, outfit and overall feeling…"></textarea></label>
-                <label class="sv-field"><span>Details SvaraFlow must preserve</span><textarea data-character-notes maxlength="1000" rows="2" placeholder="Signature colours, proportions, accessories, logo placement or other non-negotiables…"></textarea></label>
+                <label class="sv-field"><span>Character or mascot name <small>(optional)</small></span><input data-persist-key="character.name" data-character-name maxlength="100" placeholder="e.g. Kito the curious meerkat"></label>
+                <label class="sv-field"><span>Creative Direction Brief <small>(required)</small></span><textarea required data-persist-key="character.description" data-character-description maxlength="1800" rows="5" placeholder="Describe the character’s role in the story, personality, signature features, materials, outfit and overall feeling…"></textarea></label>
+                <label class="sv-field"><span>Details SvaraFlow must preserve</span><textarea data-persist-key="character.notes" data-character-notes maxlength="1000" rows="2" placeholder="Signature colours, proportions, accessories, logo placement or other non-negotiables…"></textarea></label>
               </div>
               
               <div class="sv-workflow-actions sv-character-actions"><button class="sv-btn primary" type="button" data-character-generate>Generate Characters →</button></div>
@@ -342,6 +342,7 @@
                 <summary><span class="sv-work-index">B</span><span><strong>Casting</strong><small>Review scene concepts and choose your visual direction</small></span><span class="sv-work-chevron">⌄</span></summary>
                 <div class="sv-work-section-content" id="sv-character-section-b">
               <div data-character-status class="sv-status" role="status" aria-live="polite" hidden></div>
+              <div data-character-approved></div>
               <div data-character-candidates class="sv-character-candidates" aria-live="polite"></div>
               <div class="sv-workflow-actions sv-character-actions sv-character-actions--choices"><button class="sv-btn" type="button" data-character-rotate disabled>Generate 3 more</button><button class="sv-btn primary" type="button" data-character-approve disabled>Approve character →</button></div>
                 </div>
@@ -833,13 +834,13 @@
     const environmentStatus=(message,type='')=>{const el=root.querySelector('[data-environment-status]');if(el){el.textContent=message;el.className='sv-status'+(type?' '+type:'');el.hidden=!message;}};
     const renderApprovedCharacter=async character=>{
       approvedCharacter=character||null;
-      const casting=root.querySelector('[data-character-casting]'),grid=root.querySelector('[data-character-candidates]'),approve=root.querySelector('[data-character-approve]'),rotate=root.querySelector('[data-character-rotate]');
-      if(!casting||!grid)return;
-      if(!character){casting.hidden=true;grid.innerHTML='';if(approve)approve.hidden=false;if(rotate)rotate.hidden=false;return;}
+      const casting=root.querySelector('[data-character-casting]'),approved=root.querySelector('[data-character-approved]'),approve=root.querySelector('[data-character-approve]'),rotate=root.querySelector('[data-character-rotate]'),generate=root.querySelector('[data-character-generate]');
+      if(!casting||!approved)return;
+      if(!character){approved.innerHTML='';if(approve)approve.hidden=false;if(rotate)rotate.hidden=false;if(generate){generate.hidden=false;generate.textContent='Generate Characters →';}return;}
       casting.hidden=false;
       const url='/api/video/projects/'+encodeURIComponent(projectId)+'/characters/'+encodeURIComponent(character.id);
-      grid.innerHTML='<div class="sv-character-approved-card"><img alt="'+esc(character.name||'Approved character')+'" src="'+esc(url)+'"><span>'+esc(character.name||'Approved character')+' · Approved</span></div>';
-      if(approve)approve.hidden=true;if(rotate)rotate.hidden=true;
+      approved.innerHTML='<div class="sv-character-approved-card"><img alt="'+esc(character.name||'Approved character')+'" src="'+esc(url)+'"><span>'+esc(character.name||'Approved character')+' · Current approved character</span></div>';
+      if(approve)approve.hidden=false;if(rotate)rotate.hidden=false;if(generate){generate.hidden=false;generate.textContent='Generate Characters →';}
       const b=root.querySelector('[data-character-work-section="b"]');if(b)b.open=true;
       const gen=root.querySelector('[data-environment-generate]');if(gen)gen.disabled=false;
     };
@@ -883,6 +884,7 @@
       if(invalidPreference){characterStatus('Choose a valid option for '+(invalidPreference.closest('label')?.querySelector('span')?.textContent||'each required direction setting')+'.','error');invalidPreference.focus();return;}
       const casting=root.querySelector('[data-character-casting]');
       const isInitialApproval=!!button?.matches('[data-character-generate]');
+      const hadApprovedCharacter=!!approvedCharacter;
       const directionState=root.querySelector('[data-character-direction-state]'),castingState=root.querySelector('[data-character-casting-state]');
       if(isInitialApproval){
         characterDirectionApproved=true;
@@ -892,7 +894,7 @@
       characterRoundBusy=true;const original=button?.textContent;if(button){button.disabled=true;button.textContent='Generating characters…';}
       const approve=root.querySelector('[data-character-approve]'),rotate=root.querySelector('[data-character-rotate]'),generate=root.querySelector('[data-character-generate]');
       if(approve)approve.disabled=true;if(rotate)rotate.disabled=true;if(generate)generate.disabled=true;
-      if(isInitialApproval&&casting)casting.hidden=true;
+      if(isInitialApproval&&casting&&!hadApprovedCharacter)casting.hidden=true;
       characterStatus('SvaraFlow is composing your creative direction, then generating three distinct character concepts.','');
       try{
         const projectSaved=await persistVideoProject();
@@ -912,7 +914,8 @@
         })));
         characterCandidates=candidates;selectedCharacterCandidate=-1;renderCharacterCandidates();
         if(casting)casting.hidden=false;
-        if(isInitialApproval&&button)button.hidden=true;
+        if(isInitialApproval&&button){button.hidden=false;button.textContent='Generate Characters →';}
+        if(approvedCharacter)await renderApprovedCharacter(approvedCharacter);
         const sectionA=root.querySelector('[data-character-work-section="a"]'),sectionB=root.querySelector('[data-character-work-section="b"]');
         if(sectionA)sectionA.open=false;
         if(sectionB)sectionB.open=true;
@@ -922,14 +925,14 @@
       }catch(error){
         if(isInitialApproval){
           characterDirectionApproved=false;
-          if(casting)casting.hidden=true;
+          if(casting&&!approvedCharacter)casting.hidden=true;
           if(button)button.hidden=false;
           if(directionState){directionState.textContent='Ready for approval';directionState.classList.remove('complete');}
           if(castingState){castingState.textContent='Not started';castingState.classList.remove('complete');}
         }
         characterStatus(String(error?.message||'Character generation failed. Credits are refunded if generation fails.').slice(0,350),'error');
       }
-      finally{characterRoundBusy=false;if(button){button.disabled=false;button.textContent=button.matches('[data-character-generate]')?'Approve & Render →':'Generate 3 more';}if(generate)generate.disabled=false;renderCharacterCandidates();}
+      finally{characterRoundBusy=false;if(button){button.disabled=false;button.textContent=button.matches('[data-character-generate]')?'Generate Characters →':'Generate 3 more';}if(generate)generate.disabled=false;renderCharacterCandidates();}
     };
     const approveCharacter=async button=>{
       if(selectedCharacterCandidate<0||!characterCandidates[selectedCharacterCandidate]||characterRoundBusy)return;
