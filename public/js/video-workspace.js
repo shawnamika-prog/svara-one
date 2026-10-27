@@ -887,9 +887,9 @@
       const hadApprovedCharacter=!!approvedCharacter;
       const directionState=root.querySelector('[data-character-direction-state]'),castingState=root.querySelector('[data-character-casting-state]');
       if(isInitialApproval){
-        characterDirectionApproved=true;
-        if(directionState){directionState.textContent='Approved';directionState.classList.add('complete');}
-        if(castingState)castingState.textContent='Casting in progress';
+        characterDirectionApproved=false;
+        if(directionState){directionState.textContent=approvedCharacter?'Approved character retained':'Ready to generate';directionState.classList.toggle('complete',!!approvedCharacter);}
+        if(castingState)castingState.textContent=approvedCharacter?'Existing character remains active':'Casting in progress';
       }
       characterRoundBusy=true;const original=button?.textContent;if(button){button.disabled=true;button.textContent='Generating characters…';}
       const approve=root.querySelector('[data-character-approve]'),rotate=root.querySelector('[data-character-rotate]'),generate=root.querySelector('[data-character-generate]');
@@ -927,8 +927,8 @@
           characterDirectionApproved=false;
           if(casting&&!approvedCharacter)casting.hidden=true;
           if(button)button.hidden=false;
-          if(directionState){directionState.textContent='Ready for approval';directionState.classList.remove('complete');}
-          if(castingState){castingState.textContent='Not started';castingState.classList.remove('complete');}
+          if(directionState){directionState.textContent=approvedCharacter?'Approved character retained':'Ready to generate';directionState.classList.toggle('complete',!!approvedCharacter);}
+          if(castingState){castingState.textContent=approvedCharacter?'Existing character remains active':'Not started';castingState.classList.toggle('complete',!!approvedCharacter);}
         }
         characterStatus(String(error?.message||'Character generation failed. Credits are refunded if generation fails.').slice(0,350),'error');
       }
