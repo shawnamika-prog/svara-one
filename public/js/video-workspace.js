@@ -314,6 +314,10 @@
             [data-accordion="characters"] .sv-character-actions button{margin-left:auto}
             [data-accordion="characters"] .sv-character-actions--choices button{margin-left:0}
             [data-accordion="characters"] .sv-character-history-heading{font-size:13px;font-weight:700;color:#aebbd0;margin:18px 0 10px}
+            [data-accordion="characters"] .sv-character-history-divider{width:76px;height:2px;margin:22px auto 20px;border-radius:999px;background:linear-gradient(90deg,transparent,#625bff 22%,#a35bff 52%,#42d8e8 78%,transparent)}
+            [data-accordion="characters"] .sv-character-history-heading{margin:0 0 14px}
+            [data-accordion="characters"] .sv-character-actions--choices{display:flex;justify-content:center;align-items:center;gap:12px;flex-wrap:wrap}
+            [data-accordion="characters"] .sv-character-actions--choices button{margin:0}
             [data-accordion="characters"] .sv-character-history-nav{display:flex;justify-content:center;gap:8px;margin:0 0 8px}
             [data-accordion="characters"] .sv-character-history-list{display:flex;gap:12px;width:max-content;min-width:min-content;margin-left:auto;margin-right:auto;overflow-x:auto;padding:4px 2px 12px;scroll-snap-type:x mandatory;scrollbar-width:thin}
             [data-accordion="characters"] .sv-character-history-list::-webkit-scrollbar{height:6px}
@@ -356,9 +360,9 @@
                 <div class="sv-work-section-content" id="sv-character-section-b">
               <div data-character-status class="sv-status" role="status" aria-live="polite" hidden></div>
               <div data-character-approved></div>
-              <div data-character-history hidden><div class="sv-character-history-heading">Project character library</div><div data-character-history-nav class="sv-character-history-nav" hidden><button type="button" class="sv-btn" data-character-history-prev aria-label="Previous characters">←</button><button type="button" class="sv-btn" data-character-history-next aria-label="Next characters">→</button></div><div data-character-history-list class="sv-character-history-list"></div></div>
+              <div data-character-history hidden><div class="sv-character-history-divider" aria-hidden="true"></div><div class="sv-character-history-heading">Project character library</div><div data-character-history-nav class="sv-character-history-nav" hidden><button type="button" class="sv-btn" data-character-history-prev aria-label="Previous characters">←</button><button type="button" class="sv-btn" data-character-history-next aria-label="Next characters">→</button></div><div data-character-history-list class="sv-character-history-list"></div></div>
               <div data-character-candidates class="sv-character-candidates" aria-live="polite"></div>
-              <div class="sv-workflow-actions sv-character-actions sv-character-actions--choices"><button class="sv-btn" type="button" data-character-rotate disabled>Generate 3 New Characters</button><button class="sv-btn primary" type="button" data-character-approve disabled>Approve character →</button></div>
+              <div class="sv-workflow-actions sv-character-actions sv-character-actions--choices"><button class="sv-btn" type="button" data-character-rotate disabled>Generate 3 New Characters</button><button class="sv-btn primary" type="button" data-character-approve disabled>Approve Character →</button></div>
                 </div>
               </details>
             </div>
@@ -855,7 +859,7 @@
       list.innerHTML=ordered.map(character=>{
         const active=approvedCharacter&&approvedCharacter.id===character.id;
         const imageUrl='/api/video/projects/'+encodeURIComponent(projectId)+'/characters/'+encodeURIComponent(character.id);
-        return '<button type="button" class="sv-character-history-item sv-character-history-preview" data-character-history-preview="'+esc(character.id)+'" aria-label="Preview '+esc(character.name||'Saved character')+'" aria-pressed="'+(previewedCharacter&&previewedCharacter.id===character.id?'true':'false')+'"><img src="'+esc(imageUrl)+'" alt="'+esc(character.name||'Saved character')+'"><span>'+esc(character.name||'Untitled character')+'</span>'+(active?'<small>Current approved</small>':'')+'</button>';
+        return '<button type="button" class="sv-character-history-item sv-character-history-preview" data-character-history-preview="'+esc(character.id)+'" aria-label="Preview '+esc(character.name||'Saved character')+'" aria-pressed="'+(previewedCharacter&&previewedCharacter.id===character.id?'true':'false')+'"><img src="'+esc(imageUrl)+'" alt="'+esc(character.name||'Saved character')+'"><span>'+esc(character.name||'Untitled character')+'</span></button>';
       }).join('');
       const nav=root.querySelector('[data-character-history-nav]');
       if(nav)nav.hidden=ordered.length<=4;
