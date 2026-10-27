@@ -318,6 +318,10 @@
             [data-accordion="characters"] .sv-character-history-heading{margin:0 0 14px}
             [data-accordion="characters"] .sv-character-actions--choices{display:flex;justify-content:flex-end;align-items:center;gap:12px;flex-wrap:wrap;width:100%;box-sizing:border-box}
             [data-accordion="characters"] .sv-character-actions--choices button{margin:0;flex:0 0 auto}
+            /* Keep both casting actions grouped together on the right, overriding the casting-section defaults. */
+            .sv-character-casting .sv-character-actions--choices{justify-content:flex-end!important;gap:12px!important;width:100%;flex-wrap:nowrap}
+            .sv-character-casting .sv-character-actions--choices button{margin:0!important;flex:0 0 auto!important}
+            @media(max-width:560px){.sv-character-casting .sv-character-actions--choices{flex-wrap:wrap}.sv-character-casting .sv-character-actions--choices button{max-width:100%}}
             [data-accordion="characters"] .sv-character-history-nav{display:flex;justify-content:center;gap:8px;margin:0 0 8px}
             [data-accordion="characters"] .sv-character-history-list{display:flex;gap:12px;width:max-content;min-width:min-content;margin-left:auto;margin-right:auto;overflow-x:auto;padding:4px 2px 12px;scroll-snap-type:x mandatory;scrollbar-width:thin}
             [data-accordion="characters"] .sv-character-history-list::-webkit-scrollbar{height:6px}
