@@ -940,7 +940,9 @@
           image.src=item.imageUrl;
           if(image.complete&&image.naturalWidth>0)resolve();
         })));
-        characterCandidates=candidates;selectedCharacterCandidate=-1;renderCharacterCandidates();
+        characterCandidates=candidates;selectedCharacterCandidate=-1;
+        savedCharacters=[...savedCharacters,...candidates.filter(candidate=>candidate.id&&!savedCharacters.some(saved=>saved.id===candidate.id)).map(candidate=>({id:candidate.id,name:candidate.label||'Character option',description,notes,key:'',type:'image/png',generatedAt:new Date().toISOString(),direction:candidate.direction}))];
+        renderCharacterCandidates();renderSavedCharacterGallery();
         if(casting)casting.hidden=false;
         if(isInitialApproval&&button){button.hidden=false;button.textContent='Generate Characters →';}
         if(approvedCharacter)await renderApprovedCharacter(approvedCharacter);
