@@ -314,8 +314,8 @@
             [data-accordion="characters"] .sv-character-actions button{margin-left:auto}
             [data-accordion="characters"] .sv-character-actions--choices button{margin-left:0}
             [data-accordion="characters"] .sv-character-history-heading{font-size:13px;font-weight:700;color:#aebbd0;margin:18px 0 10px}
-            [data-accordion="characters"] .sv-character-history-nav{display:flex;justify-content:flex-end;gap:8px;margin:0 0 8px}
-            [data-accordion="characters"] .sv-character-history-list{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 12px;scroll-snap-type:x mandatory;scrollbar-width:thin}
+            [data-accordion="characters"] .sv-character-history-nav{display:flex;justify-content:center;gap:8px;margin:0 0 8px}
+            [data-accordion="characters"] .sv-character-history-list{display:flex;gap:12px;width:max-content;min-width:min-content;margin-left:auto;margin-right:auto;overflow-x:auto;padding:4px 2px 12px;scroll-snap-type:x mandatory;scrollbar-width:thin}
             [data-accordion="characters"] .sv-character-history-list::-webkit-scrollbar{height:6px}
             [data-accordion="characters"] .sv-character-history-item{box-sizing:border-box;flex:0 0 132px;min-width:0;scroll-snap-align:start;display:flex;flex-direction:column;gap:7px;padding:7px;border:1px solid #263449;border-radius:12px;background:#0b1320;color:#e7edf7;text-align:left;cursor:pointer}
             [data-accordion="characters"] .sv-character-history-preview[aria-pressed="true"]{border-color:#7774ff;box-shadow:0 0 0 1px #7774ff}
@@ -358,7 +358,7 @@
               <div data-character-approved></div>
               <div data-character-history hidden><div class="sv-character-history-heading">Project character library</div><div data-character-history-nav class="sv-character-history-nav" hidden><button type="button" class="sv-btn" data-character-history-prev aria-label="Previous characters">←</button><button type="button" class="sv-btn" data-character-history-next aria-label="Next characters">→</button></div><div data-character-history-list class="sv-character-history-list"></div></div>
               <div data-character-candidates class="sv-character-candidates" aria-live="polite"></div>
-              <div class="sv-workflow-actions sv-character-actions sv-character-actions--choices"><button class="sv-btn" type="button" data-character-rotate disabled>Generate 3 more</button><button class="sv-btn primary" type="button" data-character-approve disabled>Approve character →</button></div>
+              <div class="sv-workflow-actions sv-character-actions sv-character-actions--choices"><button class="sv-btn" type="button" data-character-rotate disabled>Generate 3 New Characters</button><button class="sv-btn primary" type="button" data-character-approve disabled>Approve character →</button></div>
                 </div>
               </details>
             </div>
@@ -866,9 +866,10 @@
     const previewSavedCharacter=async character=>{
       const approved=root.querySelector('[data-character-approved]');if(!approved||!character)return;
       previewedCharacter=character;
+      selectedCharacterCandidate=-1;renderCharacterCandidates();
       const url='/api/video/projects/'+encodeURIComponent(projectId)+'/characters/'+encodeURIComponent(character.id);
       const active=approvedCharacter&&approvedCharacter.id===character.id;
-      approved.innerHTML='<div class="sv-character-approved-card"><img alt="'+esc(character.name||'Saved character')+'" src="'+esc(url)+'"><span>'+esc(character.name||'Saved character')+(active?' · Current approved character':' · Preview only — not approved')+'</span></div>'+(active?'':'<div class="sv-character-history-actions"><button type="button" class="sv-btn primary" data-character-preview-activate>Make active</button><div data-character-activation-status class="sv-status" role="status" aria-live="polite" hidden></div></div>');
+      approved.innerHTML='<div class="sv-character-approved-card"><img alt="'+esc(character.name||'Saved character')+'" src="'+esc(url)+'"><span>'+esc(character.name||'Saved character')+(active?' · Current approved character':' · Preview — not active')+'</span></div>'+(active?'':'<div class="sv-character-history-actions"><button type="button" class="sv-btn primary" data-character-preview-activate>Make Active</button><div data-character-activation-status class="sv-status" role="status" aria-live="polite" hidden></div></div>');
       renderSavedCharacterGallery();
     };
     const renderApprovedCharacter=async character=>{
@@ -879,7 +880,7 @@
       casting.hidden=false;
       const url='/api/video/projects/'+encodeURIComponent(projectId)+'/characters/'+encodeURIComponent(character.id);
       previewedCharacter=character;
-      approved.innerHTML='<div class="sv-character-approved-card"><img alt="'+esc(character.name||'Approved character')+'" src="'+esc(url)+'"><span>'+esc(character.name||'Approved character')+' · Current approved character</span></div><div class="sv-character-history-actions"><button type="button" class="sv-btn primary" data-character-preview-activate '+(previewedCharacter&&previewedCharacter.id===character.id?'disabled':'')+'>Make active</button><div data-character-activation-status class="sv-status" role="status" aria-live="polite" hidden></div></div>';
+      approved.innerHTML='<div class="sv-character-approved-card"><img alt="'+esc(character.name||'Approved character')+'" src="'+esc(url)+'"><span>'+esc(character.name||'Approved character')+' · Current approved character</span></div>';
       const activationStatus=root.querySelector('[data-character-activation-status]');if(activationStatus){activationStatus.hidden=true;activationStatus.textContent='';}
       if(approve)approve.hidden=false;if(rotate)rotate.hidden=false;if(generate){generate.hidden=false;generate.textContent='Generate Characters →';}
       const b=root.querySelector('[data-character-work-section="b"]');if(b)b.open=true;
