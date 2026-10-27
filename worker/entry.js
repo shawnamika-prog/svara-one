@@ -842,7 +842,11 @@ export default {
         }
         // Persist every generated option to R2 and the project record, not just the option later approved.
         const savedCandidates=[];
-        for(const item of generated){
+        const baseName=name||"Character";
+        const existingNames=(Array.isArray(projectData.characters)?projectData.characters:[]).map(item=>String(item?.name||"").trim());
+        let sequence=1;
+        const candidateNames=generated.map(()=>{let next;do{next=baseName+" "+sequence++;}while(existingNames.some(existing=>existing.toLocaleLowerCase()===next.toLocaleLowerCase()));existingNames.push(next);return next;});
+        for(const [candidateIndex,item] of generated.entries()){
           let bytes,contentType="image/png";
           const dataMatch=/^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$/.exec(item.imageUrl);
           if(dataMatch){contentType="image/"+dataMatch[1];bytes=Uint8Array.from(atob(dataMatch[2]),c=>c.charCodeAt(0));}
@@ -857,7 +861,7 @@ export default {
           const id=crypto.randomUUID(),extension=contentType.toLowerCase().includes("jpeg")?"jpg":contentType.toLowerCase().includes("webp")?"webp":"png";
           const key="users/"+userId+"/video-projects/"+projectId+"/characters/"+id+"."+extension;
           await env.GENERATED_AUDIO.put(key,bytes,{httpMetadata:{contentType,cacheControl:"private, no-store"},customMetadata:{userId,projectId,assetKind:"character",assetId:id}});
-          savedCandidates.push({id,name:item.label||name||"Character option",description,notes,key,type:contentType,approvedAt:null,generatedAt:new Date().toISOString(),direction:item.direction||"",preferences});
+          savedCandidates.push({id,name:candidateNames[candidateIndex],description,notes,key,type:contentType,approvedAt:null,generatedAt:new Date().toISOString(),direction:item.direction||"",preferences});
         }
         projectData.characters=[...(Array.isArray(projectData.characters)?projectData.characters:[]),...savedCandidates];
         const savedProject=await env.DB.prepare("UPDATE video_projects SET project_data_json=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=? AND user_id=?").bind(JSON.stringify(projectData),projectId,userId).run();
@@ -945,6 +949,36 @@ export default {
       if(!asset)return json({error:"Environment image not found."},404);
       const object=await env.GENERATED_AUDIO.get(asset.key);if(!object)return json({error:"The stored environment image could not be found."},404);
       const headers=new Headers();object.writeHttpMetadata(headers);headers.set("content-type",asset.type||"image/png");headers.set("cache-control","private, no-store");return new Response(object.body,{headers});
+    }
+
+    if (url.pathname === "/api/video/characters/manage" && (request.method === "PATCH" || request.method === "DELETE")) {
+      const userId = await authenticatedUserId(request, env);
+      if (!userId) return json({ error: "Authentication required." }, 401);
+      if (!env.DB || !env.GENERATED_AUDIO) return json({ error: "Character storage is not configured." }, 503);
+      let body = {}; try { body = await request.json(); } catch { return json({ error: "Send character details as JSON." }, 400); }
+      const projectId=String(body.projectId||"").trim(), characterId=String(body.characterId||"").trim();
+      if (!/^[a-zA-Z0-9_-]{1,80}$/.test(projectId) || !/^[a-zA-Z0-9_-]{1,80}$/.test(characterId)) return json({error:"A valid project and character are required."},400);
+      const project=await env.DB.prepare("SELECT project_data_json FROM video_projects WHERE id=? AND user_id=? LIMIT 1").bind(projectId,userId).first();
+      if(!project)return json({error:"Project not found."},404);
+      let data={};try{data=JSON.parse(project.project_data_json||"{}")}catch{}
+      const characters=Array.isArray(data.characters)?data.characters:[];
+      const target=characters.find(item=>item&&item.id===characterId&&typeof item.key==="string"&&item.key.startsWith("users/"+userId+"/video-projects/"+projectId+"/characters/"));
+      if(!target)return json({error:"Character not found in this project."},404);
+      if(request.method==="PATCH"){
+        const name=String(body.name||"").trim();
+        if(!name||name.length>100)return json({error:"Character name must be between 1 and 100 characters."},400);
+        if(characters.some(item=>item.id!==characterId&&String(item.name||"").trim().toLocaleLowerCase()===name.toLocaleLowerCase()))return json({error:"Another character in this project already has that name."},409);
+        target.name=name;
+        const saved=await env.DB.prepare("UPDATE video_projects SET project_data_json=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=? AND user_id=?").bind(JSON.stringify(data),projectId,userId).run();
+        if(!saved.meta?.changes)return json({error:"The character name could not be saved."},500);
+        return json({ok:true,character:{id:target.id,name:target.name,description:target.description||"",notes:target.notes||"",approvedAt:target.approvedAt||null,key:target.key,type:target.type||"image/png",generatedAt:target.generatedAt||null,direction:target.direction||""}});
+      }
+      if(target.approvedAt)return json({error:"The active character cannot be deleted. Make another character active first."},409);
+      await env.GENERATED_AUDIO.delete(target.key);
+      data.characters=characters.filter(item=>item.id!==characterId);
+      const saved=await env.DB.prepare("UPDATE video_projects SET project_data_json=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=? AND user_id=?").bind(JSON.stringify(data),projectId,userId).run();
+      if(!saved.meta?.changes)return json({error:"The character could not be removed from the project."},500);
+      return json({ok:true,characterId});
     }
 
     const videoCharacterMatch = url.pathname.match(/^\/api\/video\/projects\/([a-zA-Z0-9_-]+)\/characters\/([a-zA-Z0-9_-]+)$/);
