@@ -314,14 +314,17 @@
             [data-accordion="characters"] .sv-character-actions button{margin-left:auto}
             [data-accordion="characters"] .sv-character-actions--choices button{margin-left:0}
             [data-accordion="characters"] .sv-character-history-heading{font-size:13px;font-weight:700;color:#aebbd0;margin:18px 0 10px}
-            [data-accordion="characters"] .sv-character-history-list{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 12px;scroll-snap-type:x proximity}
-            [data-accordion="characters"] .sv-character-history-item{flex:0 0 132px;min-width:0;scroll-snap-align:start;display:flex;flex-direction:column;gap:7px}
-            [data-accordion="characters"] .sv-character-history-preview{display:flex;flex-direction:column;gap:7px;width:100%;padding:7px;border:1px solid #263449;border-radius:12px;background:#0b1320;color:#e7edf7;text-align:left;cursor:pointer}
-            [data-accordion="characters"] .sv-character-history-preview img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:7px;background:#111827}
-            [data-accordion="characters"] .sv-character-history-preview span{font-size:12px;font-weight:650;overflow-wrap:anywhere}
-            [data-accordion="characters"] .sv-character-history-preview small{font-size:10px;color:#70e4c0}
-            [data-accordion="characters"] .sv-character-history-active{font-size:11px;color:#70e4c0;text-align:center}
-            [data-accordion="characters"] .sv-character-history-activate{font-size:11px;padding:7px 5px}
+            [data-accordion="characters"] .sv-character-history-nav{display:flex;justify-content:flex-end;gap:8px;margin:0 0 8px}
+            [data-accordion="characters"] .sv-character-history-list{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 12px;scroll-snap-type:x mandatory;scrollbar-width:thin}
+            [data-accordion="characters"] .sv-character-history-list::-webkit-scrollbar{height:6px}
+            [data-accordion="characters"] .sv-character-history-item{box-sizing:border-box;flex:0 0 132px;min-width:0;scroll-snap-align:start;display:flex;flex-direction:column;gap:7px;padding:7px;border:1px solid #263449;border-radius:12px;background:#0b1320;color:#e7edf7;text-align:left;cursor:pointer}
+            [data-accordion="characters"] .sv-character-history-preview[aria-pressed="true"]{border-color:#7774ff;box-shadow:0 0 0 1px #7774ff}
+            [data-accordion="characters"] .sv-character-history-item img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:7px;background:#111827}
+            [data-accordion="characters"] .sv-character-history-item span{font-size:12px;font-weight:650;overflow-wrap:anywhere}
+            [data-accordion="characters"] .sv-character-history-item small{font-size:10px;color:#70e4c0}
+            [data-accordion="characters"] .sv-character-history-actions{display:flex;flex-direction:column;align-items:center;gap:8px;margin:12px auto 0;max-width:280px}
+            [data-accordion="characters"] .sv-character-history-actions button{min-width:180px}
+            [data-accordion="characters"] [data-character-activation-status]{text-align:center}
 
           </style>
           <button class="sv-accordion-head" type="button" data-accordion-toggle="characters" aria-expanded="false"><span class="sv-accordion-number">03</span><span class="sv-accordion-title"><strong>Characters &amp; Environments</strong><small>Design characters and their environments together, scene by scene</small></span><span class="sv-accordion-state" data-accordion-state="characters">Not started</span><span class="sv-accordion-chevron">⌄</span></button>
@@ -353,7 +356,7 @@
                 <div class="sv-work-section-content" id="sv-character-section-b">
               <div data-character-status class="sv-status" role="status" aria-live="polite" hidden></div>
               <div data-character-approved></div>
-              <div data-character-history hidden><div class="sv-character-history-heading">Project character library</div><div data-character-history-list class="sv-character-history-list"></div></div>
+              <div data-character-history hidden><div class="sv-character-history-heading">Project character library</div><div data-character-history-nav class="sv-character-history-nav" hidden><button type="button" class="sv-btn" data-character-history-prev aria-label="Previous characters">←</button><button type="button" class="sv-btn" data-character-history-next aria-label="Next characters">→</button></div><div data-character-history-list class="sv-character-history-list"></div></div>
               <div data-character-candidates class="sv-character-candidates" aria-live="polite"></div>
               <div class="sv-workflow-actions sv-character-actions sv-character-actions--choices"><button class="sv-btn" type="button" data-character-rotate disabled>Generate 3 more</button><button class="sv-btn primary" type="button" data-character-approve disabled>Approve character →</button></div>
                 </div>
@@ -833,7 +836,7 @@
         if(triggerButton){triggerButton.disabled=false;triggerButton.removeAttribute('aria-busy');triggerButton.innerHTML=originalButtonText||'Approve & continue →';}
       }
     };
-    let characterCandidates=[],selectedCharacterCandidate=-1,characterRoundBusy=false,characterDirectionApproved=false,approvedCharacter=null,savedCharacters=[],savedEnvironments=[];
+    let characterCandidates=[],selectedCharacterCandidate=-1,characterRoundBusy=false,characterDirectionApproved=false,approvedCharacter=null,previewedCharacter=null,savedCharacters=[],savedEnvironments=[];
     const characterStatus=(message,type='')=>{const el=root.querySelector('[data-character-status]');if(el){el.textContent=message;el.className='sv-status'+(type?' '+type:'');el.hidden=!message;}};
     const syncEnvironmentSceneOptions=()=>{
       const select=root.querySelector('[data-environment-scene]');if(!select)return;
@@ -848,16 +851,25 @@
       const host=root.querySelector('[data-character-history]'),list=root.querySelector('[data-character-history-list]');
       if(!host||!list)return;
       host.hidden=!savedCharacters.length;
-      list.innerHTML=savedCharacters.slice().reverse().map(character=>{
+      const ordered=savedCharacters.slice().reverse();
+      list.innerHTML=ordered.map(character=>{
         const active=approvedCharacter&&approvedCharacter.id===character.id;
         const imageUrl='/api/video/projects/'+encodeURIComponent(projectId)+'/characters/'+encodeURIComponent(character.id);
-        return '<article class="sv-character-history-item"><button type="button" class="sv-character-history-preview" data-character-history-preview="'+esc(character.id)+'" aria-label="Preview '+esc(character.name||'Saved character')+'"><img src="'+esc(imageUrl)+'" alt="'+esc(character.name||'Saved character')+'"><span>'+esc(character.name||'Untitled character')+'</span>'+(active?'<small>Current approved</small>':'')+'</button>'+(active?'<span class="sv-character-history-active">Active</span>':'<button type="button" class="sv-btn sv-character-history-activate" data-character-history-activate="'+esc(character.id)+'">Make active</button>')+'</article>';
+        return '<button type="button" class="sv-character-history-item sv-character-history-preview" data-character-history-preview="'+esc(character.id)+'" aria-label="Preview '+esc(character.name||'Saved character')+'" aria-pressed="'+(previewedCharacter&&previewedCharacter.id===character.id?'true':'false')+'"><img src="'+esc(imageUrl)+'" alt="'+esc(character.name||'Saved character')+'"><span>'+esc(character.name||'Untitled character')+'</span>'+(active?'<small>Current approved</small>':'')+'</button>';
       }).join('');
+      const nav=root.querySelector('[data-character-history-nav]');
+      if(nav)nav.hidden=ordered.length<=4;
+      const prev=root.querySelector('[data-character-history-prev]'),next=root.querySelector('[data-character-history-next]');
+      if(prev)prev.disabled=list.scrollLeft<=0;
+      if(next)next.disabled=list.scrollLeft+list.clientWidth>=list.scrollWidth-2;
     };
     const previewSavedCharacter=async character=>{
       const approved=root.querySelector('[data-character-approved]');if(!approved||!character)return;
+      previewedCharacter=character;
       const url='/api/video/projects/'+encodeURIComponent(projectId)+'/characters/'+encodeURIComponent(character.id);
-      approved.innerHTML='<div class="sv-character-approved-card"><img alt="'+esc(character.name||'Saved character')+'" src="'+esc(url)+'"><span>'+esc(character.name||'Saved character')+(approvedCharacter&&approvedCharacter.id===character.id?' · Current approved character':' · Preview only — not approved')+'</span></div>';
+      const active=approvedCharacter&&approvedCharacter.id===character.id;
+      approved.innerHTML='<div class="sv-character-approved-card"><img alt="'+esc(character.name||'Saved character')+'" src="'+esc(url)+'"><span>'+esc(character.name||'Saved character')+(active?' · Current approved character':' · Preview only — not approved')+'</span></div>'+(active?'':'<div class="sv-character-history-actions"><button type="button" class="sv-btn primary" data-character-preview-activate>Make active</button><div data-character-activation-status class="sv-status" role="status" aria-live="polite" hidden></div></div>');
+      renderSavedCharacterGallery();
     };
     const renderApprovedCharacter=async character=>{
       approvedCharacter=character||null;
@@ -866,7 +878,9 @@
       if(!character){approved.innerHTML='';if(approve)approve.hidden=false;if(rotate)rotate.hidden=false;if(generate){generate.hidden=false;generate.textContent='Generate Characters →';}return;}
       casting.hidden=false;
       const url='/api/video/projects/'+encodeURIComponent(projectId)+'/characters/'+encodeURIComponent(character.id);
+      previewedCharacter=character;
       approved.innerHTML='<div class="sv-character-approved-card"><img alt="'+esc(character.name||'Approved character')+'" src="'+esc(url)+'"><span>'+esc(character.name||'Approved character')+' · Current approved character</span></div>';
+      const activationStatus=root.querySelector('[data-character-activation-status]');if(activationStatus){activationStatus.hidden=true;activationStatus.textContent='';}
       if(approve)approve.hidden=false;if(rotate)rotate.hidden=false;if(generate){generate.hidden=false;generate.textContent='Generate Characters →';}
       const b=root.querySelector('[data-character-work-section="b"]');if(b)b.open=true;
       const gen=root.querySelector('[data-environment-generate]');if(gen)gen.disabled=false;
@@ -993,7 +1007,8 @@
       if(event.target.closest('[data-accordion-toggle="characters"]'))syncEnvironmentSceneOptions();
       const characterOption=event.target.closest('[data-character-option]');if(characterOption){selectedCharacterCandidate=Number(characterOption.dataset.characterOption);renderCharacterCandidates();return;}
       const historyPreview=event.target.closest('[data-character-history-preview]');if(historyPreview){const item=savedCharacters.find(character=>character.id===historyPreview.dataset.characterHistoryPreview);if(item)previewSavedCharacter(item);return;}
-      const historyActivate=event.target.closest('[data-character-history-activate]');if(historyActivate){(async()=>{historyActivate.disabled=true;try{const response=await fetch('/api/video/characters/select',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({projectId,characterId:historyActivate.dataset.characterHistoryActivate})});const result=await response.json().catch(()=>({}));if(!response.ok||!result.ok)throw new Error(result.error||'Could not activate saved character.');savedCharacters=[...savedCharacters.filter(item=>item.id!==result.character.id),{...savedCharacters.find(item=>item.id===result.character.id),...result.character}];approvedCharacter=result.character;await renderApprovedCharacter(result.character);const ok=await persistVideoProject();if(!ok)throw new Error('Character activated, but project progress could not be saved.');characterStatus('Saved character is now active.','success');}catch(error){characterStatus(String(error?.message||error).slice(0,300),'error');}finally{historyActivate.disabled=false;renderSavedCharacterGallery();}})();return;}
+      const historyNav=event.target.closest('[data-character-history-prev],[data-character-history-next]');if(historyNav){const list=root.querySelector('[data-character-history-list]');if(list){list.scrollBy({left:(historyNav.hasAttribute('data-character-history-prev')?-1:1)*Math.max(220,list.clientWidth*.8),behavior:'smooth'});setTimeout(renderSavedCharacterGallery,250);}return;}
+      const activatePreview=event.target.closest('[data-character-preview-activate]');if(activatePreview){(async()=>{activatePreview.disabled=true;const status=root.querySelector('[data-character-activation-status]');if(status){status.hidden=false;status.textContent='Activating character…';status.className='sv-status';}try{const response=await fetch('/api/video/characters/select',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({projectId,characterId:previewedCharacter?.id})});const result=await response.json().catch(()=>({}));if(!response.ok||!result.ok)throw new Error(result.error||'Could not activate saved character.');savedCharacters=[...savedCharacters.filter(item=>item.id!==result.character.id),{...savedCharacters.find(item=>item.id===result.character.id),...result.character}];await renderApprovedCharacter(result.character);const ok=await persistVideoProject();if(!ok)throw new Error('Character activated, but project progress could not be saved.');const updatedStatus=root.querySelector('[data-character-activation-status]');if(updatedStatus){updatedStatus.hidden=false;updatedStatus.textContent='Saved character is now active.';updatedStatus.className='sv-status success';}}catch(error){const updatedStatus=root.querySelector('[data-character-activation-status]');if(updatedStatus){updatedStatus.hidden=false;updatedStatus.textContent=String(error?.message||error).slice(0,300);updatedStatus.className='sv-status error';}}finally{const button=root.querySelector('[data-character-preview-activate]');if(button)button.disabled=false;renderSavedCharacterGallery();}})();return;}
       const characterGenerate=event.target.closest('[data-character-generate]');if(characterGenerate){generateCharacterRound(characterGenerate);return;}
       const characterRotate=event.target.closest('[data-character-rotate]');if(characterRotate){generateCharacterRound(characterRotate);return;}
       const characterApprove=event.target.closest('[data-character-approve]');if(characterApprove){approveCharacter(characterApprove);return;}
