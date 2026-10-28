@@ -433,7 +433,7 @@
       const storyboardState=root.querySelector('[data-accordion-state="storyboard"]');if(storyboardState)storyboardState.textContent=scenes.length+' scene'+(scenes.length===1?'':'s');
       scenesNode.innerHTML=scenes.map((s,index)=>`<article class="sv-scene ${s.id===selectedId?'selected':''}" data-scene="${esc(s.id)}" tabindex="0" aria-label="Select ${esc(s.title)}">
         <div class="sv-thumb">${s.image?'<img src="'+esc(s.image)+'" alt="Scene reference">':s.video?'<video src="'+esc(s.video)+'" muted playsinline></video>':'<span>✧</span>'}</div>
-        <div class="sv-scene-info"><h3>${esc(s.title)}</h3><p>${esc(s.description)}</p><div class="sv-meta"><span class="sv-chip">${s.duration}s</span><span class="sv-chip">${s.ratio==='1280:720'?'16:9':s.ratio==='720:1280'?'9:16':s.ratio==='960:960'?'1:1':s.ratio}</span><span class="sv-chip">Runway Gen-4 Turbo</span><span class="sv-chip ${s.status==='Completed'||s.status==='Approved'?'ready':'status'}">${esc(s.status)}</span></div><div class="sv-mini-assets"><button data-scene-action="image" data-id="${esc(s.id)}">▧ Image</button><button data-scene-action="motion" data-id="${esc(s.id)}">⌁ Motion</button><button data-scene-action="voice" data-id="${esc(s.id)}">♩ Voice</button><button data-scene-action="music" data-id="${esc(s.id)}">♫ Music</button><button data-scene-action="sound" data-id="${esc(s.id)}">◖ Sound</button></div></div>
+        <div class="sv-scene-info"><h3>${esc(s.title)}</h3><p>${esc(s.description)}</p><div class="sv-meta"><span class="sv-chip">${s.duration}s</span><span class="sv-chip">${s.ratio==='1280:720'?'16:9':s.ratio==='720:1280'?'9:16':s.ratio==='960:960'?'1:1':s.ratio}</span><span class="sv-chip">Runway Gen-4 Turbo</span><span class="sv-chip ${s.status==='Completed'||s.status==='Approved'?'ready':'status'}">${esc(s.status)}</span>${s.environmentId?'<span class="sv-chip ready">Environment assigned</span>':''}</div><div class="sv-mini-assets"><button data-scene-action="image" data-id="${esc(s.id)}">▧ Image</button><button data-scene-action="motion" data-id="${esc(s.id)}">⌁ Motion</button><button data-scene-action="voice" data-id="${esc(s.id)}">♩ Voice</button><button data-scene-action="music" data-id="${esc(s.id)}">♫ Music</button><button data-scene-action="sound" data-id="${esc(s.id)}">◖ Sound</button></div></div>
         <div class="sv-scene-actions"><button class="sv-btn primary" data-scene-action="generate" data-id="${esc(s.id)}">✦ Generate</button><button class="sv-btn" data-scene-action="preview" data-id="${esc(s.id)}">▷ Preview</button><button class="sv-btn" data-scene-action="edit" data-id="${esc(s.id)}">✎ Edit</button><button class="sv-btn" data-scene-action="duplicate" data-id="${esc(s.id)}">▢ Duplicate</button><button class="sv-btn" data-scene-action="delete" data-id="${esc(s.id)}">⌫ Delete</button></div>
       </article>`).join('');
     };
@@ -899,13 +899,25 @@
       const gen=root.querySelector('[data-environment-generate]');if(gen)gen.disabled=false;
       renderSavedCharacterGallery();
     };
+    const environmentUrl=item=>'/api/video/projects/'+encodeURIComponent(projectId)+'/environments/'+encodeURIComponent(item.id);
+    const assignEnvironmentToScope=(item,scope)=>{
+      if(!item||!item.id)return 0;
+      const target=String(scope||'all');
+      const matches=scenes.filter(scene=>target==='all'||String(scene.title||scene.name||'')===target);
+      matches.forEach(scene=>{scene.environmentId=item.id;scene.environmentUrl=environmentUrl(item);});
+      renderScenes();renderPreview();
+      return matches.length;
+    };
     const renderSavedEnvironments=async environments=>{
       savedEnvironments=Array.isArray(environments)?environments:[];
       const preview=root.querySelector('[data-environment-preview]'),approve=root.querySelector('[data-environment-approve]');
       if(!preview)return;
-      preview.innerHTML=savedEnvironments.map(item=>'<div class="sv-character-option is-approved"><img alt="Generated environment" src="/api/video/projects/'+encodeURIComponent(projectId)+'/environments/'+encodeURIComponent(item.id)+'"><span>'+esc(item.scene==='all'?'Overall world':item.scene||'Environment')+' · Saved</span></div>').join('');
+      preview.innerHTML=savedEnvironments.map(item=>{
+        const assigned=scenes.filter(scene=>scene.environmentId===item.id).length;
+        return '<div class="sv-environment-card" style="display:grid;grid-template-columns:minmax(0,180px) minmax(0,1fr);gap:12px;align-items:center;padding:12px;margin:10px 0;border:1px solid #ffffff18;border-radius:12px;background:#0b1220"><img alt="Generated environment" src="'+esc(environmentUrl(item))+'" style="display:block;width:100%;max-height:160px;object-fit:contain;border-radius:8px;background:#080e18"><div style="display:grid;gap:8px;min-width:0"><strong>'+esc(item.scene==='all'?'Overall world':item.scene||'Environment')+'</strong><small style="color:#9fb0c7">'+esc(String(item.description||'').slice(0,220))+'</small><small style="color:'+(assigned?'#7de6c1':'#9fb0c7')+'">'+(assigned?('Assigned to '+assigned+' scene'+(assigned===1?'':'s')):'Not assigned to a scene')+'</small><div style="display:flex;gap:7px;flex-wrap:wrap"><button type="button" class="sv-btn primary" data-environment-assign="'+esc(item.id)+'">Assign to selected scope</button></div></div></div>';
+      }).join('');
       if(approve){approve.hidden=!savedEnvironments.length;approve.disabled=!savedEnvironments.length;}
-      if(savedEnvironments.length)environmentStatus('Environment saved. Review it, then approve to continue.','success');
+      if(savedEnvironments.length)environmentStatus('Environment saved. Assign it to the relevant scene or scenes, then approve to continue.','success');
     };
     const generateEnvironment=async button=>{
       if(!approvedCharacter){environmentStatus('Approve a character before generating an environment.','error');return;}
@@ -916,9 +928,11 @@
         if(!await persistVideoProject())throw new Error('Save the Video project before generating an environment.');
         const response=await fetch('/api/video/environments/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({projectId,description,scene})});
         const result=await response.json().catch(()=>({}));if(!response.ok||!result.ok)throw new Error(result.error||'Environment generation failed.');
-        savedEnvironments.push(result.environment);await renderSavedEnvironments(savedEnvironments);
+        savedEnvironments.push(result.environment);
+        const assignedCount=assignEnvironmentToScope(result.environment,scene);
+        await renderSavedEnvironments(savedEnvironments);
         const saved=await persistVideoProject({currentStage:2,approvedStages:workflowApproved});if(!saved)throw new Error('Environment generated, but workflow progress could not be saved. Please retry.');
-        environmentStatus('Environment generated and saved. Review it, then approve to continue.','success');
+        environmentStatus('Environment generated and saved'+(assignedCount?'; assigned to '+assignedCount+' scene'+(assignedCount===1?'':'s'):'')+'. Review the assignment, then approve to continue.','success');
       }catch(error){environmentStatus(String(error?.message||'Environment generation failed.').slice(0,350),'error');}
       finally{button.disabled=!approvedCharacter;button.textContent=original||'Generate environment →';}
     };
@@ -1033,6 +1047,7 @@
       const characterGenerate=event.target.closest('[data-character-generate]');if(characterGenerate){generateCharacterRound(characterGenerate);return;}
       const characterRotate=event.target.closest('[data-character-rotate]');if(characterRotate){generateCharacterRound(characterRotate);return;}
       const characterApprove=event.target.closest('[data-character-approve]');if(characterApprove){approveCharacter(characterApprove);return;}
+      const envAssign=event.target.closest('[data-environment-assign]');if(envAssign){(async()=>{const item=savedEnvironments.find(environment=>environment.id===envAssign.dataset.environmentAssign);if(!item)return;const scope=String(root.querySelector('[data-environment-scene]')?.value||'all');const count=assignEnvironmentToScope(item,scope);try{if(!await persistVideoProject({currentStage:2,approvedStages:workflowApproved}))throw new Error('Could not save environment assignments.');await renderSavedEnvironments(savedEnvironments);environmentStatus('Environment assigned to '+count+' scene'+(count===1?'':'s')+' and saved.','success');}catch(error){environmentStatus(error.message||'Could not save environment assignments.','error');}})();return;}
       const envGenerate=event.target.closest('[data-environment-generate]');if(envGenerate){generateEnvironment(envGenerate);return;}
       const envApprove=event.target.closest('[data-environment-approve]');if(envApprove){(async()=>{envApprove.disabled=true;const old=envApprove.textContent;envApprove.textContent='Saving progress…';try{projectReviewed.characters=true;const approved=[...new Set([...workflowApproved,2])].sort((a,b)=>a-b);const ok=await persistVideoProject({currentStage:3,approvedStages:approved});if(!ok)throw new Error('Could not save stage approval. Please retry.');workflowApproved=approved;const state=root.querySelector('[data-accordion-state="characters"]');if(state){state.textContent='Characters & environments approved';state.classList.add('complete');}goWorkflowStage(3);setStatus('Characters & Environments approved. Visual Style is now available.','success');}catch(error){environmentStatus(error.message||'Could not approve environments.','error');envApprove.disabled=false;}finally{envApprove.textContent=old;}})();return;}
       const removeReferenceButton=event.target.closest('[data-reference-remove]');if(removeReferenceButton){removeDiscoveryReference(removeReferenceButton.dataset.referenceRemove);return;}
