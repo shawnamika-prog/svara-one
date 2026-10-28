@@ -377,7 +377,6 @@
             <details class="sv-work-section sv-character-work-section" data-character-work-section="c">
               <summary><span class="sv-work-index">C</span><span><strong>Scene Artwork Studio</strong><small>Create and refine artwork for each storyboard scene</small></span><span class="sv-work-chevron">⌄</span></summary>
               <div class="sv-work-section-content" id="sv-character-section-c">
-                <p class="sv-environment-intro">Panel 1B scene-by-scene storyboard baseline, with artwork generation added below. Original scene content remains unchanged.</p>
                 <div class="sv-canvas-top" data-environment-concept-header></div>
                 <div class="sv-canvas-style" data-environment-concept-style></div>
                 <div class="sv-canvas-layout sv-environment-canvas-layout">
@@ -387,6 +386,7 @@
                     <div class="sv-canvas-preview-bottom"><span data-environment-artwork-state>Artwork not generated</span><span>Scene artwork · versioned</span></div>
                   </section>
                   <section class="sv-canvas-side">
+                    <select data-environment-scene hidden aria-hidden="true" tabindex="-1"></select>
                     <div class="sv-canvas-rail sv-environment-scene-rail" data-environment-scene-rail role="group" aria-label="Choose a scene"></div>
                     <div class="sv-canvas-detail" data-environment-brief></div>
                   </section>
@@ -882,7 +882,9 @@
     const renderEnvironmentSceneRail=()=>{
       const rail=root.querySelector('[data-environment-scene-rail]'),select=root.querySelector('[data-environment-scene]');if(!rail||!select)return;
       const list=getEnvironmentSceneList(),current=select.value;
-      rail.innerHTML=list.map((scene,index)=>{const versions=savedEnvironments.filter(item=>item&&item.scene===scene.title);const active=scene.title===current;return '<button type="button" class="sv-canvas-thumb '+(active?'active':'')+'" data-environment-scene-select="'+esc(scene.title)+'" aria-pressed="'+(active?'true':'false')+'" aria-label="Select scene '+(index+1)+': '+esc(scene.title)+'"><b>'+String(index+1).padStart(2,'0')+'</b><i aria-hidden="true"></i><small class="sv-artwork-thumb-state">'+(versions.length?'Artwork '+versions.length:'Pending')+'</small></button>';}).join('');
+      if(!select.options.length||Array.from(select.options).map(option=>option.value).join('|')!==list.map(scene=>scene.title).join('|'))select.innerHTML=list.map(scene=>'<option value="'+esc(scene.title)+'">'+esc(scene.title)+'</option>').join('');
+      if(!list.some(scene=>scene.title===select.value))select.value=list[0]?.title||'';
+      rail.innerHTML=list.map((scene,index)=>{const active=scene.title===select.value;return '<button type="button" class="sv-canvas-thumb '+(active?'active':'')+'" data-environment-scene-select="'+esc(scene.title)+'" aria-pressed="'+(active?'true':'false')+'" aria-label="Select scene '+(index+1)+': '+esc(scene.title)+'"><b>'+String(index+1).padStart(2,'0')+'</b><i aria-hidden="true"></i></button>';}).join('');
       updateEnvironmentBrief();
     };
     const updateEnvironmentBrief=()=>{
