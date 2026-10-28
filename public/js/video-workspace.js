@@ -634,6 +634,7 @@
         if(!savedReferencesLabel){savedReferencesLabel=document.createElement('div');savedReferencesLabel.dataset.discoverySavedFiles='1';savedReferencesLabel.className='sv-saved-reference-list';root.querySelector('[data-discovery-files]')?.closest('.sv-discovery-upload-field')?.appendChild(savedReferencesLabel);}
         renderSavedDiscoveryReferences();
         discoveryConcept=data.discoveryConcept&&Array.isArray(data.discoveryConcept.sceneOutline)?data.discoveryConcept:null;
+        syncEnvironmentSceneOptions();
         discoveryHistory.splice(0,discoveryHistory.length,...(Array.isArray(data.discoveryHistory)?data.discoveryHistory.slice(-10):[]));
         scenes=Array.isArray(data.scenes)?data.scenes.map(scene=>({...scene,imageFile:null,image:typeof scene.image==='string'&&scene.image.startsWith('blob:')?'':scene.image,video:typeof scene.video==='string'&&scene.video.startsWith('blob:')?'':scene.video})):seedScenes();syncEnvironmentSceneOptions();
         selectedId=data.selectedId&&scenes.some(scene=>scene.id===data.selectedId)?data.selectedId:scenes[0]?.id||null;
@@ -1244,6 +1245,7 @@
       if(event.target.matches('[data-image-input]')){const file=event.target.files&&event.target.files[0];if(file){const s=selected();s.imageFile=file;s.image=URL.createObjectURL(file);s.status='Ready to generate';renderScenes();renderSettings();renderPreview();}}
     });
     root.addEventListener('change',event=>{
+      if(event.target.matches('[data-environment-scene]')){const field=root.querySelector('[data-environment-description]');if(field){field.value='';delete field.dataset.userEdited;}renderEnvironmentSceneRail();renderSavedEnvironments(savedEnvironments);return;}
       const brandInput=event.target.closest('[data-brand-upload]');
       if(brandInput){
         const kind=brandInput.dataset.brandUpload,file=brandInput.files&&brandInput.files[0];
@@ -1275,6 +1277,7 @@
       }
     });
     root.addEventListener('input',event=>{
+      if(event.target.matches('[data-environment-description]')){event.target.dataset.userEdited='true';return;}
       if(!event.target.matches('[data-character-name],[data-character-description],[data-character-notes]'))return;
       if(!characterDirectionApproved)return;
       characterDirectionApproved=false;
