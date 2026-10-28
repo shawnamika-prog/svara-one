@@ -377,16 +377,18 @@
             <details class="sv-work-section sv-character-work-section" data-character-work-section="c">
               <summary><span class="sv-work-index">C</span><span><strong>Scene Artwork Studio</strong><small>Create and refine artwork for each storyboard scene</small></span><span class="sv-work-chevron">⌄</span></summary>
               <div class="sv-work-section-content" id="sv-character-section-c">
-                <p class="sv-environment-intro">Build scene artwork from the approved Panel 1B storyboard. Scene actions, camera direction and narration stay intact; each generation is saved as a separate version.</p>
-                <div class="sv-artwork-studio-layout">
-                  <section class="sv-artwork-main-preview" aria-label="Selected scene artwork preview">
-                    <div class="sv-artwork-preview-top"><span data-environment-scene-number>SCENE 01</span><span data-environment-scene-duration>5 sec</span></div>
-                    <div class="sv-artwork-preview-canvas" data-environment-main-preview><div class="sv-artwork-placeholder-mark">✧</div><div class="sv-artwork-placeholder-copy"><small>SCENE ARTWORK</small><p>Select a scene to review its visual brief, then generate artwork.</p></div></div>
-                    <div class="sv-artwork-preview-bottom"><span data-environment-artwork-state>Artwork not generated</span><span>Scene artwork · versioned</span></div>
+                <p class="sv-environment-intro">Panel 1B scene-by-scene storyboard baseline, with artwork generation added below. Original scene content remains unchanged.</p>
+                <div class="sv-canvas-top" data-environment-concept-header></div>
+                <div class="sv-canvas-style" data-environment-concept-style></div>
+                <div class="sv-canvas-layout sv-environment-canvas-layout">
+                  <section class="sv-canvas-preview" aria-label="Selected scene visual preview">
+                    <div class="sv-canvas-preview-top"><span data-environment-scene-number>SCENE 01</span><span data-environment-scene-duration>5 sec</span></div>
+                    <div class="sv-canvas-preview-art" data-environment-main-preview><div class="sv-canvas-orbit" aria-hidden="true"></div><div><div class="sv-canvas-art-symbol" aria-hidden="true">✧</div><div class="sv-canvas-art-copy"><small>Visual preview</small><span>Select a scene to review its visual brief.</span></div></div></div>
+                    <div class="sv-canvas-preview-bottom"><span data-environment-artwork-state>Artwork not generated</span><span>Scene artwork · versioned</span></div>
                   </section>
-                  <section class="sv-artwork-scene-side">
-                    <div class="sv-canvas-rail sv-environment-scene-rail" data-environment-scene-rail role="group" aria-label="Select a storyboard scene"></div>
-                    <div class="sv-environment-selected-brief" data-environment-brief></div>
+                  <section class="sv-canvas-side">
+                    <div class="sv-canvas-rail sv-environment-scene-rail" data-environment-scene-rail role="group" aria-label="Choose a scene"></div>
+                    <div class="sv-canvas-detail" data-environment-brief></div>
                   </section>
                 </div>
                 <label class="sv-field"><span>Refine the visual direction (optional)</span><textarea data-environment-description maxlength="1800" rows="3" placeholder="Keep the scene action intact. Describe only the visual changes you want…"></textarea></label>
@@ -889,11 +891,15 @@
       const brief=root.querySelector('[data-environment-brief]'),number=root.querySelector('[data-environment-scene-number]'),duration=root.querySelector('[data-environment-scene-duration]'),main=root.querySelector('[data-environment-main-preview]'),state=root.querySelector('[data-environment-artwork-state]'),field=root.querySelector('[data-environment-description]');
       if(!scene){if(brief)brief.innerHTML='<p>Approve a concept in Panel 1B to populate the scene artwork studio.</p>';if(main)main.innerHTML='<div class="sv-artwork-placeholder-mark">✧</div><div class="sv-artwork-placeholder-copy"><small>NO STORYBOARD SCENES</small><p>Approve the Panel 1B concept first.</p></div>';return;}
       const index=getEnvironmentSceneList().findIndex(item=>item.title===scene.title);
+      const concept=discoveryConcept||{};
+      const header=root.querySelector('[data-environment-concept-header]'),styleLine=root.querySelector('[data-environment-concept-style]');
+      if(header)header.innerHTML='<div class="sv-canvas-title"><div class="sv-concept-kicker">SVARAFLOW™ <span>·</span> YOUR VIDEO IDEA</div><h3>'+esc(concept.title||'Approved creative concept')+'</h3><p class="sv-concept-logline">'+esc(concept.logline||'')+'</p></div><div class="sv-canvas-meta"><span>'+esc(concept.durationSeconds||'—')+' sec</span><span>'+esc(concept.recommendedFormat||'Format not specified')+'</span><span>'+esc(concept.audience||'Audience not specified')+'</span></div>';
+      if(styleLine)styleLine.innerHTML='<p>'+esc(concept.creativeDirection||'')+'</p><span>'+esc(concept.visualStyle||'')+'</span><span>'+esc(concept.tone||'')+'</span>';
       if(number)number.textContent='SCENE '+String(index+1).padStart(2,'0');if(duration)duration.textContent=scene.durationSeconds+' sec';
       const versions=savedEnvironments.filter(item=>item&&item.scene===scene.title),latest=versions[versions.length-1];
-      if(main)main.innerHTML=latest?'<img src="'+esc(environmentUrl(latest))+'" alt="Latest artwork for '+esc(scene.title)+'">':'<div class="sv-artwork-placeholder-mark">✧</div><div class="sv-artwork-placeholder-copy"><small>VISUAL PREVIEW</small><p>'+esc(scene.visualDescription||scene.description||scene.title)+'</p></div>';
+      if(main)main.innerHTML=latest?'<img src="'+esc(environmentUrl(latest))+'" alt="Latest artwork for '+esc(scene.title)+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#080e18"><div class="sv-canvas-preview-art" style="position:absolute;inset:0;background:#080e18a8"><div class="sv-canvas-art-copy"><small>APPROVED SCENE ARTWORK</small><span>'+esc(scene.visualDescription||scene.description||scene.title)+'</span></div></div>':'<div class="sv-canvas-orbit" aria-hidden="true"></div><div><div class="sv-canvas-art-symbol" aria-hidden="true">✧</div><div class="sv-canvas-art-copy"><small>Visual preview</small><span>'+esc(scene.visualDescription||scene.description||scene.title)+'</span></div></div>';
       if(state)state.textContent=latest?'Artwork available · '+versions.length+' version'+(versions.length===1?'':'s'):'Artwork not generated';
-      if(brief)brief.innerHTML='<div class="sv-canvas-detail-head"><div><small>SCENE '+String(index+1).padStart(2,'0')+'</small><h4>'+esc(scene.title)+'</h4></div><span>'+scene.durationSeconds+' sec</span></div><p class="sv-canvas-purpose">'+esc(scene.description||'Scene description not provided in the approved storyboard.')+'</p><div class="sv-artwork-brief-row"><small>CAMERA DIRECTION</small><p>'+esc(scene.cameraDirection||'No camera direction supplied in the approved storyboard.')+'</p></div><div class="sv-artwork-brief-row"><small>NARRATION / VOICE-OVER</small><p>'+esc(scene.narration||'No narration supplied in the approved storyboard.')+'</p></div>';
+      if(brief)brief.innerHTML='<div class="sv-canvas-detail-head"><div><small>SCENE '+String(index+1).padStart(2,'0')+'</small><h4>'+esc(scene.title)+'</h4></div><span>'+scene.durationSeconds+' sec</span></div><p class="sv-canvas-purpose">'+esc(scene.description||'Scene description not provided in the approved storyboard.')+'</p><div class="sv-canvas-production-panel"><div class="sv-canvas-production-icon"><svg class="sv-concept-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="13" height="10" rx="2"/><path d="m16 10 5-3v10l-5-3z"/></svg></div><div class="sv-canvas-production-copy"><section><small>CAMERA</small><p>'+esc(scene.cameraDirection||'No camera direction supplied in the approved storyboard.')+'</p></section><section><small>NARRATION</small><p class="'+(scene.narration?'':'sv-canvas-narration-empty')+'">'+esc(scene.narration||'No narration for this scene')+'</p></section></div></div>';
       if(field&&!field.dataset.userEdited)field.value='';
       const generate=root.querySelector('[data-environment-generate]');if(generate)generate.disabled=!approvedCharacter;
     };
