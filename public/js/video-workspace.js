@@ -373,12 +373,21 @@
             <details class="sv-work-section sv-character-work-section" data-character-work-section="c">
               <summary><span class="sv-work-index">C</span><span><strong>Environment Preferences</strong><small>Design the world and settings for your scenes</small></span><span class="sv-work-chevron">⌄</span></summary>
               <div class="sv-work-section-content" id="sv-character-section-c">
-                <p class="sv-environment-intro">SvaraFlow builds visual artwork for each scene using the approved concept from Panel 1B. Select a scene, review its brief, then generate or refine its artwork. Earlier versions are preserved.</p>
-                <div class="sv-canvas-rail sv-environment-scene-rail" data-environment-scene-rail role="group" aria-label="Select a scene"></div>
-                <label class="sv-field"><span>Selected scene</span><select data-environment-scene aria-label="Selected scene"><option value="all">All scenes / recurring world</option></select></label>
-                <div class="sv-environment-selected-brief" data-environment-brief></div>
-                <label class="sv-field"><span>Visual direction for this scene</span><textarea data-environment-description maxlength="1800" rows="4" placeholder="SvaraFlow prepares this from Panel 1B. Add specific visual changes here…"></textarea></label>
+                <p class="sv-environment-intro">Build scene artwork from the approved Panel 1B storyboard. Scene actions, camera direction and narration stay intact; each generation is saved as a separate version.</p>
+                <div class="sv-artwork-studio-layout">
+                  <section class="sv-artwork-main-preview" aria-label="Selected scene artwork preview">
+                    <div class="sv-artwork-preview-top"><span data-environment-scene-number>SCENE 01</span><span data-environment-scene-duration>5 sec</span></div>
+                    <div class="sv-artwork-preview-canvas" data-environment-main-preview><div class="sv-artwork-placeholder-mark">✧</div><div class="sv-artwork-placeholder-copy"><small>SCENE ARTWORK</small><p>Select a scene to review its visual brief, then generate artwork.</p></div></div>
+                    <div class="sv-artwork-preview-bottom"><span data-environment-artwork-state>Artwork not generated</span><span>Scene artwork · versioned</span></div>
+                  </section>
+                  <section class="sv-artwork-scene-side">
+                    <div class="sv-canvas-rail sv-environment-scene-rail" data-environment-scene-rail role="group" aria-label="Select a storyboard scene"></div>
+                    <div class="sv-environment-selected-brief" data-environment-brief></div>
+                  </section>
+                </div>
+                <label class="sv-field"><span>Refine the visual direction (optional)</span><textarea data-environment-description maxlength="1800" rows="3" placeholder="Keep the scene action intact. Describe only the visual changes you want…"></textarea></label>
                 <div data-environment-status class="sv-status" role="status" aria-live="polite" hidden></div>
+                <div class="sv-environment-version-heading"><strong>Artwork versions</strong><small>Generate again to create a new version. Previous versions remain available.</small></div>
                 <div data-environment-preview class="sv-environment-artwork-grid" aria-live="polite"></div>
                 <div class="sv-workflow-actions sv-character-actions"><button class="sv-btn primary" type="button" data-environment-generate disabled>Generate artwork for scene →</button><button class="sv-btn" type="button" data-environment-approve hidden disabled>Approve scene artwork &amp; continue →</button></div>
               </div>
@@ -848,13 +857,38 @@
     };
     let characterCandidates=[],selectedCharacterCandidate=-1,characterRoundBusy=false,characterDirectionApproved=false,approvedCharacter=null,previewedCharacter=null,savedCharacters=[],savedEnvironments=[];
     const characterStatus=(message,type='')=>{const el=root.querySelector('[data-character-status]');if(el){el.textContent=message;el.className='sv-status'+(type?' '+type:'');el.hidden=!message;}};
+    const getEnvironmentSceneList=()=>{
+      const outline=discoveryConcept&&Array.isArray(discoveryConcept.sceneOutline)?discoveryConcept.sceneOutline:[];
+      if(outline.length)return outline.map((scene,index)=>({id:String(index),title:String(scene.title||('Scene '+(index+1))),durationSeconds:Number(scene.durationSeconds||scene.duration||5),description:[scene.visualDescription,scene.purpose,scene.cameraDirection,scene.narration?'Narration: '+scene.narration:''].filter(Boolean).join(' '),visualDescription:String(scene.visualDescription||scene.purpose||''),cameraDirection:String(scene.cameraDirection||''),narration:String(scene.narration||'')}));
+      return scenes.map((scene,index)=>({id:String(index),title:String(scene.title||scene.name||('Scene '+(index+1))),durationSeconds:Number(scene.duration||5),description:String(scene.description||scene.prompt||''),visualDescription:String(scene.description||scene.prompt||''),cameraDirection:'',narration:''}));
+    };
+    const renderEnvironmentSceneRail=()=>{
+      const rail=root.querySelector('[data-environment-scene-rail]'),select=root.querySelector('[data-environment-scene]');if(!rail||!select)return;
+      const list=getEnvironmentSceneList(),current=select.value;
+      rail.innerHTML=list.map((scene,index)=>{const versions=savedEnvironments.filter(item=>item&&item.scene===scene.title);const active=scene.title===current;return '<button type="button" class="sv-canvas-thumb '+(active?'active':'')+'" data-environment-scene-select="'+esc(scene.title)+'" aria-pressed="'+(active?'true':'false')+'" aria-label="Select scene '+(index+1)+': '+esc(scene.title)+'"><b>'+String(index+1).padStart(2,'0')+'</b><i aria-hidden="true"></i><small class="sv-artwork-thumb-state">'+(versions.length?'Artwork '+versions.length:'Pending')+'</small></button>';}).join('');
+      updateEnvironmentBrief();
+    };
+    const updateEnvironmentBrief=()=>{
+      const select=root.querySelector('[data-environment-scene]');if(!select)return;
+      const scene=getEnvironmentSceneList().find(item=>item.title===select.value)||getEnvironmentSceneList()[0];
+      const brief=root.querySelector('[data-environment-brief]'),number=root.querySelector('[data-environment-scene-number]'),duration=root.querySelector('[data-environment-scene-duration]'),main=root.querySelector('[data-environment-main-preview]'),state=root.querySelector('[data-environment-artwork-state]'),field=root.querySelector('[data-environment-description]');
+      if(!scene){if(brief)brief.innerHTML='<p>Approve a concept in Panel 1B to populate the scene artwork studio.</p>';if(main)main.innerHTML='<div class="sv-artwork-placeholder-mark">✧</div><div class="sv-artwork-placeholder-copy"><small>NO STORYBOARD SCENES</small><p>Approve the Panel 1B concept first.</p></div>';return;}
+      const index=getEnvironmentSceneList().findIndex(item=>item.title===scene.title);
+      if(number)number.textContent='SCENE '+String(index+1).padStart(2,'0');if(duration)duration.textContent=scene.durationSeconds+' sec';
+      const versions=savedEnvironments.filter(item=>item&&item.scene===scene.title),latest=versions[versions.length-1];
+      if(main)main.innerHTML=latest?'<img src="'+esc(environmentUrl(latest))+'" alt="Latest artwork for '+esc(scene.title)+'">':'<div class="sv-artwork-placeholder-mark">✧</div><div class="sv-artwork-placeholder-copy"><small>VISUAL PREVIEW</small><p>'+esc(scene.visualDescription||scene.description||scene.title)+'</p></div>';
+      if(state)state.textContent=latest?'Artwork available · '+versions.length+' version'+(versions.length===1?'':'s'):'Artwork not generated';
+      if(brief)brief.innerHTML='<div class="sv-canvas-detail-head"><div><small>SCENE '+String(index+1).padStart(2,'0')+'</small><h4>'+esc(scene.title)+'</h4></div><span>'+scene.durationSeconds+' sec</span></div><p class="sv-canvas-purpose">'+esc(scene.description||'No scene description supplied.')+'</p>'+(scene.cameraDirection?'<div class="sv-artwork-brief-row"><small>CAMERA</small><p>'+esc(scene.cameraDirection)+'</p></div>':'')+(scene.narration?'<div class="sv-artwork-brief-row"><small>NARRATION</small><p>'+esc(scene.narration)+'</p></div>':'');
+      if(field&&!field.dataset.userEdited)field.value='';
+      const generate=root.querySelector('[data-environment-generate]');if(generate)generate.disabled=!approvedCharacter;
+    };
     const syncEnvironmentSceneOptions=()=>{
       const select=root.querySelector('[data-environment-scene]');if(!select)return;
-      const current=select.value||'all';
-      const options=[['all','Overall world / recurring setting'],...scenes.map((scene,index)=>[String(scene.title||scene.name||('Scene '+(index+1))).slice(0,120),String(scene.title||scene.name||('Scene '+(index+1))).slice(0,120)])];
-      const unique=[...new Map(options.map(item=>[item[0],item])).values()];
-      select.innerHTML=unique.map(([value,label])=>'<option value="'+esc(value)+'">'+esc(label)+'</option>').join('');
-      if(unique.some(item=>item[0]===current))select.value=current;
+      const current=select.value;
+      const list=getEnvironmentSceneList();
+      select.innerHTML=list.map((scene,index)=>'<option value="'+esc(scene.title)+'">'+String(index+1).padStart(2,'0')+' · '+esc(scene.title)+'</option>').join('');
+      if(list.some(scene=>scene.title===current))select.value=current;else if(list.length)select.value=list[0].title;
+      renderEnvironmentSceneRail();
     };
     const environmentStatus=(message,type='')=>{const el=root.querySelector('[data-environment-status]');if(el){el.textContent=message;el.className='sv-status'+(type?' '+type:'');el.hidden=!message;}};
     const renderSavedCharacterGallery=()=>{
