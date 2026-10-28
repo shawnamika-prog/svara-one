@@ -432,7 +432,7 @@
       root.querySelector('[data-count]').textContent='('+scenes.length+')';
       const storyboardState=root.querySelector('[data-accordion-state="storyboard"]');if(storyboardState)storyboardState.textContent=scenes.length+' scene'+(scenes.length===1?'':'s');
       scenesNode.innerHTML=scenes.map((s,index)=>`<article class="sv-scene ${s.id===selectedId?'selected':''}" data-scene="${esc(s.id)}" tabindex="0" aria-label="Select ${esc(s.title)}">
-        <div class="sv-thumb">${s.image?'<img src="'+esc(s.image)+'" alt="Scene reference">':s.video?'<video src="'+esc(s.video)+'" muted playsinline></video>':'<span>✧</span>'}</div>
+        <div class="sv-thumb">${s.image?'<img src="'+esc(s.image)+'" alt="Scene reference">':s.video?'<video src="'+esc(s.video)+'" muted playsinline></video>':s.environmentUrl?'<img src="'+esc(s.environmentUrl)+'" alt="Assigned environment reference">':'<span>✧</span>'}</div>
         <div class="sv-scene-info"><h3>${esc(s.title)}</h3><p>${esc(s.description)}</p><div class="sv-meta"><span class="sv-chip">${s.duration}s</span><span class="sv-chip">${s.ratio==='1280:720'?'16:9':s.ratio==='720:1280'?'9:16':s.ratio==='960:960'?'1:1':s.ratio}</span><span class="sv-chip">Runway Gen-4 Turbo</span><span class="sv-chip ${s.status==='Completed'||s.status==='Approved'?'ready':'status'}">${esc(s.status)}</span>${s.environmentId?'<span class="sv-chip ready">Environment assigned</span>':''}</div><div class="sv-mini-assets"><button data-scene-action="image" data-id="${esc(s.id)}">▧ Image</button><button data-scene-action="motion" data-id="${esc(s.id)}">⌁ Motion</button><button data-scene-action="voice" data-id="${esc(s.id)}">♩ Voice</button><button data-scene-action="music" data-id="${esc(s.id)}">♫ Music</button><button data-scene-action="sound" data-id="${esc(s.id)}">◖ Sound</button></div></div>
         <div class="sv-scene-actions"><button class="sv-btn primary" data-scene-action="generate" data-id="${esc(s.id)}">✦ Generate</button><button class="sv-btn" data-scene-action="preview" data-id="${esc(s.id)}">▷ Preview</button><button class="sv-btn" data-scene-action="edit" data-id="${esc(s.id)}">✎ Edit</button><button class="sv-btn" data-scene-action="duplicate" data-id="${esc(s.id)}">▢ Duplicate</button><button class="sv-btn" data-scene-action="delete" data-id="${esc(s.id)}">⌫ Delete</button></div>
       </article>`).join('');
@@ -441,6 +441,7 @@
       const s=selected();if(!s){previewState.textContent='No scene selected';preview.innerHTML='<div class="sv-preview-placeholder"><b>▶</b><span>Add a scene to see its preview here.</span></div>';return;}previewState.textContent=s.status;
       if(s.video)preview.innerHTML='<video controls playsinline src="'+esc(s.video)+'"></video>';
       else if(s.image)preview.innerHTML='<img src="'+esc(s.image)+'" alt="Selected scene baseline image">';
+      else if(s.environmentUrl)preview.innerHTML='<img src="'+esc(s.environmentUrl)+'" alt="Assigned environment reference">';
       else preview.innerHTML='<div class="sv-preview-placeholder"><b>▶</b><span>'+esc(s.title)+'<br>Add a reference image to prepare this scene.</span></div>';
     };
     const field=(label,control)=>'<div class="sv-field"><label>'+label+'</label>'+control+'</div>';
