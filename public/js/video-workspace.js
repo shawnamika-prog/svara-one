@@ -373,12 +373,14 @@
             <details class="sv-work-section sv-character-work-section" data-character-work-section="c">
               <summary><span class="sv-work-index">C</span><span><strong>Environment Preferences</strong><small>Design the world and settings for your scenes</small></span><span class="sv-work-chevron">⌄</span></summary>
               <div class="sv-work-section-content" id="sv-character-section-c">
-                <p class="sv-environment-intro">SvaraFlow uses the approved character direction and your scene brief to create a setting for your story.</p>
-                <label class="sv-field"><span>Environment description</span><textarea data-environment-description maxlength="1800" rows="4" placeholder="Describe the location, atmosphere, lighting, time of day, materials and scene details…"></textarea></label>
-                <label class="sv-field"><span>Scene to design</span><select data-environment-scene><option value="all">Overall world / recurring setting</option></select></label>
+                <p class="sv-environment-intro">SvaraFlow builds visual artwork for each scene using the approved concept from Panel 1B. Select a scene, review its brief, then generate or refine its artwork. Earlier versions are preserved.</p>
+                <div class="sv-canvas-rail sv-environment-scene-rail" data-environment-scene-rail role="group" aria-label="Select a scene"></div>
+                <label class="sv-field"><span>Selected scene</span><select data-environment-scene aria-label="Selected scene"><option value="all">All scenes / recurring world</option></select></label>
+                <div class="sv-environment-selected-brief" data-environment-brief></div>
+                <label class="sv-field"><span>Visual direction for this scene</span><textarea data-environment-description maxlength="1800" rows="4" placeholder="SvaraFlow prepares this from Panel 1B. Add specific visual changes here…"></textarea></label>
                 <div data-environment-status class="sv-status" role="status" aria-live="polite" hidden></div>
-                <div data-environment-preview class="sv-character-candidates" aria-live="polite"></div>
-                <div class="sv-workflow-actions sv-character-actions"><button class="sv-btn primary" type="button" data-environment-generate disabled>Generate environment →</button><button class="sv-btn" type="button" data-environment-approve hidden disabled>Approve environment &amp; continue →</button></div>
+                <div data-environment-preview class="sv-environment-artwork-grid" aria-live="polite"></div>
+                <div class="sv-workflow-actions sv-character-actions"><button class="sv-btn primary" type="button" data-environment-generate disabled>Generate artwork for scene →</button><button class="sv-btn" type="button" data-environment-approve hidden disabled>Approve scene artwork &amp; continue →</button></div>
               </div>
             </details>
           </div>
