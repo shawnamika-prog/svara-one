@@ -913,17 +913,25 @@
       savedEnvironments=Array.isArray(environments)?environments:[];
       const preview=root.querySelector('[data-environment-preview]'),approve=root.querySelector('[data-environment-approve]');
       if(!preview)return;
-      preview.innerHTML=savedEnvironments.map(item=>{
+      const scope=root.querySelector('[data-environment-scene]')?.value||'all';
+      const selectedTitle=scope==='all'?'':scope;
+      const selectedVersions=savedEnvironments.filter(item=>!selectedTitle||item.scene===selectedTitle);
+      preview.innerHTML=selectedVersions.map((item,index)=>{
         const assigned=scenes.filter(scene=>scene.environmentId===item.id).length;
-        return '<div class="sv-environment-card" style="display:grid;grid-template-columns:minmax(0,180px) minmax(0,1fr);gap:12px;align-items:center;padding:12px;margin:10px 0;border:1px solid #ffffff18;border-radius:12px;background:#0b1220"><img alt="Generated environment" src="'+esc(environmentUrl(item))+'" style="display:block;width:100%;max-height:160px;object-fit:contain;border-radius:8px;background:#080e18"><div style="display:grid;gap:8px;min-width:0"><strong>'+esc(item.scene==='all'?'Overall world':item.scene||'Environment')+'</strong><small style="color:#9fb0c7">'+esc(String(item.description||'').slice(0,220))+'</small><small style="color:'+(assigned?'#7de6c1':'#9fb0c7')+'">'+(assigned?('Assigned to '+assigned+' scene'+(assigned===1?'':'s')):'Not assigned to a scene')+'</small><div style="display:flex;gap:7px;flex-wrap:wrap"><button type="button" class="sv-btn primary" data-environment-assign="'+esc(item.id)+'">Assign to selected scope</button></div></div></div>';
-      }).join('');
+        return '<div class="sv-environment-card" style="display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr);gap:12px;align-items:center;padding:12px;margin:10px 0;border:1px solid #ffffff18;border-radius:12px;background:#0b1220"><img alt="Generated artwork version '+(index+1)+'" src="'+esc(environmentUrl(item))+'" style="display:block;width:100%;max-height:240px;object-fit:contain;border-radius:8px;background:#080e18"><div style="display:grid;gap:8px;min-width:0"><strong>'+esc(item.scene==='all'?'Overall world':item.scene||'Scene artwork')+' · Version '+(index+1)+'</strong><small style="color:#9fb0c7">'+esc(String(item.description||'').slice(0,400))+'</small><small style="color:'+(assigned?'#7de6c1':'#9fb0c7')+'">'+(assigned?('Assigned to '+assigned+' storyboard scene'+(assigned===1?'':'s')):'Saved version · available to select')+'</small><div style="display:flex;gap:7px;flex-wrap:wrap"><button type="button" class="sv-btn primary" data-environment-assign="'+esc(item.id)+'">Use this artwork</button></div></div></div>';
+      }).join('')||'<div class="sv-asset-placeholder">No artwork generated for this scene yet. Your earlier versions remain saved when you regenerate.</div>';
+      renderEnvironmentSceneRail();
       if(approve){approve.hidden=!savedEnvironments.length;approve.disabled=!savedEnvironments.length;}
       if(savedEnvironments.length)environmentStatus('Environment saved. Assign it to the relevant scene or scenes, then approve to continue.','success');
     };
     const generateEnvironment=async button=>{
       if(!approvedCharacter){environmentStatus('Approve a character before generating an environment.','error');return;}
-      const description=String(root.querySelector('[data-environment-description]')?.value||'').trim(),scene=String(root.querySelector('[data-environment-scene]')?.value||'all');
-      if(!description){environmentStatus('Describe the environment before generating.','error');root.querySelector('[data-environment-description]')?.focus();return;}
+      const scene=String(root.querySelector('[data-environment-scene]')?.value||'all');
+      const sceneInfo=getEnvironmentSceneList().find(item=>item.title===scene);
+      const userDirection=String(root.querySelector('[data-environment-description]')?.value||'').trim();
+      const description=(sceneInfo?'Scene from Panel 1B: '+sceneInfo.title+'. Scene direction: '+sceneInfo.description+'. ':'')+(userDirection?'User visual direction/refinement: '+userDirection:'Generate a visual interpretation faithful to the scene specification from Panel 1B.');
+      if(!sceneInfo&&scene==='all'&&!userDirection){environmentStatus('Select a scene or provide an overall visual direction.','error');return;}
+      if(description.length>1800){environmentStatus('This scene brief is too long. Shorten the visual direction to 1,800 characters.','error');return;}
       button.disabled=true;const original=button.textContent;button.textContent='Generating…';environmentStatus('SvaraFlow is generating and saving the environment.','');
       try{
         if(!await persistVideoProject())throw new Error('Save the Video project before generating an environment.');
@@ -933,7 +941,7 @@
         const assignedCount=assignEnvironmentToScope(result.environment,scene);
         await renderSavedEnvironments(savedEnvironments);
         const saved=await persistVideoProject({currentStage:2,approvedStages:workflowApproved});if(!saved)throw new Error('Environment generated, but workflow progress could not be saved. Please retry.');
-        environmentStatus('Environment generated and saved'+(assignedCount?'; assigned to '+assignedCount+' scene'+(assignedCount===1?'':'s'):'')+'. Review the assignment, then approve to continue.','success');
+        environmentStatus('Artwork generated and saved as a new version. Previous artwork has been preserved'+(assignedCount?'; assigned to '+assignedCount+' scene'+(assignedCount===1?'':'s'):'')+'. Review the result before continuing.','success');
       }catch(error){environmentStatus(String(error?.message||'Environment generation failed.').slice(0,350),'error');}
       finally{button.disabled=!approvedCharacter;button.textContent=original||'Generate environment →';}
     };
@@ -1048,6 +1056,7 @@
       const characterGenerate=event.target.closest('[data-character-generate]');if(characterGenerate){generateCharacterRound(characterGenerate);return;}
       const characterRotate=event.target.closest('[data-character-rotate]');if(characterRotate){generateCharacterRound(characterRotate);return;}
       const characterApprove=event.target.closest('[data-character-approve]');if(characterApprove){approveCharacter(characterApprove);return;}
+      const envSceneSelect=event.target.closest('[data-environment-scene-select]');if(envSceneSelect){const select=root.querySelector('[data-environment-scene]');if(select){select.value=envSceneSelect.dataset.environmentSceneSelect;const field=root.querySelector('[data-environment-description]');if(field)delete field.dataset.userEdited;updateEnvironmentBrief();}return;}
       const envAssign=event.target.closest('[data-environment-assign]');if(envAssign){(async()=>{const item=savedEnvironments.find(environment=>environment.id===envAssign.dataset.environmentAssign);if(!item)return;const scope=String(root.querySelector('[data-environment-scene]')?.value||'all');const count=assignEnvironmentToScope(item,scope);try{if(!await persistVideoProject({currentStage:2,approvedStages:workflowApproved}))throw new Error('Could not save environment assignments.');await renderSavedEnvironments(savedEnvironments);environmentStatus('Environment assigned to '+count+' scene'+(count===1?'':'s')+' and saved.','success');}catch(error){environmentStatus(error.message||'Could not save environment assignments.','error');}})();return;}
       const envGenerate=event.target.closest('[data-environment-generate]');if(envGenerate){generateEnvironment(envGenerate);return;}
       const envApprove=event.target.closest('[data-environment-approve]');if(envApprove){(async()=>{envApprove.disabled=true;const old=envApprove.textContent;envApprove.textContent='Saving progress…';try{projectReviewed.characters=true;const approved=[...new Set([...workflowApproved,2])].sort((a,b)=>a-b);const ok=await persistVideoProject({currentStage:3,approvedStages:approved});if(!ok)throw new Error('Could not save stage approval. Please retry.');workflowApproved=approved;const state=root.querySelector('[data-accordion-state="characters"]');if(state){state.textContent='Characters & environments approved';state.classList.add('complete');}goWorkflowStage(3);setStatus('Characters & Environments approved. Visual Style is now available.','success');}catch(error){environmentStatus(error.message||'Could not approve environments.','error');envApprove.disabled=false;}finally{envApprove.textContent=old;}})();return;}
