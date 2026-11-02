@@ -917,19 +917,30 @@ export default {
       if (!userId) return json({ error: "Authentication required." }, 401);
       if (!env.DB || !env.GENERATED_AUDIO) return json({ error: "Environment storage is not configured." }, 503);
       let body = {}; try { body = await request.json(); } catch { return json({ error: "Send environment details as JSON." }, 400); }
-      const projectId = String(body.projectId || "").trim(), description = String(body.description || "").trim(), scene = String(body.scene || "all").trim().slice(0,120);
+      const projectId = String(body.projectId || "").trim(), description = String(body.description || "").trim(), scene = String(body.scene || "all").trim().slice(0,120), beatId=String(body.beatId||"").trim().slice(0,100), beatTitle=String(body.beatTitle||"").trim().slice(0,120), sceneIndex=Number.isInteger(body.sceneIndex)?body.sceneIndex:-1, beatIndex=Number.isInteger(body.beatIndex)?body.beatIndex:-1;
       if (!projectId || !/^[a-zA-Z0-9_-]{1,80}$/.test(projectId)) return json({ error: "A valid Video project is required." }, 400);
       if (!description || description.length > 1800) return json({ error: "Describe the environment in 1,800 characters or fewer." }, 400);
       const project = await env.DB.prepare("SELECT title, project_data_json FROM video_projects WHERE id=? AND user_id=? LIMIT 1").bind(projectId,userId).first();
       if (!project) return json({ error: "Project not found." }, 404);
       let data = {}; try { data = JSON.parse(project.project_data_json || "{}"); } catch {}
-      const character = Array.isArray(data.characters) ? data.characters[data.characters.length - 1] : null;
+      const character = Array.isArray(data.characters) ? data.characters.find(item=>item&&item.approvedAt&&item.key) : null;
       if (!character || !character.key) return json({ error: "Approve and save a character before generating environments." }, 409);
+      let beatRecord=null;
+      if(beatId){
+        const analysis=data.visualBeatAnalysis;
+        if(!analysis?.approvedAt||analysis.approvedSignature!==analysis.sourceSignature||!Array.isArray(analysis.scenes))return json({error:"Approve the current scene analysis before generating beat artwork."},409);
+        const sceneRecord=analysis.scenes[sceneIndex],beat=sceneRecord?.beats?.[beatIndex];
+        if(!beat||beat.id!==beatId||sceneRecord.sceneTitle!==scene)return json({error:"The requested visual beat does not match the approved analysis."},409);
+        const existing=(Array.isArray(data.environments)?data.environments:[]).find(item=>item.beatId===beatId&&item.analysisSignature===analysis.sourceSignature);
+        if(existing)return json({ok:true,environment:{...existing,url:"/api/video/projects/"+encodeURIComponent(projectId)+"/environments/"+encodeURIComponent(existing.id)},alreadyGenerated:true});
+        beatRecord=beat;
+      }
       const provider = String(env.IMAGE_PROVIDER || "openai").trim().toLowerCase(), apiUrl = String(env.IMAGE_API_URL || "https://api.openai.com/v1/images/generations").trim(), apiKey = String(env.IMAGE_API_KEY || "").trim();
       const configuredModel = String(env.IMAGE_MODEL || "gpt-image-2.5-sunburst").trim(), model = configuredModel === "gpt-image-1" ? "gpt-image-2.5-sunburst" : configuredModel, factor = Number(env.SVARAONE_CREDIT_FACTOR);
       const rates = { "gpt-image-1.5": { text:5, image:32, flat:0.034 }, "gpt-image-2.5-sunburst": { text:5, image:30, flat:0.06 }, "gpt-image-2.5-flare": { text:5, image:30, flat:0.06 } }[model];
       if (!apiKey || !/^https:\/\//i.test(apiUrl) || provider !== "openai" || !Number.isFinite(factor) || factor <= 0 || !rates) return json({ error: "Environment generation requires the configured OpenAI image provider and credit factor." }, 503);
-      const prompt = ["Create one polished cinematic ENVIRONMENT-ONLY concept image for the video project: "+String(project.title||"Untitled video").slice(0,180)+".","Environment direction: "+description,"Scene scope: "+(scene==="all"?"recurring overall world":scene),"Show only the environment and non-character scene elements: architecture, landscape, room layout, props, lighting, atmosphere, materials, and environmental visual effects.","ABSOLUTE EXCLUSION: do not depict any character or person. No humans, people, faces, bodies, human silhouettes, character portraits, creatures, or figures, even in the background or as reflections. Do not interpret character actions by drawing the character. If the brief mentions a character, express the moment only through the environment, staging, lighting, props, and effects; leave the character out for later compositing in Panel 4.","Use cinematic composition, spatial depth, deliberate lighting and materials. One coherent environment image only. No text, collage, watermark, people, or characters."].join("\n");
+      const brand=beatRecord?data.visualBeatAnalysis.brand||{}:{};
+      const prompt = ["Create one polished cinematic ENVIRONMENT-ONLY image for the video project: "+String(project.title||"Untitled video").slice(0,180)+".","Storyboard scene: "+scene,"Visual beat: "+(beatTitle||beatRecord?.title||"Visual beat"),"Environment direction: "+description,"Brand palette: "+[brand.primaryColour,brand.secondaryColour,brand.palette].filter(Boolean).join("; "),"Brand colour application: "+String(beatRecord?.brandColourUsage||""),"Visual style: "+String(brand.visualStyle||""),"Brand guidelines: "+String(brand.brandNotes||""),"Show only the environment and non-character scene elements: architecture, landscape, room layout, props, lighting, atmosphere, materials, and environmental visual effects.","ABSOLUTE EXCLUSION: do not depict any character or person. No humans, people, faces, bodies, human silhouettes, character portraits, creatures, or figures, even in the background or as reflections. Do not interpret character actions by drawing the character. If the brief mentions a character, express the moment only through the environment, staging, lighting, props, and effects; leave the character out for later compositing in Panel 4.","Use the exact supplied primary and secondary brand colours; do not substitute generic colours. Use cinematic composition, spatial depth, deliberate lighting and materials. One coherent environment image only. No text, collage, watermark, people, or characters."].join("\n");
       const reservedCredits=Math.max(1,Math.ceil(rates.flat*factor)),referenceId=crypto.randomUUID(),debitId=crypto.randomUUID();
       const debit=await env.DB.prepare(`INSERT INTO credit_ledger (id,user_id,amount,balance_after,reason,reference_id,period_key) SELECT ?, ?, ?, balance_after - ?, 'environment_image_reservation', ?, 'environment_image' FROM credit_ledger WHERE user_id=? AND balance_after >= ? ORDER BY created_at DESC,rowid DESC LIMIT 1`).bind(debitId,userId,-reservedCredits,reservedCredits,referenceId,userId,reservedCredits).run();
       if(!debit.meta?.changes)return json({error:"You do not have enough credits to generate an environment."},402);
@@ -943,7 +954,7 @@ export default {
         const bytes=Uint8Array.from(atob(item.b64_json),c=>c.charCodeAt(0));if(!bytes.length||bytes.length>12*1024*1024)throw new Error("The generated environment image is too large.");
         const id=crypto.randomUUID();storedKey="users/"+userId+"/video-projects/"+projectId+"/environments/"+id+".png";
         await env.GENERATED_AUDIO.put(storedKey,bytes,{httpMetadata:{contentType:"image/png",cacheControl:"private, no-store"},customMetadata:{userId,projectId,assetKind:"environment",assetId:id}});
-        const environment={id,description,scene,key:storedKey,type:"image/png",createdAt:new Date().toISOString(),characterId:character.id||""};
+        const environment={id,description,scene,key:storedKey,type:"image/png",createdAt:new Date().toISOString(),characterId:character.id||"",...(beatRecord?{beatId,beatTitle:beatRecord.title,sceneIndex,beatIndex,analysisSignature:data.visualBeatAnalysis.sourceSignature}: {})};
         const environments=Array.isArray(data.environments)?data.environments:[];environments.push(environment);data.environments=environments;
         const saved=await env.DB.prepare("UPDATE video_projects SET project_data_json=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=? AND user_id=?").bind(JSON.stringify(data),projectId,userId).run();
         if(!saved.meta?.changes)throw new Error("The environment could not be saved to the project.");savedEnvironment=true;
