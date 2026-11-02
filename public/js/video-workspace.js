@@ -262,7 +262,7 @@
     .sv-beat-art{position:relative;display:grid;place-items:center;aspect-ratio:16/9;overflow:hidden;border-radius:7px;background:radial-gradient(ellipse at 65% 20%,#344c80,#18243b 55%,#080e18);border:1px solid #ffffff12}
     .sv-beat-art:before,.sv-beat-art:after{content:'';position:absolute;width:48%;height:65%;border:1px solid #8ca5ff55;border-radius:50%;transform:rotate(-25deg)}
     .sv-beat-art:after{transform:rotate(35deg);width:60%;height:45%}
-    .sv-beat-art b{position:relative;z-index:1;display:grid;place-items:center;width:25px;height:25px;border-radius:7px;background:#5146c9;color:#fff;font-size:10px}
+    .sv-beat-art img{position:absolute;z-index:0;inset:0;width:100%;height:100%;object-fit:cover}.sv-beat-art:before,.sv-beat-art:after{z-index:1;pointer-events:none}.sv-beat-art b{position:absolute;z-index:2;left:7px;top:7px;display:grid;place-items:center;width:25px;height:25px;border-radius:7px;background:#5146c9;color:#fff;font-size:10px}
     .sv-beat-card strong{display:block;margin:7px 1px 2px;font-size:9px;line-height:1.35;overflow-wrap:anywhere}
     .sv-beat-card small{display:block;margin:0 1px;color:#8294ae;font-size:8px}
     .sv-beat-detail{padding:12px;border:1px solid #ffffff12;border-radius:9px;background:#0a1220;display:grid;gap:5px}
