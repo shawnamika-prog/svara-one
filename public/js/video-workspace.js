@@ -932,6 +932,7 @@
       if(index>workflowCurrent&&!workflowApproved.includes(index-1))return;
       workflowCurrent=index;renderWorkflow();
       const stage=workflowStages[index];
+      if(index===3){const environmentStudio=root.querySelector('[data-character-work-section="c"]');if(environmentStudio)environmentStudio.open=true;}
       workflowStages.forEach((item,itemIndex)=>{
         const itemBody=root.querySelector('[data-accordion-body="'+item.id+'"]');
         const itemHead=root.querySelector('[data-accordion-toggle="'+item.id+'"]');
