@@ -624,7 +624,7 @@
         projectId=project.id||projectId;
         workflowProjectActive=true;
         const data=project.data;
-        visualBeatAnalysis=data.visualBeatAnalysis&&Array.isArray(data.visualBeatAnalysis.scenes)?data.visualBeatAnalysis:null;if(visualBeatAnalysis?.approvedAt&&visualBeatAnalysis.approvedSignature!==getVisualBeatSourceSignature())visualBeatAnalysis={...visualBeatAnalysis,approvedAt:null,approvedSignature:null};
+        visualBeatAnalysis=data.visualBeatAnalysis&&Array.isArray(data.visualBeatAnalysis.scenes)?data.visualBeatAnalysis:null;
         if(data.fields&&typeof data.fields==='object'){
           root.querySelectorAll('[data-accordion] input:not([type=file]),[data-accordion] textarea,[data-accordion] select').forEach(el=>{const key=projectControlKey(el),saved=data.fields[key];if(!key||!saved)return;el.value=saved.value??'';if(typeof saved.checked==='boolean')el.checked=saved.checked;});
         }
@@ -691,6 +691,8 @@
         /* Migrate saved progress from the former seven-stage workflow: old Stage 4 (Environment) is removed. */
         workflowApproved=Array.isArray(project.approvedStages)?[...new Set(project.approvedStages.map(Number).filter(n=>Number.isInteger(n)&&n>=0&&n<=6).map(n=>n>=3?n-1:n))].filter(n=>n<workflowStages.length):[];
         workflowCurrent=Number.isInteger(project.currentStage)?Math.max(0,Math.min(workflowStages.length-1,project.currentStage>=3?project.currentStage-1:project.currentStage)):0;
+        if(visualBeatAnalysis?.approvedAt&&(visualBeatAnalysis.sourceSignature!==getVisualBeatSourceSignature()||visualBeatAnalysis.approvedSignature!==getVisualBeatSourceSignature()))visualBeatAnalysis={...visualBeatAnalysis,approvedAt:null,approvedSignature:null};
+        renderVisualBeatApproval();
         if(discoveryConcept){const result=root.querySelector('[data-discovery-result]');if(result){result.hidden=false;renderDiscoveryConcept(discoveryConcept,result);}const actions=root.querySelector('[data-discovery-actions]');if(actions)actions.hidden=false;}
         renderScenes();renderSettings();renderPreview();renderWorkflow();
         workflowStages.forEach((stage,index)=>{const state=root.querySelector('[data-accordion-state="'+stage.id+'"]');if(state&&workflowApproved.includes(index)){state.textContent=index===0?'Concept approved':index===5?'Storyboard approved':'Approved';state.classList.add('complete');}});
@@ -939,7 +941,7 @@
     const isVisualBeatAnalysisCurrent=()=>Boolean(visualBeatAnalysis?.scenes?.length&&visualBeatAnalysis.sourceSignature&&visualBeatAnalysis.sourceSignature===getVisualBeatSourceSignature());
     const renderVisualBeatApproval=()=>{
       const approve=root.querySelector('[data-environment-beat-approve]'),generate=root.querySelector('[data-environment-generate]');
-      const current=isVisualBeatAnalysisCurrent(),approved=current&&Boolean(visualBeatAnalysis?.approvedAt);
+      const current=isVisualBeatAnalysisCurrent(),approved=current&&Boolean(visualBeatAnalysis?.approvedAt)&&visualBeatAnalysis?.approvedSignature===getVisualBeatSourceSignature();
       if(approve){approve.hidden=!current;approve.disabled=!current||approved||visualBeatApprovalBusy;approve.textContent=approved?'Scene analysis approved ✓':'Approve Scene Analysis →';}
       if(generate){generate.disabled=true;generate.textContent='Generate Artwork · next phase';}
       const legacyApprove=root.querySelector('[data-environment-approve]');if(legacyApprove)legacyApprove.hidden=true;
