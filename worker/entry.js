@@ -57,6 +57,27 @@ const VIDEO_DISCOVERY_SCHEMA = {
   }
 };
 
+
+async function analyseVideoVisualBeats({projectTitle,projectData,env}){
+ const concept=projectData?.discoveryConcept&&typeof projectData.discoveryConcept==="object"?projectData.discoveryConcept:null,outline=Array.isArray(concept?.sceneOutline)?concept.sceneOutline:[];
+ if(!concept||outline.length<1||outline.length>6)throw Object.assign(new Error("Approve a storyboard concept with at least one scene before analysing visual beats."),{status:409});
+ const fields=projectData?.fields&&typeof projectData.fields==="object"?projectData.fields:{},v=k=>String(fields[k]?.value??"").trim().slice(0,1200);
+ const brand={primaryColour:/^#[0-9a-f]{6}$/i.test(v("brandPrimary"))?v("brandPrimary"):"",secondaryColour:/^#[0-9a-f]{6}$/i.test(v("brandSecondary"))?v("brandSecondary"):"",palette:v("palette"),visualStyle:v("visualStyle"),visualNotes:v("visualNotes"),brandFont:v("brandFont"),brandNotes:v("brandNotes"),logoAvailable:Boolean(projectData?.brandAssets?.logo?.key||projectData?.brandAssets?.logo?.id),referenceAvailable:Boolean(projectData?.brandAssets?.reference?.key||projectData?.brandAssets?.reference?.id)};
+ const apiKey=String(env.OPENAI_API_KEY||"").trim();if(!apiKey)throw Object.assign(new Error("SvaraFlow visual analysis is not configured. The OpenAI API key is missing from Cloudflare."),{status:503});
+ const beat={type:"object",additionalProperties:false,required:["title","visualDescription","purpose","transition"],properties:{title:{type:"string"},visualDescription:{type:"string"},purpose:{type:"string"},transition:{type:"string"}}};
+ const schema={type:"object",additionalProperties:false,required:["directionSummary","scenes"],properties:{directionSummary:{type:"string"},scenes:{type:"array",minItems:1,maxItems:6,items:{type:"object",additionalProperties:false,required:["sceneIndex","sceneTitle","beatCount","beats"],properties:{sceneIndex:{type:"integer",minimum:0,maximum:5},sceneTitle:{type:"string"},beatCount:{type:"integer",minimum:1,maximum:5},beats:{type:"array",minItems:1,maxItems:5,items:beat}}}}}};
+ const instructions=["You are SvaraFlow™, SvaraOne's visual-storytelling director.","Break each approved storyboard scene into the smallest useful sequence of distinct visual moments. One beat for a simple static scene; multiple only when action, transformation, reveal or progression genuinely changes. Usually 1–4, maximum five; never pad.","Beats are visual assets inside their parent scene, NOT additional storyboard scenes and NOT necessarily separate final video shots.","Preserve approved scene order, story meaning, narration and camera intent. Do not invent plot events or rewrite the storyboard.","Descriptions are environment-focused; do not bake the approved character into scene artwork. Character compositing happens later in Panel 4. Describe character actions through environment, props, staging, lighting or effects without depicting the character.","Brand colours are mandatory constraints when supplied. Use exact primary and secondary hex colours as dominant/accent anchors in each relevant beat. Do not substitute generic colours. Supporting neutrals are allowed. Never invent missing hex values. Apply saved palette, visual style, visual notes, typography notes and brand guidelines consistently.","Do not claim to have inspected uploaded logo/reference files; their presence is context only.","Return one analysis for every supplied scene in the same order, with zero-based sceneIndex and beatCount equal to beats length.","Text-only planning. Do not generate images/video, call image providers, or spend media credits."].join("\n");
+ const model=String(env.SVARAFLOW_VIDEO_MODEL||env.SVARAFLOW_MODEL||"gpt-5-mini").trim(),controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),45000);
+ try{
+  const response=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"content-type":"application/json",authorization:"Bearer "+apiKey},signal:controller.signal,body:JSON.stringify({model,instructions,input:JSON.stringify({projectTitle:String(projectTitle||"Untitled video").slice(0,180),concept:{title:concept.title,logline:concept.logline,creativeDirection:concept.creativeDirection,visualStyle:concept.visualStyle,tone:concept.tone,keyMessage:concept.keyMessage},brand,scenes:outline.map((s,i)=>({sceneIndex:i,title:String(s?.title||("Scene "+(i+1))).slice(0,120),purpose:String(s?.purpose||"").slice(0,400),visualDescription:String(s?.visualDescription||"").slice(0,600),cameraDirection:String(s?.cameraDirection||"").slice(0,300),narration:String(s?.narration||"").slice(0,400),durationSeconds:Number(s?.durationSeconds||5)}))}),text:{format:{type:"json_schema",name:"svaraone_visual_beat_analysis",strict:true,schema}},max_output_tokens:6500})});
+  if(!response.ok){const d=await response.text().catch(()=>"");console.error("video_visual_beat_analysis_openai_error",{status:response.status,detail:d.slice(0,400)});throw Object.assign(new Error("SvaraFlow couldn't analyse the storyboard right now. Please try again."),{status:502});}
+  const p=await response.json(),t=typeof p.output_text==="string"?p.output_text:(Array.isArray(p.output)?p.output:[]).flatMap(x=>Array.isArray(x.content)?x.content:[]).map(x=>typeof x.text==="string"?x.text:"").join("");let result;try{result=JSON.parse(t)}catch{throw Object.assign(new Error("SvaraFlow returned an unreadable visual-beat analysis. Please try again."),{status:502});}
+  if(!result||!Array.isArray(result.scenes)||result.scenes.length!==outline.length)throw Object.assign(new Error("SvaraFlow returned an incomplete scene analysis. Please try again."),{status:502});
+  const analysed=result.scenes.map((item,i)=>{if(!item||item.sceneIndex!==i||!Array.isArray(item.beats)||item.beats.length<1||item.beats.length>5||item.beatCount!==item.beats.length)throw Object.assign(new Error("SvaraFlow returned an invalid beat structure. Please try again."),{status:502});return{sceneIndex:i,sceneTitle:String(outline[i]?.title||("Scene "+(i+1))).slice(0,120),beats:item.beats.map((b,n)=>({id:"beat-"+(i+1)+"-"+(n+1),title:String(b.title||("Visual beat "+(n+1))).trim().slice(0,100),visualDescription:String(b.visualDescription||"").trim().slice(0,700),purpose:String(b.purpose||"").trim().slice(0,350),transition:String(b.transition||"").trim().slice(0,350)}))}});
+  return{version:1,analysedAt:new Date().toISOString(),model,directionSummary:String(result.directionSummary||"").trim().slice(0,1200),brand,scenes:analysed,mediaGenerated:false,creditsUsed:0};
+ }catch(e){if(e?.name==="AbortError")throw Object.assign(new Error("Visual-beat analysis timed out. Please try again."),{status:504});throw e;}finally{clearTimeout(timeout);}
+}
+
 async function createVideoRefinement(body, env) {
  const request=String(body?.request||"").trim(),scope=["whole","scene","visuals","narration"].includes(body?.scope)?body.scope:"whole",concept=body?.concept;
  if(!request)throw Object.assign(new Error("Tell SvaraFlow what you'd like to refine."),{status:400});
@@ -1039,6 +1060,18 @@ export default {
       const saved=await env.DB.prepare("UPDATE video_projects SET project_data_json=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=? AND user_id=?").bind(JSON.stringify(data),projectId,userId).run();
       if(!saved.meta?.changes){await env.GENERATED_AUDIO.delete(key);return json({error:"The approved character could not be saved to the project."},500);}
       return json({ok:true,character:{id,name:character.name,description,notes,approvedAt:character.approvedAt}});
+    }
+
+
+    if (url.pathname === "/api/video/visual-beats/analyse" && request.method === "POST") {
+      const userId=await authenticatedUserId(request,env);if(!userId)return json({error:"Authentication required."},401);
+      if(!env.DB)return json({error:"Video project storage is not configured."},503);
+      let body={};try{body=await request.json()}catch{return json({error:"Send a Video project ID to analyse."},400)}
+      const projectId=String(body.projectId||"").trim();if(!/^[a-zA-Z0-9_-]{1,80}$/.test(projectId))return json({error:"A valid Video project is required."},400);
+      const project=await env.DB.prepare("SELECT title,project_data_json FROM video_projects WHERE id=? AND user_id=? LIMIT 1").bind(projectId,userId).first();if(!project)return json({error:"Project not found."},404);
+      let data={};try{data=JSON.parse(project.project_data_json||"{}")}catch{}
+      try{const analysis=await analyseVideoVisualBeats({projectTitle:project.title,projectData:data,env});data.visualBeatAnalysis=analysis;const saved=await env.DB.prepare("UPDATE video_projects SET project_data_json=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=? AND user_id=?").bind(JSON.stringify(data),projectId,userId).run();if(!saved.meta?.changes)throw Object.assign(new Error("The visual-beat analysis could not be saved to this project."),{status:500});return json({ok:true,analysis});}
+      catch(error){const status=Number.isInteger(error?.status)?error.status:502;console.error("video_visual_beat_analysis_error",{status,message:String(error?.message||error).slice(0,250)});return json({error:String(error?.message||"Visual-beat analysis failed.").slice(0,300)},status);}
     }
 
     if (request.method === "POST" && url.pathname === "/api/video/refine") {
