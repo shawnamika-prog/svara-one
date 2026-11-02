@@ -767,7 +767,7 @@
         goWorkflowStage(workflowCurrent,false);
         root.querySelectorAll('details[data-work-section],details[data-character-work-section]').forEach(el=>{el.open=false;});
         if(Array.isArray(data.openSections)){data.openSections.forEach(item=>{if(!item||typeof item.key!=='string')return;const attr=item.type==='character'?'data-character-work-section':'data-work-section';const section=Array.from(root.querySelectorAll('details['+attr+']')).find(el=>el.getAttribute(attr)===item.key);if(section)section.open=true;});}
-        else if(workflowCurrent===3){const envSection=root.querySelector('[data-character-work-section="c"]');if(envSection)envSection.open=true;}
+        else{const activeBody=root.querySelector('[data-accordion-body="'+workflowStages[workflowCurrent].id+'"]');const defaultSection=activeBody?.querySelector('details[data-work-section]:not([hidden]),details[data-character-work-section]:not([hidden])');if(defaultSection)defaultSection.open=true;}
         setStatus('Saved Video project restored from the database.','success');
       }finally{projectLoading=false;}
     };
