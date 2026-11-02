@@ -942,7 +942,7 @@
     const renderVisualBeatApproval=()=>{
       const approve=root.querySelector('[data-environment-beat-approve]'),generate=root.querySelector('[data-environment-generate]');
       const current=isVisualBeatAnalysisCurrent(),approved=current&&Boolean(visualBeatAnalysis?.approvedAt)&&visualBeatAnalysis?.approvedSignature===getVisualBeatSourceSignature();
-      if(approve){approve.hidden=!current;approve.disabled=!current||approved||visualBeatApprovalBusy;approve.textContent=approved?'Scene analysis approved ✓':'Approve & Generate Artwork →';}
+      const allArtworkReady=current&&(visualBeatAnalysis.scenes||[]).every(scene=>(scene.beats||[]).every(beat=>beat.artworkStatus==='complete'||savedEnvironments.some(item=>item.beatId===beat.id&&item.analysisSignature===visualBeatAnalysis.sourceSignature)));if(approve){approve.hidden=!current;approve.disabled=!current||visualBeatApprovalBusy||(approved&&allArtworkReady);approve.textContent=approved?(allArtworkReady?'Artwork generation complete ✓':'Continue Artwork Generation →'):'Approve & Generate Artwork →';}
       if(generate){generate.disabled=true;generate.textContent='Generate Artwork · next phase';}
       const legacyApprove=root.querySelector('[data-environment-approve]');if(legacyApprove)legacyApprove.hidden=true;
       const state=root.querySelector('[data-environment-analysis-approval-state]');
@@ -950,7 +950,7 @@
     };
     const approveVisualBeatAnalysis=async button=>{
       if(visualBeatApprovalBusy||!isVisualBeatAnalysisCurrent()){environmentStatus('The storyboard or brand settings have changed. Analyse the scenes again before approving.','error');renderVisualBeatApproval();return;}
-      if(visualBeatAnalysis.approvedAt){environmentStatus('Scene analysis is already approved.','success');return;}
+      if(visualBeatAnalysis.approvedAt){try{await generateApprovedBeatArtwork();}catch(error){environmentStatus(String(error?.message||'Artwork generation could not start.').slice(0,350),'error');}finally{renderVisualBeatApproval();}return;}
       visualBeatApprovalBusy=true;const original=button?.textContent||'Approve & Generate Artwork →';if(button){button.disabled=true;button.textContent='Saving approval…';}
       try{visualBeatAnalysis={...visualBeatAnalysis,approvedAt:new Date().toISOString(),approvedSignature:getVisualBeatSourceSignature()};if(!await persistVideoProject())throw new Error('Approval could not be saved. Please retry.');
         environmentStatus('Scene analysis approved and saved. Starting artwork generation for every visual beat…','success');await generateApprovedBeatArtwork();
