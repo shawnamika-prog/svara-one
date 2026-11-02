@@ -744,9 +744,11 @@
         if(restoredCharacter){renderApprovedCharacter(restoredCharacter);const gen=root.querySelector('[data-environment-generate]');if(gen)gen.disabled=false;}else{approvedCharacter=null;}
         renderSavedCharacterGallery();
         renderSavedEnvironments(Array.isArray(data.environments)?data.environments:[]);
-        /* Migrate saved progress from the former seven-stage workflow: old Stage 4 (Environment) is removed. */
-        workflowApproved=Array.isArray(project.approvedStages)?[...new Set(project.approvedStages.map(Number).filter(n=>Number.isInteger(n)&&n>=0&&n<=5).map(n=>n>=3?n+1:n))].filter(n=>n<workflowStages.length):[];
-        workflowCurrent=Number.isInteger(project.currentStage)?Math.max(0,Math.min(workflowStages.length-1,project.currentStage>=3?project.currentStage+1:project.currentStage)):0;
+        /* Projects saved before workflowVersion 2 used a six-stage timeline; shift stages after Characters by one to add the dedicated Environments stage. */
+        const currentWorkflowVersion=Number(data.workflowVersion||0);
+        const migrateStage=n=>currentWorkflowVersion>=2?n:(n>=3?n+1:n);
+        workflowApproved=Array.isArray(project.approvedStages)?[...new Set(project.approvedStages.map(Number).filter(n=>Number.isInteger(n)&&n>=0&&n<=6).map(migrateStage))].filter(n=>n<workflowStages.length):[];
+        workflowCurrent=Number.isInteger(project.currentStage)?Math.max(0,Math.min(workflowStages.length-1,migrateStage(project.currentStage))):0;
         if(visualBeatAnalysis?.approvedAt&&(visualBeatAnalysis.sourceSignature!==getVisualBeatSourceSignature()||visualBeatAnalysis.approvedSignature!==getVisualBeatSourceSignature()))visualBeatAnalysis={...visualBeatAnalysis,approvedAt:null,approvedSignature:null};
         renderVisualBeatApproval();
         if(discoveryConcept){const result=root.querySelector('[data-discovery-result]');if(result){result.hidden=false;renderDiscoveryConcept(discoveryConcept,result);}const actions=root.querySelector('[data-discovery-actions]');if(actions)actions.hidden=false;}
