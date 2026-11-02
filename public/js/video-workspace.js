@@ -1159,7 +1159,7 @@
     const openArtworkLightbox=(selectedId,filter='all')=>{
       const items=collectProjectArtwork();if(!items.length)return;
       let active=Math.max(0,items.findIndex(item=>item.id===selectedId));
-      let currentFilter=filter;
+      let currentFilter='all';
       root.querySelector('[data-artwork-lightbox]')?.remove();
       const overlay=document.createElement('div');overlay.className='sv-artwork-lightbox';overlay.dataset.artworkLightbox='1';
       overlay.innerHTML='<section class="sv-reel" role="dialog" aria-modal="true" aria-label="Project artwork gallery"><header class="sv-reel-head"><div class="sv-reel-title"><span class="sv-reel-film-icon">▤</span><div><h3>Project Gallery</h3><p>Full visual reel · '+listSceneCount()+' Scenes · '+items.filter(item=>item.kind==='beat').length+' Visual Beats</p></div></div><button type="button" class="sv-reel-close" aria-label="Close gallery">×</button></header><div class="sv-reel-counter-top" data-reel-counter></div><div class="sv-reel-stage"><button type="button" class="sv-reel-arrow prev" data-reel-prev aria-label="Previous artwork">‹</button><div class="sv-reel-image-wrap"><img data-reel-image alt=""></div><button type="button" class="sv-reel-arrow next" data-reel-next aria-label="Next artwork">›</button></div><section class="sv-reel-info"><span data-reel-subtitle></span><strong data-reel-title></strong><p data-reel-description></p></section><div class="sv-reel-filmstrip-wrap"><div class="sv-reel-filmstrip" data-reel-filmstrip></div></div><div class="sv-reel-dots" data-reel-dots></div></section>';
