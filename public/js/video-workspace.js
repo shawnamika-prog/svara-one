@@ -225,7 +225,7 @@
     .sv-field>span{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8196ad}
     .sv-accordion-intro{color:#91a4b8;font-size:12px;line-height:1.7;margin:18px 0}
     .sv-accordion-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;flex-wrap:wrap}
-    [data-accordion="environment"]{width:100%!important;max-width:none!important;min-width:0!important;grid-column:1/-1!important;margin:0!important;justify-self:stretch!important;align-self:stretch!important}
+    [data-accordion="environment"]{width:100%!important;max-width:none!important;min-width:0!important;grid-column:1/-1!important;margin:16px 0 0!important;justify-self:stretch!important;align-self:stretch!important}
     [data-accordion="environment"]>.sv-accordion-body{width:100%;max-width:none;min-width:0;padding:18px 24px 24px!important;box-sizing:border-box}
     [data-accordion="environment"] .sv-character-work-section{width:100%;max-width:none;min-width:0;margin:0!important}
     [data-accordion="environment"] .sv-character-work-section>.sv-work-section-content{width:100%;max-width:none;min-width:0}
