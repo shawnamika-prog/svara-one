@@ -36,7 +36,7 @@
     .sv-artwork-zoom-glyph{position:absolute;z-index:3;right:8px;top:8px;width:27px;height:27px;display:grid;place-items:center;border-radius:8px;background:#07101dcc;border:1px solid #ffffff66;color:white;font-style:normal;font-size:19px;line-height:1;pointer-events:none}
     .sv-artwork-lightbox{position:fixed;z-index:100000;inset:0;display:grid;place-items:center;padding:20px;background:#02050bf2;backdrop-filter:blur(10px);box-sizing:border-box}
     .sv-reel,.sv-reel *{box-sizing:border-box}
-    .sv-reel{width:min(1260px,calc(100vw - 40px));max-height:calc(100vh - 40px);min-width:0;overflow:hidden;padding:18px 22px 14px;border:1px solid #64708a;border-radius:20px;background:linear-gradient(145deg,#151b28 0%,#101722 55%,#0b111b 100%);box-shadow:0 0 0 1px #ffffff0c,0 24px 80px #000d;display:grid;grid-template-rows:auto minmax(220px,1fr) auto auto;gap:13px}
+    .sv-reel{width:min(1260px,calc(100vw - 40px));max-height:calc(100vh - 40px);min-width:0;overflow:hidden;padding:18px 22px 14px;border:1px solid #64708a;border-radius:20px;background:linear-gradient(145deg,#151b28 0%,#101722 55%,#0b111b 100%);box-shadow:0 0 0 1px #ffffff0c,0 24px 80px #000d;display:grid;grid-template-rows:auto minmax(220px,1fr) auto auto auto;gap:13px}
     .sv-reel-head{display:flex;align-items:center;gap:16px;min-width:0;width:100%}
     .sv-reel-title{display:flex;align-items:center;gap:12px;min-width:190px;flex:0 1 auto}
     .sv-reel-film-icon{font-size:32px;color:#aab3c8}
