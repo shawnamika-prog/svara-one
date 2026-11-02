@@ -659,7 +659,8 @@
       const discoveryFields={};
       ['idea','url','audience','goal'].forEach(key=>{discoveryFields[key]=root.querySelector('[data-discovery-field="'+key+'"]')?.value||'';});
       discoveryFields.mode=root.querySelector('[data-discovery-mode].active')?.dataset.discoveryMode||'discover';
-      return {version:2,workflowVersion:2,discoveryFields,discoveryReferences,discoveryConcept,discoveryHistory,fields,scenes:safeScenes,selectedId,tab,mode,projectReviewed,brandAssets,visualBeatAnalysis,brandFileNames:Object.fromEntries(['logo','reference'].map(kind=>[kind,root.querySelector('[data-brand-file="'+kind+'"]')?.textContent||'']))};
+      const openSections=Array.from(root.querySelectorAll('details[open][data-work-section],details[open][data-character-work-section]')).map(el=>({type:el.hasAttribute('data-work-section')?'work':'character',key:el.getAttribute(el.hasAttribute('data-work-section')?'data-work-section':'data-character-work-section')}));
+      return {version:2,workflowVersion:2,openSections,discoveryFields,discoveryReferences,discoveryConcept,discoveryHistory,fields,scenes:safeScenes,selectedId,tab,mode,projectReviewed,brandAssets,visualBeatAnalysis,brandFileNames:Object.fromEntries(['logo','reference'].map(kind=>[kind,root.querySelector('[data-brand-file="'+kind+'"]')?.textContent||'']))};
     };
     const persistVideoProject=async({currentStage=workflowCurrent,approvedStages=workflowApproved,concept=discoveryConcept,sceneList=scenes}={})=>{
       if(projectLoading)return false;
@@ -764,6 +765,9 @@
         renderScenes();renderSettings();renderPreview();renderWorkflow();
         workflowStages.forEach((stage,index)=>{const state=root.querySelector('[data-accordion-state="'+stage.id+'"]');if(state&&workflowApproved.includes(index)){state.textContent=index===0?'Concept approved':index===5?'Storyboard approved':index===2?'Characters approved':index===3?'Environments approved':'Approved';state.classList.add('complete');}});
         goWorkflowStage(workflowCurrent,false);
+        root.querySelectorAll('details[data-work-section],details[data-character-work-section]').forEach(el=>{el.open=false;});
+        if(Array.isArray(data.openSections)){data.openSections.forEach(item=>{if(!item||typeof item.key!=='string')return;const attr=item.type==='character'?'data-character-work-section':'data-work-section';const section=Array.from(root.querySelectorAll('details['+attr+']')).find(el=>el.getAttribute(attr)===item.key);if(section)section.open=true;});}
+        else if(workflowCurrent===3){const envSection=root.querySelector('[data-character-work-section="c"]');if(envSection)envSection.open=true;}
         setStatus('Saved Video project restored from the database.','success');
       }finally{projectLoading=false;}
     };
@@ -951,7 +955,7 @@
       });
       const panel=root.querySelector('[data-accordion="'+stage.id+'"]');
       if(index===5){const state=root.querySelector('[data-accordion-state="storyboard"]');if(state)state.textContent=scenes.length+' scenes'+(workflowApproved.includes(5)?' · approved':'');}
-      if(scroll)panel?.scrollIntoView({block:'start',behavior:'smooth'});
+      if(scroll){panel?.scrollIntoView({block:'start',behavior:'smooth'});scheduleProjectSave();}
     };
     const approveWorkflowStage=async(id,skipped=false,triggerButton=null)=>{
       const index=workflowStages.findIndex(stage=>stage.id===id);if(index<0)return;
@@ -1364,6 +1368,7 @@
       }catch(error){characterStatus(String(error?.message||'The character could not be saved.').slice(0,350),'error');}
       finally{characterRoundBusy=false;button.disabled=selectedCharacterCandidate<0;button.textContent=original||'Approve character →';}
     };
+    root.addEventListener('toggle',event=>{const el=event.target;if(el instanceof HTMLDetailsElement&&(el.matches('[data-work-section],[data-character-work-section]'))&&!projectLoading)scheduleProjectSave();},true);
     root.addEventListener('click',async event=>{
       if(event.target.closest('[data-accordion-toggle="characters"]'))syncEnvironmentSceneOptions();
       const characterOption=event.target.closest('[data-character-option]');if(characterOption){selectedCharacterCandidate=Number(characterOption.dataset.characterOption);renderCharacterCandidates();return;}
