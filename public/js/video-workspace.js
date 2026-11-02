@@ -21,7 +21,14 @@
     .sv-vhead{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:17px 19px;border-bottom:1px solid #ffffff0c;flex-wrap:wrap}.sv-workflow-label{padding-top:13px}
     .sv-eyebrow{font-size:9px;letter-spacing:.17em;font-weight:800;color:#65a7ff}.sv-vhead h2{font-size:22px;letter-spacing:-.04em;margin:5px 0}.sv-vhead p{font-size:11px;color:#8294aa;margin:0;line-height:1.5}
     .sv-actions{display:flex;gap:7px;flex-wrap:wrap}.sv-btn{border:1px solid #ffffff16;border-radius:9px;background:#101a29;color:#c4d3e4;padding:9px 12px;font:700 10px Inter,system-ui;cursor:pointer}.sv-btn:hover{border-color:#4c8cff88;color:white}.sv-btn.primary{border-color:#4c8cff;background:linear-gradient(110deg,#2675ee,#438dff);color:white}.sv-btn:disabled{opacity:.5;cursor:wait}
-        .sv-btn.is-generating{cursor:default;pointer-events:none;opacity:.8}
+        .sv-btn.is-generating{cursor:default;pointer-events:none;opacity:1;display:inline-flex;align-items:center;justify-content:center;gap:9px}
+    .sv-generation-spinner{width:13px;height:13px;flex:0 0 13px;border:2px solid #ffffff55;border-top-color:#fff;border-radius:50%;display:inline-block;animation:sv-generation-spin .75s linear infinite}
+    @keyframes sv-generation-spin{to{transform:rotate(360deg)}}
+    .sv-beat-art{position:relative;display:block;overflow:hidden;aspect-ratio:16/9;border-radius:9px;background:#101b30}
+    .sv-beat-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+    .sv-beat-art b{position:absolute;z-index:1;top:8px;left:8px}
+    .sv-beat-detail-art{width:100%;aspect-ratio:16/9;margin:12px 0;overflow:hidden;border-radius:10px;background:#101b30}
+    .sv-beat-detail-art img{display:block;width:100%;height:100%;object-fit:cover}
     .sv-mode{display:flex;gap:3px;background:#080e18;border:1px solid #ffffff14;border-radius:10px;padding:3px}.sv-mode button{border:0;background:transparent;color:#8da0b5;border-radius:7px;padding:8px 10px;font:600 9px Inter;cursor:pointer}.sv-mode button.active{background:#183d73;color:#bcd9ff;box-shadow:inset 0 0 0 1px #4b8cff66}
     .sv-steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;padding:14px 16px}.sv-step{display:flex;align-items:center;gap:8px;min-width:0;color:#8092a8;font-size:10px}.sv-step b{display:grid;place-items:center;width:27px;height:27px;flex:none;border-radius:50%;background:#263448;color:#bdcce0}.sv-step.active b,.sv-step.done b{background:#277cf5;color:#fff}.sv-step span{display:block;min-width:0}.sv-step strong{display:block;color:#dbe7f6;font-size:10px}.sv-step small{display:block;color:#73879d;font-size:8px;margin-top:3px}
     .sv-workflow{padding:0 16px 15px;display:grid;gap:10px}.sv-workflow-label{font-size:9px;letter-spacing:.14em;font-weight:800;color:#778ba7}.sv-workflow-rail{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0;align-items:start}.sv-workflow-step{position:relative;display:grid;justify-items:center;align-content:start;gap:6px;padding:0 4px;border:0;background:none;color:#74869e;cursor:pointer;min-width:0;text-align:center}.sv-workflow-step:before{content:'';position:absolute;height:2px;background:#273449;left:calc(50% + 16px);right:calc(-50% + 16px);top:14px;z-index:0;pointer-events:none}.sv-workflow-step:last-child:before{display:none}.sv-workflow-step.done:before,.sv-workflow-step.active:before{background:#635bdf}.sv-workflow-dot{position:relative;z-index:1;display:grid;place-items:center;width:29px;height:29px;border-radius:50%;border:1px solid #35445c;background:#0b1220;box-shadow:0 0 0 3px #0b1220;color:#91a2ba;font-size:10px;font-weight:800}.sv-workflow-step.active .sv-workflow-dot{border-color:#8b83ff;background:#5146c9;color:white;box-shadow:0 0 0 4px #635bdf22}.sv-workflow-step.done .sv-workflow-dot{border-color:#327f75;background:#123c3b;color:#7ee7d0}.sv-workflow-step strong{display:block;font-size:9px;line-height:1.25;color:#b8c5d7;font-weight:650;overflow-wrap:anywhere}.sv-workflow-step.active strong{color:#e4e5ff}.sv-workflow-step:disabled{cursor:not-allowed;opacity:.55}.sv-workflow-step:disabled .sv-workflow-dot{background:#080d15}.sv-workflow-status{font-size:9px;color:#8ea0b6;line-height:1.4}.sv-workflow-status strong{color:#cbd5e1;font-weight:700}.sv-accordion.workflow-locked{display:none!important}.sv-accordion.workflow-current{border-color:#635bdf55}.sv-workflow-actions{display:flex;gap:8px;flex-wrap:wrap}.sv-workflow-actions .sv-btn{font-size:10px}.sv-workflow-actions .sv-btn.skip{background:transparent;border-color:#ffffff20;color:#9eacc0}
@@ -950,31 +957,41 @@
     };
     const approveVisualBeatAnalysis=async button=>{
       if(visualBeatApprovalBusy||!isVisualBeatAnalysisCurrent()){environmentStatus('The storyboard or brand settings have changed. Analyse the scenes again before approving.','error');renderVisualBeatApproval();return;}
-      if(visualBeatAnalysis.approvedAt){try{await generateApprovedBeatArtwork();}catch(error){environmentStatus(String(error?.message||'Artwork generation could not start.').slice(0,350),'error');}finally{renderVisualBeatApproval();}return;}
-      visualBeatApprovalBusy=true;const original=button?.textContent||'Approve & Generate Artwork →';if(button){button.disabled=true;button.textContent='Saving approval…';}
-      try{visualBeatAnalysis={...visualBeatAnalysis,approvedAt:new Date().toISOString(),approvedSignature:getVisualBeatSourceSignature()};if(!await persistVideoProject())throw new Error('Approval could not be saved. Please retry.');
-        environmentStatus('Scene analysis approved and saved. Starting artwork generation for every visual beat…','success');await generateApprovedBeatArtwork();
-      }catch(error){visualBeatAnalysis={...visualBeatAnalysis,approvedAt:null,approvedSignature:null};environmentStatus(String(error?.message||'Could not approve scene analysis.').slice(0,350),'error');}
-      finally{visualBeatApprovalBusy=false;renderVisualBeatApproval();if(button&&!visualBeatAnalysis?.approvedAt)button.textContent=original;}
+      visualBeatApprovalBusy=true;
+      const alreadyApproved=Boolean(visualBeatAnalysis.approvedAt);
+      const showBusy=label=>{if(button){button.disabled=true;button.classList.add('is-generating');button.innerHTML='<span class="sv-generation-spinner" aria-hidden="true"></span><span>'+esc(label)+'</span>';}};
+      showBusy(alreadyApproved?'Generating Artwork…':'Saving approval…');
+      try{
+        if(!alreadyApproved){
+          visualBeatAnalysis={...visualBeatAnalysis,approvedAt:new Date().toISOString(),approvedSignature:getVisualBeatSourceSignature()};
+          if(!await persistVideoProject())throw new Error('Approval could not be saved. Please retry.');
+        }
+        environmentStatus('Generating artwork for every visual beat. Your images will appear here as each one is saved…','');
+        await generateApprovedBeatArtwork(button);
+      }catch(error){
+        if(!alreadyApproved)visualBeatAnalysis={...visualBeatAnalysis,approvedAt:null,approvedSignature:null};
+        environmentStatus(String(error?.message||'Artwork generation could not start.').slice(0,350),'error');
+      }finally{visualBeatApprovalBusy=false;if(button)button.classList.remove('is-generating');renderVisualBeatApproval();}
     };
 
-    const generateApprovedBeatArtwork=async()=>{
+    const generateApprovedBeatArtwork=async button=>{
       if(!visualBeatAnalysis?.approvedAt||visualBeatAnalysis.approvedSignature!==getVisualBeatSourceSignature())throw new Error('Approve the current scene analysis before generating artwork.');
       const scenes=visualBeatAnalysis.scenes||[],total=scenes.reduce((sum,s)=>sum+(s.beats||[]).length,0);let completed=0,failed=0;
       for(let si=0;si<scenes.length;si++){
         const scene=scenes[si],sceneInfo=getEnvironmentSceneList()[si];
         for(let bi=0;bi<(scene.beats||[]).length;bi++){
           const beat=scene.beats[bi],existing=savedEnvironments.find(item=>item.beatId===beat.id&&item.analysisSignature===visualBeatAnalysis.sourceSignature);
-          if(existing){beat.artworkId=existing.id;beat.artworkStatus='complete';completed++;continue;}
+          if(existing){beat.artworkId=existing.id;beat.artworkStatus='complete';completed++;renderEnvironmentBeats(getEnvironmentSceneList()[si]);continue;}
+          if(button){button.disabled=true;button.classList.add('is-generating');button.innerHTML='<span class="sv-generation-spinner" aria-hidden="true"></span><span>Generating Artwork…</span>';}
           environmentStatus('Generating Scene '+(si+1)+' · '+beat.title+' ('+(completed+failed+1)+'/'+total+').','');
           const description=[beat.visualDescription,beat.purpose?'Purpose: '+beat.purpose:'',beat.transition?'Transition: '+beat.transition:'',beat.brandColourUsage?'Brand colours: '+beat.brandColourUsage:'',sceneInfo?.cameraDirection?'Camera direction: '+sceneInfo.cameraDirection:''].filter(Boolean).join('\n');
           try{
             const response=await fetch('/api/video/environments/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({projectId,description,scene:scene.sceneTitle||sceneInfo?.title||('Scene '+(si+1)),beatId:beat.id,beatTitle:beat.title,sceneIndex:si,beatIndex:bi})});
             const result=await response.json().catch(()=>({}));if(!response.ok||!result.ok||!result.environment)throw new Error(result.error||'Image generation failed.');
             if(!savedEnvironments.some(item=>item.id===result.environment.id))savedEnvironments.push(result.environment);
-            beat.artworkId=result.environment.id;beat.artworkStatus='complete';completed++;
-          }catch(error){beat.artworkStatus='failed';beat.artworkError=String(error?.message||'Generation failed.').slice(0,250);failed++;environmentStatus('Scene '+(si+1)+' · '+beat.title+' failed: '+beat.artworkError+'. Continuing with remaining beats.','error');}
-          renderEnvironmentSceneRail();
+            beat.artworkId=result.environment.id;beat.artworkStatus='complete';beat.artworkError='';completed++;await persistVideoProject();
+          }catch(error){beat.artworkStatus='failed';beat.artworkError=String(error?.message||'Generation failed.').slice(0,250);failed++;await persistVideoProject();environmentStatus('Scene '+(si+1)+' · '+beat.title+' failed: '+beat.artworkError+'. Continuing with remaining beats.','error');}
+          renderEnvironmentBeats(getEnvironmentSceneList()[si]);renderEnvironmentSceneRail();
         }
       }
       await persistVideoProject();renderSavedEnvironments(savedEnvironments);
@@ -987,8 +1004,10 @@
       const beats=getSceneVisualBeats(scene),key=scene.title,i=getEnvironmentSceneList().findIndex(x=>x.title===key);
       if(!beats.length){if(count)count.textContent='Not analysed';rail.innerHTML='<div class="sv-beat-empty">SvaraFlow has not analysed this scene yet. Analyse the storyboard to create its visual-beat structure.</div>';detail.innerHTML='<small>SCENE '+String(i+1).padStart(2,'0')+'</small><strong>Awaiting SvaraFlow analysis</strong><p>No images will be generated and no credits will be used during this step.</p>';return;}
       const selected=Math.max(0,Math.min(beats.length-1,Number(selectedBeatByScene.get(key)||0)));selectedBeatByScene.set(key,selected);if(count)count.textContent=beats.length+' visual beat'+(beats.length===1?'':'s');
-      rail.innerHTML=beats.map((beat,n)=>'<button type="button" class="sv-beat-card" data-environment-beat-select="'+n+'" aria-pressed="'+(n===selected?'true':'false')+'"><span class="sv-beat-art"><b>'+String(n+1).padStart(2,'0')+'</b></span><strong>'+esc(beat.title)+'</strong><small>'+((beat.artworkStatus==='complete')?'Artwork generated':(beat.artworkStatus==='failed'?'Generation failed':'Artwork not generated'))+'</small></button>').join('');
-      const beat=beats[selected];detail.innerHTML='<small>SCENE '+String(i+1).padStart(2,'0')+' · VISUAL BEAT '+String(selected+1).padStart(2,'0')+'</small><strong>'+esc(beat.title)+'</strong><p>'+esc(beat.visualDescription||beat.purpose||'')+'</p>'+(beat.brandColourUsage?'<p class="sv-beat-transition"><b>BRAND COLOURS</b> '+esc(beat.brandColourUsage)+'</p>':'')+(beat.transition?'<p class="sv-beat-transition"><b>TRANSITION</b> '+esc(beat.transition)+'</p>':'');
+      const artworkFor=beat=>savedEnvironments.find(item=>item.id===beat.artworkId)||savedEnvironments.find(item=>item.beatId===beat.id&&item.analysisSignature===visualBeatAnalysis.sourceSignature);
+      rail.innerHTML=beats.map((beat,n)=>{const asset=artworkFor(beat),url=asset?environmentUrl(asset):'';return '<button type="button" class="sv-beat-card" data-environment-beat-select="'+n+'" aria-pressed="'+(n===selected?'true':'false')+'"><span class="sv-beat-art">'+(url?'<img src="'+esc(url)+'" alt="'+esc(beat.title)+' artwork" loading="lazy">':'')+'<b>'+String(n+1).padStart(2,'0')+'</b></span><strong>'+esc(beat.title)+'</strong><small>'+((asset||beat.artworkStatus==='complete')?'Artwork generated':(beat.artworkStatus==='failed'?'Generation failed':'Artwork not generated'))+'</small></button>';}).join('');
+      const beat=beats[selected],asset=artworkFor(beat),artwork=asset?'<div class="sv-beat-detail-art"><img src="'+esc(environmentUrl(asset))+'" alt="'+esc(beat.title)+' scene artwork"></div>':'';
+      detail.innerHTML='<small>SCENE '+String(i+1).padStart(2,'0')+' · VISUAL BEAT '+String(selected+1).padStart(2,'0')+'</small><strong>'+esc(beat.title)+'</strong>'+artwork+'<p>'+esc(beat.visualDescription||beat.purpose||'')+'</p>'+(beat.brandColourUsage?'<p class="sv-beat-transition"><b>BRAND COLOURS</b> '+esc(beat.brandColourUsage)+'</p>':'')+(beat.transition?'<p class="sv-beat-transition"><b>TRANSITION</b> '+esc(beat.transition)+'</p>':'');
     };
     const analyseVisualBeats=async button=>{
       if(visualBeatAnalysisBusy)return;if(!projectId||!discoveryConcept?.sceneOutline?.length){environmentStatus('Approve a storyboard concept before analysing visual beats.','error');return;}
