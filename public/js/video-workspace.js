@@ -650,7 +650,7 @@
       const discoveryFields={};
       ['idea','url','audience','goal'].forEach(key=>{discoveryFields[key]=root.querySelector('[data-discovery-field="'+key+'"]')?.value||'';});
       discoveryFields.mode=root.querySelector('[data-discovery-mode].active')?.dataset.discoveryMode||'discover';
-      return {version:2,discoveryFields,discoveryReferences,discoveryConcept,discoveryHistory,fields,scenes:safeScenes,selectedId,tab,mode,projectReviewed,brandAssets,visualBeatAnalysis,brandFileNames:Object.fromEntries(['logo','reference'].map(kind=>[kind,root.querySelector('[data-brand-file="'+kind+'"]')?.textContent||'']))};
+      return {version:2,workflowVersion:2,discoveryFields,discoveryReferences,discoveryConcept,discoveryHistory,fields,scenes:safeScenes,selectedId,tab,mode,projectReviewed,brandAssets,visualBeatAnalysis,brandFileNames:Object.fromEntries(['logo','reference'].map(kind=>[kind,root.querySelector('[data-brand-file="'+kind+'"]')?.textContent||'']))};
     };
     const persistVideoProject=async({currentStage=workflowCurrent,approvedStages=workflowApproved,concept=discoveryConcept,sceneList=scenes}={})=>{
       if(projectLoading)return false;
@@ -745,13 +745,13 @@
         renderSavedCharacterGallery();
         renderSavedEnvironments(Array.isArray(data.environments)?data.environments:[]);
         /* Migrate saved progress from the former seven-stage workflow: old Stage 4 (Environment) is removed. */
-        workflowApproved=Array.isArray(project.approvedStages)?[...new Set(project.approvedStages.map(Number).filter(n=>Number.isInteger(n)&&n>=0&&n<=6).map(n=>n>=3?n-1:n))].filter(n=>n<workflowStages.length):[];
-        workflowCurrent=Number.isInteger(project.currentStage)?Math.max(0,Math.min(workflowStages.length-1,project.currentStage>=3?project.currentStage-1:project.currentStage)):0;
+        workflowApproved=Array.isArray(project.approvedStages)?[...new Set(project.approvedStages.map(Number).filter(n=>Number.isInteger(n)&&n>=0&&n<=5).map(n=>n>=3?n+1:n))].filter(n=>n<workflowStages.length):[];
+        workflowCurrent=Number.isInteger(project.currentStage)?Math.max(0,Math.min(workflowStages.length-1,project.currentStage>=3?project.currentStage+1:project.currentStage)):0;
         if(visualBeatAnalysis?.approvedAt&&(visualBeatAnalysis.sourceSignature!==getVisualBeatSourceSignature()||visualBeatAnalysis.approvedSignature!==getVisualBeatSourceSignature()))visualBeatAnalysis={...visualBeatAnalysis,approvedAt:null,approvedSignature:null};
         renderVisualBeatApproval();
         if(discoveryConcept){const result=root.querySelector('[data-discovery-result]');if(result){result.hidden=false;renderDiscoveryConcept(discoveryConcept,result);}const actions=root.querySelector('[data-discovery-actions]');if(actions)actions.hidden=false;}
         renderScenes();renderSettings();renderPreview();renderWorkflow();
-        workflowStages.forEach((stage,index)=>{const state=root.querySelector('[data-accordion-state="'+stage.id+'"]');if(state&&workflowApproved.includes(index)){state.textContent=index===0?'Concept approved':index===5?'Storyboard approved':'Approved';state.classList.add('complete');}});
+        workflowStages.forEach((stage,index)=>{const state=root.querySelector('[data-accordion-state="'+stage.id+'"]');if(state&&workflowApproved.includes(index)){state.textContent=index===0?'Concept approved':index===5?'Storyboard approved':index===2?'Characters approved':index===3?'Environments approved':'Approved';state.classList.add('complete');}});
         goWorkflowStage(workflowCurrent,false);
         setStatus('Saved Video project restored from the database.','success');
       }finally{projectLoading=false;}
@@ -945,6 +945,7 @@
       const index=workflowStages.findIndex(stage=>stage.id===id);if(index<0)return;
       if(id==='story'&&!discoveryConcept){setStatus('Develop and review a concept before approving this stage.','error');return;}
       if(id==='storyboard'&&!scenes.length){setStatus('Create or approve your concept before approving the storyboard.','error');return;}
+      if(id==='environment'){setStatus('Approve the completed environment artwork version using the Environments panel before continuing.','error');return;}
       const nextApproved=[...new Set([...workflowApproved,index])].sort((a,b)=>a-b),nextStage=index<6?index+1:index;
       const state=root.querySelector('[data-accordion-state="'+id+'"]');
       const originalButtonText=triggerButton?.innerHTML;
@@ -1003,6 +1004,7 @@
       const legacyApprove=root.querySelector('[data-environment-approve]');if(legacyApprove)legacyApprove.hidden=true;
       const state=root.querySelector('[data-environment-analysis-approval-state]');
       if(state){state.hidden=!current;state.textContent=!approved?'Review all scene beats, then approve the analysis to generate artwork.':!allArtworkReady?'Analysis approved. Artwork is being generated or needs retry.':artworkApproved?'Artwork approved and saved as the current version.':'Artwork generated. Review it, then approve this artwork version.';}
+      const stageApprove=root.querySelector('[data-environment-stage-approve]');if(stageApprove){stageApprove.disabled=!artworkApproved||!allArtworkReady;stageApprove.title=stageApprove.disabled?'Generate and approve all scene artwork before continuing.':'';}
     };
     const approveVisualBeatAnalysis=async button=>{
       if(visualBeatApprovalBusy||!isVisualBeatAnalysisCurrent()){environmentStatus('The storyboard or brand settings have changed. Analyse the scenes again before approving.','error');renderVisualBeatApproval();return;}
