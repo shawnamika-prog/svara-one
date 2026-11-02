@@ -1174,8 +1174,9 @@
         previewImage.onload=()=>{
           const naturalWidth=previewImage.naturalWidth||16,naturalHeight=previewImage.naturalHeight||9;
           const stage=overlay.querySelector('.sv-reel-stage');
-          const availableWidth=Math.max(220,Math.min(stage.clientWidth*.98,stage.clientWidth-180));
-          const availableHeight=Math.max(160,stage.clientHeight-12);
+          const imageColumn=previewFrame.parentElement;
+          const availableWidth=Math.max(180,imageColumn.clientWidth-4);
+          const availableHeight=Math.max(140,Math.min(imageColumn.clientHeight-4,window.innerHeight*.72));
           const scale=Math.min(availableWidth/naturalWidth,availableHeight/naturalHeight,1);
           previewFrame.style.width=Math.round(naturalWidth*scale)+'px';
           previewFrame.style.height=Math.round(naturalHeight*scale)+'px';
