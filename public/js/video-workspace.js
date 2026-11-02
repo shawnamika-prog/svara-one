@@ -34,10 +34,41 @@
     .sv-artwork-zoom{position:absolute;z-index:4;right:12px;top:12px;width:34px;height:34px;border:1px solid #ffffff66;border-radius:9px;background:#07101dcc;color:#fff;font-size:22px;line-height:1;display:grid;place-items:center;cursor:zoom-in;backdrop-filter:blur(8px)}
     .sv-beat-art{cursor:zoom-in}
     .sv-artwork-zoom-glyph{position:absolute;z-index:3;right:8px;top:8px;width:27px;height:27px;display:grid;place-items:center;border-radius:8px;background:#07101dcc;border:1px solid #ffffff66;color:white;font-style:normal;font-size:19px;line-height:1;pointer-events:none}
-    .sv-artwork-lightbox{position:fixed;z-index:100000;inset:0;display:grid;place-items:center;padding:28px;background:#020611ef;backdrop-filter:blur(10px)}
-    .sv-artwork-lightbox-dialog{position:relative;width:min(1100px,94vw);max-height:90vh;display:grid;place-items:center}
-    .sv-artwork-lightbox-dialog img{display:block;max-width:100%;max-height:86vh;width:auto;height:auto;object-fit:contain;border-radius:12px;box-shadow:0 20px 80px #000b}
-    .sv-artwork-lightbox-close{position:absolute;right:-12px;top:-14px;z-index:2;width:38px;height:38px;border:1px solid #ffffff55;border-radius:50%;background:#111b2e;color:#fff;font-size:24px;cursor:pointer}
+    .sv-artwork-lightbox{position:fixed;z-index:100000;inset:0;display:grid;place-items:center;padding:24px;background:#020611f2;backdrop-filter:blur(12px)}
+    .sv-reel{width:min(1260px,96vw);max-height:94vh;overflow:hidden;padding:20px 24px 16px;border:1px solid #8b83ff;border-radius:20px;background:radial-gradient(ellipse at 50% 0%,#25234d 0,#101529 48%,#080e1b 100%);box-shadow:0 0 0 1px #ffffff12,0 25px 100px #000d,0 0 45px #6655ff35;display:grid;grid-template-rows:auto minmax(0,1fr) auto auto;gap:16px}
+    .sv-reel-head{display:flex;align-items:center;gap:20px;min-width:0}
+    .sv-reel-title{display:flex;align-items:center;gap:12px;min-width:220px}
+    .sv-reel-film-icon{font-size:34px;color:#b9a0ff}
+    .sv-reel-title h3{margin:0;color:#f5f4ff;font-size:18px}
+    .sv-reel-title p{margin:4px 0 0;color:#b5bfd5;font-size:11px}
+    .sv-reel-filters{display:flex;gap:4px;margin-left:auto;padding:4px;border:1px solid #ffffff22;border-radius:10px;background:#080e1c}
+    .sv-reel-filters button{border:0;border-radius:7px;padding:9px 13px;background:transparent;color:#aebbd2;font:600 11px Inter;cursor:pointer}
+    .sv-reel-filters button.active{background:linear-gradient(135deg,#7958ff,#5549e8);color:white;box-shadow:0 0 16px #765dff77}
+    .sv-reel-close{width:40px;height:40px;flex:none;border:1px solid #ffffff30;border-radius:50%;background:#0b1427;color:#fff;font-size:26px;cursor:pointer}
+    .sv-reel-stage{min-height:0;display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:12px;align-items:center}
+    .sv-reel-image-wrap{position:relative;min-height:0;height:min(58vh,560px);overflow:hidden;border:1px solid #ffffff28;border-radius:17px;background:#050914}
+    .sv-reel-image-wrap>img{display:block;width:100%;height:100%;object-fit:contain;background:#050914}
+    .sv-reel-caption{position:absolute;left:0;right:0;bottom:0;padding:42px 24px 20px;background:linear-gradient(transparent,#050914ed);display:grid;gap:5px;pointer-events:none}
+    .sv-reel-caption span{color:#b9caff;font-size:10px}
+    .sv-reel-caption strong{color:#fff;font-size:19px}
+    .sv-reel-caption p{margin:0;color:#d4d9e8;font-size:12px;max-width:80%;line-height:1.5}
+    .sv-reel-counter{position:absolute;right:16px;bottom:16px;padding:7px 10px;border:1px solid #ffffff40;border-radius:8px;background:#10172ccc;color:#fff;font-size:11px}
+    .sv-reel-arrow{width:44px;height:44px;border:1px solid #ffffff35;border-radius:50%;background:#10182dcc;color:#fff;font-size:30px;line-height:1;cursor:pointer}
+    .sv-reel-arrow:disabled{opacity:.35;cursor:default}
+    .sv-reel-filmstrip-wrap{position:relative;padding:12px 8px;border-top:1px solid #8c75ff55;border-bottom:1px solid #8c75ff55;background:linear-gradient(90deg,#20174466,#11152a,#20174466)}
+    .sv-reel-filmstrip-wrap:before,.sv-reel-filmstrip-wrap:after{content:'';position:absolute;left:0;right:0;height:8px;opacity:.6;background:repeating-linear-gradient(90deg,#9d85ff 0 8px,transparent 8px 20px);pointer-events:none}
+    .sv-reel-filmstrip-wrap:before{top:2px}.sv-reel-filmstrip-wrap:after{bottom:2px}
+    .sv-reel-filmstrip{display:flex;gap:10px;overflow-x:auto;scrollbar-color:#7664e8 #11172a;scrollbar-width:thin;padding:5px 2px}
+    .sv-reel-thumb{flex:0 0 104px;min-width:0;padding:0;border:1px solid #ffffff30;border-radius:9px;background:#080e1b;color:#cbd5e1;cursor:pointer;overflow:hidden}
+    .sv-reel-thumb.active{border:2px solid #a78bfa;box-shadow:0 0 0 2px #8b5cf655,0 0 20px #8b5cf677}
+    .sv-reel-thumb-image{display:block;aspect-ratio:16/9;overflow:hidden}
+    .sv-reel-thumb img{width:100%;height:100%;display:block;object-fit:cover}
+    .sv-reel-thumb small{display:block;padding:5px;font-size:9px}
+    .sv-reel-dots{display:flex;justify-content:center;gap:9px}
+    .sv-reel-dots button{width:8px;height:8px;padding:0;border:0;border-radius:50%;background:#67749a;cursor:pointer}
+    .sv-reel-dots button.active{background:#c084fc;box-shadow:0 0 10px #c084fc}
+    .sv-scene-beats{margin:14px 0 4px;padding:0;border:0;border-top:1px solid #7770d644;border-radius:0;background:transparent}
+    @media(max-width:760px){.sv-reel{padding:14px;gap:10px}.sv-reel-head{flex-wrap:wrap}.sv-reel-title{min-width:0;flex:1}.sv-reel-filters{order:3;width:100%;margin:0}.sv-reel-filters button{flex:1;padding:8px 5px;font-size:9px}.sv-reel-stage{grid-template-columns:30px minmax(0,1fr) 30px;gap:5px}.sv-reel-arrow{width:30px;height:36px;font-size:23px}.sv-reel-image-wrap{height:48vh}.sv-reel-caption{padding:30px 12px 12px}.sv-reel-caption strong{font-size:14px}.sv-reel-caption p{font-size:10px;max-width:100%}.sv-reel-thumb{flex-basis:84px}.sv-reel-close{width:34px;height:34px}}
     .sv-mode{display:flex;gap:3px;background:#080e18;border:1px solid #ffffff14;border-radius:10px;padding:3px}.sv-mode button{border:0;background:transparent;color:#8da0b5;border-radius:7px;padding:8px 10px;font:600 9px Inter;cursor:pointer}.sv-mode button.active{background:#183d73;color:#bcd9ff;box-shadow:inset 0 0 0 1px #4b8cff66}
     .sv-steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;padding:14px 16px}.sv-step{display:flex;align-items:center;gap:8px;min-width:0;color:#8092a8;font-size:10px}.sv-step b{display:grid;place-items:center;width:27px;height:27px;flex:none;border-radius:50%;background:#263448;color:#bdcce0}.sv-step.active b,.sv-step.done b{background:#277cf5;color:#fff}.sv-step span{display:block;min-width:0}.sv-step strong{display:block;color:#dbe7f6;font-size:10px}.sv-step small{display:block;color:#73879d;font-size:8px;margin-top:3px}
     .sv-workflow{padding:0 16px 15px;display:grid;gap:10px}.sv-workflow-label{font-size:9px;letter-spacing:.14em;font-weight:800;color:#778ba7}.sv-workflow-rail{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0;align-items:start}.sv-workflow-step{position:relative;display:grid;justify-items:center;align-content:start;gap:6px;padding:0 4px;border:0;background:none;color:#74869e;cursor:pointer;min-width:0;text-align:center}.sv-workflow-step:before{content:'';position:absolute;height:2px;background:#273449;left:calc(50% + 16px);right:calc(-50% + 16px);top:14px;z-index:0;pointer-events:none}.sv-workflow-step:last-child:before{display:none}.sv-workflow-step.done:before,.sv-workflow-step.active:before{background:#635bdf}.sv-workflow-dot{position:relative;z-index:1;display:grid;place-items:center;width:29px;height:29px;border-radius:50%;border:1px solid #35445c;background:#0b1220;box-shadow:0 0 0 3px #0b1220;color:#91a2ba;font-size:10px;font-weight:800}.sv-workflow-step.active .sv-workflow-dot{border-color:#8b83ff;background:#5146c9;color:white;box-shadow:0 0 0 4px #635bdf22}.sv-workflow-step.done .sv-workflow-dot{border-color:#327f75;background:#123c3b;color:#7ee7d0}.sv-workflow-step strong{display:block;font-size:9px;line-height:1.25;color:#b8c5d7;font-weight:650;overflow-wrap:anywhere}.sv-workflow-step.active strong{color:#e4e5ff}.sv-workflow-step:disabled{cursor:not-allowed;opacity:.55}.sv-workflow-step:disabled .sv-workflow-dot{background:#080d15}.sv-workflow-status{font-size:9px;color:#8ea0b6;line-height:1.4}.sv-workflow-status strong{color:#cbd5e1;font-weight:700}.sv-accordion.workflow-locked{display:none!important}.sv-accordion.workflow-current{border-color:#635bdf55}.sv-workflow-actions{display:flex;gap:8px;flex-wrap:wrap}.sv-workflow-actions .sv-btn{font-size:10px}.sv-workflow-actions .sv-btn.skip{background:transparent;border-color:#ffffff20;color:#9eacc0}
@@ -1109,15 +1140,58 @@
       renderSavedCharacterGallery();
     };
     const environmentUrl=item=>'/api/video/projects/'+encodeURIComponent(projectId)+'/environments/'+encodeURIComponent(item.id);
-    const openArtworkLightbox=(url,alt)=>{
-      if(!url)return;root.querySelector('[data-artwork-lightbox]')?.remove();
-      const overlay=document.createElement('div');overlay.className='sv-artwork-lightbox';overlay.dataset.artworkLightbox='1';
-      overlay.innerHTML='<div class="sv-artwork-lightbox-dialog" role="dialog" aria-modal="true" aria-label="Artwork preview"><button type="button" class="sv-artwork-lightbox-close" aria-label="Close artwork preview">×</button><img src="'+esc(url)+'" alt="'+esc(alt||'Artwork preview')+'"></div>';
-      const close=()=>{document.removeEventListener('keydown',onKey);overlay.remove();};
-      const onKey=event=>{if(event.key==='Escape')close();};
-      overlay.addEventListener('click',event=>{if(event.target===overlay||event.target.closest('.sv-artwork-lightbox-close'))close();});
-      document.addEventListener('keydown',onKey);root.appendChild(overlay);overlay.querySelector('.sv-artwork-lightbox-close')?.focus();
+    const collectProjectArtwork=()=>{
+      const items=[],list=getEnvironmentSceneList(),analysis=visualBeatAnalysis?.scenes||[];
+      list.forEach((scene,sceneIndex)=>{
+        const sceneAssets=savedEnvironments.filter(item=>item&&item.scene===scene.title&&!item.beatId);
+        const sceneAsset=sceneAssets[sceneAssets.length-1];
+        if(sceneAsset)items.push({kind:'scene',sceneIndex,beatIndex:-1,title:scene.title||('Scene '+(sceneIndex+1)),subtitle:'Scene artwork',url:environmentUrl(sceneAsset),id:sceneAsset.id,description:scene.visualDescription||scene.description||scene.purpose||''});
+        const analysisScene=analysis.find((item,index)=>item.sceneIndex===sceneIndex||item.sceneTitle===scene.title)||analysis[sceneIndex];
+        (analysisScene?.beats||[]).forEach((beat,beatIndex)=>{
+          const asset=savedEnvironments.find(item=>item&&item.beatId===beat.id&&item.analysisSignature===visualBeatAnalysis?.sourceSignature)||savedEnvironments.find(item=>item&&item.id===beat.artworkId);
+          if(asset)items.push({kind:'beat',sceneIndex,beatIndex,title:beat.title||('Visual Beat '+(beatIndex+1)),subtitle:'Scene '+String(sceneIndex+1).padStart(2,'0')+' · Beat '+String(beatIndex+1).padStart(2,'0'),url:environmentUrl(asset),id:asset.id,description:beat.visualDescription||beat.purpose||''});
+        });
+      });
+      return items;
     };
+    const openArtworkLightbox=(selectedId,filter='all')=>{
+      const items=collectProjectArtwork();if(!items.length)return;
+      let active=Math.max(0,items.findIndex(item=>item.id===selectedId));
+      let currentFilter=filter;
+      root.querySelector('[data-artwork-lightbox]')?.remove();
+      const overlay=document.createElement('div');overlay.className='sv-artwork-lightbox';overlay.dataset.artworkLightbox='1';
+      overlay.innerHTML='<section class="sv-reel" role="dialog" aria-modal="true" aria-label="Project artwork gallery"><header class="sv-reel-head"><div class="sv-reel-title"><span class="sv-reel-film-icon">▤</span><div><h3>Project Gallery</h3><p>Full visual reel · '+listSceneCount()+' Scenes · '+items.filter(item=>item.kind==='beat').length+' Visual Beats</p></div></div><nav class="sv-reel-filters" aria-label="Artwork filters"><button type="button" data-reel-filter="all" class="active">All Scenes</button><button type="button" data-reel-filter="scene">Scene Images</button><button type="button" data-reel-filter="beat">Visual Beats</button></nav><button type="button" class="sv-reel-close" aria-label="Close gallery">×</button></header><div class="sv-reel-stage"><button type="button" class="sv-reel-arrow prev" data-reel-prev aria-label="Previous artwork">‹</button><div class="sv-reel-image-wrap"><img data-reel-image alt=""><div class="sv-reel-caption"><span data-reel-subtitle></span><strong data-reel-title></strong><p data-reel-description></p></div><span class="sv-reel-counter" data-reel-counter></span></div><button type="button" class="sv-reel-arrow next" data-reel-next aria-label="Next artwork">›</button></div><div class="sv-reel-filmstrip-wrap"><div class="sv-reel-filmstrip" data-reel-filmstrip></div></div><div class="sv-reel-dots" data-reel-dots></div></section>';
+      const close=()=>{document.removeEventListener('keydown',onKey);overlay.remove();};
+      const filtered=()=>items.map((item,index)=>({...item,index})).filter(item=>currentFilter==='all'||item.kind===currentFilter);
+      const render=()=>{
+        const visible=filtered();if(!visible.length)return;
+        if(!visible.some(item=>item.index===active))active=visible[0].index;
+        const item=items[active],pos=visible.findIndex(entry=>entry.index===active);
+        overlay.querySelector('[data-reel-image]').src=item.url;overlay.querySelector('[data-reel-image]').alt=item.title;
+        overlay.querySelector('[data-reel-subtitle]').textContent=item.subtitle;
+        overlay.querySelector('[data-reel-title]').textContent=item.title;
+        overlay.querySelector('[data-reel-description]').textContent=item.description;
+        overlay.querySelector('[data-reel-counter]').textContent=(pos+1)+' / '+visible.length;
+        overlay.querySelector('[data-reel-prev]').disabled=visible.length<2;
+        overlay.querySelector('[data-reel-next]').disabled=visible.length<2;
+        overlay.querySelector('[data-reel-filmstrip]').innerHTML=visible.map(entry=>'<button type="button" class="sv-reel-thumb '+(entry.index===active?'active':'')+'" data-reel-index="'+entry.index+'" aria-label="'+esc(entry.subtitle+' '+entry.title)+'"><span class="sv-reel-thumb-image"><img src="'+esc(entry.url)+'" alt="" loading="lazy"></span><small>'+esc(entry.kind==='scene'?'S'+(entry.sceneIndex+1)+' · Scene':'S'+(entry.sceneIndex+1)+' · B'+(entry.beatIndex+1))+'</small></button>').join('');
+        overlay.querySelector('[data-reel-dots]').innerHTML=visible.length>1?visible.map((entry,index)=>'<button type="button" data-reel-dot="'+entry.index+'" class="'+(entry.index===active?'active':'')+'" aria-label="Go to artwork '+(index+1)+'"></button>').join(''):'';
+        overlay.querySelectorAll('[data-reel-filter]').forEach(button=>button.classList.toggle('active',button.dataset.reelFilter===currentFilter));
+        overlay.querySelector('[data-reel-filmstrip]').querySelector('[data-reel-index="'+active+'"]')?.scrollIntoView({block:'nearest',inline:'center'});
+      };
+      const move=direction=>{const visible=filtered();if(visible.length<2)return;const pos=visible.findIndex(item=>item.index===active);active=visible[(pos+direction+visible.length)%visible.length].index;render();};
+      const onKey=event=>{if(event.key==='Escape')close();else if(event.key==='ArrowLeft')move(-1);else if(event.key==='ArrowRight')move(1);};
+      overlay.addEventListener('click',event=>{
+        if(event.target===overlay||event.target.closest('.sv-reel-close'))close();
+        else if(event.target.closest('[data-reel-prev]'))move(-1);
+        else if(event.target.closest('[data-reel-next]'))move(1);
+        else if(event.target.closest('[data-reel-index]')){active=Number(event.target.closest('[data-reel-index]').dataset.reelIndex);render();}
+        else if(event.target.closest('[data-reel-dot]')){active=Number(event.target.closest('[data-reel-dot]').dataset.reelDot);render();}
+        else if(event.target.closest('[data-reel-filter]')){currentFilter=event.target.closest('[data-reel-filter]').dataset.reelFilter;render();}
+      });
+      document.addEventListener('keydown',onKey);root.appendChild(overlay);render();overlay.querySelector('.sv-reel-close')?.focus();
+    };
+    const listSceneCount=()=>getEnvironmentSceneList().length;
     const assignEnvironmentToScope=(item,scope)=>{
       if(!item||!item.id)return 0;
       const target=String(scope||'all');
@@ -1475,7 +1549,7 @@
       const zoomButton=event.target.closest('[data-artwork-zoom-button]');
       const zoomGlyph=event.target.closest('.sv-artwork-zoom-glyph');
       const zoomImage=event.target.closest('[data-artwork-zoom]');
-      if(zoomButton||zoomGlyph||zoomImage){const image=zoomImage||zoomButton?.parentElement?.querySelector('[data-artwork-zoom]')||zoomGlyph?.parentElement?.querySelector('[data-artwork-zoom]');if(image){event.preventDefault();event.stopPropagation();openArtworkLightbox(image.currentSrc||image.src,image.alt);}return;}
+      if(zoomButton||zoomGlyph||zoomImage){const image=zoomImage||zoomButton?.parentElement?.querySelector('[data-artwork-zoom]')||zoomGlyph?.parentElement?.querySelector('[data-artwork-zoom]');if(image){event.preventDefault();event.stopPropagation();const card=image.closest('[data-environment-beat-select]');const sceneIndex=getEnvironmentSceneList().findIndex(scene=>scene.title===root.querySelector('[data-environment-scene]')?.value);let assetId='';if(card){const beat=(visualBeatAnalysis?.scenes?.[sceneIndex]?.beats||[])[Number(card.dataset.environmentBeatSelect)];assetId=savedEnvironments.find(item=>item.beatId===beat?.id&&item.analysisSignature===visualBeatAnalysis?.sourceSignature)?.id||'';}else{const scene=getEnvironmentSceneList()[sceneIndex];assetId=savedEnvironments.filter(item=>item.scene===scene?.title&&!item.beatId).slice(-1)[0]?.id||'';}openArtworkLightbox(assetId,card?'beat':'scene');}return;}
       const remove=event.target.closest('[data-brand-remove]');
       if(!remove)return;
       event.preventDefault();event.stopPropagation();
