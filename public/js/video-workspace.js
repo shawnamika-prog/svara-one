@@ -990,19 +990,22 @@
     const renderVisualBeatApproval=()=>{
       const approve=root.querySelector('[data-environment-beat-approve]'),generate=root.querySelector('[data-environment-generate]');
       const current=isVisualBeatAnalysisCurrent(),approved=current&&Boolean(visualBeatAnalysis?.approvedAt)&&visualBeatAnalysis?.approvedSignature===getVisualBeatSourceSignature();
-      const allArtworkReady=current&&(visualBeatAnalysis.scenes||[]).every(scene=>(scene.beats||[]).every(beat=>beat.artworkStatus==='complete'||savedEnvironments.some(item=>item.beatId===beat.id&&item.analysisSignature===visualBeatAnalysis.sourceSignature)));if(approve){approve.hidden=!current;approve.disabled=!current||visualBeatApprovalBusy||(approved&&allArtworkReady);approve.textContent=approved?(allArtworkReady?'Artwork generation complete ✓':'Continue Artwork Generation →'):'Approve & Generate Artwork →';}
+      const allArtworkReady=current&&(visualBeatAnalysis.scenes||[]).every(scene=>(scene.beats||[]).every(beat=>beat.artworkStatus==='complete'||savedEnvironments.some(item=>item.beatId===beat.id&&item.analysisId===visualBeatAnalysis.analysisId)));const artworkApproved=approved&&allArtworkReady&&Boolean(visualBeatAnalysis.artworkApprovedAt)&&visualBeatAnalysis.artworkApprovedSignature===visualBeatAnalysis.analysisId;if(approve){approve.hidden=!current;approve.disabled=!current||visualBeatApprovalBusy||(artworkApproved);approve.textContent=!approved?'Approve & Generate Artwork →':!allArtworkReady?'Continue Artwork Generation →':!artworkApproved?'Approve Artwork →':'Artwork approved ✓';}
       if(generate){generate.disabled=true;generate.textContent='Generate Artwork · next phase';}
       const legacyApprove=root.querySelector('[data-environment-approve]');if(legacyApprove)legacyApprove.hidden=true;
       const state=root.querySelector('[data-environment-analysis-approval-state]');
-      if(state){state.hidden=!current;state.textContent=approved?'Analysis approved. Artwork generation will be available in the next phase.':'Review all scene beats, then approve the analysis before artwork generation.';}
+      if(state){state.hidden=!current;state.textContent=!approved?'Review all scene beats, then approve the analysis to generate artwork.':!allArtworkReady?'Analysis approved. Artwork is being generated or needs retry.':artworkApproved?'Artwork approved and saved as the current version.':'Artwork generated. Review it, then approve this artwork version.';}
     };
     const approveVisualBeatAnalysis=async button=>{
       if(visualBeatApprovalBusy||!isVisualBeatAnalysisCurrent()){environmentStatus('The storyboard or brand settings have changed. Analyse the scenes again before approving.','error');renderVisualBeatApproval();return;}
       visualBeatApprovalBusy=true;
       const alreadyApproved=Boolean(visualBeatAnalysis.approvedAt);
+      const artworkReady=(visualBeatAnalysis.scenes||[]).every(scene=>(scene.beats||[]).every(beat=>beat.artworkStatus==='complete'||savedEnvironments.some(item=>item.beatId===beat.id&&item.analysisId===visualBeatAnalysis.analysisId)));
+      const artworkApproved=Boolean(visualBeatAnalysis.artworkApprovedAt)&&visualBeatAnalysis.artworkApprovedSignature===visualBeatAnalysis.analysisId;
       const showBusy=label=>{if(button){button.disabled=true;button.classList.add('is-generating');button.innerHTML='<span class="sv-generation-spinner" aria-hidden="true"></span><span>'+esc(label)+'</span>';}};
-      showBusy(alreadyApproved?'Generating Artwork…':'Saving approval…');
+      showBusy(alreadyApproved?(artworkReady?'Saving artwork approval…':'Generating Artwork…'):'Saving approval…');
       try{
+        if(alreadyApproved&&artworkReady&&!artworkApproved){visualBeatAnalysis={...visualBeatAnalysis,artworkApprovedAt:new Date().toISOString(),artworkApprovedSignature:visualBeatAnalysis.analysisId};if(!await persistVideoProject())throw new Error('Artwork approval could not be saved. Please retry.');environmentStatus('Artwork approved. The new artwork version is now ready for the next stage.','success');return;}
         if(!alreadyApproved){
           visualBeatAnalysis={...visualBeatAnalysis,approvedAt:new Date().toISOString(),approvedSignature:getVisualBeatSourceSignature()};
           if(!await persistVideoProject())throw new Error('Approval could not be saved. Please retry.');
@@ -1021,13 +1024,13 @@
       for(let si=0;si<scenes.length;si++){
         const scene=scenes[si],sceneInfo=getEnvironmentSceneList()[si];
         for(let bi=0;bi<(scene.beats||[]).length;bi++){
-          const beat=scene.beats[bi],existing=savedEnvironments.find(item=>item.beatId===beat.id&&item.analysisSignature===visualBeatAnalysis.sourceSignature);
+          const beat=scene.beats[bi],existing=savedEnvironments.find(item=>item.beatId===beat.id&&item.analysisId===visualBeatAnalysis.analysisId);
           if(existing){beat.artworkId=existing.id;beat.artworkStatus='complete';completed++;renderEnvironmentBeats(getEnvironmentSceneList()[si]);continue;}
           if(button){button.disabled=true;button.classList.add('is-generating');button.innerHTML='<span class="sv-generation-spinner" aria-hidden="true"></span><span>Generating Artwork…</span>';}
           environmentStatus('Generating Scene '+(si+1)+' · '+beat.title+' ('+(completed+failed+1)+'/'+total+').','');
           const description=[beat.visualDescription,beat.purpose?'Purpose: '+beat.purpose:'',beat.transition?'Transition: '+beat.transition:'',beat.brandColourUsage?'Brand colours: '+beat.brandColourUsage:'',sceneInfo?.cameraDirection?'Camera direction: '+sceneInfo.cameraDirection:''].filter(Boolean).join('\n');
           try{
-            const response=await fetch('/api/video/environments/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({projectId,description,scene:scene.sceneTitle||sceneInfo?.title||('Scene '+(si+1)),beatId:beat.id,beatTitle:beat.title,sceneIndex:si,beatIndex:bi})});
+            const response=await fetch('/api/video/environments/generate',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({projectId,description,scene:scene.sceneTitle||sceneInfo?.title||('Scene '+(si+1)),beatId:beat.id,beatTitle:beat.title,sceneIndex:si,beatIndex:bi,analysisId:visualBeatAnalysis.analysisId})});
             const result=await response.json().catch(()=>({}));if(!response.ok||!result.ok||!result.environment)throw new Error(result.error||'Image generation failed.');
             if(!savedEnvironments.some(item=>item.id===result.environment.id))savedEnvironments.push(result.environment);
             beat.artworkId=result.environment.id;beat.artworkStatus='complete';beat.artworkError='';completed++;await persistVideoProject();
@@ -1045,7 +1048,7 @@
       const beats=getSceneVisualBeats(scene),key=scene.title,i=getEnvironmentSceneList().findIndex(x=>x.title===key);
       if(!beats.length){if(count)count.textContent='Not analysed';rail.innerHTML='<div class="sv-beat-empty">SvaraFlow has not analysed this scene yet. Analyse the storyboard to create its visual-beat structure.</div>';detail.innerHTML='<small>SCENE '+String(i+1).padStart(2,'0')+'</small><strong>Awaiting SvaraFlow analysis</strong><p>No images will be generated and no credits will be used during this step.</p>';return;}
       const selected=Math.max(0,Math.min(beats.length-1,Number(selectedBeatByScene.get(key)||0)));selectedBeatByScene.set(key,selected);if(count)count.textContent=beats.length+' visual beat'+(beats.length===1?'':'s');
-      const artworkFor=beat=>savedEnvironments.find(item=>item.id===beat.artworkId)||savedEnvironments.find(item=>item.beatId===beat.id&&item.analysisSignature===visualBeatAnalysis.sourceSignature);
+      const artworkFor=beat=>savedEnvironments.find(item=>item.id===beat.artworkId&&item.analysisId===visualBeatAnalysis.analysisId)||savedEnvironments.find(item=>item.beatId===beat.id&&item.analysisId===visualBeatAnalysis.analysisId);
       rail.innerHTML=beats.map((beat,n)=>{const asset=artworkFor(beat),url=asset?environmentUrl(asset):'';return '<button type="button" class="sv-beat-card" data-environment-beat-select="'+n+'" aria-pressed="'+(n===selected?'true':'false')+'"><span class="sv-beat-art">'+(url?'<img data-artwork-zoom src="'+esc(url)+'" alt="'+esc(beat.title)+' artwork" loading="lazy"><i class="sv-artwork-zoom-glyph" aria-hidden="true">⌕</i>':'')+'<b>'+String(n+1).padStart(2,'0')+'</b></span><strong>'+esc(beat.title)+'</strong><small>'+((asset||beat.artworkStatus==='complete')?'Artwork generated':(beat.artworkStatus==='failed'?'Generation failed':'Artwork not generated'))+'</small></button>';}).join('');
       const beat=beats[selected];
       detail.innerHTML='<small>SCENE '+String(i+1).padStart(2,'0')+' · VISUAL BEAT '+String(selected+1).padStart(2,'0')+'</small><strong>'+esc(beat.title)+'</strong><p>'+esc(beat.visualDescription||beat.purpose||'')+'</p>'+(beat.brandColourUsage?'<p class="sv-beat-transition"><b>BRAND COLOURS</b> '+esc(beat.brandColourUsage)+'</p>':'')+(beat.transition?'<p class="sv-beat-transition"><b>TRANSITION</b> '+esc(beat.transition)+'</p>':'');
@@ -1057,7 +1060,7 @@
       try{if(!await persistVideoProject())throw new Error('Save the Video project before analysing its scenes.');
         const response=await fetch('/api/video/visual-beats/analyse',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({projectId})}),result=await response.json().catch(()=>({}));
         if(!response.ok||!result.ok||!result.analysis)throw new Error(result.error||'Visual-beat analysis failed.');
-        visualBeatAnalysis={...result.analysis,sourceSignature:getVisualBeatSourceSignature(),approvedAt:null,approvedSignature:null};if(!await persistVideoProject())throw new Error('Analysis completed, but the project could not be saved in the workspace. Reopen the project to verify its saved analysis.');
+        visualBeatAnalysis={...result.analysis,analysisId:crypto.randomUUID(),sourceSignature:getVisualBeatSourceSignature(),approvedAt:null,approvedSignature:null,artworkApprovedAt:null,artworkApprovedSignature:null};if(!await persistVideoProject())throw new Error('Analysis completed, but the project could not be saved in the workspace. Reopen the project to verify its saved analysis.');
         selectedBeatByScene.clear();renderEnvironmentSceneRail();const total=result.analysis.scenes.reduce((sum,x)=>sum+x.beats.length,0);renderVisualBeatApproval();
         environmentStatus('SvaraFlow analysed '+result.analysis.scenes.length+' scenes into '+total+' visual beats. Brand colours applied. No artwork generated; 0 credits used.','success');
       }catch(error){environmentStatus(String(error?.message||'Visual-beat analysis failed.').slice(0,350),'error');}
@@ -1078,7 +1081,7 @@
       if(cta)cta.textContent=concept.callToAction||'';
       if(assumptions)assumptions.innerHTML='<strong>Worth deciding</strong><ul>'+((Array.isArray(concept.openQuestions)?concept.openQuestions:[]).map(item=>'<li>'+esc(item)+'</li>').join('')||'<li>No open questions supplied.</li>')+'</ul><strong>Assumptions made</strong><ul>'+((Array.isArray(concept.assumptions)?concept.assumptions:[]).map(item=>'<li>'+esc(item)+'</li>').join('')||'<li>No assumptions supplied.</li>')+'</ul>';
       if(number)number.textContent='SCENE '+String(index+1).padStart(2,'0');if(duration)duration.textContent=scene.durationSeconds+' sec';
-      const versions=savedEnvironments.filter(item=>item&&item.scene===scene.title),latest=versions[versions.length-1];
+      const versions=savedEnvironments.filter(item=>item&&item.scene===scene.title&&!item.beatId),latest=versions[versions.length-1];
       if(main)main.innerHTML=latest?'<img data-artwork-zoom src="'+esc(environmentUrl(latest))+'" alt="Latest artwork for '+esc(scene.title)+'"><button type="button" class="sv-artwork-zoom" data-artwork-zoom-button aria-label="Enlarge scene artwork" title="View larger">⌕</button>':'<div class="sv-canvas-orbit" aria-hidden="true"></div><div><div class="sv-canvas-art-symbol" aria-hidden="true">✧</div><div class="sv-canvas-art-copy"><small>Visual preview</small><span>'+esc(scene.visualDescription||scene.description||scene.title)+'</span></div></div>';
       if(state)state.textContent=latest?'Artwork available · '+versions.length+' version'+(versions.length===1?'':'s'):'Artwork not generated';
       renderEnvironmentBeats(scene);
