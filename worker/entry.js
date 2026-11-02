@@ -917,7 +917,7 @@ export default {
       if (!userId) return json({ error: "Authentication required." }, 401);
       if (!env.DB || !env.GENERATED_AUDIO) return json({ error: "Environment storage is not configured." }, 503);
       let body = {}; try { body = await request.json(); } catch { return json({ error: "Send environment details as JSON." }, 400); }
-      const projectId = String(body.projectId || "").trim(), description = String(body.description || "").trim(), scene = String(body.scene || "all").trim().slice(0,120), beatId=String(body.beatId||"").trim().slice(0,100), beatTitle=String(body.beatTitle||"").trim().slice(0,120), sceneIndex=Number.isInteger(body.sceneIndex)?body.sceneIndex:-1, beatIndex=Number.isInteger(body.beatIndex)?body.beatIndex:-1;
+      const projectId = String(body.projectId || "").trim(), description = String(body.description || "").trim(), scene = String(body.scene || "all").trim().slice(0,120), beatId=String(body.beatId||"").trim().slice(0,100), beatTitle=String(body.beatTitle||"").trim().slice(0,120), analysisId=String(body.analysisId||"").trim().slice(0,100), sceneIndex=Number.isInteger(body.sceneIndex)?body.sceneIndex:-1, beatIndex=Number.isInteger(body.beatIndex)?body.beatIndex:-1;
       if (!projectId || !/^[a-zA-Z0-9_-]{1,80}$/.test(projectId)) return json({ error: "A valid Video project is required." }, 400);
       if (!description || description.length > 1800) return json({ error: "Describe the environment in 1,800 characters or fewer." }, 400);
       const project = await env.DB.prepare("SELECT title, project_data_json FROM video_projects WHERE id=? AND user_id=? LIMIT 1").bind(projectId,userId).first();
@@ -928,10 +928,10 @@ export default {
       let beatRecord=null;
       if(beatId){
         const analysis=data.visualBeatAnalysis;
-        if(!analysis?.approvedAt||analysis.approvedSignature!==analysis.sourceSignature||!Array.isArray(analysis.scenes))return json({error:"Approve the current scene analysis before generating beat artwork."},409);
+        if(!analysis?.approvedAt||analysis.approvedSignature!==analysis.sourceSignature||!analysis.analysisId||analysis.analysisId!==analysisId||!Array.isArray(analysis.scenes))return json({error:"Approve the current scene analysis before generating beat artwork."},409);
         const sceneRecord=analysis.scenes[sceneIndex],beat=sceneRecord?.beats?.[beatIndex];
         if(!beat||beat.id!==beatId||sceneRecord.sceneTitle!==scene)return json({error:"The requested visual beat does not match the approved analysis."},409);
-        const existing=(Array.isArray(data.environments)?data.environments:[]).find(item=>item.beatId===beatId&&item.analysisSignature===analysis.sourceSignature);
+        const existing=(Array.isArray(data.environments)?data.environments:[]).find(item=>item.beatId===beatId&&item.analysisId===analysis.analysisId);
         if(existing)return json({ok:true,environment:{...existing,url:"/api/video/projects/"+encodeURIComponent(projectId)+"/environments/"+encodeURIComponent(existing.id)},alreadyGenerated:true});
         beatRecord=beat;
       }
@@ -954,7 +954,7 @@ export default {
         const bytes=Uint8Array.from(atob(item.b64_json),c=>c.charCodeAt(0));if(!bytes.length||bytes.length>12*1024*1024)throw new Error("The generated environment image is too large.");
         const id=crypto.randomUUID();storedKey="users/"+userId+"/video-projects/"+projectId+"/environments/"+id+".png";
         await env.GENERATED_AUDIO.put(storedKey,bytes,{httpMetadata:{contentType:"image/png",cacheControl:"private, no-store"},customMetadata:{userId,projectId,assetKind:"environment",assetId:id}});
-        const environment={id,description,scene,key:storedKey,type:"image/png",createdAt:new Date().toISOString(),characterId:character.id||"",...(beatRecord?{beatId,beatTitle:beatRecord.title,sceneIndex,beatIndex,analysisSignature:data.visualBeatAnalysis.sourceSignature}: {})};
+        const environment={id,description,scene,key:storedKey,type:"image/png",createdAt:new Date().toISOString(),characterId:character.id||"",...(beatRecord?{beatId,beatTitle:beatRecord.title,sceneIndex,beatIndex,analysisSignature:data.visualBeatAnalysis.sourceSignature,analysisId:data.visualBeatAnalysis.analysisId}: {})};
         const environments=Array.isArray(data.environments)?data.environments:[];environments.push(environment);data.environments=environments;
         const saved=await env.DB.prepare("UPDATE video_projects SET project_data_json=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=? AND user_id=?").bind(JSON.stringify(data),projectId,userId).run();
         if(!saved.meta?.changes)throw new Error("The environment could not be saved to the project.");savedEnvironment=true;
