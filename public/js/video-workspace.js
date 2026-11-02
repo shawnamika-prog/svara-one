@@ -34,39 +34,41 @@
     .sv-artwork-zoom{position:absolute;z-index:4;right:12px;top:12px;width:34px;height:34px;border:1px solid #ffffff66;border-radius:9px;background:#07101dcc;color:#fff;font-size:22px;line-height:1;display:grid;place-items:center;cursor:zoom-in;backdrop-filter:blur(8px)}
     .sv-beat-art{cursor:zoom-in}
     .sv-artwork-zoom-glyph{position:absolute;z-index:3;right:8px;top:8px;width:27px;height:27px;display:grid;place-items:center;border-radius:8px;background:#07101dcc;border:1px solid #ffffff66;color:white;font-style:normal;font-size:19px;line-height:1;pointer-events:none}
-    .sv-artwork-lightbox{position:fixed;z-index:100000;inset:0;display:grid;place-items:center;padding:24px;background:#020611f2;backdrop-filter:blur(12px)}
-    .sv-reel{width:min(1260px,96vw);max-height:94vh;overflow:hidden;padding:20px 24px 16px;border:1px solid #8b83ff;border-radius:20px;background:radial-gradient(ellipse at 50% 0%,#25234d 0,#101529 48%,#080e1b 100%);box-shadow:0 0 0 1px #ffffff12,0 25px 100px #000d,0 0 45px #6655ff35;display:grid;grid-template-rows:auto minmax(0,1fr) auto auto;gap:16px}
-    .sv-reel-head{display:flex;align-items:center;gap:20px;min-width:0}
+    .sv-artwork-lightbox{position:fixed;z-index:100000;inset:0;display:grid;place-items:center;padding:18px;background:#020611f2;backdrop-filter:blur(12px)}
+    .sv-reel,.sv-reel *{box-sizing:border-box}
+    .sv-reel{width:min(1500px,96vw);max-height:96vh;min-width:0;overflow:hidden;padding:18px 26px 14px;border:1px solid #8b83ff;border-radius:22px;background:radial-gradient(ellipse at 50% 0%,#1a2038 0,#0d1424 48%,#070d19 100%);box-shadow:0 0 0 1px #ffffff10,0 25px 100px #000d,0 0 35px #6655ff24;display:grid;grid-template-rows:auto auto minmax(180px,1fr) auto auto auto;gap:10px}
+    .sv-reel-head{display:flex;align-items:center;justify-content:space-between;gap:16px;min-width:0}
     .sv-reel-title{display:flex;align-items:center;gap:12px;min-width:220px}
     .sv-reel-film-icon{font-size:34px;color:#b9a0ff}
     .sv-reel-title h3{margin:0;color:#f5f4ff;font-size:18px}
     .sv-reel-title p{margin:4px 0 0;color:#b5bfd5;font-size:11px}
-    .sv-reel-filters{display:flex;gap:4px;margin-left:auto;padding:4px;border:1px solid #ffffff22;border-radius:10px;background:#080e1c}
-    .sv-reel-filters button{border:0;border-radius:7px;padding:9px 13px;background:transparent;color:#aebbd2;font:600 11px Inter;cursor:pointer}
-    .sv-reel-filters button.active{background:linear-gradient(135deg,#7958ff,#5549e8);color:white;box-shadow:0 0 16px #765dff77}
     .sv-reel-close{width:40px;height:40px;flex:none;border:1px solid #ffffff30;border-radius:50%;background:#0b1427;color:#fff;font-size:26px;cursor:pointer}
-    .sv-reel-stage{min-height:0;display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:12px;align-items:center}
-    .sv-reel-image-wrap{position:relative;min-height:0;height:min(58vh,560px);overflow:hidden;border:1px solid #ffffff28;border-radius:17px;background:#050914}
+    .sv-reel-counter-top{justify-self:center;padding:7px 15px;border:1px solid #8b65e9;border-radius:20px;background:#11162a;color:#bdf7ff;font-size:12px;font-weight:700;letter-spacing:.04em}
+    .sv-reel-stage{min-height:0;min-width:0;display:grid;grid-template-columns:48px minmax(0,810px) 48px;justify-content:space-between;gap:12px;align-items:center}
+    .sv-reel-image-wrap{position:relative;min-width:0;min-height:0;width:100%;height:min(43vh,430px);justify-self:center;overflow:hidden;border:1px solid #8b65e9;border-radius:17px;background:#050914}
     .sv-reel-image-wrap>img{display:block;width:100%;height:100%;object-fit:contain;background:#050914}
-    .sv-reel-caption{position:absolute;left:0;right:0;bottom:0;padding:42px 24px 20px;background:linear-gradient(transparent,#050914ed);display:grid;gap:5px;pointer-events:none}
-    .sv-reel-caption span{color:#b9caff;font-size:10px}
-    .sv-reel-caption strong{color:#fff;font-size:19px}
-    .sv-reel-caption p{margin:0;color:#d4d9e8;font-size:12px;max-width:80%;line-height:1.5}
-    .sv-reel-counter{position:absolute;right:16px;bottom:16px;padding:7px 10px;border:1px solid #ffffff40;border-radius:8px;background:#10172ccc;color:#fff;font-size:11px}
-    .sv-reel-arrow{width:44px;height:44px;border:1px solid #ffffff35;border-radius:50%;background:#10182dcc;color:#fff;font-size:30px;line-height:1;cursor:pointer}
+    .sv-reel-arrow{width:46px;height:46px;border:1px solid #58647b;border-radius:50%;background:#101a2b;color:#fff;font-size:30px;line-height:1;cursor:pointer;display:grid;place-items:center}
     .sv-reel-arrow:disabled{opacity:.35;cursor:default}
-    .sv-reel-filmstrip-wrap{position:relative;padding:12px 8px;border-top:1px solid #8c75ff55;border-bottom:1px solid #8c75ff55;background:linear-gradient(90deg,#20174466,#11152a,#20174466)}
-    .sv-reel-filmstrip-wrap:before,.sv-reel-filmstrip-wrap:after{content:'';position:absolute;left:0;right:0;height:8px;opacity:.6;background:repeating-linear-gradient(90deg,#9d85ff 0 8px,transparent 8px 20px);pointer-events:none}
-    .sv-reel-filmstrip-wrap:before{top:2px}.sv-reel-filmstrip-wrap:after{bottom:2px}
-    .sv-reel-filmstrip{display:flex;gap:10px;overflow-x:auto;scrollbar-color:#7664e8 #11172a;scrollbar-width:thin;padding:5px 2px}
-    .sv-reel-thumb{flex:0 0 104px;min-width:0;padding:0;border:1px solid #ffffff30;border-radius:9px;background:#080e1b;color:#cbd5e1;cursor:pointer;overflow:hidden}
-    .sv-reel-thumb.active{border:2px solid #a78bfa;box-shadow:0 0 0 2px #8b5cf655,0 0 20px #8b5cf677}
+    .sv-reel-info{min-width:0;padding:2px 36px 4px;text-align:center}
+    .sv-reel-info>span{display:block;color:#bb91ff;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+    .sv-reel-info>strong{display:block;margin:5px auto;color:#f7f8fc;font-size:21px;line-height:1.25;text-align:center}
+    .sv-reel-info>p{margin:0 auto;color:#d0d7e3;font-size:12px;max-width:1000px;line-height:1.5;text-align:center}
+    .sv-reel-filmstrip-wrap{position:relative;width:min(1320px,100%);min-width:0;justify-self:center;padding:11px 8px;border:0;border-radius:0;background:transparent}
+    .sv-reel-filmstrip-wrap:before,.sv-reel-filmstrip-wrap:after{content:'';position:absolute;left:0;right:0;height:7px;opacity:.3;background:repeating-linear-gradient(90deg,#303b4d 0 8px,transparent 8px 20px);pointer-events:none}
+    .sv-reel-filmstrip-wrap:before{top:1px}.sv-reel-filmstrip-wrap:after{bottom:1px}
+    .sv-reel-filmstrip{display:flex;gap:10px;overflow-x:auto;scrollbar-color:#7862e8 #202b3b;scrollbar-width:thin;padding:6px 2px 9px;scroll-behavior:smooth}
+    .sv-reel-filmstrip::-webkit-scrollbar{height:8px}
+    .sv-reel-filmstrip::-webkit-scrollbar-track{background:#202b3b;border-radius:20px}
+    .sv-reel-filmstrip::-webkit-scrollbar-thumb{background:linear-gradient(90deg,#6554d9,#9b78ff);border:2px solid #202b3b;border-radius:20px}
+    .sv-reel-thumb{flex:0 0 112px;min-width:0;padding:0;border:1px solid #344156;border-radius:9px;background:#080e1b;color:#cbd5e1;cursor:pointer;overflow:hidden}
+    .sv-reel-thumb.active{border:2px solid #a78bfa;box-shadow:0 0 0 2px #8b5cf533,0 0 15px #8b5cf655}
     .sv-reel-thumb-image{display:block;aspect-ratio:16/9;overflow:hidden}
     .sv-reel-thumb img{width:100%;height:100%;display:block;object-fit:cover}
-    .sv-reel-thumb small{display:block;padding:5px;font-size:9px}
+    .sv-reel-thumb small{display:block;padding:5px;font-size:9px;color:#48e6d1;font-weight:700;letter-spacing:.08em}
     .sv-reel-dots{display:flex;justify-content:center;gap:9px}
     .sv-reel-dots button{width:8px;height:8px;padding:0;border:0;border-radius:50%;background:#67749a;cursor:pointer}
     .sv-reel-dots button.active{background:#c084fc;box-shadow:0 0 10px #c084fc}
+    @media(max-width:760px){.sv-artwork-lightbox{padding:8px}.sv-reel{width:calc(100vw - 16px);max-height:calc(100vh - 16px);padding:12px;gap:8px;grid-template-rows:auto auto minmax(150px,1fr) auto auto auto}.sv-reel-title{min-width:0}.sv-reel-film-icon{font-size:25px}.sv-reel-title h3{font-size:15px}.sv-reel-title p{font-size:9px}.sv-reel-close{width:34px;height:34px}.sv-reel-counter-top{font-size:10px;padding:5px 12px}.sv-reel-stage{grid-template-columns:30px minmax(0,1fr) 30px;gap:5px}.sv-reel-arrow{width:30px;height:36px;font-size:23px}.sv-reel-image-wrap{height:34vh}.sv-reel-info{padding:0 4px}.sv-reel-info>strong{font-size:15px}.sv-reel-info>p{font-size:10px}.sv-reel-thumb{flex-basis:84px}}
     .sv-scene-beats{margin:14px 0 4px;padding:0;border:0;border-top:1px solid #7770d644;border-radius:0;background:transparent}
     @media(max-width:760px){.sv-reel{padding:14px;gap:10px}.sv-reel-head{flex-wrap:wrap}.sv-reel-title{min-width:0;flex:1}.sv-reel-filters{order:3;width:100%;margin:0}.sv-reel-filters button{flex:1;padding:8px 5px;font-size:9px}.sv-reel-stage{grid-template-columns:30px minmax(0,1fr) 30px;gap:5px}.sv-reel-arrow{width:30px;height:36px;font-size:23px}.sv-reel-image-wrap{height:48vh}.sv-reel-caption{padding:30px 12px 12px}.sv-reel-caption strong{font-size:14px}.sv-reel-caption p{font-size:10px;max-width:100%}.sv-reel-thumb{flex-basis:84px}.sv-reel-close{width:34px;height:34px}}
     .sv-mode{display:flex;gap:3px;background:#080e18;border:1px solid #ffffff14;border-radius:10px;padding:3px}.sv-mode button{border:0;background:transparent;color:#8da0b5;border-radius:7px;padding:8px 10px;font:600 9px Inter;cursor:pointer}.sv-mode button.active{background:#183d73;color:#bcd9ff;box-shadow:inset 0 0 0 1px #4b8cff66}
@@ -1160,7 +1162,7 @@
       let currentFilter=filter;
       root.querySelector('[data-artwork-lightbox]')?.remove();
       const overlay=document.createElement('div');overlay.className='sv-artwork-lightbox';overlay.dataset.artworkLightbox='1';
-      overlay.innerHTML='<section class="sv-reel" role="dialog" aria-modal="true" aria-label="Project artwork gallery"><header class="sv-reel-head"><div class="sv-reel-title"><span class="sv-reel-film-icon">▤</span><div><h3>Project Gallery</h3><p>Full visual reel · '+listSceneCount()+' Scenes · '+items.filter(item=>item.kind==='beat').length+' Visual Beats</p></div></div><nav class="sv-reel-filters" aria-label="Artwork filters"><button type="button" data-reel-filter="all" class="active">All Scenes</button><button type="button" data-reel-filter="scene">Scene Images</button><button type="button" data-reel-filter="beat">Visual Beats</button></nav><button type="button" class="sv-reel-close" aria-label="Close gallery">×</button></header><div class="sv-reel-stage"><button type="button" class="sv-reel-arrow prev" data-reel-prev aria-label="Previous artwork">‹</button><div class="sv-reel-image-wrap"><img data-reel-image alt=""><div class="sv-reel-caption"><span data-reel-subtitle></span><strong data-reel-title></strong><p data-reel-description></p></div><span class="sv-reel-counter" data-reel-counter></span></div><button type="button" class="sv-reel-arrow next" data-reel-next aria-label="Next artwork">›</button></div><div class="sv-reel-filmstrip-wrap"><div class="sv-reel-filmstrip" data-reel-filmstrip></div></div><div class="sv-reel-dots" data-reel-dots></div></section>';
+      overlay.innerHTML='<section class="sv-reel" role="dialog" aria-modal="true" aria-label="Project artwork gallery"><header class="sv-reel-head"><div class="sv-reel-title"><span class="sv-reel-film-icon">▤</span><div><h3>Project Gallery</h3><p>Full visual reel · '+listSceneCount()+' Scenes · '+items.filter(item=>item.kind==='beat').length+' Visual Beats</p></div></div><button type="button" class="sv-reel-close" aria-label="Close gallery">×</button></header><div class="sv-reel-counter-top" data-reel-counter></div><div class="sv-reel-stage"><button type="button" class="sv-reel-arrow prev" data-reel-prev aria-label="Previous artwork">‹</button><div class="sv-reel-image-wrap"><img data-reel-image alt=""></div><button type="button" class="sv-reel-arrow next" data-reel-next aria-label="Next artwork">›</button></div><section class="sv-reel-info"><span data-reel-subtitle></span><strong data-reel-title></strong><p data-reel-description></p></section><div class="sv-reel-filmstrip-wrap"><div class="sv-reel-filmstrip" data-reel-filmstrip></div></div><div class="sv-reel-dots" data-reel-dots></div></section>';
       const close=()=>{document.removeEventListener('keydown',onKey);overlay.remove();};
       const filtered=()=>items.map((item,index)=>({...item,index})).filter(item=>currentFilter==='all'||item.kind===currentFilter);
       const render=()=>{
