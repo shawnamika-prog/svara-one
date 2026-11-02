@@ -239,6 +239,34 @@
   `;
   document.head.appendChild(style);
 
+  const beatStyle=document.createElement('style');
+  beatStyle.id='svaraSceneBeatStyles';
+  beatStyle.textContent=`
+    .sv-scene-beats{margin:18px 0 4px;padding:16px;border:1px solid #7770d644;border-radius:13px;background:linear-gradient(145deg,#11182b,#090f1b);display:grid;gap:12px;min-width:0}
+    .sv-scene-beats-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .sv-beat-kicker{font-size:8px;letter-spacing:.16em;font-weight:800;color:#a9a2ff}
+    .sv-scene-beats-heading h4{margin:4px 0;font-size:15px;color:#edf0ff}
+    .sv-scene-beats-heading p{margin:0;color:#8798b2;font-size:9px;line-height:1.5}
+    .sv-beat-count{padding:6px 9px;border:1px solid #7168e855;border-radius:8px;background:#242044;color:#c5c0ff;font-size:9px;white-space:nowrap}
+    .sv-beat-rail{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+    .sv-beat-card{min-width:0;padding:7px;border:1px solid #26364d;border-radius:10px;background:#0a1220;color:#dce6f6;text-align:left;cursor:pointer}
+    .sv-beat-card[aria-pressed="true"]{border-color:#8177ff;box-shadow:0 0 0 1px #8177ff66,0 8px 24px #5146d822}
+    .sv-beat-art{position:relative;display:grid;place-items:center;aspect-ratio:16/9;overflow:hidden;border-radius:7px;background:radial-gradient(ellipse at 65% 20%,#344c80,#18243b 55%,#080e18);border:1px solid #ffffff12}
+    .sv-beat-art:before,.sv-beat-art:after{content:'';position:absolute;width:48%;height:65%;border:1px solid #8ca5ff55;border-radius:50%;transform:rotate(-25deg)}
+    .sv-beat-art:after{transform:rotate(35deg);width:60%;height:45%}
+    .sv-beat-art b{position:relative;z-index:1;display:grid;place-items:center;width:25px;height:25px;border-radius:7px;background:#5146c9;color:#fff;font-size:10px}
+    .sv-beat-card strong{display:block;margin:7px 1px 2px;font-size:9px;line-height:1.35;overflow-wrap:anywhere}
+    .sv-beat-card small{display:block;margin:0 1px;color:#8294ae;font-size:8px}
+    .sv-beat-detail{padding:12px;border:1px solid #ffffff12;border-radius:9px;background:#0a1220;display:grid;gap:5px}
+    .sv-beat-detail small{color:#a9a2ff;font-size:8px;letter-spacing:.12em;font-weight:800}
+    .sv-beat-detail strong{color:#e8edff;font-size:12px}
+    .sv-beat-detail p{margin:0;color:#a0aec3;font-size:10px;line-height:1.6}
+    .sv-beat-disclaimer{font-size:8px;color:#71839c}
+    @media(max-width:620px){.sv-beat-rail{grid-template-columns:repeat(2,minmax(0,1fr))}.sv-scene-beats{padding:11px}}
+  `;
+  document.head.appendChild(beatStyle);
+
+
   function render(root){
     if(root.dataset.videoWorkspaceInitialized==='1')return;
     root.className='studio-domain-placeholder';
@@ -392,6 +420,12 @@
                     <div class="sv-canvas-detail" data-environment-brief></div>
                   </section>
                   </div>
+                  <section class="sv-scene-beats" aria-label="Visual beats for selected scene">
+                    <div class="sv-scene-beats-heading"><div><span class="sv-beat-kicker">SCENE BREAKDOWN</span><h4>Visual Beats</h4><p>Separate visual moments within this scene — not additional storyboard scenes.</p></div><span class="sv-beat-count" data-environment-beat-count>0 beats</span></div>
+                    <div class="sv-beat-rail" data-environment-beat-rail role="group" aria-label="Choose a visual beat"></div>
+                    <div class="sv-beat-detail" data-environment-beat-detail aria-live="polite"></div>
+                    <div class="sv-beat-disclaimer">Planning preview only · No artwork generated · No credits used</div>
+                  </section>
                   <div class="sv-canvas-footer"><p class="sv-canvas-takeaway" data-environment-key-message></p><p class="sv-canvas-cta" data-environment-call-to-action></p></div>
                   <details class="sv-concept-more sv-canvas-more" data-environment-concept-more><summary><svg class="sv-concept-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9a2.5 2.5 0 1 1 4.3 1.8c-1.2 1.1-1.9 1.4-1.9 3M12 17h.01"/></svg> Questions &amp; assumptions</summary><div data-environment-concept-assumptions></div></details>
                   <div class="sv-draft-note" data-environment-concept-note>Concept for your review. Reference files and URLs have not been analysed; scene imagery is illustrative UI only. No images or video have been generated.</div>
@@ -868,6 +902,7 @@
       }
     };
     let characterCandidates=[],selectedCharacterCandidate=-1,characterRoundBusy=false,characterDirectionApproved=false,approvedCharacter=null,previewedCharacter=null,savedCharacters=[],savedEnvironments=[];
+    const selectedBeatByScene=new Map();
     const characterStatus=(message,type='')=>{const el=root.querySelector('[data-character-status]');if(el){el.textContent=message;el.className='sv-status'+(type?' '+type:'');el.hidden=!message;}};
     const getEnvironmentSceneList=()=>{
       const outline=discoveryConcept&&Array.isArray(discoveryConcept.sceneOutline)?discoveryConcept.sceneOutline:[];
@@ -891,6 +926,34 @@
       rail.innerHTML=list.map((scene,index)=>{const active=scene.title===select.value;return '<button type="button" class="sv-canvas-thumb '+(active?'active':'')+'" data-environment-scene-select="'+esc(scene.title)+'" aria-pressed="'+(active?'true':'false')+'" aria-label="Select scene '+(index+1)+': '+esc(scene.title)+'"><b>'+String(index+1).padStart(2,'0')+'</b><i aria-hidden="true"></i></button>';}).join('');
       updateEnvironmentBrief();
     };
+    const getSceneVisualBeats=scene=>{
+      const description=String(scene?.visualDescription||scene?.description||scene?.purpose||scene?.title||'').trim();
+      const lower=description.toLowerCase();
+      if(/four|4\s+(?:floating|separate|distinct)?\s*(?:fragments|elements|pieces|forms|objects)/.test(lower)||/expands? into four/.test(lower)){
+        return [
+          {title:'The first spark',detail:'A small point of blue light appears in the empty creative space, establishing the idea.'},
+          {title:'The spark expands',detail:'The light grows and begins to release energy, creating a sense of possibility.'},
+          {title:'Four fragments emerge',detail:'Four distinct floating sound and image fragments separate from the central spark.'},
+          {title:'The idea takes shape',detail:'The fragments settle into a balanced composition, ready for the next story moment.'}
+        ];
+      }
+      return [
+        {title:'Establish the moment',detail:'Introduce the scene, its environment and the visual point of focus.'},
+        {title:'Develop the action',detail:'Show the central action or transformation described in the approved storyboard.'},
+        {title:'Resolve the moment',detail:'Land on the visual outcome and create a natural bridge into the next scene.'}
+      ];
+    };
+    const renderEnvironmentBeats=scene=>{
+      const rail=root.querySelector('[data-environment-beat-rail]'),detail=root.querySelector('[data-environment-beat-detail]'),count=root.querySelector('[data-environment-beat-count]');
+      if(!rail||!detail||!scene)return;
+      const beats=getSceneVisualBeats(scene),key=scene.title;
+      const selected=Math.max(0,Math.min(beats.length-1,Number(selectedBeatByScene.get(key)||0)));
+      selectedBeatByScene.set(key,selected);
+      if(count)count.textContent=beats.length+' visual beats';
+      rail.innerHTML=beats.map((beat,index)=>'<button type="button" class="sv-beat-card" data-environment-beat-select="'+index+'" aria-pressed="'+(index===selected?'true':'false')+'"><span class="sv-beat-art"><b>'+String(index+1).padStart(2,'0')+'</b></span><strong>'+esc(beat.title)+'</strong><small>Artwork not generated</small></button>').join('');
+      const beat=beats[selected];
+      detail.innerHTML='<small>SCENE '+String(getEnvironmentSceneList().findIndex(item=>item.title===key)+1).padStart(2,'0')+' · VISUAL BEAT '+String(selected+1).padStart(2,'0')+'</small><strong>'+esc(beat.title)+'</strong><p>'+esc(beat.detail)+'</p>';
+    };
     const updateEnvironmentBrief=()=>{
       const select=root.querySelector('[data-environment-scene]');if(!select)return;
       const scene=getEnvironmentSceneList().find(item=>item.title===select.value)||getEnvironmentSceneList()[0];
@@ -909,6 +972,7 @@
       const versions=savedEnvironments.filter(item=>item&&item.scene===scene.title),latest=versions[versions.length-1];
       if(main)main.innerHTML=latest?'<img src="'+esc(environmentUrl(latest))+'" alt="Latest artwork for '+esc(scene.title)+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#080e18"><div class="sv-canvas-preview-art" style="position:absolute;inset:0;background:#080e18a8"><div class="sv-canvas-art-copy"><small>APPROVED SCENE ARTWORK</small><span>'+esc(scene.visualDescription||scene.description||scene.title)+'</span></div></div>':'<div class="sv-canvas-orbit" aria-hidden="true"></div><div><div class="sv-canvas-art-symbol" aria-hidden="true">✧</div><div class="sv-canvas-art-copy"><small>Visual preview</small><span>'+esc(scene.visualDescription||scene.description||scene.title)+'</span></div></div>';
       if(state)state.textContent=latest?'Artwork available · '+versions.length+' version'+(versions.length===1?'':'s'):'Artwork not generated';
+      renderEnvironmentBeats(scene);
       if(brief)brief.innerHTML='<div class="sv-canvas-detail-head"><div><small>SCENE '+String(index+1).padStart(2,'0')+'</small><h4>'+esc(scene.title)+'</h4></div><span>'+scene.durationSeconds+' sec</span></div>'+(scene.purpose?'<p class="sv-canvas-purpose">'+esc(scene.purpose)+'</p>':'')+'<div class="sv-canvas-production-panel"><div class="sv-canvas-production-icon"><svg class="sv-concept-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="13" height="10" rx="2"/><path d="m16 10 5-3v10l-5-3z"/></svg></div><div class="sv-canvas-production-copy"><section><small>CAMERA</small><p>'+esc(scene.cameraDirection||'')+'</p></section><section><small>NARRATION</small><p class="'+(scene.narration?'':'sv-canvas-narration-empty')+'">'+esc(scene.narration||'No narration for this scene')+'</p></section></div></div>';
       if(field&&!field.dataset.userEdited)field.value='';
       const generate=root.querySelector('[data-environment-generate]');if(generate)generate.disabled=!approvedCharacter;
@@ -1123,6 +1187,8 @@
       const characterGenerate=event.target.closest('[data-character-generate]');if(characterGenerate){generateCharacterRound(characterGenerate);return;}
       const characterRotate=event.target.closest('[data-character-rotate]');if(characterRotate){generateCharacterRound(characterRotate);return;}
       const characterApprove=event.target.closest('[data-character-approve]');if(characterApprove){approveCharacter(characterApprove);return;}
+      const envBeatSelect=event.target.closest('[data-environment-beat-select]');
+      if(envBeatSelect){const scene=root.querySelector('[data-environment-scene]')?.value||'';selectedBeatByScene.set(scene,Number(envBeatSelect.dataset.environmentBeatSelect)||0);const sceneInfo=getEnvironmentSceneList().find(item=>item.title===scene);if(sceneInfo)renderEnvironmentBeats(sceneInfo);return;}
       const envSceneSelect=event.target.closest('[data-environment-scene-select]');if(envSceneSelect){const select=root.querySelector('[data-environment-scene]');if(select){select.value=envSceneSelect.dataset.environmentSceneSelect;const field=root.querySelector('[data-environment-description]');if(field){field.value='';delete field.dataset.userEdited;}renderEnvironmentSceneRail();renderSavedEnvironments(savedEnvironments); }return;}
       const envAssign=event.target.closest('[data-environment-assign]');if(envAssign){(async()=>{const item=savedEnvironments.find(environment=>environment.id===envAssign.dataset.environmentAssign);if(!item)return;const scope=String(root.querySelector('[data-environment-scene]')?.value||'all');const count=assignEnvironmentToScope(item,scope);try{if(!await persistVideoProject({currentStage:2,approvedStages:workflowApproved}))throw new Error('Could not save environment assignments.');await renderSavedEnvironments(savedEnvironments);environmentStatus('Environment assigned to '+count+' scene'+(count===1?'':'s')+' and saved.','success');}catch(error){environmentStatus(error.message||'Could not save environment assignments.','error');}})();return;}
       const envGenerate=event.target.closest('[data-environment-generate]');if(envGenerate){generateEnvironment(envGenerate);return;}
