@@ -1081,7 +1081,7 @@
       if(cta)cta.textContent=concept.callToAction||'';
       if(assumptions)assumptions.innerHTML='<strong>Worth deciding</strong><ul>'+((Array.isArray(concept.openQuestions)?concept.openQuestions:[]).map(item=>'<li>'+esc(item)+'</li>').join('')||'<li>No open questions supplied.</li>')+'</ul><strong>Assumptions made</strong><ul>'+((Array.isArray(concept.assumptions)?concept.assumptions:[]).map(item=>'<li>'+esc(item)+'</li>').join('')||'<li>No assumptions supplied.</li>')+'</ul>';
       if(number)number.textContent='SCENE '+String(index+1).padStart(2,'0');if(duration)duration.textContent=scene.durationSeconds+' sec';
-      const versions=savedEnvironments.filter(item=>item&&item.scene===scene.title&&!item.beatId),latest=versions[versions.length-1];
+      const versions=savedEnvironments.filter(item=>item&&item.scene===scene.title&&(item.beatId?item.analysisId===visualBeatAnalysis?.analysisId:!visualBeatAnalysis?.analysisId)),latest=versions[versions.length-1];
       if(main)main.innerHTML=latest?'<img data-artwork-zoom src="'+esc(environmentUrl(latest))+'" alt="Latest artwork for '+esc(scene.title)+'"><button type="button" class="sv-artwork-zoom" data-artwork-zoom-button aria-label="Enlarge scene artwork" title="View larger">⌕</button>':'<div class="sv-canvas-orbit" aria-hidden="true"></div><div><div class="sv-canvas-art-symbol" aria-hidden="true">✧</div><div class="sv-canvas-art-copy"><small>Visual preview</small><span>'+esc(scene.visualDescription||scene.description||scene.title)+'</span></div></div>';
       if(state)state.textContent=latest?'Artwork available · '+versions.length+' version'+(versions.length===1?'':'s'):'Artwork not generated';
       renderEnvironmentBeats(scene);
