@@ -225,6 +225,15 @@
     .sv-field>span{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8196ad}
     .sv-accordion-intro{color:#91a4b8;font-size:12px;line-height:1.7;margin:18px 0}
     .sv-accordion-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;flex-wrap:wrap}
+    [data-accordion="environment"]{width:100%!important;max-width:none!important;min-width:0!important;grid-column:1/-1!important;margin:0!important;justify-self:stretch!important;align-self:stretch!important}
+    [data-accordion="environment"]>.sv-accordion-body{width:100%;max-width:none;min-width:0;padding:18px 24px 24px!important;box-sizing:border-box}
+    [data-accordion="environment"] .sv-character-work-section{width:100%;max-width:none;min-width:0;margin:0!important}
+    [data-accordion="environment"] .sv-character-work-section>.sv-work-section-content{width:100%;max-width:none;min-width:0}
+    [data-accordion="environment"] .sv-environment-concept-card,[data-accordion="environment"] .sv-panel3c-control-frame{width:100%;max-width:none;min-width:0;box-sizing:border-box}
+    [data-accordion="environment"] .sv-accordion-foot{width:100%;padding-top:18px;margin-top:20px;border-top:1px solid #ffffff14}
+    [data-accordion="environment"] .sv-accordion-intro{max-width:none;margin:0 0 18px}
+    @media(max-width:700px){[data-accordion="environment"]>.sv-accordion-body{padding:14px!important}}
+
     .sv-setup-note{font-size:10px;color:#71859c}
     .sv-accordion-body>.sv-scenes{padding:14px 0!important}
     .sv-accordion-body>div[style]{padding-left:0!important;padding-right:0!important}
@@ -456,11 +465,11 @@
           </div>
             </div>
         </section>
-                <section class="sv-card sv-accordion" data-accordion="environment">
+        <section class="sv-card sv-accordion" data-accordion="environment">
           <button class="sv-accordion-head" type="button" data-accordion-toggle="environment" aria-expanded="false"><span class="sv-accordion-number">04</span><span class="sv-accordion-title"><strong>Environments</strong><small>Analyse scenes, generate environment artwork and approve artwork versions</small></span><span class="sv-accordion-state" data-accordion-state="environment">Not started</span><span class="sv-accordion-chevron">⌄</span></button>
           <div class="sv-accordion-body" data-accordion-body="environment" hidden>
             <p class="sv-accordion-intro">Create and refine environment artwork for every storyboard scene. Character assets remain separate and are brought together later in production.</p>
-            <details class="sv-work-section sv-character-work-section" data-character-work-section="c">
+            <details class="sv-work-section sv-character-work-section" data-character-work-section="c" open>
               <summary><span class="sv-work-index">A</span><span><strong>Scene Artwork Studio</strong><small>Create and refine artwork for each storyboard scene</small></span><span class="sv-work-chevron">⌄</span></summary>
               <div class="sv-work-section-content" id="sv-environment-section-a">
                 <div class="sv-discovery-result sv-creative-canvas sv-environment-concept-card" data-environment-concept-card>
